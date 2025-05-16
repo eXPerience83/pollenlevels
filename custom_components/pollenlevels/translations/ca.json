@@ -1,0 +1,1 @@
+{ "config": { "step": { "user": { "title": "Configuració Nivells de Polen", "description": "Introdueix la teva clau d'API de Google, coordenades, al·lèrgens i interval d'actualització." } } } }
