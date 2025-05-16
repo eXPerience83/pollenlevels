@@ -1,0 +1,9 @@
+{
+  "domain": "pollenlevels",
+  "name": "Pollen Levels",
+  "version": "1.0.0",
+  "documentation": "https://github.com/yourusername/homeassistant-pollenlevels",
+  "requirements": ["aiohttp"],
+  "codeowners": ["@eXPerience83"],
+  "config_flow": true
+}
