@@ -1,55 +1,59 @@
+"""
+Config flow for the Pollen Levels integration.
+Collects API key, location coordinates, allergens, and update interval from the user.
+"""
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import callback
-
-from .const import DOMAIN  # Asegúrate de tener un archivo const.py con DOMAIN definido
+from .const import (
+    DOMAIN,
+    CONF_API_KEY,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_ALLERGENS,
+    CONF_UPDATE_INTERVAL,
+    ALLERGEN_OPTIONS,
+    DEFAULT_UPDATE_INTERVAL
+)
 
 @config_entries.HANDLERS.register(DOMAIN)
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Pollen Levels integration."""
-
+    """Handle the config flow for Pollen Levels."""
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
+        """Initial configuration step."""
         errors = {}
 
         if user_input is not None:
-            # Aquí puedes validar la entrada si lo necesitas
-            return self.async_create_entry(title="Niveles de Polen", data=user_input)
+            return self.async_create_entry(
+                title=f"Pollen Levels ({user_input[CONF_LATITUDE]}, {user_input[CONF_LONGITUDE]})",
+                data=user_input
+            )
 
-        # Define los campos que se le piden al usuario
-        data_schema = vol.Schema({
-            vol.Required("location"): str,
+        schema = vol.Schema({
+            vol.Required(CONF_API_KEY): str,
+            vol.Required(
+                CONF_LATITUDE,
+                default=self.hass.config.latitude
+            ): float,
+            vol.Required(
+                CONF_LONGITUDE,
+                default=self.hass.config.longitude
+            ): float,
+            vol.Required(
+                CONF_ALLERGENS,
+                default=ALLERGEN_OPTIONS
+            ): vol.All(list, [vol.In(ALLERGEN_OPTIONS)]),
+            vol.Optional(
+                CONF_UPDATE_INTERVAL,
+                default=DEFAULT_UPDATE_INTERVAL
+            ): vol.All(int, vol.Range(min=1))
         })
 
         return self.async_show_form(
-            step_id="user", data_schema=data_schema, errors=errors
+            step_id="user",
+            data_schema=schema,
+            errors=errors
         )
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        return PollenLevelsOptionsFlowHandler(config_entry)
-
-class PollenLevelsOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle options."""
-
-    def __init__(self, config_entry):
-        """Initialize options flow."""
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input=None):
-        """Manage the options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
-        options_schema = vol.Schema({
-            vol.Optional("update_interval", default=self.config_entry.options.get("update_interval", 60)): int,
-        })
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=options_schema
-        )
