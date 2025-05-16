@@ -1,0 +1,8 @@
+{
+  "name": "Pollen Levels",
+  "repository": "eXPerience83/pollenlevels",
+  "content_in_root": true,
+  "domains": ["sensor"],
+  "homeassistant": "2021.12.0",
+  "render_readme": true
+}
