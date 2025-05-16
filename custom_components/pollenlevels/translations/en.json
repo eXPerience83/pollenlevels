@@ -1,0 +1,1 @@
+{ "config": { "step": { "user": { "title": "Pollen Levels Configuration", "description": "Enter Google API key, coords, allergens, update interval." } } } }
