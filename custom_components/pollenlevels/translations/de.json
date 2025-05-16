@@ -1,0 +1,1 @@
+{ "config": { "step": { "user": { "title": "Pollen-Level-Konfiguration", "description": "Geben Sie Ihren Google-API-Schlüssel, Koordinaten, Allergene und Aktualisierungsintervall ein." } } } }
