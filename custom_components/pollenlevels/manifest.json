@@ -2,7 +2,8 @@
   "domain": "pollenlevels",
   "name": "Pollen Levels",
   "version": "1.0.0",
-  "documentation": "https://github.com/yourusername/homeassistant-pollenlevels",
+  "logo": "logo.png",
+  "documentation": "https://github.com/eXPerience83/pollenlevels",
   "requirements": ["aiohttp"],
   "codeowners": ["@eXPerience83"],
   "config_flow": true
