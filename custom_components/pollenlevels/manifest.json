@@ -2,9 +2,10 @@
   "domain": "pollenlevels",
   "name": "Pollen Levels",
   "version": "1.0.0",
-  "logo": "logo.png",
   "documentation": "https://github.com/eXPerience83/pollenlevels",
   "requirements": ["aiohttp"],
   "codeowners": ["@eXPerience83"],
-  "config_flow": true
+  "config_flow": true,
+  "iot_class": "cloud_push",
+  "integration_type": "integration"
 }
