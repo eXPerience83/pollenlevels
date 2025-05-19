@@ -11,8 +11,7 @@ from .const import (
     CONF_LATITUDE, 
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL, 
-    DEFAULT_UPDATE_INTERVAL,
-    ALLERGEN_OPTIONS
+    DEFAULT_UPDATE_INTERVAL
 )
 _LOGGER = logging.getLogger(__name__)
 
