@@ -21,6 +21,9 @@
   },
   "entity": {
     "sensor": {
+      "pollen_grass": "Pollen Grass",
+      "pollen_tree": "Pollen Tree",
+      "pollen_weed": "Pollen Weed",
       "pollen_oak": "Pollen Oak",
       "pollen_pine": "Pollen Pine",
       "pollen_birch": "Pollen Birch",
