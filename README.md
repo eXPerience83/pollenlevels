@@ -13,7 +13,6 @@ It creates one sensor per pollen type (e.g. grass, tree, weed, plus individual p
 - Configurable update interval (default: 6 hours)  
 - Automatic device grouping by location  
 - No YAML configuration—setup entirely via UI  
-- Full localization (English, Español, Català, Deutsch, Français, Italiano, Polski)  
 - HACS‑compatible
 
 ---
@@ -44,14 +43,6 @@ It creates one sensor per pollen type (e.g. grass, tree, weed, plus individual p
            ├── const.py
            ├── manifest.json
            ├── sensor.py
-           └── translations/
-               ├── en.json
-               ├── es.json
-               ├── ca.json
-               ├── de.json
-               ├── fr.json
-               ├── it.json
-               └── pl.json
    assets/
      └── logo.png
    hacs.json
@@ -109,22 +100,6 @@ The response includes:
 See Google’s docs for full details:  
 - [Pollen Forecast](https://developers.google.com/maps/documentation/pollen/forecast)  
 - [Pollen Index](https://developers.google.com/maps/documentation/pollen/pollen-index)
-
----
-
-## Localization
-
-Already available:
-
-- **en** – English  
-- **es** – Español  
-- **ca** – Català  
-- **de** – Deutsch  
-- **fr** – Français  
-- **it** – Italiano  
-- **pl** – Polski  
-
-To contribute more languages or improve translations, please submit a PR under `translations/`.
 
 ---
 
