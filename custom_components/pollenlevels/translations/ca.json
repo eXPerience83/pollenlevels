@@ -1,1 +1,24 @@
-{ "config": { "step": { "user": { "title": "Configuració Nivells de Polen", "description": "Introdueix la teva clau d'API de Google, coordenades, al·lèrgens i interval d'actualització." } } } }
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuració Nivells de Polen",
+        "description": "Introdueix la teva clau d'API de Google, coordenades, al·lèrgens i interval d'actualització.",
+        "data": {
+          "allergens": {
+            "options": {
+              "GRASS": "Gramínies",
+              "TREE": "Arbres",
+              "WEED": "Herbes"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clau API no vàlida",
+      "cannot_connect": "No s'ha pogut connectar",
+      "quota_exceeded": "Quota excedida"
+    }
+  }
+}
