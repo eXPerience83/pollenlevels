@@ -1,0 +1,32 @@
+{
+  "title": "Poziomy pyłków",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfiguracja poziomów pyłków",
+        "description": "Podaj klucz API Google, szerokość geograficzną, długość geograficzną oraz interwał odświeżania.",
+        "data": {
+          "api_key": "Klucz API",
+          "latitude": "Szerokość geograficzna",
+          "longitude": "Długość geograficzna",
+          "update_interval": "Interwał aktualizacji (godziny)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Nieprawidłowy klucz API",
+      "cannot_connect": "Brak połączenia",
+      "quota_exceeded": "Przekroczono limit"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_oak": "Pyłek Dębu",
+      "pollen_pine": "Pyłek Sosny",
+      "pollen_birch": "Pyłek Brzozy",
+      "pollen_olive": "Pyłek Oliwki",
+      "pollen_graminales": "Pyłek Traw",
+      "pollen_alder": "Pyłek Olszy"
+    }
+  }
+}
