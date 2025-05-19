@@ -18,5 +18,15 @@
       "cannot_connect": "No s'ha pogut connectar",
       "quota_exceeded": "Quota excedida"
     }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_oak": "Pol·len Alzina",
+      "pollen_pine": "Pol·len Pi",
+      "pollen_birch": "Pol·len Bedoll",
+      "pollen_olive": "Pol·len Olivera",
+      "pollen_graminales": "Pol·len Graminals",
+      "pollen_alder": "Pol·len Alser"
+    }
   }
 }
