@@ -25,7 +25,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input:
             session = async_get_clientsession(self.hass)
-            # Validamos con forecast:lookup?days=1 que el API responde
+            # Validate using forecast:lookup?days=1
             url = (
                 f"https://pollen.googleapis.com/v1/forecast:lookup?"
                 f"key={user_input[CONF_API_KEY]}"
