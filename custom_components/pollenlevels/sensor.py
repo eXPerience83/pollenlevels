@@ -25,11 +25,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
     allergens = entry.data.get(CONF_ALLERGENS, [])
     interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
 
+    _LOGGER.debug("Setting up PollenLevels sensors: allergens=%s", allergens)
+
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, allergens, interval
     )
     await coordinator.async_config_entry_first_refresh()
-    async_add_entities([PollenSensor(coordinator, allergen) for allergen in allergens])
+    _LOGGER.debug("Coordinator data after first refresh: %s", coordinator.data)
+
+    sensors = [PollenSensor(coordinator, allergen) for allergen in allergens]
+    async_add_entities(sensors, True)
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch pollen forecast periodically."""
@@ -55,15 +60,18 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         )
         _LOGGER.debug("Fetching pollen data from: %s", url)
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 403:
-                    raise UpdateFailed("API key invalid or restricted")
-                if response.status == 429:
-                    raise UpdateFailed("API rate limit exceeded")
-                if response.status != 200:
-                    raise UpdateFailed(f"Error fetching data: {response.status}")
-                payload = await response.json()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 403:
+                        raise UpdateFailed("API key invalid or restricted")
+                    if response.status == 429:
+                        raise UpdateFailed("API rate limit exceeded")
+                    if response.status != 200:
+                        raise UpdateFailed(f"Error fetching data: {response.status}")
+                    payload = await response.json()
+        except Exception as err:
+            raise UpdateFailed(err)
 
         daily = payload.get("dailyInfo", [])
         if not daily:
@@ -80,15 +88,16 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("Invalid 'pollenTypeInfo'")
             return {}
 
+        # Filtrar y extraer indexInfo
         filtered = {}
         for item in pollen_items:
             code = item.get("code")
             index = item.get("indexInfo")
             if code in self.allergens and index:
-                # fusionar indexInfo con timestamp
                 filtered[code] = {**index, "forecastDate": ts}
 
         self.data = filtered
+        _LOGGER.debug("Updated pollen data: %s", self.data)
         return self.data
 
 class PollenSensor(Entity):
