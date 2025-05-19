@@ -1,1 +1,24 @@
-{ "config": { "step": { "user": { "title": "Configuration Niveaux de Pollen", "description": "Entrez la clé API Google, coordonnées, allergènes, intervalle de mise à jour." } } } }
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration Niveaux de Pollen",
+        "description": "Entrez la clé API Google, coordonnées, allergènes et intervalle de mise à jour.",
+        "data": {
+          "allergens": {
+            "options": {
+              "GRASS": "Graminées",
+              "TREE": "Arbres",
+              "WEED": "Mauvaises herbes"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clé API invalide",
+      "cannot_connect": "Impossible de se connecter",
+      "quota_exceeded": "Quota dépassée"
+    }
+  }
+}
