@@ -31,7 +31,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             session = async_get_clientsession(self.hass)
 
-            # URL según doc de forecast:lookup :contentReference[oaicite:1]{index=1}
+            # Construir la URL tal como en docs Forecast:Lookup :contentReference[oaicite:0]{index=0}
             url = (
                 f"https://pollen.googleapis.com/v1/forecast:lookup?"
                 f"key={user_input[CONF_API_KEY]}"
@@ -54,15 +54,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         errors["base"] = "cannot_connect"
                     else:
                         data = await resp.json()
-                        # El array correcto es dailyInfo :contentReference[oaicite:2]{index=2}
                         if not data.get("dailyInfo"):
                             _LOGGER.warning("Missing 'dailyInfo' in response")
                             errors["base"] = "cannot_connect"
             except aiohttp.ClientError as err:
-                _LOGGER.error("Connection error: %s", err)
+                _LOGGER.error("Connection error validating Pollen API: %s", err)
                 errors["base"] = "cannot_connect"
             except Exception as err:
-                _LOGGER.exception("Unexpected error: %s", err)
+                _LOGGER.exception("Unexpected error in Pollen ConfigFlow: %s", err)
                 errors["base"] = "cannot_connect"
 
             if not errors:
@@ -72,6 +71,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data=user_input
                 )
 
+        # Mostrar formulario: ahora REQUIRE allergen para garantizar valor
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude
@@ -80,7 +80,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_API_KEY): str,
             vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
             vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
-            vol.Optional(CONF_ALLERGENS, default=ALLERGEN_OPTIONS):
+            vol.Required(CONF_ALLERGENS, default=ALLERGEN_OPTIONS):
                 cv.multi_select({opt: opt.capitalize() for opt in ALLERGEN_OPTIONS}),
             vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL):
                 vol.All(vol.Coerce(int), vol.Range(min=1)),
