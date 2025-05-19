@@ -1,1 +1,24 @@
-{ "config": { "step": { "user": { "title": "Configuración Niveles de Polen", "description": "Introduce tu clave de API de Google, coordenadas, alérgenos e intervalo de actualización." } } } }
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuración Niveles de Polen",
+        "description": "Introduce tu clave de API de Google, coordenadas, alérgenos e intervalo de actualización.",
+        "data": {
+          "allergens": {
+            "options": {
+              "GRASS": "Gramíneas",
+              "TREE": "Árboles",
+              "WEED": "Malezas"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clave API inválida",
+      "cannot_connect": "No se pudo conectar",
+      "quota_exceeded": "Cuota excedida"
+    }
+  }
+}
