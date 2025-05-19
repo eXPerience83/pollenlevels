@@ -21,6 +21,9 @@
   },
   "entity": {
     "sensor": {
+      "pollen_grass": "Pyłek Traw",
+      "pollen_tree": "Pyłek Drzew",
+      "pollen_weed": "Pyłek Ziół",
       "pollen_oak": "Pyłek Dębu",
       "pollen_pine": "Pyłek Sosny",
       "pollen_birch": "Pyłek Brzozy",
