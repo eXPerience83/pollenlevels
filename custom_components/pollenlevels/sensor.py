@@ -2,43 +2,41 @@
 import logging
 from datetime import timedelta
 import aiohttp
+
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.entity import Entity
 
 from .const import (
-    CONF_API_KEY,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_ALLERGENS,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
+    CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL,
     DOMAIN
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up sensors for each selected allergen."""
+    """Set up sensors for each plant variety in plantInfo."""
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
-    allergens = entry.data.get(CONF_ALLERGENS, [])
     interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
 
-    _LOGGER.debug("Setting up PollenLevels sensors: allergens=%s", allergens)
-
     coordinator = PollenDataUpdateCoordinator(
-        hass, api_key, lat, lon, allergens, interval
+        hass, api_key, lat, lon, interval
     )
     await coordinator.async_config_entry_first_refresh()
-    _LOGGER.debug("Coordinator data after first refresh: %s", coordinator.data)
 
-    sensors = [PollenSensor(coordinator, allergen) for allergen in allergens]
+    # Create one sensor per code in coordinator.data
+    sensors = [
+        PollenSensor(coordinator, code)
+        for code in coordinator.data.keys()
+    ]
+    _LOGGER.debug("Creating %d sensors: %s", len(sensors), list(coordinator.data.keys()))
     async_add_entities(sensors, True)
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
-    """Coordinator to fetch pollen forecast periodically."""
-    def __init__(self, hass, api_key, lat, lon, allergens, hours):
+    """Coordinator to fetch pollen data periodically."""
+    def __init__(self, hass, api_key, lat, lon, hours):
         super().__init__(
             hass, _LOGGER, name=DOMAIN,
             update_interval=timedelta(hours=hours)
@@ -46,11 +44,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.api_key = api_key
         self.lat = lat
         self.lon = lon
-        self.allergens = allergens
         self.data = {}
 
     async def _async_update_data(self):
-        """Fetch pollen forecast via forecast:lookup."""
+        """Fetch pollen data using forecast:lookup?days=1."""
         url = (
             f"https://pollen.googleapis.com/v1/forecast:lookup?"
             f"key={self.api_key}"
@@ -62,14 +59,14 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 403:
-                        raise UpdateFailed("API key invalid or restricted")
-                    if response.status == 429:
-                        raise UpdateFailed("API rate limit exceeded")
-                    if response.status != 200:
-                        raise UpdateFailed(f"Error fetching data: {response.status}")
-                    payload = await response.json()
+                async with session.get(url) as resp:
+                    if resp.status == 403:
+                        raise UpdateFailed("Invalid API key")
+                    if resp.status == 429:
+                        raise UpdateFailed("Quota exceeded")
+                    if resp.status != 200:
+                        raise UpdateFailed(f"HTTP {resp.status}")
+                    payload = await resp.json()
         except Exception as err:
             raise UpdateFailed(err)
 
@@ -78,42 +75,39 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("No 'dailyInfo' returned")
             return {}
 
-        # Construir timestamp ISO desde date
-        date = daily[0].get("date", {})
-        ts = f"{date.get('year',0):04d}-{date.get('month',0):02d}-" \
-             f"{date.get('day',0):02d}T00:00:00"
-
-        pollen_items = daily[0].get("pollenTypeInfo", [])
-        if not isinstance(pollen_items, list):
-            _LOGGER.warning("Invalid 'pollenTypeInfo'")
+        plant_list = daily[0].get("plantInfo", [])
+        if not isinstance(plant_list, list):
+            _LOGGER.warning("'plantInfo' not a list")
             return {}
 
-        # Filtrar y extraer indexInfo
-        filtered = {}
-        for item in pollen_items:
+        result = {}
+        for item in plant_list:
             code = item.get("code")
             index = item.get("indexInfo")
-            if code in self.allergens and index:
-                filtered[code] = {**index, "forecastDate": ts}
+            if code and index:
+                result[code] = {
+                    "value": index.get("value"),
+                    "category": index.get("category"),
+                }
 
-        self.data = filtered
-        _LOGGER.debug("Updated pollen data: %s", self.data)
+        self.data = result
+        _LOGGER.debug("Updated pollen varieties: %s", self.data)
         return self.data
 
 class PollenSensor(Entity):
-    """Sensor for an individual allergen."""
-    def __init__(self, coordinator, allergen):
+    """Sensor for an individual plant variety."""
+    def __init__(self, coordinator, code):
         self.coordinator = coordinator
-        self.allergen = allergen
+        self.code = code
 
     @property
     def name(self):
-        return f"Pollen {self.allergen.capitalize()}"
+        return f"Pollen {self.code.capitalize()}"
 
     @property
     def state(self):
-        entry = self.coordinator.data.get(self.allergen)
-        return entry.get("value") if entry else None
+        info = self.coordinator.data.get(self.code)
+        return info.get("value") if info else None
 
     @property
     def icon(self):
@@ -121,11 +115,9 @@ class PollenSensor(Entity):
 
     @property
     def extra_state_attributes(self):
-        entry = self.coordinator.data.get(self.allergen)
-        if not entry:
+        info = self.coordinator.data.get(self.code)
+        if not info:
             return {}
         return {
-            "category": entry.get("category", "Unknown"),
-            "indexDescription": entry.get("indexDescription", ""),
-            "forecastDate": entry.get("forecastDate", ""),
+            "category": info.get("category")
         }
