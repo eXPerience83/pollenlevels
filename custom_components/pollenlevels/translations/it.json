@@ -21,6 +21,9 @@
   },
   "entity": {
     "sensor": {
+      "pollen_grass": "Polline Graminacee",
+      "pollen_tree": "Polline Alberi",
+      "pollen_weed": "Polline Infestanti",
       "pollen_oak": "Polline Quercia",
       "pollen_pine": "Polline Pino",
       "pollen_birch": "Polline Betulla",
