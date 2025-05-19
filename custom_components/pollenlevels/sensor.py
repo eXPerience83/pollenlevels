@@ -24,21 +24,25 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, interval
     )
+    # Esto invoca update_method (nuestro _async_update_data)
     await coordinator.async_config_entry_first_refresh()
 
-    # Create one sensor per plant code in coordinator.data
+    # Creamos un sensor por cada code en los datos recibidos
     sensors = [
         PollenSensor(coordinator, code)
         for code in coordinator.data.keys()
     ]
-    _LOGGER.debug("Creating %d sensors: %s", len(sensors), list(coordinator.data.keys()))
+    _LOGGER.debug("Creando %d sensores: %s", len(sensors), list(coordinator.data.keys()))
     async_add_entities(sensors, True)
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch pollen data periodically."""
     def __init__(self, hass, api_key, lat, lon, hours):
         super().__init__(
-            hass, _LOGGER, name=DOMAIN,
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_method=self._async_update_data,      # ← aquí
             update_interval=timedelta(hours=hours)
         )
         self.api_key = api_key
