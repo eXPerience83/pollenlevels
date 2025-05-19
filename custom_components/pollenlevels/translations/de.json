@@ -1,0 +1,32 @@
+{
+  "title": "Pollen‑Level",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pollen‑Level‑Konfiguration",
+        "description": "Gib deinen Google‑API‑Schlüssel, Breitengrad, Längengrad und Aktualisierungsintervall ein.",
+        "data": {
+          "api_key": "API‑Schlüssel",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad",
+          "update_interval": "Aktualisierungsintervall (Stunden)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ungültiger API‑Schlüssel",
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "quota_exceeded": "Kontingent überschritten"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_oak": "Pollen Eiche",
+      "pollen_pine": "Pollen Kiefer",
+      "pollen_birch": "Pollen Birke",
+      "pollen_olive": "Pollen Olive",
+      "pollen_graminales": "Pollen Gräser",
+      "pollen_alder": "Pollen Erle"
+    }
+  }
+}
