@@ -1,8 +1,9 @@
 {
   "domain": "pollenlevels",
   "name": "Pollen Levels",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "documentation": "https://github.com/eXPerience83/pollenlevels",
+  "issue_tracker": "https://github.com/eXPerience83/pollenlevels/issues",
   "requirements": ["aiohttp"],
   "codeowners": ["@eXPerience83"],
   "config_flow": true,
