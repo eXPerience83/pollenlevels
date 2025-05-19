@@ -1,1 +1,24 @@
-{ "config": { "step": { "user": { "title": "Pollen-Level-Konfiguration", "description": "Geben Sie Ihren Google-API-Schlüssel, Koordinaten, Allergene und Aktualisierungsintervall ein." } } } }
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pollen-Level-Konfiguration",
+        "description": "Geben Sie Ihren Google-API-Schlüssel, Koordinaten, Allergene und Aktualisierungsintervall ein.",
+        "data": {
+          "allergens": {
+            "options": {
+              "GRASS": "Gräser",
+              "TREE": "Bäume",
+              "WEED": "Unkräuter"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ungültiger API-Schlüssel",
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "quota_exceeded": "Kontingent überschritten"
+    }
+  }
+}
