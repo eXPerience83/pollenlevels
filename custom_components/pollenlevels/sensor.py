@@ -4,7 +4,6 @@ from datetime import timedelta
 import aiohttp
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.entity import Entity
-from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_API_KEY,
@@ -54,6 +53,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             f"&location.longitude={self.lon:.6f}"
             f"&days=1"
         )
+        _LOGGER.debug("PollenDataUpdateCoordinator fetching URL: %s", url)
+
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:
@@ -65,20 +66,28 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         raise UpdateFailed(f"Error fetching data: {response.status}")
                     payload = await response.json()
 
-            day_info = payload.get("dayInfo", [])
-            if not day_info or not isinstance(day_info, list):
-                _LOGGER.warning("No forecast data returned")
+            daily_info = payload.get("dailyInfo", [])
+            if not daily_info or not isinstance(daily_info, list):
+                _LOGGER.warning("No dailyInfo in pollen forecast response")
                 return {}
 
-            pollen_list = day_info[0].get("pollenInfo", [])
+            # Construir timestamp ISO desde el objeto date
+            date_obj = daily_info[0].get("date", {})
+            ts = f"{date_obj.get('year',0):04d}-{date_obj.get('month',0):02d}-{date_obj.get('day',0):02d}T00:00:00"
+
+            pollen_list = daily_info[0].get("pollenTypeInfo", [])
             if not isinstance(pollen_list, list):
-                _LOGGER.warning("Invalid 'pollenInfo' format")
+                _LOGGER.warning("Invalid 'pollenTypeInfo' format")
                 return {}
 
+            # Filtrar y extraer indexInfo
             filtered = {
-                item["type"]: item
+                item["code"]: {
+                    **item["indexInfo"],
+                    "forecastDate": ts
+                }
                 for item in pollen_list
-                if item.get("type") in self.allergens
+                if item.get("code") in self.allergens and item.get("indexInfo")
             }
             self.data = filtered
             return self.data
@@ -99,7 +108,7 @@ class PollenSensor(Entity):
     @property
     def state(self):
         entry = self.coordinator.data.get(self.allergen)
-        return entry.get("index") if entry else None
+        return entry.get("value") if entry else None
 
     @property
     def icon(self):
@@ -110,16 +119,8 @@ class PollenSensor(Entity):
         entry = self.coordinator.data.get(self.allergen)
         if not entry:
             return {}
-        # Parse timestamp to ISO
-        ts = entry.get("forecastDate") or entry.get("timestamp")
-        try:
-            parsed = dt_util.parse_datetime(ts)
-            iso_ts = parsed.isoformat() if parsed else ts
-        except Exception:
-            iso_ts = ts or "N/A"
         return {
             "category": entry.get("category", "Unknown"),
-            "unit": entry.get("unit", "grains/m³"),
-            "timestamp": iso_ts,
-            "location": f"{self.coordinator.lat:.6f},{self.coordinator.lon:.6f}"
+            "indexDescription": entry.get("indexDescription", ""),
+            "forecastDate": entry.get("forecastDate", ""),
         }
