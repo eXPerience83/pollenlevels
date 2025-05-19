@@ -46,10 +46,13 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data = {}
 
     async def _async_update_data(self):
-        """Fetch current pollen levels from Google Maps Pollen API."""
+        """Fetch current pollen forecast from Google Maps Pollen API."""
         url = (
-            f"https://pollenws.googleapis.com/v1/pollen?"
-            f"latitude={self.lat:.6f}&longitude={self.lon:.6f}&key={self.api_key}"
+            f"https://pollen.googleapis.com/v1/forecast:lookup?"
+            f"key={self.api_key}"
+            f"&location.latitude={self.lat:.6f}"
+            f"&location.longitude={self.lon:.6f}"
+            f"&days=1"
         )
         try:
             async with aiohttp.ClientSession() as session:
@@ -62,17 +65,24 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         raise UpdateFailed(f"Error fetching data: {response.status}")
                     payload = await response.json()
 
-            if not isinstance(payload.get("data"), list):
-                _LOGGER.warning("API response 'data' is not a list")
+            day_info = payload.get("dayInfo", [])
+            if not day_info or not isinstance(day_info, list):
+                _LOGGER.warning("No forecast data returned")
+                return {}
+
+            pollen_list = day_info[0].get("pollenInfo", [])
+            if not isinstance(pollen_list, list):
+                _LOGGER.warning("Invalid 'pollenInfo' format")
                 return {}
 
             filtered = {
                 item["type"]: item
-                for item in payload.get("data", [])
+                for item in pollen_list
                 if item.get("type") in self.allergens
             }
             self.data = filtered
             return self.data
+
         except Exception as err:
             raise UpdateFailed(err)
 
@@ -89,7 +99,7 @@ class PollenSensor(Entity):
     @property
     def state(self):
         entry = self.coordinator.data.get(self.allergen)
-        return entry.get("level") if entry else None
+        return entry.get("index") if entry else None
 
     @property
     def icon(self):
@@ -101,7 +111,7 @@ class PollenSensor(Entity):
         if not entry:
             return {}
         # Parse timestamp to ISO
-        ts = entry.get("timestamp")
+        ts = entry.get("forecastDate") or entry.get("timestamp")
         try:
             parsed = dt_util.parse_datetime(ts)
             iso_ts = parsed.isoformat() if parsed else ts
