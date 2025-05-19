@@ -1,0 +1,32 @@
+{
+  "title": "Niveles de Polen",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuración Niveles de Polen",
+        "description": "Introduce tu clave de API de Google, latitud, longitud e intervalo de actualización.",
+        "data": {
+          "api_key": "Clave API",
+          "latitude": "Latitud",
+          "longitude": "Longitud",
+          "update_interval": "Intervalo de actualización (horas)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clave API inválida",
+      "cannot_connect": "No se pudo conectar",
+      "quota_exceeded": "Cuota excedida"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_oak": "Polen Roble",
+      "pollen_pine": "Polen Pino",
+      "pollen_birch": "Polen Abedul",
+      "pollen_olive": "Polen Olivo",
+      "pollen_graminales": "Polen Gramíneas",
+      "pollen_alder": "Polen Aliso"
+    }
+  }
+}
