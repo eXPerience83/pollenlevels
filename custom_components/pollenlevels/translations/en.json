@@ -1,1 +1,24 @@
-{ "config": { "step": { "user": { "title": "Pollen Levels Configuration", "description": "Enter Google API key, coords, allergens, update interval." } } } }
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pollen Levels Configuration",
+        "description": "Enter Google API key, coordinates, allergens, and update interval.",
+        "data": {
+          "allergens": {
+            "options": {
+              "GRASS": "Grass",
+              "TREE": "Tree",
+              "WEED": "Weed"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Unable to connect",
+      "quota_exceeded": "Quota exceeded"
+    }
+  }
+}
