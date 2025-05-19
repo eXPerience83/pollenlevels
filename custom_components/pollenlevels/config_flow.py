@@ -27,10 +27,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             session = async_get_clientsession(self.hass)
             url = (
-                f"https://pollenws.googleapis.com/v1/pollen?"
-                f"latitude={user_input[CONF_LATITUDE]:.6f}&"
-                f"longitude={user_input[CONF_LONGITUDE]:.6f}&"
+                f"https://pollen.googleapis.com/v1/forecast:lookup?"
                 f"key={user_input[CONF_API_KEY]}"
+                f"&location.latitude={user_input[CONF_LATITUDE]:.6f}"
+                f"&location.longitude={user_input[CONF_LONGITUDE]:.6f}"
+                f"&days=1"
             )
             try:
                 async with session.get(url) as resp:
@@ -40,6 +41,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         errors["base"] = "quota_exceeded"
                     elif resp.status != 200:
                         errors["base"] = "cannot_connect"
+                    else:
+                        data = await resp.json()
+                        # verify dayInfo exists
+                        if not data.get("dayInfo"):
+                            errors["base"] = "cannot_connect"
             except Exception:
                 errors["base"] = "cannot_connect"
 
