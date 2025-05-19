@@ -128,15 +128,6 @@ To contribute more languages or improve translations, please submit a PR under `
 
 ---
 
-## Logo
-
-Place your 256×256 px `logo.png` in:
-
-- `assets/logo.png` (for HACS display)  
-- `custom_components/pollenlevels/logo.png` (for Integration page icon)
-
----
-
 ## License
 
 This project is licensed under the **MIT License**.  
