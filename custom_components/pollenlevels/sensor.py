@@ -49,7 +49,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch pollen data using forecast:lookup?days=1."""
         url = (
-            f"https://pollen.googleapis.com/v1/forecast :lookup?"
+            f"https://pollen.googleapis.com/v1/forecast:lookup?"
             f"key={self.api_key}"
             f"&location.latitude={self.lat:.6f}"
             f"&location.longitude={self.lon:.6f}"
