@@ -103,6 +103,14 @@ See Google’s docs for full details:
 
 ---
 
+## Donations
+
+If you find this integration useful and would like to support its development, please consider donating:
+- [PayPal](https://paypal.me/eXPerience83)
+- [Ko-fi](https://ko-fi.com/experience83)
+
+---
+
 ## License
 
 This project is licensed under the **MIT License**.  
