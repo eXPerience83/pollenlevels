@@ -21,11 +21,14 @@
   },
   "entity": {
     "sensor": {
+      "pollen_grass": "Polen Gramíneas",
+      "pollen_tree": "Polen Árboles",
+      "pollen_weed": "Polen Malezas",
       "pollen_oak": "Polen Roble",
       "pollen_pine": "Polen Pino",
       "pollen_birch": "Polen Abedul",
       "pollen_olive": "Polen Olivo",
-      "pollen_graminales": "Polen Gramíneas",
+      "pollen_graminales": "Polen Graminales",
       "pollen_alder": "Polen Aliso"
     }
   }
