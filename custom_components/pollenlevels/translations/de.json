@@ -21,11 +21,14 @@
   },
   "entity": {
     "sensor": {
+      "pollen_grass": "Pollen Gräser",
+      "pollen_tree": "Pollen Bäume",
+      "pollen_weed": "Pollen Unkräuter",
       "pollen_oak": "Pollen Eiche",
       "pollen_pine": "Pollen Kiefer",
       "pollen_birch": "Pollen Birke",
       "pollen_olive": "Pollen Olive",
-      "pollen_graminales": "Pollen Gräser",
+      "pollen_graminales": "Pollen Gräser", 
       "pollen_alder": "Pollen Erle"
     }
   }
