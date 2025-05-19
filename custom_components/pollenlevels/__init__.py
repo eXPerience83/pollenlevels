@@ -12,7 +12,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration from a config entry."""
     try:
-        # Creamos la plataforma sensor para cada variedad obtenida dinámicamente
+        # Forward to sensor platform (dynamic number of sensors)
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     except Exception as err:
         raise ConfigEntryNotReady from err
