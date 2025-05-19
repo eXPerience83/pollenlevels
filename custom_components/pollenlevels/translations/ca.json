@@ -21,6 +21,9 @@
   },
   "entity": {
     "sensor": {
+      "pollen_grass": "Pol·len Gramínies",
+      "pollen_tree": "Pol·len Arbres",
+      "pollen_weed": "Pol·len Herbes",
       "pollen_oak": "Pol·len Alzina",
       "pollen_pine": "Pol·len Pi",
       "pollen_birch": "Pol·len Bedoll",
