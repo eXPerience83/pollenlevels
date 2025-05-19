@@ -126,4 +126,3 @@ MIT License
 ## Credits
 
 This integration is inspired by the official Google Maps Pollen API and the Home Assistant community.
-```
