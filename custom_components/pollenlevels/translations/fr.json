@@ -21,11 +21,14 @@
   },
   "entity": {
     "sensor": {
+      "pollen_grass": "Pollen Herbes",
+      "pollen_tree": "Pollen Arbres",
+      "pollen_weed": "Pollen Mauvaises herbes",
       "pollen_oak": "Pollen Chêne",
       "pollen_pine": "Pollen Pin",
       "pollen_birch": "Pollen Bouleau",
       "pollen_olive": "Pollen Olivier",
-      "pollen_graminales": "Pollen Herbes",
+      "pollen_graminales": "Pollen Graminées",
       "pollen_alder": "Pollen Aulne"
     }
   }
