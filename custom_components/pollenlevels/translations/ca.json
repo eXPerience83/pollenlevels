@@ -1,16 +1,9 @@
 {
-  "title": "Nivells de pol·len",
   "config": {
     "step": {
       "user": {
-        "title": "Configuració Nivells de pol·len",
-        "description": "Introdueix la teva clau d'API de Google, latitud, longitud i interval d'actualització.",
-        "data": {
-          "api_key": "Clau API",
-          "latitude": "Latitud",
-          "longitude": "Longitud",
-          "update_interval": "Interval d'actualització (hores)"
-        }
+        "title": "Configuració Nivells de Polen",
+        "description": "Introdueix la teva clau d'API de Google, coordenades i interval de actualització."
       }
     },
     "error": {
@@ -20,16 +13,11 @@
     }
   },
   "entity": {
-    "sensor": {
-      "pollen_grass": "Pol·len Gramínies",
-      "pollen_tree": "Pol·len Arbres",
-      "pollen_weed": "Pol·len Herbes",
-      "pollen_oak": "Pol·len Alzina",
-      "pollen_pine": "Pol·len Pi",
-      "pollen_birch": "Pol·len Bedoll",
-      "pollen_olive": "Pol·len Olivera",
-      "pollen_graminales": "Pol·len Graminals",
-      "pollen_alder": "Pol·len Alser"
-    }
+    "pollen_oak": "Pol·len Freixe",
+    "pollen_pine": "Pol·len Pi",
+    "pollen_birch": "Pol·len Bedoll",
+    "pollen_olive": "Pol·len Olivera",
+    "pollen_graminales": "Pol·len Gramínies",
+    "pollen_alder": "Pol·len Alzina"
   }
 }
