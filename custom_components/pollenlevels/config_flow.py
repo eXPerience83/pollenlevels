@@ -31,7 +31,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             session = async_get_clientsession(self.hass)
 
-            # Construir la URL con parámetros según docs de forecast:lookup ➜ :contentReference[oaicite:0]{index=0}
+            # Construir la URL según docs de forecast:lookup
             url = (
                 f"https://pollen.googleapis.com/v1/forecast:lookup?"
                 f"key={user_input[CONF_API_KEY]}"
@@ -39,15 +39,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 f"&location.latitude={user_input[CONF_LATITUDE]:.6f}"
                 f"&days=1"
             )
-
             _LOGGER.debug("Pollen ConfigFlow validating URL: %s", url)
 
             try:
                 async with session.get(url) as resp:
-                    text = await resp.text()
+                    body = await resp.text()
                     _LOGGER.debug(
-                        "Pollen ConfigFlow HTTP status: %s, response body: %s",
-                        resp.status, text
+                        "Pollen ConfigFlow HTTP status: %s, response: %s",
+                        resp.status, body
                     )
 
                     if resp.status == 403:
@@ -58,15 +57,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         errors["base"] = "cannot_connect"
                     else:
                         data = await resp.json()
-                        # Según docs, la clave de la respuesta es "dailyInfo" :contentReference[oaicite:1]{index=1}
+                        # Comprobar existencia de dailyInfo
                         if not data.get("dailyInfo"):
-                            _LOGGER.warning("Pollen ConfigFlow: 'dailyInfo' missing in response")
+                            _LOGGER.warning("Pollen ConfigFlow: 'dailyInfo' missing")
                             errors["base"] = "cannot_connect"
             except aiohttp.ClientError as err:
-                _LOGGER.error("Pollen ConfigFlow connection error: %s", err)
+                _LOGGER.error("Connection error validating Pollen API: %s", err)
                 errors["base"] = "cannot_connect"
             except Exception as err:
-                _LOGGER.exception("Unexpected error during Pollen ConfigFlow: %s", err)
+                _LOGGER.exception("Unexpected error in Pollen ConfigFlow: %s", err)
                 errors["base"] = "cannot_connect"
 
             if not errors:
@@ -75,7 +74,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data=user_input
                 )
 
-        # Mostrar formulario
+        # Show form
         default_lat = self.hass.config.latitude
         default_lon = self.hass.config.longitude
         schema = vol.Schema({
