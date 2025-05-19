@@ -94,7 +94,7 @@ To use the Pollen API, you need a valid Google Cloud API key with the **Maps Pol
 
 Each category includes:
 - `value`: numeric level
-- `category`: `"LOW"`, `"MODERATE"`, `"HIGH"`, `"VERY_HIGH"`
+- `category`: "Very Low", "Low", "Moderate", "High", "Very High", ¿"Very High+"?
 - `dominantType`: e.g. `"BIRCH"`, `"OAK"`, `"RAGWEED"`
 
 Documentation:
