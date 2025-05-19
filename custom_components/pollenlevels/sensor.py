@@ -26,7 +26,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
     await coordinator.async_config_entry_first_refresh()
 
-    # Create one sensor per code in coordinator.data
+    # Create one sensor per plant code in coordinator.data
     sensors = [
         PollenSensor(coordinator, code)
         for code in coordinator.data.keys()
