@@ -1,4 +1,4 @@
-"""Config flow for the Pollen Levels integration, with credential validation."""
+"""Config flow for the Pollen Levels integration."""
 import logging
 import aiohttp
 import voluptuous as vol
@@ -9,43 +9,35 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     DOMAIN,
-    CONF_API_KEY,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_ALLERGENS,
-    CONF_UPDATE_INTERVAL,
-    ALLERGEN_OPTIONS,
-    DEFAULT_UPDATE_INTERVAL
+    CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle the config flow for Pollen Levels with initial API check."""
+    """Handle the config flow for Pollen Levels."""
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """Initial configuration step."""
+        """First step: ask for API key, location and update interval."""
         errors = {}
 
         if user_input:
             session = async_get_clientsession(self.hass)
-
-            # Construir la URL tal como en docs Forecast:Lookup :contentReference[oaicite:0]{index=0}
+            # Validamos con forecast:lookup?days=1 que el API responde
             url = (
                 f"https://pollen.googleapis.com/v1/forecast:lookup?"
                 f"key={user_input[CONF_API_KEY]}"
-                f"&location.longitude={user_input[CONF_LONGITUDE]:.6f}"
                 f"&location.latitude={user_input[CONF_LATITUDE]:.6f}"
+                f"&location.longitude={user_input[CONF_LONGITUDE]:.6f}"
                 f"&days=1"
             )
             _LOGGER.debug("Validating Pollen API URL: %s", url)
-
             try:
                 async with session.get(url) as resp:
-                    body = await resp.text()
-                    _LOGGER.debug("HTTP %s — %s", resp.status, body)
-
+                    text = await resp.text()
+                    _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
                     if resp.status == 403:
                         errors["base"] = "invalid_auth"
                     elif resp.status == 429:
@@ -55,33 +47,27 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     else:
                         data = await resp.json()
                         if not data.get("dailyInfo"):
-                            _LOGGER.warning("Missing 'dailyInfo' in response")
+                            _LOGGER.warning("Validation: 'dailyInfo' missing")
                             errors["base"] = "cannot_connect"
             except aiohttp.ClientError as err:
-                _LOGGER.error("Connection error validating Pollen API: %s", err)
+                _LOGGER.error("Connection error: %s", err)
                 errors["base"] = "cannot_connect"
             except Exception as err:
-                _LOGGER.exception("Unexpected error in Pollen ConfigFlow: %s", err)
+                _LOGGER.exception("Unexpected error: %s", err)
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                return self.async_create_entry(
-                    title=f"Pollen Levels ({user_input[CONF_LATITUDE]:.4f}, "
-                          f"{user_input[CONF_LONGITUDE]:.4f})",
-                    data=user_input
-                )
+                return self.async_create_entry(title="Pollen Levels", data=user_input)
 
-        # Mostrar formulario: ahora REQUIRE allergen para garantizar valor
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude
         }
+
         schema = vol.Schema({
             vol.Required(CONF_API_KEY): str,
             vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
             vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
-            vol.Required(CONF_ALLERGENS, default=ALLERGEN_OPTIONS):
-                cv.multi_select({opt: opt.capitalize() for opt in ALLERGEN_OPTIONS}),
             vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL):
                 vol.All(vol.Coerce(int), vol.Range(min=1)),
         })
