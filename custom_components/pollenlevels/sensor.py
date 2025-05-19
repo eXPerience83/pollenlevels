@@ -25,14 +25,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
     allergens = entry.data.get(CONF_ALLERGENS, [])
     interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
 
-    coordinator = PollenDataUpdateCoordinator(hass, api_key, lat, lon, allergens, interval)
+    coordinator = PollenDataUpdateCoordinator(
+        hass, api_key, lat, lon, allergens, interval
+    )
     await coordinator.async_config_entry_first_refresh()
-
-    sensors = [PollenSensor(coordinator, allergen) for allergen in allergens]
-    async_add_entities(sensors)
+    async_add_entities([PollenSensor(coordinator, allergen) for allergen in allergens])
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
-    """Coordinator to fetch pollen data periodically."""
+    """Coordinator to fetch pollen forecast periodically."""
     def __init__(self, hass, api_key, lat, lon, allergens, hours):
         super().__init__(
             hass, _LOGGER, name=DOMAIN,
@@ -45,7 +45,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data = {}
 
     async def _async_update_data(self):
-        """Fetch current pollen forecast from Google Maps Pollen API."""
+        """Fetch pollen forecast via forecast:lookup."""
         url = (
             f"https://pollen.googleapis.com/v1/forecast:lookup?"
             f"key={self.api_key}"
@@ -53,47 +53,43 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             f"&location.longitude={self.lon:.6f}"
             f"&days=1"
         )
-        _LOGGER.debug("PollenDataUpdateCoordinator fetching URL: %s", url)
+        _LOGGER.debug("Fetching pollen data from: %s", url)
 
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 403:
-                        raise UpdateFailed("API key invalid or restricted")
-                    if response.status == 429:
-                        raise UpdateFailed("API rate limit exceeded")
-                    if response.status != 200:
-                        raise UpdateFailed(f"Error fetching data: {response.status}")
-                    payload = await response.json()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 403:
+                    raise UpdateFailed("API key invalid or restricted")
+                if response.status == 429:
+                    raise UpdateFailed("API rate limit exceeded")
+                if response.status != 200:
+                    raise UpdateFailed(f"Error fetching data: {response.status}")
+                payload = await response.json()
 
-            daily_info = payload.get("dailyInfo", [])
-            if not daily_info or not isinstance(daily_info, list):
-                _LOGGER.warning("No dailyInfo in pollen forecast response")
-                return {}
+        daily = payload.get("dailyInfo", [])
+        if not daily:
+            _LOGGER.warning("No 'dailyInfo' returned")
+            return {}
 
-            # Construir timestamp ISO desde el objeto date
-            date_obj = daily_info[0].get("date", {})
-            ts = f"{date_obj.get('year',0):04d}-{date_obj.get('month',0):02d}-{date_obj.get('day',0):02d}T00:00:00"
+        # Construir timestamp ISO desde date
+        date = daily[0].get("date", {})
+        ts = f"{date.get('year',0):04d}-{date.get('month',0):02d}-" \
+             f"{date.get('day',0):02d}T00:00:00"
 
-            pollen_list = daily_info[0].get("pollenTypeInfo", [])
-            if not isinstance(pollen_list, list):
-                _LOGGER.warning("Invalid 'pollenTypeInfo' format")
-                return {}
+        pollen_items = daily[0].get("pollenTypeInfo", [])
+        if not isinstance(pollen_items, list):
+            _LOGGER.warning("Invalid 'pollenTypeInfo'")
+            return {}
 
-            # Filtrar y extraer indexInfo
-            filtered = {
-                item["code"]: {
-                    **item["indexInfo"],
-                    "forecastDate": ts
-                }
-                for item in pollen_list
-                if item.get("code") in self.allergens and item.get("indexInfo")
-            }
-            self.data = filtered
-            return self.data
+        filtered = {}
+        for item in pollen_items:
+            code = item.get("code")
+            index = item.get("indexInfo")
+            if code in self.allergens and index:
+                # fusionar indexInfo con timestamp
+                filtered[code] = {**index, "forecastDate": ts}
 
-        except Exception as err:
-            raise UpdateFailed(err)
+        self.data = filtered
+        return self.data
 
 class PollenSensor(Entity):
     """Sensor for an individual allergen."""
