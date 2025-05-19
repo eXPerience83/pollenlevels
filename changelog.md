@@ -1,6 +1,14 @@
 # Changelog
 
+## [1.1.0] - 2025-05-19
+### Changed
+- Dynamic sensors created from `plantInfo` array instead of fixed categories.
+- Removed hard-coded allergen selection.
+- Simplified attributes to `value` and `category`.
+
 ## [1.0.0] - 2025-05-19
+- Initial implementation with fixed `pollenTypeInfo` sensors (GRASS, TREE, WEED).
+- 
 ### Added
 - Full integration with UI config flow and sensor platform
 - Initial API credential validation in config flow
