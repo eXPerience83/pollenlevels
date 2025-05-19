@@ -1,9 +1,4 @@
 {
   "name": "Pollen Levels",
-  "repository": "eXPerience83/pollenlevels",
-  "content_in_root": false,
-  "domains": ["sensor"],
-  "categories": ["integration"],
-  "render_readme": true,
-  "logo": "assets/logo.png"
+  "domains": ["sensor"]
 }
