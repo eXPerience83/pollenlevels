@@ -10,8 +10,7 @@ from .const import (
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL, 
     DEFAULT_UPDATE_INTERVAL,
-    DOMAIN,
-    ALLERGEN_OPTIONS
+    DOMAIN
 )
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,10 +25,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
     await coordinator.async_config_entry_first_refresh()
     
-    # Create sensors only for allergens present in ALLERGEN_OPTIONS
+    # Create sensors only for allergens present in plantInfo
     plant_codes = [
-        code for code in coordinator.data.keys() 
-        if code in ALLERGEN_OPTIONS
+        item["code"] for item in coordinator.data.values()
     ]
     sensors = [PollenSensor(coordinator, code) for code in plant_codes]
     
@@ -83,18 +81,16 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("'plantInfo' not a list")
             return {}
         
-        result = {}
-        for item in plant_list:
-            code = item.get("code")
-            index = item.get("indexInfo")
-            
-            if code and index:
-                result[code] = {
-                    "value": index.get("value"),
-                    "category": index.get("category"),
-                    "timestamp": daily[0].get("date", {}),
-                    "display_name": item.get("displayName", code)
-                }
+        result = {
+            item["code"]: {
+                "value": item.get("indexInfo", {}).get("value"),
+                "category": item.get("indexInfo", {}).get("category"),
+                "timestamp": daily[0].get("date", {}),
+                "display_name": item.get("displayName")
+            }
+            for item in plant_list
+            if item.get("indexInfo")
+        }
         
         self.data = result
         _LOGGER.debug("Updated pollen varieties: %s", self.data)
@@ -122,4 +118,18 @@ class PollenSensor(Entity):
 
     @property
     def extra_state_attributes(self):
-        info = self
+        info = self.coordinator.data.get(self.code)
+        if not info:
+            return {}
+        
+        date_info = info["timestamp"]
+        try:
+            iso_date = f"{date_info['year']}-{date_info['month']}-{date_info['day']}"
+        except:
+            iso_date = "N/A"
+        
+        return {
+            "category": info.get("category"),
+            "timestamp": iso_date,
+            "location": f"{self.coordinator.lat:.6f},{self.coordinator.lon:.6f}"
+        }
