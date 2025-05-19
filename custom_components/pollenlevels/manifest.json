@@ -8,5 +8,6 @@
   "codeowners": ["@eXPerience83"],
   "config_flow": true,
   "iot_class": "cloud_polling",
-  "integration_type": "integration"
+  "integration_type": "integration",
+  "logo": "logo.png"
 }
