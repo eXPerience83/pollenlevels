@@ -2,7 +2,8 @@
 
 ## [1.2.1] - 2025-05-20
 ### Added
-- Translations  
+- Translations
+- More Entities
 
 ## [1.2.0] - 2025-05-20
 - Repaired issue https://github.com/eXPerience83/pollenlevels/issues/2
