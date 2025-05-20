@@ -1,8 +1,12 @@
 # Changelog
 
+## [1.2.1] - 2025-05-20
+### Added
+- Translations  
+
 ## [1.2.0] - 2025-05-20
-Repaired issue https://github.com/eXPerience83/pollenlevels/issues/2
-Now Integration appears on config/integrations
+- Repaired issue https://github.com/eXPerience83/pollenlevels/issues/2
+- Now Integration appears on config/integrations
 
 ## [1.1.0] - 2025-05-19
 ### Added
