@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurazione Livelli di Polen",
+        "description": "Inserisci la tua chiave API di Google, latitudine, longitudine e intervallo di aggiornamento (ore).",
+        "data": {
+          "api_key": "Chiave API",
+          "latitude": "Latitudine",
+          "longitude": "Longitudine",
+          "update_interval": "Intervallo di aggiornamento (ore)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Chiave API non valida",
+      "cannot_connect": "Impossibile connettersi al servizio",
+      "quota_exceeded": "Quota superata"
+    }
+  }
+}
