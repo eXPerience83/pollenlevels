@@ -1,4 +1,6 @@
 {
   "name": "Pollen Levels",
-  "domains": ["sensor"]
+  "domains": ["sensor"],
+  "content_in_root": false,
+  "render_readme": true
 }
