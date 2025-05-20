@@ -13,7 +13,8 @@ It creates one sensor per pollen type (e.g. grass, tree, weed, plus individual p
 - Configurable update interval (default: 6 hours)  
 - Automatic device grouping by location  
 - No YAML configuration—setup entirely via UI  
-- HACS‑compatible
+- HACS‑compatible  
+- **Multi-language support** for configuration UI (English, Spanish, Catalan, German, French, Italian, Polish)
 
 ---
 
@@ -43,6 +44,14 @@ It creates one sensor per pollen type (e.g. grass, tree, weed, plus individual p
            ├── const.py
            ├── manifest.json
            ├── sensor.py
+           └── translations/
+               ├── en.json
+               ├── es.json
+               ├── ca.json
+               ├── de.json
+               ├── fr.json
+               ├── it.json
+               └── pl.json
    assets/
      └── logo.png
    hacs.json

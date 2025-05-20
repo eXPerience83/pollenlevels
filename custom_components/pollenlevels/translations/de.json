@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfiguration Pollenniveaus",
+        "description": "Gib deinen Google API-Schlüssel, Breiten- und Längengrad sowie das Aktualisierungsintervall (Stunden) ein.",
+        "data": {
+          "api_key": "API-Schlüssel",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad",
+          "update_interval": "Aktualisierungsintervall (Stunden)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ungültiger API-Schlüssel",
+      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
+      "quota_exceeded": "Kontingent überschritten"
+    }
+  }
+}
