@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pollen Levels Configuration",
+        "description": "Enter your Google API Key, latitude, longitude, and update interval (hours).",
+        "data": {
+          "api_key": "API Key",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "update_interval": "Update interval (hours)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Cannot connect to service",
+      "quota_exceeded": "Quota exceeded"
+    }
+  }
+}
