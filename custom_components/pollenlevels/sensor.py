@@ -1,3 +1,4 @@
+```python
 """Sensor platform for Pollen Levels integration."""
 import logging
 from datetime import timedelta, date
@@ -209,3 +210,4 @@ class PlantSensor(Entity):
             "model": "Google Pollen API",
             "manufacturer": "Google",
         }
+```
