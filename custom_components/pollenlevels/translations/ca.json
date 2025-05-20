@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuració Nivells de Polen",
+        "description": "Introdueix la teva clau d'API de Google, latitud, longitud i interval d'actualització (hores).",
+        "data": {
+          "api_key": "Clau API",
+          "latitude": "Latitud",
+          "longitude": "Longitud",
+          "update_interval": "Interval d'actualització (hores)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clau API no vàlida",
+      "cannot_connect": "No es pot connectar al servei",
+      "quota_exceeded": "Quota excedida"
+    }
+  }
+}
