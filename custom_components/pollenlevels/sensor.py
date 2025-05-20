@@ -29,15 +29,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, interval, entry.entry_id
     )
-    # Primera actualización forzada
     await coordinator.async_config_entry_first_refresh()
 
-    # Genera un sensor por cada código presente en los datos
     sensors = [
-        PollenSensor(coordinator, code, info)
-        for code, info in coordinator.data.items()
+        PollenSensor(coordinator, code)
+        for code in coordinator.data_keys
     ]
-    _LOGGER.debug("Creating %d sensors: %s", len(sensors), list(coordinator.data.keys()))
+    _LOGGER.debug(
+        "Creating %d sensors: %s", len(sensors), coordinator.data_keys
+    )
     async_add_entities(sensors, True)
 
 
@@ -56,6 +56,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.lon = lon
         self.entry_id = entry_id
         self.data = {}
+        self.data_keys = []
 
     async def _async_update_data(self):
         """Fetch pollen data via forecast:lookup?days=1."""
@@ -81,7 +82,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as err:
             raise UpdateFailed(err)
 
-        items = {}
+        new_data = {}
+        new_keys = []
         daily = payload.get("dailyInfo")
         if isinstance(daily, list) and daily:
             info = daily[0]
@@ -89,16 +91,19 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 for item in info.get(section, []) or []:
                     code = item.get("code")
                     index = item.get("indexInfo")
-                    if not code or not isinstance(index, dict):
+                    if not code:
                         continue
-                    items[code] = {
-                        "value": index.get("value"),
-                        "category": index.get("category"),
-                        "display_name": item.get("displayName"),
-                        "in_season": item.get("inSeason", None),
-                    }
+                    if isinstance(index, dict):
+                        new_data[code] = {
+                            "value": index.get("value"),
+                            "category": index.get("category"),
+                        }
+                    else:
+                        new_data[code] = {"value": None, "category": None}
+                    new_keys.append(code)
 
-        self.data = items
+        self.data = new_data
+        self.data_keys = new_keys
         _LOGGER.debug("Updated pollen varieties: %s", self.data)
         return self.data
 
@@ -106,10 +111,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 class PollenSensor(Entity):
     """Sensor for an individual pollen code."""
 
-    def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str, info: dict):
+    def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         self.coordinator = coordinator
         self.code = code
-        self.info = info
 
     @property
     def unique_id(self) -> str:
@@ -119,13 +123,12 @@ class PollenSensor(Entity):
     @property
     def name(self) -> str:
         """Name shown in the UI."""
-        dn = self.info.get("display_name") or self.code.capitalize()
-        return f"Pollen {dn}"
+        return f"Pollen {self.code.capitalize()}"
 
     @property
     def state(self):
-        """Return the current pollen index value."""
-        return self.info.get("value")
+        """Return the current pollen index value (or None)."""
+        return self.coordinator.data.get(self.code, {}).get("value")
 
     @property
     def icon(self) -> str:
@@ -134,16 +137,15 @@ class PollenSensor(Entity):
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Return additional attributes."""
-        attrs = {"category": self.info.get("category")}
-        if self.info.get("in_season") is not None:
-            attrs["in_season"] = self.info.get("in_season")
+        """Return additional attributes: category and attribution."""
+        info = self.coordinator.data.get(self.code, {})
+        attrs = {"category": info.get("category")}
         attrs[ATTR_ATTRIBUTION] = "Data provided by Google Maps Pollen API"
         return attrs
 
     @property
     def device_info(self) -> dict:
-        """Register all sensors under one device (the location)."""
+        """Group all sensors under a single location device."""
         return {
             "identifiers": {(DOMAIN, self.coordinator.entry_id)},
             "name": f"Pollen Levels ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})",
