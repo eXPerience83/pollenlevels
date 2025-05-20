@@ -1,69 +1,67 @@
 """Sensor platform for Pollen Levels integration."""
 import logging
-from datetime import timedelta, date
-import aiohttp
+from datetime import timedelta
 
-from homeassistant.helpers.entity import Entity
+import aiohttp
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.entity import Entity
 from homeassistant.const import ATTR_ATTRIBUTION
 
 from .const import (
-    CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
-    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL,
-    DOMAIN
+    CONF_API_KEY,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up sensors for region, date, pollenTypeInfo and plantInfo."""
+    """Set up sensors for each pollen code returned by the API."""
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
     interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
 
-    coordinator = PollenDataCoordinator(hass, api_key, lat, lon, interval, entry.entry_id)
+    coordinator = PollenDataUpdateCoordinator(
+        hass, api_key, lat, lon, interval, entry.entry_id
+    )
+    # Primera actualización forzada
     await coordinator.async_config_entry_first_refresh()
 
-    sensors = []
-    # Region code sensor
-    sensors.append(RegionSensor(coordinator))
-    # Date sensor
-    sensors.append(DateSensor(coordinator))
-    # pollenTypeInfo sensors (grass, tree, weed)
-    for info in coordinator.pollen_types:
-        sensors.append(PollenTypeSensor(coordinator, info))
-    # plantInfo sensors
-    for info in coordinator.plant_info:
-        sensors.append(PlantSensor(coordinator, info))
-
-    _LOGGER.debug("Creating %d sensors", len(sensors))
+    # Genera un sensor por cada código presente en los datos
+    sensors = [
+        PollenSensor(coordinator, code, info)
+        for code, info in coordinator.data.items()
+    ]
+    _LOGGER.debug("Creating %d sensors: %s", len(sensors), list(coordinator.data.keys()))
     async_add_entities(sensors, True)
 
-class PollenDataCoordinator(DataUpdateCoordinator):
-    """Coordinator to fetch all pollen data periodically."""
+
+class PollenDataUpdateCoordinator(DataUpdateCoordinator):
+    """Coordinator to fetch pollen data periodically."""
+
     def __init__(self, hass, api_key, lat, lon, hours, entry_id):
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_method=self._async_update_data,
             update_interval=timedelta(hours=hours),
         )
         self.api_key = api_key
         self.lat = lat
         self.lon = lon
         self.entry_id = entry_id
-        self.region = None
-        self.current_date = None
-        self.pollen_types = []  # list of dicts from pollenTypeInfo
-        self.plant_info = []    # list of dicts from plantInfo
+        self.data = {}
 
     async def _async_update_data(self):
-        """Fetch pollen forecast and parse data."""
+        """Fetch pollen data via forecast:lookup?days=1."""
         url = (
-            f"https://pollen.googleapis.com/v1/forecast:lookup?"
-            f"key={self.api_key}"
+            f"https://pollen.googleapis.com/v1/forecast:lookup"
+            f"?key={self.api_key}"
             f"&location.latitude={self.lat:.6f}"
             f"&location.longitude={self.lon:.6f}"
             f"&days=1"
@@ -72,140 +70,83 @@ class PollenDataCoordinator(DataUpdateCoordinator):
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    if resp.status == 403:
-                        raise UpdateFailed("Invalid API key")
-                    if resp.status == 429:
-                        raise UpdateFailed("Quota exceeded")
-                    if resp.status != 200:
-                        raise UpdateFailed(f"HTTP {resp.status}")
-                    payload = await resp.json()
+                resp = await session.get(url)
+                if resp.status == 403:
+                    raise UpdateFailed("Invalid API key")
+                if resp.status == 429:
+                    raise UpdateFailed("Quota exceeded")
+                if resp.status != 200:
+                    raise UpdateFailed(f"HTTP {resp.status}")
+                payload = await resp.json()
         except Exception as err:
             raise UpdateFailed(err)
 
-        self.region = payload.get("regionCode")
-        daily = payload.get("dailyInfo", []) or []
-        if not daily:
-            _LOGGER.warning("No 'dailyInfo' returned")
-            return
-        entry = daily[0]
-        d = entry.get("date", {})
-        try:
-            self.current_date = date(d.get("year"), d.get("month"), d.get("day"))
-        except Exception:
-            self.current_date = None
+        items = {}
+        daily = payload.get("dailyInfo")
+        if isinstance(daily, list) and daily:
+            info = daily[0]
+            for section in ("pollenTypeInfo", "plantInfo"):
+                for item in info.get(section, []) or []:
+                    code = item.get("code")
+                    index = item.get("indexInfo")
+                    if not code or not isinstance(index, dict):
+                        continue
+                    items[code] = {
+                        "value": index.get("value"),
+                        "category": index.get("category"),
+                        "display_name": item.get("displayName"),
+                        "in_season": item.get("inSeason", None),
+                    }
 
-        # Parse pollenTypeInfo
-        self.pollen_types = []
-        for item in entry.get("pollenTypeInfo", []):
-            self.pollen_types.append({
-                "code": item.get("code"),
-                "display_name": item.get("displayName"),
-                "in_season": item.get("inSeason"),
-                "index": item.get("indexInfo", {}).get("value"),
-                "category": item.get("indexInfo", {}).get("category"),
-            })
+        self.data = items
+        _LOGGER.debug("Updated pollen varieties: %s", self.data)
+        return self.data
 
-        # Parse plantInfo
-        self.plant_info = []
-        for item in entry.get("plantInfo", []):
-            info = {"code": item.get("code"), "display_name": item.get("displayName")}
-            idx = item.get("indexInfo")
-            if idx:
-                info.update({
-                    "value": idx.get("value"),
-                    "category": idx.get("category"),
-                    "in_season": item.get("inSeason"),
-                })
-            # include plantDescription if present
-            pd = item.get("plantDescription")
-            if pd:
-                info["type"] = pd.get("type")
-                info["family"] = pd.get("family")
-                info["season"] = pd.get("season")
-            self.plant_info.append(info)
 
-class RegionSensor(Entity):
-    """Sensor for region code."""
-    def __init__(self, coordinator):
+class PollenSensor(Entity):
+    """Sensor for an individual pollen code."""
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str, info: dict):
         self.coordinator = coordinator
-
-    @property
-    def name(self):
-        return "Pollen Region"
-
-    @property
-    def state(self):
-        return self.coordinator.region or "unknown"
-
-class DateSensor(Entity):
-    """Sensor for forecast date."""
-    def __init__(self, coordinator):
-        self.coordinator = coordinator
-
-    @property
-    def name(self):
-        return "Pollen Date"
-
-    @property
-    def state(self):
-        return self.coordinator.current_date.isoformat() if self.coordinator.current_date else None
-
-class PollenTypeSensor(Entity):
-    """Sensor for a pollen category (grass, tree, weed)."""
-    def __init__(self, coordinator, info):
-        self.coordinator = coordinator
+        self.code = code
         self.info = info
-        self._attr_attribution = "Data provided by Google Maps Pollen API"
 
     @property
-    def unique_id(self):
-        return f"{self.coordinator.entry_id}_type_{self.info['code']}"
+    def unique_id(self) -> str:
+        """Unique ID based on entry and code."""
+        return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
-    def name(self):
-        return f"Pollen {self.info['display_name']}"
-
-    @property
-    def state(self):
-        return self.info.get("index") if self.info.get("index") is not None else "unavailable"
-
-    @property
-    def extra_state_attributes(self):
-        attrs = {"category": self.info.get("category"), "in_season": self.info.get("in_season")}
-        attrs[ATTR_ATTRIBUTION] = self._attr_attribution
-        return attrs
-
-class PlantSensor(Entity):
-    """Sensor for an individual plant variety."""
-    def __init__(self, coordinator, info):
-        self.coordinator = coordinator
-        self.info = info
-        self._attr_attribution = "Data provided by Google Maps Pollen API"
-
-    @property
-    def unique_id(self):
-        return f"{self.coordinator.entry_id}_plant_{self.info['code']}"
-
-    @property
-    def name(self):
-        return f"Pollen {self.info['display_name']}"
+    def name(self) -> str:
+        """Name shown in the UI."""
+        dn = self.info.get("display_name") or self.code.capitalize()
+        return f"Pollen {dn}"
 
     @property
     def state(self):
-        return self.info.get("value") if self.info.get("value") is not None else "unavailable"
+        """Return the current pollen index value."""
+        return self.info.get("value")
 
     @property
-    def extra_state_attributes(self):
-        attrs = {key: val for key, val in self.info.items() if key not in ("code", "display_name")}
-        attrs[ATTR_ATTRIBUTION] = self._attr_attribution
+    def icon(self) -> str:
+        """Use the pollen icon for all sensors."""
+        return "mdi:flower-pollen"
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return additional attributes."""
+        attrs = {"category": self.info.get("category")}
+        if self.info.get("in_season") is not None:
+            attrs["in_season"] = self.info.get("in_season")
+        attrs[ATTR_ATTRIBUTION] = "Data provided by Google Maps Pollen API"
         return attrs
 
     @property
-    def device_info(self):
+    def device_info(self) -> dict:
+        """Register all sensors under one device (the location)."""
         return {
             "identifiers": {(DOMAIN, self.coordinator.entry_id)},
             "name": f"Pollen Levels ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})",
-            "model": "Google Pollen API",
             "manufacturer": "Google",
+            "model": "Pollen API",
         }
