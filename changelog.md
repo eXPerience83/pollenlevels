@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.2] - 2025-05-21
+### Fixed
+- Changed name=DOMAIN to name=f"{DOMAIN}_{entry_id}" on sensor.py to allow multiple locations.
+
 ## [1.2.1] - 2025-05-20
 ### Added
 - Translations
