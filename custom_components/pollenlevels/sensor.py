@@ -48,7 +48,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=DOMAIN,
+            name=f"{DOMAIN}_{entry_id}",
             update_interval=timedelta(hours=hours),
         )
         self.api_key = api_key
