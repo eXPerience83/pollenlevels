@@ -2,6 +2,7 @@
 
 ## [1.3.1] - 2025-05-22
 - Updated from beta.
+- Fixed translations (PL)
 
 ## [1.3.0] - 2025-05-22
 ### Added
