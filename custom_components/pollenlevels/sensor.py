@@ -1,15 +1,20 @@
 """Sensor platform for Pollen Levels with language support."""
 import logging
 from datetime import timedelta
+
 import aiohttp
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.entity import Entity
 from homeassistant.const import ATTR_ATTRIBUTION
 
 from .const import (
-    CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
-    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL,
-    CONF_LANGUAGE_CODE, DOMAIN,
+    CONF_API_KEY,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
+    CONF_LANGUAGE_CODE,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -18,6 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 TYPE_ICONS = {"GRASS": "mdi:grass", "TREE": "mdi:tree", "WEED": "mdi:flower-tulip"}
 PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up sensors grouped by type and plant."""
@@ -40,13 +46,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.debug("Creating %d sensors: %s", len(sensors), list(coordinator.data.keys()))
     async_add_entities(sensors, True)
 
+
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator to fetch pollen data with selected language."""
+
     def __init__(self, hass, api_key, lat, lon, hours, language, entry_id):
         super().__init__(
-            hass, _LOGGER,
+            hass,
+            _LOGGER,
             name=f"{DOMAIN}_{entry_id}",
-            update_interval=timedelta(hours=hours)
+            update_interval=timedelta(hours=hours),
         )
         self.api_key = api_key
         self.lat = lat
@@ -84,24 +93,26 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         new_data = {}
         daily = payload.get("dailyInfo")
-        if daily and isinstance(daily, list):
+        if isinstance(daily, list) and daily:
             info = daily[0]
+            # pollenTypeInfo
             for item in info.get("pollenTypeInfo", []) or []:
                 code = item.get("code")
                 if not code:
                     continue
-                index = item.get("indexInfo", {})
+                index = item.get("indexInfo", {}) or {}
                 new_data[f"type_{code.lower()}"] = {
                     "source": "type",
                     "value": index.get("value"),
                     "category": index.get("category"),
                     "displayName": item.get("displayName", code),
                 }
+            # plantInfo
             for item in info.get("plantInfo", []) or []:
                 code = item.get("code")
                 if not code:
                     continue
-                index = item.get("indexInfo", {})
+                index = item.get("indexInfo", {}) or {}
                 desc = item.get("plantDescription", {}) or {}
                 new_data[f"plants_{code.lower()}"] = {
                     "source": "plant",
@@ -118,58 +129,79 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Updated data: %s", self.data)
         return self.data
 
+
 class PollenSensor(Entity):
     """Sensor for an individual pollen code."""
-    def __init__(self, coordinator, code):
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         self.coordinator = coordinator
         self.code = code
         self._attr_should_poll = False
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
+        """Unique ID includes entry ID and grouped code."""
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
-    def name(self):
-        return self.coordinator.data.get(self.code, {}).get("displayName", self.code)
+    def entity_id(self) -> str:
+        """Force entity_id format: sensor.pollen_type_<code> or sensor.pollen_plants_<code>."""
+        return f"sensor.pollen_{self.code}"
+
+    @property
+    def name(self) -> str:
+        """Use the displayName from API without extra prefixes."""
+        return self.coordinator.data[self.code].get("displayName", self.code)
 
     @property
     def state(self):
-        return self.coordinator.data.get(self.code, {}).get("value")
+        """Return the current pollen index value (or None)."""
+        return self.coordinator.data[self.code].get("value")
 
     @property
-    def icon(self):
-        info = self.coordinator.data.get(self.code, {})
+    def icon(self) -> str:
+        """Select icon based on source/type."""
+        info = self.coordinator.data[self.code]
         if info.get("source") == "type":
+            # e.g. TYPE_ICONS["GRASS"]
             return TYPE_ICONS.get(self.code.replace("type_", "").upper(), DEFAULT_ICON)
+        # plant
         plant_type = info.get("type")
         return PLANT_TYPE_ICONS.get(plant_type, DEFAULT_ICON)
 
     @property
-    def extra_state_attributes(self):
-        info = self.coordinator.data.get(self.code, {})
+    def extra_state_attributes(self) -> dict:
+        """Include category, attribution, and plant-specific attributes."""
+        info = self.coordinator.data[self.code]
         attrs = {
             "category": info.get("category"),
-            ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API"
+            ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
         }
         if info.get("source") == "plant":
-            attrs.update({
-                "inSeason": info.get("inSeason"),
-                "type": info.get("type"),
-                "family": info.get("family"),
-                "season": info.get("season"),
-            })
+            attrs.update(
+                {
+                    "inSeason": info.get("inSeason"),
+                    "type": info.get("type"),
+                    "family": info.get("family"),
+                    "season": info.get("season"),
+                }
+            )
         return attrs
 
     @property
-    def device_info(self):
-        info = self.coordinator.data.get(self.code, {})
+    def device_info(self) -> dict:
+        """Group sensors under a device by source (type or plants)."""
+        info = self.coordinator.data[self.code]
         group = info.get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
-        name = f"{'Pollen Types' if group=='type' else 'Plants'} ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
+        device_name = (
+            f"Pollen Types ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
+            if group == "type"
+            else f"Plants ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
+        )
         return {
             "identifiers": {(DOMAIN, device_id)},
-            "name": name,
+            "name": device_name,
             "manufacturer": "Google",
             "model": "Pollen API",
         }
