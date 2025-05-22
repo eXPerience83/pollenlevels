@@ -142,13 +142,15 @@ class PollenSensor(Entity):
 
     @property
     def unique_id(self) -> str:
-        """Unique ID includes entry ID and grouped code."""
-        # This drives entity_id: sensor.pollenlevels_<object_id>
+        """
+        Unique ID includes entry_id and code, ensuring each location
+        produces distinct entities.
+        """
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
     def name(self) -> str:
-        """Use the displayName from API without extra prefixes."""
+        """Use the displayName from the API without extra prefixes."""
         return self.coordinator.data[self.code].get("displayName", self.code)
 
     @property
@@ -161,7 +163,8 @@ class PollenSensor(Entity):
         """Select icon based on source/type."""
         info = self.coordinator.data[self.code]
         if info.get("source") == "type":
-            return TYPE_ICONS.get(self.code.replace("type_", "").upper(), DEFAULT_ICON)
+            key = self.code.split("_", 1)[1].upper()
+            return TYPE_ICONS.get(key, DEFAULT_ICON)
         plant_type = info.get("type")
         return PLANT_TYPE_ICONS.get(plant_type, DEFAULT_ICON)
 
