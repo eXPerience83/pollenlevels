@@ -3,12 +3,13 @@
     "step": {
       "user": {
         "title": "Pollen Levels Configuration",
-        "description": "Enter your Google API Key, latitude, longitude, and update interval (hours).",
+        "description": "Enter your Google API Key, latitude, longitude, update interval (hours) and API response language code.",
         "data": {
           "api_key": "API Key",
           "latitude": "Latitude",
           "longitude": "Longitude",
-          "update_interval": "Update interval (hours)"
+          "update_interval": "Update interval (hours)",
+          "language_code": "API response language code"
         }
       }
     },
