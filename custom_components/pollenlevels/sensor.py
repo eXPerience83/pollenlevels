@@ -144,11 +144,6 @@ class PollenSensor(Entity):
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
-    def entity_id(self) -> str:
-        """Force entity_id format: sensor.pollen_type_<code> or sensor.pollen_plants_<code>."""
-        return f"sensor.pollen_{self.code}"
-
-    @property
     def name(self) -> str:
         """Use the displayName from API without extra prefixes."""
         return self.coordinator.data[self.code].get("displayName", self.code)
@@ -163,9 +158,7 @@ class PollenSensor(Entity):
         """Select icon based on source/type."""
         info = self.coordinator.data[self.code]
         if info.get("source") == "type":
-            # e.g. TYPE_ICONS["GRASS"]
             return TYPE_ICONS.get(self.code.replace("type_", "").upper(), DEFAULT_ICON)
-        # plant
         plant_type = info.get("type")
         return PLANT_TYPE_ICONS.get(plant_type, DEFAULT_ICON)
 
