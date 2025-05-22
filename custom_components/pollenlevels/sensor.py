@@ -67,7 +67,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data = {}
 
     async def _async_update_data(self):
-        """Fetch pollen data with languageCode parameter."""
+        """Fetch pollen data with optional languageCode."""
         url = "https://pollen.googleapis.com/v1/forecast:lookup"
         params = {
             "key": self.api_key,
@@ -138,34 +138,33 @@ class PollenSensor(Entity):
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         self.coordinator = coordinator
         self.code = code
+        # No polling: uses coordinator
         self._attr_should_poll = False
 
     @property
     def unique_id(self) -> str:
-        """Unique ID that will form part of the entity_id."""
+        """
+        Unique ID used by Home Assistant registry.
+        It drives entity_id → sensor.pollenlevels_<unique_id>
+        """
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
-    def entity_id(self) -> str:
-        """Force the entity_id to include domain, entry_id and code."""
-        return f"sensor.{DOMAIN}_{self.coordinator.entry_id}_{self.code}"
-
-    @property
     def name(self) -> str:
-        """Use the displayName from API without extra prefixes."""
+        """Friendly name from API's displayName."""
         return self.coordinator.data[self.code].get("displayName", self.code)
 
     @property
     def state(self):
-        """Return the current pollen index value (or None)."""
+        """Current pollen index value."""
         return self.coordinator.data[self.code].get("value")
 
     @property
     def icon(self) -> str:
-        """Select icon based on source/type."""
+        """Icon depending on type or plant."""
         info = self.coordinator.data[self.code]
         if info.get("source") == "type":
-            # code = "type_grass" → key = "GRASS"
+            # extract e.g. "GRASS" from "type_grass"
             key = self.code.split("_", 1)[1].upper()
             return TYPE_ICONS.get(key, DEFAULT_ICON)
         plant_type = info.get("type")
@@ -173,7 +172,7 @@ class PollenSensor(Entity):
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Include category, attribution, and plant-specific attributes."""
+        """Category, attribution and plant-specific details."""
         info = self.coordinator.data[self.code]
         attrs = {
             "category": info.get("category"),
@@ -192,7 +191,7 @@ class PollenSensor(Entity):
 
     @property
     def device_info(self) -> dict:
-        """Group sensors under a device by source (type or plants)."""
+        """Group sensors by source under a single device per location."""
         info = self.coordinator.data[self.code]
         group = info.get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
