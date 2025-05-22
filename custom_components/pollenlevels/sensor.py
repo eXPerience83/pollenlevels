@@ -91,7 +91,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if not code:
                     continue
                 index = item.get("indexInfo", {})
-                new_data[code] = {
+                new_data[f"type_{code.lower()}"] = {
                     "source": "type",
                     "value": index.get("value"),
                     "category": index.get("category"),
@@ -103,7 +103,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     continue
                 index = item.get("indexInfo", {})
                 desc = item.get("plantDescription", {}) or {}
-                new_data[code] = {
+                new_data[f"plants_{code.lower()}"] = {
                     "source": "plant",
                     "value": index.get("value"),
                     "category": index.get("category"),
@@ -131,8 +131,7 @@ class PollenSensor(Entity):
 
     @property
     def name(self):
-        disp = self.coordinator.data.get(self.code, {}).get("displayName", self.code)
-        return f"Pollen {disp}"
+        return self.coordinator.data.get(self.code, {}).get("displayName", self.code)
 
     @property
     def state(self):
@@ -142,7 +141,7 @@ class PollenSensor(Entity):
     def icon(self):
         info = self.coordinator.data.get(self.code, {})
         if info.get("source") == "type":
-            return TYPE_ICONS.get(self.code, DEFAULT_ICON)
+            return TYPE_ICONS.get(self.code.replace("type_", "").upper(), DEFAULT_ICON)
         plant_type = info.get("type")
         return PLANT_TYPE_ICONS.get(plant_type, DEFAULT_ICON)
 
