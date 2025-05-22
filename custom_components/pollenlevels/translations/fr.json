@@ -3,12 +3,13 @@
     "step": {
       "user": {
         "title": "Configuration Niveaux de Pollen",
-        "description": "Saisissez votre clé API Google, latitude, longitude et intervalle de mise à jour (heures).",
+        "description": "Saisissez votre clé API Google, latitude, longitude, intervalle de mise à jour (heures) et code de langue pour la réponse.",
         "data": {
           "api_key": "Clé API",
           "latitude": "Latitude",
           "longitude": "Longitude",
-          "update_interval": "Intervalle de mise à jour (heures)"
+          "update_interval": "Intervalle de mise à jour (heures)",
+          "language_code": "Code langue pour la réponse API"
         }
       }
     },
