@@ -32,6 +32,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
     await coordinator.async_config_entry_first_refresh()
 
+    if not coordinator.data:
+        _LOGGER.warning("No pollen data found during initial setup")
+        return
+
     sensors = [PollenSensor(coordinator, code) for code in coordinator.data.keys()]
     _LOGGER.debug("Creating %d sensors: %s", len(sensors), list(coordinator.data.keys()))
     async_add_entities(sensors, True)
@@ -48,6 +52,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.lat = lat
         self.lon = lon
         self.language = language
+        self.entry_id = entry_id
         self.data = {}
 
     async def _async_update_data(self):
@@ -58,8 +63,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             "location.latitude": f"{self.lat:.6f}",
             "location.longitude": f"{self.lon:.6f}",
             "days": 1,
-            "languageCode": self.language,
         }
+        if self.language:
+            params["languageCode"] = self.language
+
         _LOGGER.debug("Fetching with params: %s", params)
 
         try:
@@ -81,6 +88,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             info = daily[0]
             for item in info.get("pollenTypeInfo", []) or []:
                 code = item.get("code")
+                if not code:
+                    continue
                 index = item.get("indexInfo", {})
                 new_data[code] = {
                     "source": "type",
@@ -90,6 +99,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 }
             for item in info.get("plantInfo", []) or []:
                 code = item.get("code")
+                if not code:
+                    continue
                 index = item.get("indexInfo", {})
                 desc = item.get("plantDescription", {}) or {}
                 new_data[code] = {
@@ -102,6 +113,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "family": desc.get("family"),
                     "season": desc.get("season"),
                 }
+
         self.data = new_data
         _LOGGER.debug("Updated data: %s", self.data)
         return self.data
@@ -111,6 +123,7 @@ class PollenSensor(Entity):
     def __init__(self, coordinator, code):
         self.coordinator = coordinator
         self.code = code
+        self._attr_should_poll = False
 
     @property
     def unique_id(self):
@@ -136,7 +149,10 @@ class PollenSensor(Entity):
     @property
     def extra_state_attributes(self):
         info = self.coordinator.data.get(self.code, {})
-        attrs = {"category": info.get("category"), ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API"}
+        attrs = {
+            "category": info.get("category"),
+            ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API"
+        }
         if info.get("source") == "plant":
             attrs.update({
                 "inSeason": info.get("inSeason"),
@@ -152,4 +168,9 @@ class PollenSensor(Entity):
         group = info.get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
         name = f"{'Pollen Types' if group=='type' else 'Plants'} ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
-        return {"identifiers": {(DOMAIN, device_id)}, "name": name, "manufacturer": "Google", "model": "Pollen API"}
+        return {
+            "identifiers": {(DOMAIN, device_id)},
+            "name": name,
+            "manufacturer": "Google",
+            "model": "Pollen API",
+        }
