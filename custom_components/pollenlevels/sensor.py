@@ -139,13 +139,14 @@ class PollenSensor(Entity):
         self.coordinator = coordinator
         self.code = code
         self._attr_should_poll = False
+        # Forzar el entity_id
+        self._attr_entity_id = (
+            f"sensor.{DOMAIN}_{coordinator.entry_id}_{code}"
+        )
 
     @property
     def unique_id(self) -> str:
-        """
-        Unique ID includes entry_id and code, ensuring each location
-        produces distinct entities.
-        """
+        """Unique ID includes entry_id and code."""
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
@@ -163,6 +164,7 @@ class PollenSensor(Entity):
         """Select icon based on source/type."""
         info = self.coordinator.data[self.code]
         if info.get("source") == "type":
+            # code = "type_grass" → key = "GRASS"
             key = self.code.split("_", 1)[1].upper()
             return TYPE_ICONS.get(key, DEFAULT_ICON)
         plant_type = info.get("type")
