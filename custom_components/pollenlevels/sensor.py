@@ -139,19 +139,20 @@ class PollenSensor(Entity):
         self.coordinator = coordinator
         self.code = code
         self._attr_should_poll = False
-        # Forzar el entity_id
-        self._attr_entity_id = (
-            f"sensor.{DOMAIN}_{coordinator.entry_id}_{code}"
-        )
 
     @property
     def unique_id(self) -> str:
-        """Unique ID includes entry_id and code."""
+        """Unique ID that will form part of the entity_id."""
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
+    def entity_id(self) -> str:
+        """Force the entity_id to include domain, entry_id and code."""
+        return f"sensor.{DOMAIN}_{self.coordinator.entry_id}_{self.code}"
+
+    @property
     def name(self) -> str:
-        """Use the displayName from the API without extra prefixes."""
+        """Use the displayName from API without extra prefixes."""
         return self.coordinator.data[self.code].get("displayName", self.code)
 
     @property
