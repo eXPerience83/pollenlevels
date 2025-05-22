@@ -70,6 +70,7 @@ It creates one sensor per pollen type (e.g. grass, tree, weed, plus individual p
    - **Google API Key**  
    - **Latitude** & **Longitude** (defaults to Home Assistant’s configured location)  
    - **Update interval** in hours (default: 6)
+   - **Language Code** for the API response (en, es, de, ca, …).
 
 Once configured, you’ll see a device named `Pollen Levels (LAT,LON)` under **Devices**, with one sensor per pollen code under **Entities**.
 
