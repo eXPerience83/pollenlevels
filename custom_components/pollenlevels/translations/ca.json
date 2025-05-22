@@ -3,12 +3,13 @@
     "step": {
       "user": {
         "title": "Configuració Nivells de Polen",
-        "description": "Introdueix la teva clau d'API de Google, latitud, longitud i interval d'actualització (hores).",
+        "description": "Introdueix la teva clau d’API de Google, latitud, longitud, interval d’actualització (hores) i codi d’idioma per a la resposta.",
         "data": {
           "api_key": "Clau API",
           "latitude": "Latitud",
           "longitude": "Longitud",
-          "update_interval": "Interval d'actualització (hores)"
+          "update_interval": "Interval d’actualització (hores)",
+          "language_code": "Codi d’idioma de la resposta API"
         }
       }
     },
