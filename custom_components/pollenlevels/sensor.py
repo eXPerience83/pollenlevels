@@ -20,7 +20,11 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 # Icons mapping
-TYPE_ICONS = {"GRASS": "mdi:grass", "TREE": "mdi:tree", "WEED": "mdi:flower-tulip"}
+TYPE_ICONS = {
+    "GRASS": "mdi:grass",
+    "TREE": "mdi:tree",
+    "WEED": "mdi:flower-tulip",
+}
 PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
 
@@ -67,7 +71,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data = {}
 
     async def _async_update_data(self):
-        """Fetch pollen data with optional languageCode."""
+        """Fetch pollen data with optional languageCode parameter."""
         url = "https://pollen.googleapis.com/v1/forecast:lookup"
         params = {
             "key": self.api_key,
@@ -97,26 +101,31 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         daily = payload.get("dailyInfo")
         if isinstance(daily, list) and daily:
             info = daily[0]
-            # pollenTypeInfo
+            # pollenTypeInfo → code: e.g. "GRASS"
             for item in info.get("pollenTypeInfo", []) or []:
                 code = item.get("code")
                 if not code:
                     continue
                 idx = item.get("indexInfo", {}) or {}
-                new_data[f"type_{code.lower()}"] = {
+                # key "type_grass", "type_tree", ...
+                key = f"type_{code.lower()}"
+                new_data[key] = {
                     "source": "type",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
                     "displayName": item.get("displayName", code),
                 }
-            # plantInfo
+
+            # plantInfo → code: e.g. "OAK"
             for item in info.get("plantInfo", []) or []:
                 code = item.get("code")
                 if not code:
                     continue
                 idx = item.get("indexInfo", {}) or {}
                 desc = item.get("plantDescription", {}) or {}
-                new_data[f"plants_{code.lower()}"] = {
+                # key "plants_oak", "plants_pine", ...
+                key = f"plants_{code.lower()}"
+                new_data[key] = {
                     "source": "plant",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
@@ -138,41 +147,38 @@ class PollenSensor(Entity):
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         self.coordinator = coordinator
         self.code = code
-        # No polling: uses coordinator
         self._attr_should_poll = False
 
     @property
     def unique_id(self) -> str:
-        """
-        Unique ID used by Home Assistant registry.
-        It drives entity_id → sensor.pollenlevels_<unique_id>
-        """
+        """Unique ID drives the entity_id: sensor.pollenlevels_{entry_id}_{code}."""
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
     def name(self) -> str:
-        """Friendly name from API's displayName."""
+        """Friendly name: the API `displayName` (no extra prefixes)."""
         return self.coordinator.data[self.code].get("displayName", self.code)
 
     @property
     def state(self):
-        """Current pollen index value."""
+        """Return the current pollen index value (or None)."""
         return self.coordinator.data[self.code].get("value")
 
     @property
     def icon(self) -> str:
-        """Icon depending on type or plant."""
+        """Select icon based on source/type."""
         info = self.coordinator.data[self.code]
         if info.get("source") == "type":
-            # extract e.g. "GRASS" from "type_grass"
+            # code = "type_grass" → key = "GRASS"
             key = self.code.split("_", 1)[1].upper()
             return TYPE_ICONS.get(key, DEFAULT_ICON)
+        # plants
         plant_type = info.get("type")
         return PLANT_TYPE_ICONS.get(plant_type, DEFAULT_ICON)
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Category, attribution and plant-specific details."""
+        """Include category, attribution, and plant-specific attributes."""
         info = self.coordinator.data[self.code]
         attrs = {
             "category": info.get("category"),
@@ -191,7 +197,7 @@ class PollenSensor(Entity):
 
     @property
     def device_info(self) -> dict:
-        """Group sensors by source under a single device per location."""
+        """Group sensors under a device by source (type or plants)."""
         info = self.coordinator.data[self.code]
         group = info.get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
