@@ -3,12 +3,13 @@
     "step": {
       "user": {
         "title": "Konfiguration Pollenniveaus",
-        "description": "Gib deinen Google API-Schlüssel, Breiten- und Längengrad sowie das Aktualisierungsintervall (Stunden) ein.",
+        "description": "Gib deinen Google API-Schlüssel, Breiten- und Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
         "data": {
           "api_key": "API-Schlüssel",
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
-          "update_interval": "Aktualisierungsintervall (Stunden)"
+          "update_interval": "Aktualisierungsintervall (Stunden)",
+          "language_code": "Sprachcode für Antwort"
         }
       }
     },

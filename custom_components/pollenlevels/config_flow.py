@@ -10,7 +10,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import (
     DOMAIN,
     CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
-    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL,
+    CONF_LANGUAGE_CODE
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,22 +21,22 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """First step: ask for API key, location and update interval."""
+        """First step: ask for API key, location, update interval and language."""
         errors = {}
 
         if user_input:
             session = async_get_clientsession(self.hass)
-            # Validate using forecast:lookup?days=1
-            url = (
-                f"https://pollen.googleapis.com/v1/forecast:lookup?"
-                f"key={user_input[CONF_API_KEY]}"
-                f"&location.latitude={user_input[CONF_LATITUDE]:.6f}"
-                f"&location.longitude={user_input[CONF_LONGITUDE]:.6f}"
-                f"&days=1"
-            )
-            _LOGGER.debug("Validating Pollen API URL: %s", url)
+            params = {
+                "key": user_input[CONF_API_KEY],
+                "location.latitude": f"{user_input[CONF_LATITUDE]:.6f}",
+                "location.longitude": f"{user_input[CONF_LONGITUDE]:.6f}",
+                "days": 1,
+                "languageCode": user_input[CONF_LANGUAGE_CODE],
+            }
+            url = "https://pollen.googleapis.com/v1/forecast:lookup"
+            _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
             try:
-                async with session.get(url) as resp:
+                async with session.get(url, params=params) as resp:
                     text = await resp.text()
                     _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
                     if resp.status == 403:
@@ -61,7 +62,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
-            CONF_LONGITUDE: self.hass.config.longitude
+            CONF_LONGITUDE: self.hass.config.longitude,
+            CONF_LANGUAGE_CODE: self.hass.config.language,
         }
 
         schema = vol.Schema({
@@ -70,6 +72,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
             vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL):
                 vol.All(vol.Coerce(int), vol.Range(min=1)),
+            vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): cv.string,
         })
 
         return self.async_show_form(
