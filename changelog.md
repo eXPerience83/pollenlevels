@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.3.1] - 2025-05-22
+- Updated from beta.
+
 ## [1.3.0] - 2025-05-22
 ### Added
 - Optional `language_code` field in configuration to request API responses in the desired language.  
