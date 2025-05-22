@@ -2,13 +2,14 @@
   "config": {
     "step": {
       "user": {
-        "title": "Konfiguracja Pollen Levels",
-        "description": "Wprowadź klucz API Google, szerokość geograficzną, długość geograficzną i interwał aktualizacji (godziny).",
+        "title": "Konfiguracja Nivele Pollen",
+        "description": "Wprowadź swój klucz Google API, szerokość, długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi.",
         "data": {
           "api_key": "Klucz API",
           "latitude": "Szerokość geograficzna",
           "longitude": "Długość geograficzna",
-          "update_interval": "Interwał aktualizacji (godziny)"
+          "update_interval": "Interwał aktualizacji (godziny)",
+          "language_code": "Kod języka odpowiedzi API"
         }
       }
     },
