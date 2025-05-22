@@ -43,7 +43,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
         return
 
     sensors = [PollenSensor(coordinator, code) for code in coordinator.data.keys()]
-    _LOGGER.debug("Creating %d sensors: %s", len(sensors), list(coordinator.data.keys()))
+    _LOGGER.debug(
+        "Creating %d sensors: %s", len(sensors), list(coordinator.data.keys())
+    )
     async_add_entities(sensors, True)
 
 
@@ -100,11 +102,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 code = item.get("code")
                 if not code:
                     continue
-                index = item.get("indexInfo", {}) or {}
+                idx = item.get("indexInfo", {}) or {}
                 new_data[f"type_{code.lower()}"] = {
                     "source": "type",
-                    "value": index.get("value"),
-                    "category": index.get("category"),
+                    "value": idx.get("value"),
+                    "category": idx.get("category"),
                     "displayName": item.get("displayName", code),
                 }
             # plantInfo
@@ -112,12 +114,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 code = item.get("code")
                 if not code:
                     continue
-                index = item.get("indexInfo", {}) or {}
+                idx = item.get("indexInfo", {}) or {}
                 desc = item.get("plantDescription", {}) or {}
                 new_data[f"plants_{code.lower()}"] = {
                     "source": "plant",
-                    "value": index.get("value"),
-                    "category": index.get("category"),
+                    "value": idx.get("value"),
+                    "category": idx.get("category"),
                     "displayName": item.get("displayName", code),
                     "inSeason": item.get("inSeason"),
                     "type": desc.get("type"),
@@ -142,6 +144,11 @@ class PollenSensor(Entity):
     def unique_id(self) -> str:
         """Unique ID includes entry ID and grouped code."""
         return f"{self.coordinator.entry_id}_{self.code}"
+
+    @property
+    def entity_id(self) -> str:
+        """Force the entity_id to use our code suffix."""
+        return f"sensor.pollenlevels_{self.code}"
 
     @property
     def name(self) -> str:
