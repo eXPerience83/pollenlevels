@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.3.2] - 2025-05-23
+- Added RU an UK translations. Thanks to [@gruzdev-studio](https://github.com/gruzdev-studio)
+
 ## [1.3.1] - 2025-05-22
 - Updated from beta.
 - Fixed translations (PL)
