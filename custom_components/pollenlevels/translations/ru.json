@@ -15,8 +15,9 @@
     },
     "error": {
       "invalid_auth": "Неверный API ключ",
-      "cannot_connect": "Не удается подключиться к сервису",
-      "quota_exceeded": "Превышен лимит запросов"
+      "cannot_connect": "Не удаётся подключиться к сервису",
+      "quota_exceeded": "Превышен лимит запросов",
+      "invalid_language": "Неверный код языка"
     }
   }
 }
