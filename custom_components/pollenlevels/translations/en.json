@@ -16,7 +16,8 @@
     "error": {
       "invalid_auth": "Invalid API key",
       "cannot_connect": "Cannot connect to service",
-      "quota_exceeded": "Quota exceeded"
+      "quota_exceeded": "Quota exceeded",
+      "invalid_language": "Invalid language code"
     }
   }
 }
