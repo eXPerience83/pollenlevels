@@ -16,7 +16,8 @@
     "error": {
       "invalid_auth": "Невірний API ключ",
       "cannot_connect": "Не вдається підключитися до сервісу",
-      "quota_exceeded": "Перевищено ліміт запитів"
+      "quota_exceeded": "Перевищено ліміт запитів",
+      "invalid_language": "Невірний код мови"
     }
   }
 }
