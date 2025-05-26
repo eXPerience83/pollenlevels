@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.3] - 2025-05-26
+### Improved
+- Basic IETF Regular Expression Validation:
+    Uses the pattern ^[a-zA-Z]{2,3}(-[a-zA-Z]{2})?$ to allow codes like es, en-US, fr-CA, etc.
+- Function is_valid_language_code(value):
+    Checks for non-empty language and pattern matching.
+    Throws vol.Invalid("invalid_language") if invalid.
+- Validation in async_step_user:
+    Before contacting the API, validate the language code and return the appropriate error if it's invalid.
+- Custom Error Key:
+    Uses errors[CONF_LANGUAGE_CODE] = "invalid_language" to integrate into the configuration interface.
+- Updated languages.
+
 ## [1.3.2] - 2025-05-23
 - Added RU an UK translations. Thanks to [@gruzdev-studio](https://github.com/gruzdev-studio)
 
