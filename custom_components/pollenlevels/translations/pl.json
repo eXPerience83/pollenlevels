@@ -17,7 +17,8 @@
       "invalid_auth": "Nieprawidłowy klucz API",
       "cannot_connect": "Brak połączenia z usługą",
       "quota_exceeded": "Przekroczono limit",
-      "invalid_language": "Nieprawidłowy kod języka"
+      "invalid_language": "Nieprawidłowy kod języka",
+      "empty": "To pole nie może być puste"
     }
   }
 }
