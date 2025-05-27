@@ -18,6 +18,7 @@
       "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
       "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode"
+      "empty": "Dieses Feld darf nicht leer sein"
     }
   }
 }
