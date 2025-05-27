@@ -21,6 +21,8 @@ _LOGGER = logging.getLogger(__name__)
 LANGUAGE_CODE_REGEX = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 
 def is_valid_language_code(value):
+    if not isinstance(value, str):
+        raise vol.Invalid("invalid_language")
     if not value:
         raise vol.Invalid("empty")
     if not LANGUAGE_CODE_REGEX.match(value):
@@ -35,17 +37,20 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input:
-            session = async_get_clientsession(self.hass)
-            params = {
-                "key": user_input[CONF_API_KEY],
-                "location.latitude": f"{user_input[CONF_LATITUDE]:.6f}",
-                "location.longitude": f"{user_input[CONF_LONGITUDE]:.6f}",
-                "days": 1,
-                "languageCode": user_input[CONF_LANGUAGE_CODE],
-            }
-            url = "https://pollen.googleapis.com/v1/forecast:lookup"
-            _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
             try:
+                # Validate language code before making request
+                is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
+
+                session = async_get_clientsession(self.hass)
+                params = {
+                    "key": user_input[CONF_API_KEY],
+                    "location.latitude": f"{user_input[CONF_LATITUDE]:.6f}",
+                    "location.longitude": f"{user_input[CONF_LONGITUDE]:.6f}",
+                    "days": 1,
+                    "languageCode": user_input[CONF_LANGUAGE_CODE],
+                }
+                url = "https://pollen.googleapis.com/v1/forecast:lookup"
+                _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
                 async with session.get(url, params=params) as resp:
                     text = await resp.text()
                     _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
@@ -60,6 +65,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         if not data.get("dailyInfo"):
                             _LOGGER.warning("Validation: 'dailyInfo' missing")
                             errors["base"] = "cannot_connect"
+            except vol.Invalid as ve:
+                errors[CONF_LANGUAGE_CODE] = str(ve)
             except aiohttp.ClientError as err:
                 _LOGGER.error("Connection error: %s", err)
                 errors["base"] = "cannot_connect"
@@ -82,8 +89,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
             vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL):
                 vol.All(vol.Coerce(int), vol.Range(min=1)),
-            vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]):
-                vol.All(cv.string, is_valid_language_code),
+            vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
         })
 
         return self.async_show_form(
