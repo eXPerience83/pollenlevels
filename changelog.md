@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.5] - 2025-05-27
+### Added
+- New **Region** and **Date** metadata sensors to expose `regionCode` and API response date in a dedicated **Pollen Info** device.
+
+### Improved
+- **Language code validation** refined using IETF regex `^[a-zA-Z]{2,3}(-[a-zA-Z]{2})?$` to support codes like `es`, `en-US`, `fr-CA`, etc.
+- Introduced `is_valid_language_code(value)` helper that raises `vol.Invalid("invalid_language")` for invalid formats and `vol.Invalid("empty")` for blank inputs.
+- Translations updated with new error keys `invalid_language` and `empty` across all supported languages.
+
+### Fixed
+- ❗️ **UI schema serialization crash**: Removed `vol.All(cv.string, is_valid_language_code)` from the `data_schema` to restore compatibility with Home Assistant's UI config flow system.  
+  Validation now occurs manually before API call, and error is assigned via `errors[CONF_LANGUAGE_CODE]`.
+
+
 ## [1.3.3] - 2025-05-26
 ### Improved
 - Basic IETF Regular Expression Validation:
