@@ -16,7 +16,9 @@
     "error": {
       "invalid_auth": "Clave API inválida",
       "cannot_connect": "No se puede conectar al servicio",
-      "quota_exceeded": "Cuota excedida"
+      "quota_exceeded": "Cuota excedida",
+      "invalid_language": "Código de idioma no válido",
+      "empty": "Este campo no puede estar vacío"
     }
   }
 }

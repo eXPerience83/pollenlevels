@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.3.5] - 2025-05-27
+### Added
+- New **Region** and **Date** metadata sensors to expose `regionCode` and API response date in a dedicated **Pollen Info** device.
+
+### Improved
+- **Language code validation** refined using IETF regex `^[a-zA-Z]{2,3}(-[a-zA-Z]{2})?$` to support codes like `es`, `en-US`, `fr-CA`, etc.
+- Introduced `is_valid_language_code(value)` helper that raises `vol.Invalid("invalid_language")` for invalid formats and `vol.Invalid("empty")` for blank inputs.
+- Translations updated with new error keys `invalid_language` and `empty` across all supported languages.
+
+### Fixed
+- ❗️ **UI schema serialization crash**: Removed `vol.All(cv.string, is_valid_language_code)` from the `data_schema` to restore compatibility with Home Assistant's UI config flow system.  
+  Validation now occurs manually before API call, and error is assigned via `errors[CONF_LANGUAGE_CODE]`.
+
+
+## [1.3.3] - 2025-05-26
+### Improved
+- Basic IETF Regular Expression Validation:
+    Uses the pattern ^[a-zA-Z]{2,3}(-[a-zA-Z]{2})?$ to allow codes like es, en-US, fr-CA, etc.
+- Function is_valid_language_code(value):
+    Checks for non-empty language and pattern matching.
+    Throws vol.Invalid("invalid_language") if invalid.
+- Validation in async_step_user:
+    Before contacting the API, validate the language code and return the appropriate error if it's invalid.
+- Custom Error Key:
+    Uses errors[CONF_LANGUAGE_CODE] = "invalid_language" to integrate into the configuration interface.
+- Updated languages.
+
 ## [1.3.2] - 2025-05-23
 - Added RU an UK translations. Thanks to [@gruzdev-studio](https://github.com/gruzdev-studio)
 
