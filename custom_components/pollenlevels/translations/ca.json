@@ -17,7 +17,7 @@
       "invalid_auth": "Clau API no vàlida",
       "cannot_connect": "No es pot connectar al servei",
       "quota_exceeded": "Quota excedida",
-      "invalid_language": "Codi d’idioma no vàlid"
+      "invalid_language": "Codi d’idioma no vàlid",
       "empty": "Aquest camp no pot estar buit"
     }
   }
