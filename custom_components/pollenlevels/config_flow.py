@@ -18,11 +18,11 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 # Regex to validate basic IETF language codes, such as "en" or "en-US"
-LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2})?$")
+LANGUAGE_CODE_REGEX = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 
-def is_valid_language_code(value: str) -> str:
-    if not value or not isinstance(value, str):
-        raise vol.Invalid("invalid_language")
+def is_valid_language_code(value):
+    if not value:
+        raise vol.Invalid("empty")
     if not LANGUAGE_CODE_REGEX.match(value):
         raise vol.Invalid("invalid_language")
     return value
@@ -32,50 +32,43 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """First step: ask for API key, location, update interval and language."""
         errors = {}
 
         if user_input:
+            session = async_get_clientsession(self.hass)
+            params = {
+                "key": user_input[CONF_API_KEY],
+                "location.latitude": f"{user_input[CONF_LATITUDE]:.6f}",
+                "location.longitude": f"{user_input[CONF_LONGITUDE]:.6f}",
+                "days": 1,
+                "languageCode": user_input[CONF_LANGUAGE_CODE],
+            }
+            url = "https://pollen.googleapis.com/v1/forecast:lookup"
+            _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
             try:
-                is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
-            except vol.Invalid:
-                errors[CONF_LANGUAGE_CODE] = "invalid_language"
+                async with session.get(url, params=params) as resp:
+                    text = await resp.text()
+                    _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
+                    if resp.status == 403:
+                        errors["base"] = "invalid_auth"
+                    elif resp.status == 429:
+                        errors["base"] = "quota_exceeded"
+                    elif resp.status != 200:
+                        errors["base"] = "cannot_connect"
+                    else:
+                        data = await resp.json()
+                        if not data.get("dailyInfo"):
+                            _LOGGER.warning("Validation: 'dailyInfo' missing")
+                            errors["base"] = "cannot_connect"
+            except aiohttp.ClientError as err:
+                _LOGGER.error("Connection error: %s", err)
+                errors["base"] = "cannot_connect"
+            except Exception as err:
+                _LOGGER.exception("Unexpected error: %s", err)
+                errors["base"] = "cannot_connect"
 
             if not errors:
-                session = async_get_clientsession(self.hass)
-                params = {
-                    "key": user_input[CONF_API_KEY],
-                    "location.latitude": f"{user_input[CONF_LATITUDE]:.6f}",
-                    "location.longitude": f"{user_input[CONF_LONGITUDE]:.6f}",
-                    "days": 1,
-                    "languageCode": user_input[CONF_LANGUAGE_CODE],
-                }
-                url = "https://pollen.googleapis.com/v1/forecast:lookup"
-                _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
-                try:
-                    async with session.get(url, params=params) as resp:
-                        text = await resp.text()
-                        _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
-                        if resp.status == 403:
-                            errors["base"] = "invalid_auth"
-                        elif resp.status == 429:
-                            errors["base"] = "quota_exceeded"
-                        elif resp.status != 200:
-                            errors["base"] = "cannot_connect"
-                        else:
-                            data = await resp.json()
-                            if not data.get("dailyInfo"):
-                                _LOGGER.warning("Validation: 'dailyInfo' missing")
-                                errors["base"] = "cannot_connect"
-                except aiohttp.ClientError as err:
-                    _LOGGER.error("Connection error: %s", err)
-                    errors["base"] = "cannot_connect"
-                except Exception as err:
-                    _LOGGER.exception("Unexpected error: %s", err)
-                    errors["base"] = "cannot_connect"
-
-                if not errors:
-                    return self.async_create_entry(title="Pollen Levels", data=user_input)
+                return self.async_create_entry(title="Pollen Levels", data=user_input)
 
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
@@ -89,7 +82,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
             vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL):
                 vol.All(vol.Coerce(int), vol.Range(min=1)),
-            vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
+            vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]):
+                vol.All(cv.string, is_valid_language_code),
         })
 
         return self.async_show_form(
