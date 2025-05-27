@@ -10,6 +10,7 @@
           "longitude": "Longitude",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code"
+          "empty": "This field cannot be empty"
         }
       }
     },
