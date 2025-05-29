@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.7] - 2025-05-29
+## [1.3.7.1] - 2025-05-29
 ### Added
 - **New plant sensor attribute**: Added `cross_reaction` field showing pollen cross-reactivity information for each plant type.
 
