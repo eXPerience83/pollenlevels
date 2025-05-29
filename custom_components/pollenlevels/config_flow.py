@@ -77,6 +77,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_LANGUAGE_CODE],
                     str(ve)
                 errors[CONF_LANGUAGE_CODE] = str(ve)
+                )
             except aiohttp.ClientError as err:
                 _LOGGER.error("Connection error: %s", err)
                 errors["base"] = "cannot_connect"
