@@ -9,8 +9,7 @@
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Update interval (hours)",
-          "language_code": "API response language code",
-          "empty": "This field cannot be empty"
+          "language_code": "API response language code"
         }
       }
     },
@@ -18,7 +17,8 @@
       "invalid_auth": "Invalid API key",
       "cannot_connect": "Cannot connect to service",
       "quota_exceeded": "Quota exceeded",
-      "invalid_language": "Invalid language code"
+      "invalid_language": "Invalid language code",
+      "empty": "This field cannot be empty"
     }
   }
 }
