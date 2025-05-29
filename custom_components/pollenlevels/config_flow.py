@@ -30,7 +30,7 @@ def is_valid_language_code(value):
     if not value.strip():
         raise vol.Invalid("empty")
     if not LANGUAGE_CODE_REGEX.match(value):
-        _LOGGER.warning("Invalid language code format: %s", value)  # Added warning log
+        _LOGGER.warning("Invalid language code format: %s", value)
         raise vol.Invalid("invalid_language")
     return value
 
@@ -76,8 +76,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "Language code validation failed for '%s': %s",
                     user_input[CONF_LANGUAGE_CODE],
                     str(ve)
-                errors[CONF_LANGUAGE_CODE] = str(ve)
                 )
+                errors[CONF_LANGUAGE_CODE] = str(ve)
             except aiohttp.ClientError as err:
                 _LOGGER.error("Connection error: %s", err)
                 errors["base"] = "cannot_connect"
