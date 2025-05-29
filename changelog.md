@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.7] - 2025-05-29
+### Added
+- **New plant sensor attribute**: Added `cross_reaction` field showing pollen cross-reactivity information for each plant type.
+
+### Fixed
+- **Critical syntax error**: Fixed unclosed parenthesis in config_flow.py that prevented integration loading.
+- **Language validation**: 
+  - Improved error logging for invalid language codes
+  - Corrected indentation in validation error handling
+
+### Improved
+- **Data completeness**: Plant sensors now include all available API data including cross-reactivity warnings
+- **Error handling**: More detailed logging for configuration flow errors
+
 ## [1.3.6] - 2025-05-29
 ### Fixed
 - **Critical translation error**: Moved `"empty"` key from `data` to `error` section in `en.json` (was causing UI serialization issues).
