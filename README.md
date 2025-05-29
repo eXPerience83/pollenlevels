@@ -42,26 +42,11 @@ Get sensors for grass, tree, weed pollen, plus individual plants like OAK, PINE,
 4. Install **Pollen Levels** integration
 5. **Restart** Home Assistant
 
-### Manual
-```bash
-# Create directory
-mkdir -p config/custom_components/pollenlevels
-
-# Download integration
-wget -O config/custom_components/pollenlevels.zip \
-  https://github.com/eXPerience83/pollenlevels/archive/main.zip
-
-# Unzip and cleanup
-unzip -j config/custom_components/pollenlevels.zip '*/custom_components/pollenlevels/*' \
-  -d config/custom_components/pollenlevels
-rm config/custom_components/pollenlevels.zip
-```
-
 ## 🔑 Configuration
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **Pollen Levels**
 3. Enter:
-   - **Google API Key** ([Get Key](#-obtaining-a-google-api-key))
+   - **Google API Key**
    - **Location** (auto-filled from HA config)
    - **Update Interval** (hours)
    - **Language Code** (e.g., `en`, `es`, `de`, `fr`, `uk`)
