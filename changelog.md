@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.6] - 2025-05-29
+### Fixed
+- **Critical translation error**: Moved `"empty"` key from `data` to `error` section in `en.json` (was causing UI serialization issues).
+- **Language code validation**:
+  - Updated regex pattern to `^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$` (supports 3-letter base codes like `cmn` and regions like `zh-Hant`).
+  - Added case-insensitive matching (`en-US` and `en-us` now both valid).
+  - Improved empty string check with `.strip()` to catch whitespace-only inputs.
+
+### Improved
+- Added detailed warning logs for language code validation failures in `config_flow.py`.
+
 ## [1.3.5] - 2025-05-27
 ### Added
 - New **Region** and **Date** metadata sensors to expose `regionCode` and API response date in a dedicated **Pollen Info** device.
