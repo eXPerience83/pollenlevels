@@ -1,133 +1,106 @@
-# Pollen Levels Integration for Home Assistant
+# 🌼 Pollen Levels Integration for Home Assistant
 
-A custom integration for [Home Assistant](https://www.home-assistant.io) that fetches pollen data from the Google Maps Pollen API.
+**Monitor real-time pollen levels** from the Google Maps Pollen API directly in Home Assistant.  
+Get sensors for grass, tree, weed pollen, plus individual plants like OAK, PINE, OLIVE, and more!
 
-It creates one sensor per pollen type (e.g. grass, tree, weed, plus individual plant codes like OAK, PINE, etc.) and groups them under a single device representing your location.
+[![GitHub Release][release-shield]][release-url]
+[![License][license-shield]](LICENSE)
+[![hacs][hacs-shield]][hacs-url]
 
----
+[release-shield]: https://img.shields.io/github/release/eXPerience83/pollenlevels.svg?style=flat
+[release-url]: https://github.com/eXPerience83/pollenlevels/releases
+[license-shield]: https://img.shields.io/github/license/eXPerience83/pollenlevels.svg?style=flat
+[hacs-shield]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=flat
+[hacs-url]: https://hacs.xyz
 
-## Features
+## 🌟 Features
 
-- **Current pollen levels** (Universal Pollen Index) for grass, tree, weed  
-- **Individual plant‑type sensors** (e.g. OAK, PINE, BIRCH, etc.) with value & category  
-- Configurable update interval (default: 6 hours)  
-- Automatic device grouping by location  
-- No YAML configuration—setup entirely via UI  
-- HACS‑compatible  
-- **Multi-language support** for configuration UI (English, Spanish, Catalan, German, French, Italian, Polish)
+- **Multi-language support**  
+  UI available in 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK) + API responses in any language
+- **Dynamic sensors**  
+  Auto-creates sensors for all pollen types found in your location
+- **Smart grouping**  
+  Organizes sensors into intuitive devices:
+  - Pollen Types (Grass/Tree/Weed)
+  - Plants (Oak/Pine/Birch/etc.)
+  - Pollen Info (Region/Date metadata)
+- **Configurable updates**  
+  Set refresh interval (default: 6 hours)
+- **Rich attributes**  
+  Includes season status, plant family, allergy info
+- **Zero YAML**  
+  Fully configurable via Home Assistant UI
+- **HACS compatible**  
+  Easy installation and updates
 
----
+## ⚙️ Installation
 
-## Installation
-
-### HACS (preferred)
-
-1. In HACS, go to **Integrations** → three‑dot menu → **Custom repositories**.  
-2. Add this repository URL:  
-   ```
-   https://github.com/eXPerience83/pollenlevels
-   ```  
-3. Choose **Integration** as category and click **Add**.  
-4. In **Integrations**, search for **Pollen Levels** and install.  
-5. Restart Home Assistant.
+### HACS (Recommended)
+1. Go to **HACS → Integrations**
+2. Click **⋮ → Custom repositories**
+3. Add URL: `https://github.com/eXPerience83/pollenlevels`
+4. Install **Pollen Levels** integration
+5. **Restart** Home Assistant
 
 ### Manual
+```bash
+# Create directory
+mkdir -p config/custom_components/pollenlevels
 
-1. Copy the `pollenlevels` folder into `config/custom_components/`.  
-2. Ensure the structure is:
-   ```
-   config/
-   └── custom_components/
-       └── pollenlevels/
-           ├── __init__.py
-           ├── config_flow.py
-           ├── const.py
-           ├── manifest.json
-           ├── sensor.py
-           └── translations/
-               ├── en.json
-               ├── es.json
-               ├── ca.json
-               ├── de.json
-               ├── fr.json
-               ├── it.json
-               └── pl.json
-   assets/
-     └── logo.png
-   hacs.json
-   README.md
-   ```
+# Download integration
+wget -O config/custom_components/pollenlevels.zip \
+  https://github.com/eXPerience83/pollenlevels/archive/main.zip
 
-3. Restart Home Assistant.
+# Unzip and cleanup
+unzip -j config/custom_components/pollenlevels.zip '*/custom_components/pollenlevels/*' \
+  -d config/custom_components/pollenlevels
+rm config/custom_components/pollenlevels.zip
+```
 
----
-
-## Configuration
-
-1. Go to **Settings → Devices & Services → Add Integration**.  
-2. Search **Pollen Levels**.  
+## 🔑 Configuration
+1. Go to **Settings → Devices & Services → Add Integration**
+2. Search for **Pollen Levels**
 3. Enter:
-   - **Google API Key**  
-   - **Latitude** & **Longitude** (defaults to Home Assistant’s configured location)  
-   - **Update interval** in hours (default: 6)
-   - **Language Code** for the API response (en, es, de, ca, …).
+   - **Google API Key** ([Get Key](#-obtaining-a-google-api-key))
+   - **Location** (auto-filled from HA config)
+   - **Update Interval** (hours)
+   - **Language Code** (e.g., `en`, `es`, `de`, `fr`, `uk`)
 
-Once configured, you’ll see a device named `Pollen Levels (LAT,LON)` under **Devices**, with one sensor per pollen code under **Entities**.
+## 🗝️ Obtaining a Google API Key
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create project → **Enable Billing**
+3. Enable **Maps Pollen API**
+4. Create **API Key** under *Credentials*
+5. (Recommended) Restrict key to **Maps Pollen API**
 
----
+## 🌐 API Response Example
+```bash
+curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&location.latitude=48.8566&location.longitude=2.3522&days=1&languageCode=es"
+```
+```json
+{
+  "regionCode": "FR",
+  "dailyInfo": [{
+    "date": {"year": 2025, "month": 5, "day": 20},
+    "pollenTypeInfo": [
+      {"code": "GRASS", "displayName": "Hierba", "indexInfo": {"value": 3, "category": "Moderate"}},
+      {"code": "TREE", "displayName": "Árbol", "indexInfo": {"value": 2, "category": "Low"}}
+    ],
+    "plantInfo": [
+      {"code": "OLIVE", "displayName": "Olivo", "indexInfo": {"value": 2, "category": "Low"}},
+      {"code": "PINE", "displayName": "Pino", "indexInfo": {"value": 1, "category": "Very Low"}}
+    ]
+  }]
+}
+```
 
-## Obtaining a Google API Key
+## ❤️ Donations
+If this integration helps you breathe easier (literally!), consider supporting development:
 
-1. Open the [Google Cloud Console](https://console.cloud.google.com/).  
-2. Create (or select) a project with billing enabled.  
-3. Go to **APIs & Services → Library**, enable **Maps Pollen API**.  
-4. In **APIs & Services → Credentials**, click **Create credentials → API key**.  
-5. (Recommended) Restrict key to **Maps Pollen API**.  
-6. Use this key when setting up the integration.
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/experience83)  
+[PayPal](https://paypal.me/eXPerience83)
 
----
+## 📜 License
+MIT © 2025 [eXPerience83](LICENSE)
 
-## API Endpoints
-
-- **Forecast lookup** (use for both current levels and forecast for up to 5 days):
-  ```
-  GET https://pollen.googleapis.com/v1/forecast:lookup
-      ?key={API_KEY}
-      &location.latitude={LAT}
-      &location.longitude={LON}
-      &days={N}
-  ```
-  - **days**: number of days (1 for today only)
-
-The response includes:
-
-- **dailyInfo[n].pollenTypeInfo** → UPI per pollen category (`GRASS`, `TREE`, `WEED`)
-- **dailyInfo[n].plantInfo** → individual plant codes (`OAK`, `PINE`, `BIRCH`, …), with:
-  - `indexInfo.value` → numeric index  
-  - `indexInfo.category` → one of:  
-    `"Very Low"`, `"Low"`, `"Moderate"`, `"High"`, `"Very High"`
-
-See Google’s docs for full details:  
-- [Pollen Forecast](https://developers.google.com/maps/documentation/pollen/forecast)  
-- [Pollen Index](https://developers.google.com/maps/documentation/pollen/pollen-index)
-
----
-
-## Donations
-
-If you find this integration useful and would like to support its development, please consider donating:
-- [PayPal](https://paypal.me/eXPerience83)
-- [Ko-fi](https://ko-fi.com/experience83)
-
----
-
-## License
-
-This project is licensed under the **MIT License**.  
-See [LICENSE](LICENSE) for details.
-
----
-
-## Credits
-
-Built by @eXPerience83 using the **Google Maps Pollen API** and the Home Assistant integration framework.
+> **Data Source**: [Google Maps Pollen API](https://developers.google.com/maps/documentation/pollen)
