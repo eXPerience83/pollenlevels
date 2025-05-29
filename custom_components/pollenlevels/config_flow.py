@@ -17,15 +17,20 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Regex to validate basic IETF language codes, such as "en" or "en-US"
-LANGUAGE_CODE_REGEX = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
+# Improved regex to support:
+# - 2-3 character base language codes (e.g., "zh", "cmn")
+# - 2-4 character region suffixes (e.g., "zh-Hant", "zh-Hant-TW")
+# - Case-insensitive matching (supports "en-US", "en-us", etc.)
+LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
 
 def is_valid_language_code(value):
+    """Validate IETF language codes with enhanced pattern matching."""
     if not isinstance(value, str):
         raise vol.Invalid("invalid_language")
-    if not value:
+    if not value.strip():
         raise vol.Invalid("empty")
     if not LANGUAGE_CODE_REGEX.match(value):
+        _LOGGER.warning("Invalid language code format: %s", value)  # Added warning log
         raise vol.Invalid("invalid_language")
     return value
 
@@ -66,6 +71,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             _LOGGER.warning("Validation: 'dailyInfo' missing")
                             errors["base"] = "cannot_connect"
             except vol.Invalid as ve:
+                # Log validation error details for debugging
+                _LOGGER.warning(
+                    "Language code validation failed for '%s': %s",
+                    user_input[CONF_LANGUAGE_CODE],
+                    str(ve)
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except aiohttp.ClientError as err:
                 _LOGGER.error("Connection error: %s", err)
