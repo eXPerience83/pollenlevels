@@ -165,6 +165,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "type": desc.get("type"),
                     "family": desc.get("family"),
                     "season": desc.get("season"),
+                    # Add cross_reaction attribute if available
+                    "cross_reaction": desc.get("crossReaction"),
                 }
 
         self.data = new_data
@@ -213,6 +215,8 @@ class PollenSensor(Entity):
                 "type": self.coordinator.data[self.code].get("type"),
                 "family": self.coordinator.data[self.code].get("family"),
                 "season": self.coordinator.data[self.code].get("season"),
+                # Add cross_reaction attribute if available
+                "cross_reaction": self.coordinator.data[self.code].get("cross_reaction"),
             })
         return attrs
 
