@@ -1,6 +1,8 @@
-"""Sensor platform for Pollen Levels with language support and Region/Date sensors."""
+"""Provide Pollen Levels sensors with language support and region/date metadata."""
+
 import logging
 from datetime import timedelta
+from homeassistant.util import dt as dt_util
 
 import aiohttp
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -19,47 +21,58 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Icons mapping for pollenTypeInfo codes (GRASS, TREE, WEED)
+# ---- Icons ---------------------------------------------------------------
+
 TYPE_ICONS = {
     "GRASS": "mdi:grass",
     "TREE": "mdi:tree",
     "WEED": "mdi:flower-tulip",
 }
-# Same mapping for plant types based on 'type' attribute
-PLANT_TYPE_ICONS = TYPE_ICONS
-# Fallback icon
+PLANT_TYPE_ICONS = TYPE_ICONS  # Reuse mapping for plant "type" attribute
 DEFAULT_ICON = "mdi:flower-pollen"
+
+# ---- Service -------------------------------------------------------------
+# (Service registration is handled in __init__.py)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up all sensors: pollen types, plants, plus region & date meta-sensors."""
+    """Create coordinator and build sensors for pollen data."""
+    # ------------------------------------------------------------------
+    # Coordinator
+    # ------------------------------------------------------------------
+
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
     interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     lang = entry.data.get(CONF_LANGUAGE_CODE)
 
-    # Create the coordinator with language support
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, interval, lang, entry.entry_id
     )
     await coordinator.async_config_entry_first_refresh()
 
+    # Store coordinator for service access
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
     if not coordinator.data:
         _LOGGER.warning("No pollen data found during initial setup")
         return
 
-    # Build sensors for each pollen code
+    # ------------------------------------------------------------------
+    # Build sensors for each pollen & plant code + metadata sensors
+    # ------------------------------------------------------------------
+
     sensors = [
         PollenSensor(coordinator, code)
         for code in coordinator.data.keys()
         if code not in ("region", "date")
     ]
 
-    # Add the two extra metadata sensors: region and date
     sensors.extend([
         RegionSensor(coordinator),
         DateSensor(coordinator),
+        LastUpdatedSensor(coordinator),
     ])
 
     _LOGGER.debug(
@@ -70,8 +83,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, True)
 
 
+# ---------------------------------------------------------------------------
+# DataUpdateCoordinator
+# ---------------------------------------------------------------------------
+
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
-    """Coordinator to fetch pollen data with optional languageCode."""
+    """Coordinate pollen data fetch with optional language code."""
 
     def __init__(self, hass, api_key, lat, lon, hours, language, entry_id):
         super().__init__(
@@ -85,10 +102,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.lon = lon
         self.language = language
         self.entry_id = entry_id
-        self.data = {}  # will hold all pollen entries plus meta
+        self.data: dict[str, dict] = {}
+        self.last_updated = None  # Track last successful update timestamp
 
-    async def _async_update_data(self):
-        """Fetch pollen data and extract types, plants, region, and date."""
+    async def _async_update_data(self):  # noqa: D401  # Imperative docstring policy
+        """Fetch pollen data and extract sensors."""
         url = "https://pollen.googleapis.com/v1/forecast:lookup"
         params = {
             "key": self.api_key,
@@ -111,35 +129,27 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if resp.status != 200:
                     raise UpdateFailed(f"HTTP {resp.status}")
                 payload = await resp.json()
-        except Exception as err:
-            raise UpdateFailed(err)
+        except Exception as err:  # noqa: BLE001  # runtime safety
+            raise UpdateFailed(err) from err
 
-        new_data = {}
-        # --- Extract region code ---
-        region = payload.get("regionCode")
-        if region:
-            new_data["region"] = {
-                "source": "meta",
-                "value": region,
-            }
+        new_data: dict[str, dict] = {}
 
-        # --- Extract date info ---
-        daily = payload.get("dailyInfo")
-        if isinstance(daily, list) and daily:
-            date_obj = daily[0].get("date", {})
-            year = date_obj.get("year")
-            month = date_obj.get("month")
-            day = date_obj.get("day")
-            if year and month and day:
+        # Extract region code
+        if (region := payload.get("regionCode")):
+            new_data["region"] = {"source": "meta", "value": region}
+
+        # Extract date and pollen information
+        if (daily := payload.get("dailyInfo")) and isinstance(daily, list):
+            first_day = daily[0]
+            date_obj = first_day.get("date", {})
+            if all(k in date_obj for k in ("year", "month", "day")):
                 new_data["date"] = {
                     "source": "meta",
-                    "value": f"{year:04d}-{month:02d}-{day:02d}",
+                    "value": f"{date_obj['year']:04d}-{date_obj['month']:02d}-{date_obj['day']:02d}",
                 }
 
-            info = daily[0]
-
-            # --- pollenTypeInfo → type sensors ---
-            for item in info.get("pollenTypeInfo", []) or []:
+            # pollenTypeInfo → type sensors
+            for item in first_day.get("pollenTypeInfo", []) or []:
                 code = item.get("code")
                 idx = item.get("indexInfo", {}) or {}
                 key = f"type_{code.lower()}"
@@ -150,8 +160,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "displayName": item.get("displayName", code),
                 }
 
-            # --- plantInfo → plant sensors ---
-            for item in info.get("plantInfo", []) or []:
+            # plantInfo → plant sensors
+            for item in first_day.get("plantInfo", []) or []:
                 code = item.get("code")
                 idx = item.get("indexInfo", {}) or {}
                 desc = item.get("plantDescription", {}) or {}
@@ -165,22 +175,30 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "type": desc.get("type"),
                     "family": desc.get("family"),
                     "season": desc.get("season"),
-                    # Add cross_reaction attribute if available
                     "cross_reaction": desc.get("crossReaction"),
                 }
 
         self.data = new_data
+        self.last_updated = dt_util.utcnow()
         _LOGGER.debug("Updated data: %s", self.data)
         return self.data
 
 
+# ---------------------------------------------------------------------------
+# Generic Pollen Sensor (type & plant)
+# ---------------------------------------------------------------------------
+
 class PollenSensor(Entity):
-    """Generic sensor for pollen types or plant types."""
+    """Represent a pollen sensor for a type or plant."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         self.coordinator = coordinator
         self.code = code
         self._attr_should_poll = False
+
+    # ------------------------------
+    # Device Info
+    # ------------------------------
 
     @property
     def unique_id(self) -> str:
@@ -200,28 +218,28 @@ class PollenSensor(Entity):
         if info.get("source") == "type":
             key = self.code.split("_", 1)[1].upper()
             return TYPE_ICONS.get(key, DEFAULT_ICON)
-        plant_type = info.get("type")
-        return PLANT_TYPE_ICONS.get(plant_type, DEFAULT_ICON)
+        return PLANT_TYPE_ICONS.get(info.get("type"), DEFAULT_ICON)
 
     @property
-    def extra_state_attributes(self) -> dict:
+    def extra_state_attributes(self):
         attrs = {
             "category": self.coordinator.data[self.code].get("category"),
             ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
         }
         if self.coordinator.data[self.code].get("source") == "plant":
-            attrs.update({
-                "inSeason": self.coordinator.data[self.code].get("inSeason"),
-                "type": self.coordinator.data[self.code].get("type"),
-                "family": self.coordinator.data[self.code].get("family"),
-                "season": self.coordinator.data[self.code].get("season"),
-                # Add cross_reaction attribute if available
-                "cross_reaction": self.coordinator.data[self.code].get("cross_reaction"),
-            })
+            attrs.update(
+                {
+                    "inSeason": self.coordinator.data[self.code].get("inSeason"),
+                    "type": self.coordinator.data[self.code].get("type"),
+                    "family": self.coordinator.data[self.code].get("family"),
+                    "season": self.coordinator.data[self.code].get("season"),
+                    "cross_reaction": self.coordinator.data[self.code].get("cross_reaction"),
+                }
+            )
         return attrs
 
     @property
-    def device_info(self) -> dict:
+    def device_info(self):
         group = self.coordinator.data[self.code].get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
         device_name = (
@@ -237,17 +255,41 @@ class PollenSensor(Entity):
         }
 
 
-class RegionSensor(Entity):
+# ---------------------------------------------------------------------------
+# Metadata Sensors (Region / Date / Last Updated)
+# ---------------------------------------------------------------------------
+
+class _BaseMetaSensor(Entity):
+    """Base class for simple metadata sensors."""
+
+    _attr_should_poll = False
+
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
         self.coordinator = coordinator
-        self._attr_should_poll = False
+
+    @property
+    def device_info(self):
+        device_id = f"{self.coordinator.entry_id}_meta"
+        device_name = (
+            f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
+        )
+        return {
+            "identifiers": {(DOMAIN, device_id)},
+            "name": device_name,
+            "manufacturer": "Google",
+            "model": "Pollen API",
+        }
+
+
+class RegionSensor(_BaseMetaSensor):
+    """Represent region code sensor."""
 
     @property
     def unique_id(self) -> str:
         return f"{self.coordinator.entry_id}_region"
 
     @property
-    def name(self) -> str:
+    def name(self):
         return "Region"
 
     @property
@@ -255,32 +297,19 @@ class RegionSensor(Entity):
         return self.coordinator.data.get("region", {}).get("value")
 
     @property
-    def icon(self) -> str:
+    def icon(self):
         return "mdi:earth"
 
-    @property
-    def device_info(self) -> dict:
-        device_id = f"{self.coordinator.entry_id}_meta"
-        device_name = f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
-        return {
-            "identifiers": {(DOMAIN, device_id)},
-            "name": device_name,
-            "manufacturer": "Google",
-            "model": "Pollen API",
-        }
 
-
-class DateSensor(Entity):
-    def __init__(self, coordinator: PollenDataUpdateCoordinator):
-        self.coordinator = coordinator
-        self._attr_should_poll = False
+class DateSensor(_BaseMetaSensor):
+    """Represent forecast date sensor."""
 
     @property
     def unique_id(self) -> str:
         return f"{self.coordinator.entry_id}_date"
 
     @property
-    def name(self) -> str:
+    def name(self):
         return "Date"
 
     @property
@@ -288,16 +317,29 @@ class DateSensor(Entity):
         return self.coordinator.data.get("date", {}).get("value")
 
     @property
-    def icon(self) -> str:
+    def icon(self):
         return "mdi:calendar"
 
+
+class LastUpdatedSensor(_BaseMetaSensor):
+    """Represent timestamp of last successful update."""
+
     @property
-    def device_info(self) -> dict:
-        device_id = f"{self.coordinator.entry_id}_meta"
-        device_name = f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
-        return {
-            "identifiers": {(DOMAIN, device_id)},
-            "name": device_name,
-            "manufacturer": "Google",
-            "model": "Pollen API",
-        }
+    def unique_id(self) -> str:
+        return f"{self.coordinator.entry_id}_last_updated"
+
+    @property
+    def name(self):
+        return "Last Updated"
+
+    @property
+    def state(self):
+        return (
+            self.coordinator.last_updated.isoformat(timespec="seconds")
+            if self.coordinator.last_updated
+            else None
+        )
+
+    @property
+    def icon(self):
+        return "mdi:clock-check"
