@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.8] - 2025-06-16
+### Added
+- Service pollenlevels.force_update to manually trigger an immediate refresh of all sensors and reset the update interval.
+- New Last Updated metadata sensor displaying the ISO‑8601 timestamp of the last successful data fetch.
+
+### Changed
+- Cleaned up docstrings to imperative style to comply with PEP 257 and avoid per-line # noqa directives.
+- Reorganized sensor.py with clear section headers and comments.
+
 ## [1.3.7.1] - 2025-05-29
 ### Added
 - **New plant sensor attribute**: Added `cross_reaction` field showing pollen cross-reactivity information for each plant type.
