@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.8.1] - 2025-06-17
+### Fixed
+- Ensure all sensor entities (including `PollenSensor`, `RegionSensor`, `DateSensor` and `LastUpdatedSensor`) subclass `CoordinatorEntity`, so their state updates immediately after calling `pollenlevels.force_update`.
+- Correct propagation of the `last_updated` timestamp to the **Last Updated** sensor on manual refresh.
+
+### Changed
+- Rewrote all docstrings in imperative, one‑line style to comply with PEP 257 and remove in‑line `# noqa` directives.
+- Reorganized `sensor.py` with clear section headers and streamlined comments for readability.
+
 ## [1.3.8] - 2025-06-16
 ### Added
 - Service pollenlevels.force_update to manually trigger an immediate refresh of all sensors and reset the update interval.
