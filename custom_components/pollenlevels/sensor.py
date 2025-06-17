@@ -1,12 +1,14 @@
 """Provide Pollen Levels sensors with language support and region/date metadata."""
-
 import logging
 from datetime import timedelta
-from homeassistant.util import dt as dt_util
 
+from homeassistant.util import dt as dt_util
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+    CoordinatorEntity,
+)
 import aiohttp
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.entity import Entity
 from homeassistant.const import ATTR_ATTRIBUTION
 
 from .const import (
@@ -69,16 +71,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if code not in ("region", "date")
     ]
 
-    sensors.extend([
-        RegionSensor(coordinator),
-        DateSensor(coordinator),
-        LastUpdatedSensor(coordinator),
-    ])
+    sensors.extend(
+        [
+            RegionSensor(coordinator),
+            DateSensor(coordinator),
+            LastUpdatedSensor(coordinator),
+        ]
+    )
 
     _LOGGER.debug(
-        "Creating %d sensors: %s",
-        len(sensors),
-        [s.unique_id for s in sensors],
+        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
     )
     async_add_entities(sensors, True)
 
@@ -105,7 +107,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data: dict[str, dict] = {}
         self.last_updated = None  # Track last successful update timestamp
 
-    async def _async_update_data(self):  # noqa: D401  # Imperative docstring policy
+    async def _async_update_data(self):
         """Fetch pollen data and extract sensors."""
         url = "https://pollen.googleapis.com/v1/forecast:lookup"
         params = {
@@ -129,7 +131,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if resp.status != 200:
                     raise UpdateFailed(f"HTTP {resp.status}")
                 payload = await resp.json()
-        except Exception as err:  # noqa: BLE001  # runtime safety
+        except Exception as err:
             raise UpdateFailed(err) from err
 
         new_data: dict[str, dict] = {}
@@ -188,13 +190,14 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 # Generic Pollen Sensor (type & plant)
 # ---------------------------------------------------------------------------
 
-class PollenSensor(Entity):
+class PollenSensor(CoordinatorEntity):
     """Represent a pollen sensor for a type or plant."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
+        """Initialize pollen sensor."""
+        super().__init__(coordinator)
         self.coordinator = coordinator
         self.code = code
-        self._attr_should_poll = False
 
     # ------------------------------
     # Device Info
@@ -202,18 +205,22 @@ class PollenSensor(Entity):
 
     @property
     def unique_id(self) -> str:
+        """Return unique ID for sensor."""
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
     def name(self) -> str:
+        """Return display name of sensor."""
         return self.coordinator.data[self.code].get("displayName", self.code)
 
     @property
     def state(self):
+        """Return current pollen index value."""
         return self.coordinator.data[self.code].get("value")
 
     @property
     def icon(self) -> str:
+        """Return icon for sensor."""
         info = self.coordinator.data[self.code]
         if info.get("source") == "type":
             key = self.code.split("_", 1)[1].upper()
@@ -222,6 +229,7 @@ class PollenSensor(Entity):
 
     @property
     def extra_state_attributes(self):
+        """Return extra attributes for sensor."""
         attrs = {
             "category": self.coordinator.data[self.code].get("category"),
             ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
@@ -240,6 +248,7 @@ class PollenSensor(Entity):
 
     @property
     def device_info(self):
+        """Return device info for sensor."""
         group = self.coordinator.data[self.code].get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
         device_name = (
@@ -259,20 +268,19 @@ class PollenSensor(Entity):
 # Metadata Sensors (Region / Date / Last Updated)
 # ---------------------------------------------------------------------------
 
-class _BaseMetaSensor(Entity):
-    """Base class for simple metadata sensors."""
-
-    _attr_should_poll = False
+class _BaseMetaSensor(CoordinatorEntity):
+    """Provide base for metadata sensors."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
+        """Initialize metadata sensor."""
+        super().__init__(coordinator)
         self.coordinator = coordinator
 
     @property
     def device_info(self):
+        """Return device info for metadata sensors."""
         device_id = f"{self.coordinator.entry_id}_meta"
-        device_name = (
-            f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
-        )
+        device_name = f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
         return {
             "identifiers": {(DOMAIN, device_id)},
             "name": device_name,
@@ -286,18 +294,22 @@ class RegionSensor(_BaseMetaSensor):
 
     @property
     def unique_id(self) -> str:
+        """Return unique ID for region sensor."""
         return f"{self.coordinator.entry_id}_region"
 
     @property
     def name(self):
+        """Return name for region sensor."""
         return "Region"
 
     @property
     def state(self):
+        """Return region code."""
         return self.coordinator.data.get("region", {}).get("value")
 
     @property
     def icon(self):
+        """Return icon for region sensor."""
         return "mdi:earth"
 
 
@@ -306,18 +318,22 @@ class DateSensor(_BaseMetaSensor):
 
     @property
     def unique_id(self) -> str:
+        """Return unique ID for date sensor."""
         return f"{self.coordinator.entry_id}_date"
 
     @property
     def name(self):
+        """Return name for date sensor."""
         return "Date"
 
     @property
     def state(self):
+        """Return forecast date."""
         return self.coordinator.data.get("date", {}).get("value")
 
     @property
     def icon(self):
+        """Return icon for date sensor."""
         return "mdi:calendar"
 
 
@@ -326,14 +342,17 @@ class LastUpdatedSensor(_BaseMetaSensor):
 
     @property
     def unique_id(self) -> str:
+        """Return unique ID for last updated sensor."""
         return f"{self.coordinator.entry_id}_last_updated"
 
     @property
     def name(self):
+        """Return name for last updated sensor."""
         return "Last Updated"
 
     @property
     def state(self):
+        """Return ISO timestamp of last update."""
         return (
             self.coordinator.last_updated.isoformat(timespec="seconds")
             if self.coordinator.last_updated
@@ -342,4 +361,5 @@ class LastUpdatedSensor(_BaseMetaSensor):
 
     @property
     def icon(self):
+        """Return icon for last updated sensor."""
         return "mdi:clock-check"
