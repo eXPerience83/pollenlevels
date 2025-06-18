@@ -352,12 +352,11 @@ class LastUpdatedSensor(_BaseMetaSensor):
 
     @property
     def state(self):
-        """Return ISO timestamp of last update."""
-        return (
-            self.coordinator.last_updated.isoformat(timespec="seconds")
-            if self.coordinator.last_updated
-            else None
-        )
+        """Return local timestamp of last update in 'YYYY-MM-DD HH:MM:SS'."""
+        if not self.coordinator.last_updated:
+            return None
+        local_ts = dt_util.as_local(self.coordinator.last_updated)
+        return local_ts.strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def icon(self):
