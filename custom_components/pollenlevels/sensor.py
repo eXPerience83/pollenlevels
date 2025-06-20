@@ -1,4 +1,4 @@
-"""Provide Pollen Levels sensors with language support, metadata and refresh control."""
+"""Provide Pollen Levels sensors with language support and region/date metadata."""
 import logging
 from datetime import timedelta
 
@@ -8,10 +8,8 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
     CoordinatorEntity,
 )
-from homeassistant.components.button import ButtonEntity
-from homeassistant.const import ATTR_ATTRIBUTION
-
 import aiohttp
+from homeassistant.const import ATTR_ATTRIBUTION
 
 from .const import (
     CONF_API_KEY,
@@ -35,12 +33,12 @@ TYPE_ICONS = {
 PLANT_TYPE_ICONS = TYPE_ICONS  # Reuse mapping for plant "type" attribute
 DEFAULT_ICON = "mdi:flower-pollen"
 
-# ---- Service (& Button) --------------------------------------------------
+# ---- Service -------------------------------------------------------------
 # (Service registration is handled in __init__.py)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Create coordinator and build sensors and control button for pollen data."""
+    """Create coordinator and build sensors for pollen data."""
     # ------------------------------------------------------------------
     # Coordinator
     # ------------------------------------------------------------------
@@ -56,6 +54,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
     await coordinator.async_config_entry_first_refresh()
 
+    # Store coordinator for service access
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     if not coordinator.data:
@@ -63,28 +62,27 @@ async def async_setup_entry(hass, entry, async_add_entities):
         return
 
     # ------------------------------------------------------------------
-    # Build sensors for each pollen & plant code + metadata sensors + refresh button
+    # Build sensors for each pollen & plant code + metadata sensors
     # ------------------------------------------------------------------
 
-    entities = [
+    sensors = [
         PollenSensor(coordinator, code)
-        for code in coordinator.data
+        for code in coordinator.data.keys()
         if code not in ("region", "date")
     ]
 
-    entities.extend(
+    sensors.extend(
         [
             RegionSensor(coordinator),
             DateSensor(coordinator),
             LastUpdatedSensor(coordinator),
-            RefreshButton(coordinator, hass),
         ]
     )
 
     _LOGGER.debug(
-        "Creating %d entities: %s", len(entities), [e.unique_id for e in entities]
+        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
     )
-    async_add_entities(entities, True)
+    async_add_entities(sensors, True)
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +93,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
 
     def __init__(self, hass, api_key, lat, lon, hours, language, entry_id):
-        """Initialize coordinator with configuration and interval."""
         super().__init__(
             hass,
             _LOGGER,
@@ -202,6 +199,10 @@ class PollenSensor(CoordinatorEntity):
         self.coordinator = coordinator
         self.code = code
 
+    # ------------------------------
+    # Device Info
+    # ------------------------------
+
     @property
     def unique_id(self) -> str:
         """Return unique ID for sensor."""
@@ -264,7 +265,7 @@ class PollenSensor(CoordinatorEntity):
 
 
 # ---------------------------------------------------------------------------
-# Metadata Sensors (Region / Date) and Last Updated as Diagnostic
+# Metadata Sensors (Region / Date / Last Updated)
 # ---------------------------------------------------------------------------
 
 class _BaseMetaSensor(CoordinatorEntity):
@@ -339,8 +340,6 @@ class DateSensor(_BaseMetaSensor):
 class LastUpdatedSensor(_BaseMetaSensor):
     """Represent timestamp of last successful update."""
 
-    _attr_entity_category = "diagnostic"
-
     @property
     def unique_id(self) -> str:
         """Return unique ID for last updated sensor."""
@@ -363,32 +362,3 @@ class LastUpdatedSensor(_BaseMetaSensor):
     def icon(self):
         """Return icon for last updated sensor."""
         return "mdi:clock-check"
-
-
-class RefreshButton(CoordinatorEntity, ButtonEntity):
-    """Provide a button to manually refresh pollen data."""
-
-    def __init__(self, coordinator: PollenDataUpdateCoordinator, hass):
-        """Initialize the refresh button."""
-        super().__init__(coordinator)
-        self.coordinator = coordinator
-        self.hass = hass
-
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for refresh button."""
-        return f"{self.coordinator.entry_id}_refresh"
-
-    @property
-    def name(self) -> str:
-        """Return name for refresh button."""
-        return "Refresh Now"
-
-    @property
-    def icon(self) -> str:
-        """Return icon for refresh button."""
-        return "mdi:refresh"
-
-    async def async_press(self) -> None:
-        """Handle the button press."""
-        await self.hass.services.async_call(DOMAIN, "force_update", {}) 
