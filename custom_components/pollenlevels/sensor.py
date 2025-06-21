@@ -10,6 +10,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.components.button import ButtonEntity
 from homeassistant.const import ATTR_ATTRIBUTION
 
 from .const import (
@@ -62,7 +63,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         return
 
     # ------------------------------------------------------------------
-    # Build sensors for each pollen & plant code + metadata sensors
+    # Build sensors for each pollen & plant code + metadata sensors + refresh button
     # ------------------------------------------------------------------
 
     entities = [
@@ -76,6 +77,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             RegionSensor(coordinator),
             DateSensor(coordinator),
             LastUpdatedSensor(coordinator),
+            RefreshButton(coordinator, hass),
         ]
     )
 
@@ -361,3 +363,38 @@ class LastUpdatedSensor(_BaseMetaSensor):
     def icon(self):
         """Return icon for last updated sensor."""
         return "mdi:clock-check"
+
+
+# ---------------------------------------------------------------------------
+# Refresh Control (Button)
+# ---------------------------------------------------------------------------
+
+class RefreshButton(CoordinatorEntity, ButtonEntity):
+    """Provide a button to manually refresh pollen data."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator, hass):
+        """Initialize refresh button."""
+        super().__init__(coordinator)
+        self.coordinator = coordinator
+        self.hass = hass
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique ID for refresh button."""
+        return f"{self.coordinator.entry_id}_refresh"
+
+    @property
+    def name(self) -> str:
+        """Return name for refresh button."""
+        return "Refresh Now"
+
+    @property
+    def icon(self) -> str:
+        """Return icon for refresh button."""
+        return "mdi:refresh"
+
+    async def async_press(self) -> None:
+        """Trigger manual pollen refresh."""
+        await self.hass.services.async_call(DOMAIN, "force_update", {})
