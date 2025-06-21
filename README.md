@@ -26,6 +26,10 @@ Get sensors for grass, tree, weed pollen, plus individual plants like OAK, PINE,
   - Pollen Info (Region/Date metadata)
 - **Configurable updates**  
   Set refresh interval (default: 6 hours)
+- **Manual refresh**  
+  Call the service `pollenlevels.force_update` to trigger an immediate update and reset the refresh timer.
+- **Last Updated sensor**  
+  Shows the timestamp of the last successful data fetch in local time.
 - **Rich attributes**  
   Includes season status, plant family, allergy info
 - **Zero YAML**  
