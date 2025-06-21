@@ -1,4 +1,4 @@
-"""Provide Pollen Levels sensors with language support, metadata and refresh control."""
+"""Provide Pollen Levels sensors with language support, metadata and last-updated info."""
 import logging
 from datetime import timedelta
 
@@ -10,7 +10,6 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.components.button import ButtonEntity
 from homeassistant.const import ATTR_ATTRIBUTION
 
 from .const import (
@@ -35,12 +34,9 @@ TYPE_ICONS = {
 PLANT_TYPE_ICONS = TYPE_ICONS  # Reuse mapping for plant "type" attribute
 DEFAULT_ICON = "mdi:flower-pollen"
 
-# ---- Service -------------------------------------------------------------
-# (Service registration is handled in __init__.py)
-
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Create coordinator and build sensors for pollen data."""
+    """Create coordinator and build pollen & metadata sensors."""
     # ------------------------------------------------------------------
     # Coordinator
     # ------------------------------------------------------------------
@@ -63,7 +59,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         return
 
     # ------------------------------------------------------------------
-    # Build sensors for each pollen & plant code + metadata sensors + refresh button
+    # Build sensors for each pollen & plant code + metadata sensors
     # ------------------------------------------------------------------
 
     entities = [
@@ -77,7 +73,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
             RegionSensor(coordinator),
             DateSensor(coordinator),
             LastUpdatedSensor(coordinator),
-            RefreshButton(coordinator, hass),
         ]
     )
 
@@ -95,7 +90,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
 
     def __init__(self, hass, api_key, lat, lon, hours, language, entry_id):
-        """Initialize coordinator with configuration and interval."""
+        """Initialize coordinator with config and interval."""
         super().__init__(
             hass,
             _LOGGER,
@@ -363,50 +358,3 @@ class LastUpdatedSensor(_BaseMetaSensor):
     def icon(self):
         """Return icon for last updated sensor."""
         return "mdi:clock-check"
-
-
-# ---------------------------------------------------------------------------
-# Refresh Control (Button)
-# ---------------------------------------------------------------------------
-
-class RefreshButton(CoordinatorEntity, ButtonEntity):
-    """Provide a button to manually refresh pollen data."""
-
-    _attr_has_entity_name = True
-
-    def __init__(self, coordinator: PollenDataUpdateCoordinator, hass):
-        """Initialize refresh button."""
-        super().__init__(coordinator)
-        self.coordinator = coordinator
-        self.hass = hass
-
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for refresh button."""
-        return f"{self.coordinator.entry_id}_refresh"
-
-    @property
-    def name(self) -> str:
-        """Return name for refresh button."""
-        return "Refresh Now"
-
-    @property
-    def icon(self) -> str:
-        """Return icon for refresh button."""
-        return "mdi:refresh"
-
-    @property
-    def device_info(self) -> dict:
-        """Associate button with Pollen Info device."""
-        device_id = f"{self.coordinator.entry_id}_meta"
-        device_name = f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
-        return {
-            "identifiers": {(DOMAIN, device_id)},
-            "name": device_name,
-            "manufacturer": "Google",
-            "model": "Pollen API",
-        }
-
-    async def async_press(self) -> None:
-        """Trigger manual pollen refresh."""
-        await self.hass.services.async_call(DOMAIN, "force_update", {})
