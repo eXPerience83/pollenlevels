@@ -16,19 +16,19 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     _LOGGER.debug("PollenLevels async_setup called")
 
     async def handle_force_update_service(call):
-        """Trigger manual pollen update for all entries."""
+        """Refresh pollen data for all entries."""
         for entry in hass.config_entries.async_entries(DOMAIN):
             coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
             if coordinator:
                 _LOGGER.info(
-                    "Manual pollen update triggered for entry %s", entry.entry_id
+                    "Trigger manual refresh for entry %s", entry.entry_id
                 )
-                await coordinator.async_request_refresh()
+                # Wait until the update completes
+                await coordinator.async_refresh()
 
     hass.services.async_register(
         DOMAIN, "force_update", handle_force_update_service, schema=None
     )
-
     return True
 
 
