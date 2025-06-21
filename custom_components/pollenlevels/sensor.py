@@ -1,4 +1,4 @@
-"""Provide Pollen Levels sensors with language support, metadata and refresh control."""
+"""Provide Pollen Levels sensors with language support and metadata."""
 import logging
 from datetime import timedelta
 
@@ -65,13 +65,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Build sensors for each pollen & plant code + metadata sensors
     # ------------------------------------------------------------------
 
-    entities = [
+    sensors = [
         PollenSensor(coordinator, code)
         for code in coordinator.data
         if code not in ("region", "date")
     ]
 
-    entities.extend(
+    sensors.extend(
         [
             RegionSensor(coordinator),
             DateSensor(coordinator),
@@ -80,9 +80,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
 
     _LOGGER.debug(
-        "Creating %d entities: %s", len(entities), [e.unique_id for e in entities]
+        "Creating %d sensors: %s",
+        len(sensors),
+        [s.unique_id for s in sensors],
     )
-    async_add_entities(entities, True)
+    async_add_entities(sensors, True)
 
 
 # ---------------------------------------------------------------------------
