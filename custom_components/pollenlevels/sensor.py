@@ -395,6 +395,18 @@ class RefreshButton(CoordinatorEntity, ButtonEntity):
         """Return icon for refresh button."""
         return "mdi:refresh"
 
+    @property
+    def device_info(self) -> dict:
+        """Associate button with Pollen Info device."""
+        device_id = f"{self.coordinator.entry_id}_meta"
+        device_name = f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
+        return {
+            "identifiers": {(DOMAIN, device_id)},
+            "name": device_name,
+            "manufacturer": "Google",
+            "model": "Pollen API",
+        }
+
     async def async_press(self) -> None:
         """Trigger manual pollen refresh."""
         await self.hass.services.async_call(DOMAIN, "force_update", {})
