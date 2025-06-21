@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.8.2] - 2025-06-21
+### Fixed
+- Move Last Updated sensor to Diagnostics category.
+- Reuse Home Assistant HTTP session in coordinator to reduce resource usage.
+- Use `async_refresh()` in force_update service to wait until the update completes.
+### Changed
+- Clean imports and update docstrings for PEP 257 compliance.
+
 ## [1.3.8.1] - 2025-06-17
 ### Fixed
 - Ensure all sensor entities (including `PollenSensor`, `RegionSensor`, `DateSensor` and `LastUpdatedSensor`) subclass `CoordinatorEntity`, so their state updates immediately after calling `pollenlevels.force_update`.
