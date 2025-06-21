@@ -1,4 +1,4 @@
-"""Provide Pollen Levels sensors with language support, metadata and last-updated info."""
+"""Provide Pollen Levels sensors with language support, metadata and refresh control."""
 import logging
 from datetime import timedelta
 
@@ -34,9 +34,12 @@ TYPE_ICONS = {
 PLANT_TYPE_ICONS = TYPE_ICONS  # Reuse mapping for plant "type" attribute
 DEFAULT_ICON = "mdi:flower-pollen"
 
+# ---- Service -------------------------------------------------------------
+# (Service registration is handled in __init__.py)
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Create coordinator and build pollen & metadata sensors."""
+    """Create coordinator and build sensors for pollen data."""
     # ------------------------------------------------------------------
     # Coordinator
     # ------------------------------------------------------------------
@@ -90,7 +93,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
 
     def __init__(self, hass, api_key, lat, lon, hours, language, entry_id):
-        """Initialize coordinator with config and interval."""
+        """Initialize coordinator with configuration and interval."""
         super().__init__(
             hass,
             _LOGGER,
