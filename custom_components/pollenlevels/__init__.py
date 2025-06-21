@@ -20,28 +20,24 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         for entry in hass.config_entries.async_entries(DOMAIN):
             coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
             if coordinator:
-                _LOGGER.info(
-                    "Trigger manual refresh for entry %s", entry.entry_id
-                )
-                # Wait until the update completes
+                _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
+                # Wait for the update to finish
                 await coordinator.async_refresh()
 
-    hass.services.async_register(
-        DOMAIN, "force_update", handle_force_update_service, schema=None
-    )
+    hass.services.async_register(DOMAIN, "force_update", handle_force_update_service)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Forward config entry to sensor platform."""
+    """Forward config entry to sensor and button platforms."""
     _LOGGER.debug(
         "PollenLevels async_setup_entry for entry_id=%s title=%s",
         entry.entry_id,
         entry.title,
     )
-
     try:
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        # Now forward both sensor _and_ button platforms
+        await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "button"])
     except Exception as err:
         _LOGGER.error("Error forwarding entry setups: %s", err)
         raise ConfigEntryNotReady from err
@@ -55,7 +51,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug(
         "PollenLevels async_unload_entry called for entry_id=%s", entry.entry_id
     )
-    unloaded = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
+    # Unload both sensor and button platforms
+    unloaded = await hass.config_entries.async_unload_platforms(entry, ["sensor", "button"])
     if unloaded and DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unloaded
