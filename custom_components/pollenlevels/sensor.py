@@ -1,4 +1,4 @@
-"""Provide Pollen Levels sensors with language support and region/date metadata."""
+"""Provide Pollen Levels sensors with language support, metadata and refresh control."""
 import logging
 from datetime import timedelta
 
@@ -8,7 +8,8 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
     CoordinatorEntity,
 )
-import aiohttp
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.const import ATTR_ATTRIBUTION
 
 from .const import (
@@ -54,7 +55,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
     await coordinator.async_config_entry_first_refresh()
 
-    # Store coordinator for service access
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     if not coordinator.data:
@@ -65,13 +65,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Build sensors for each pollen & plant code + metadata sensors
     # ------------------------------------------------------------------
 
-    sensors = [
+    entities = [
         PollenSensor(coordinator, code)
-        for code in coordinator.data.keys()
+        for code in coordinator.data
         if code not in ("region", "date")
     ]
 
-    sensors.extend(
+    entities.extend(
         [
             RegionSensor(coordinator),
             DateSensor(coordinator),
@@ -80,9 +80,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     )
 
     _LOGGER.debug(
-        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
+        "Creating %d entities: %s", len(entities), [e.unique_id for e in entities]
     )
-    async_add_entities(sensors, True)
+    async_add_entities(entities, True)
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +93,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
 
     def __init__(self, hass, api_key, lat, lon, hours, language, entry_id):
+        """Initialize coordinator with configuration and interval."""
         super().__init__(
             hass,
             _LOGGER,
@@ -106,6 +107,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.entry_id = entry_id
         self.data: dict[str, dict] = {}
         self.last_updated = None  # Track last successful update timestamp
+        self._session = async_get_clientsession(hass)
 
     async def _async_update_data(self):
         """Fetch pollen data and extract sensors."""
@@ -122,8 +124,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Fetching with params: %s", params)
 
         try:
-            async with aiohttp.ClientSession() as session:
-                resp = await session.get(url, params=params)
+            async with self._session.get(url, params=params, timeout=10) as resp:
                 if resp.status == 403:
                     raise UpdateFailed("Invalid API key")
                 if resp.status == 429:
@@ -198,10 +199,6 @@ class PollenSensor(CoordinatorEntity):
         super().__init__(coordinator)
         self.coordinator = coordinator
         self.code = code
-
-    # ------------------------------
-    # Device Info
-    # ------------------------------
 
     @property
     def unique_id(self) -> str:
@@ -339,6 +336,8 @@ class DateSensor(_BaseMetaSensor):
 
 class LastUpdatedSensor(_BaseMetaSensor):
     """Represent timestamp of last successful update."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def unique_id(self) -> str:
