@@ -20,5 +20,23 @@
       "invalid_language": "Código de idioma no válido",
       "empty": "Este campo no puede estar vacío"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Tipos de polen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plantas ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Información de polen ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Región" },
+      "date": { "name": "Fecha" },
+      "last_updated": { "name": "Última actualización" }
+    }
   }
 }
