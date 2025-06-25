@@ -20,5 +20,23 @@
       "invalid_language": "Nieprawidłowy kod języka",
       "empty": "To pole nie może być puste"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Typy pyłków ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Rośliny ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informacje o pyłkach ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Region" },
+      "date": { "name": "Data" },
+      "last_updated": { "name": "Ostatnia aktualizacja" }
+    }
   }
 }
