@@ -20,5 +20,23 @@
       "invalid_language": "Codice lingua non valido",
       "empty": "Questo campo non può essere vuoto"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Tipi di polline ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Piante ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Info polline ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Regione" },
+      "date": { "name": "Data" },
+      "last_updated": { "name": "Ultimo aggiornamento" }
+    }
   }
 }
