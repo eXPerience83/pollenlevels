@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.8.3] - 2025-06-21
+### Added
+- Added full multi-language support for device and entity names in all supported languages (en, es, ca, de, fr, it, pl, ru, uk).
+- Updated all translations in `translations/xx.json` to include device and entity name keys, with support for dynamic placeholders (latitude, longitude).
+### Changed
+- All core entities (`Region`, `Date`, `Last Updated`) and device groups (`Pollen Types`, `Plants`, `Pollen Info`) now show in the Home Assistant UI using the active language.
+
 ## [1.3.8.2] - 2025-06-21
 ### Fixed
 - Move Last Updated sensor to Diagnostics category.
