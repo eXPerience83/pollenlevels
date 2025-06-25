@@ -1,4 +1,4 @@
-"""Config flow for the Pollen Levels integration."""
+"""Handle config flow for Pollen Levels integration."""
 import logging
 import aiohttp
 import voluptuous as vol
@@ -10,21 +10,27 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     DOMAIN,
-    CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE,
-    CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL,
-    CONF_LANGUAGE_CODE
+    CONF_API_KEY,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
+    CONF_LANGUAGE_CODE,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-# Improved regex to support:
+# Improved regex to support base and region subtags
 # - 2-3 character base language codes (e.g., "zh", "cmn")
 # - 2-4 character region suffixes (e.g., "zh-Hant", "zh-Hant-TW")
 # - Case-insensitive matching (supports "en-US", "en-us", etc.)
-LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
+LANGUAGE_CODE_REGEX = re.compile(
+    r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE
+)
+
 
 def is_valid_language_code(value):
-    """Validate IETF language codes with enhanced pattern matching."""
+    """Validate IETF language code."""
     if not isinstance(value, str):
         raise vol.Invalid("invalid_language")
     if not value.strip():
@@ -34,16 +40,17 @@ def is_valid_language_code(value):
         raise vol.Invalid("invalid_language")
     return value
 
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle the config flow for Pollen Levels."""
+    """Implement config flow for Pollen Levels."""
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
+        """Handle initial step."""
         errors = {}
 
         if user_input:
             try:
-                # Validate language code before making request
                 is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
 
                 session = async_get_clientsession(self.hass)
@@ -71,11 +78,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             _LOGGER.warning("Validation: 'dailyInfo' missing")
                             errors["base"] = "cannot_connect"
             except vol.Invalid as ve:
-                # Log validation error details for debugging
                 _LOGGER.warning(
                     "Language code validation failed for '%s': %s",
                     user_input[CONF_LANGUAGE_CODE],
-                    str(ve)
+                    ve,
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except aiohttp.ClientError as err:
@@ -94,17 +100,24 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_LANGUAGE_CODE: self.hass.config.language,
         }
 
-        schema = vol.Schema({
-            vol.Required(CONF_API_KEY): str,
-            vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
-            vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
-            vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL):
-                vol.All(vol.Coerce(int), vol.Range(min=1)),
-            vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
-        })
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_API_KEY): str,
+                vol.Optional(
+                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
+                ): cv.latitude,
+                vol.Optional(
+                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
+                ): cv.longitude,
+                vol.Optional(
+                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
+                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                vol.Optional(
+                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
+                ): str,
+            }
+        )
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=schema,
-            errors=errors
+            step_id="user", data_schema=schema, errors=errors
         )

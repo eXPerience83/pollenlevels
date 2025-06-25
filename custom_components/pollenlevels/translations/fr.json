@@ -20,5 +20,23 @@
       "invalid_language": "Code de langue invalide",
       "empty": "Ce champ ne peut pas être vide"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Types de pollen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plantes ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Info pollen ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Région" },
+      "date": { "name": "Date" },
+      "last_updated": { "name": "Dernière mise à jour" }
+    }
   }
 }

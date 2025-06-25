@@ -1,4 +1,4 @@
-# Constants for Pollen Levels integration
+# Define constants for Pollen Levels integration
 DOMAIN = "pollenlevels"
 
 CONF_API_KEY = "api_key"

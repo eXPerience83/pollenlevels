@@ -20,5 +20,23 @@
       "invalid_language": "Invalid language code",
       "empty": "This field cannot be empty"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Pollen Types ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plants ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Pollen Info ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Region" },
+      "date": { "name": "Date" },
+      "last_updated": { "name": "Last Updated" }
+    }
   }
 }

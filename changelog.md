@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.3.8.3] - 2025-06-21
+### Added
+- Added full multi-language support for device and entity names in all supported languages (en, es, ca, de, fr, it, pl, ru, uk).
+- Updated all translations in `translations/xx.json` to include device and entity name keys, with support for dynamic placeholders (latitude, longitude).
+### Changed
+- All core entities (`Region`, `Date`, `Last Updated`) and device groups (`Pollen Types`, `Plants`, `Pollen Info`) now show in the Home Assistant UI using the active language.
+
+## [1.3.8.2] - 2025-06-21
+### Fixed
+- Move Last Updated sensor to Diagnostics category.
+- Reuse Home Assistant HTTP session in coordinator to reduce resource usage.
+- Use `async_refresh()` in force_update service to wait until the update completes.
+### Changed
+- Clean imports and update docstrings for PEP 257 compliance.
+
+## [1.3.8.1] - 2025-06-17
+### Fixed
+- Ensure all sensor entities (including `PollenSensor`, `RegionSensor`, `DateSensor` and `LastUpdatedSensor`) subclass `CoordinatorEntity`, so their state updates immediately after calling `pollenlevels.force_update`.
+- Correct propagation of the `last_updated` timestamp to the **Last Updated** sensor on manual refresh.
+
+### Changed
+- Rewrote all docstrings in imperative, one‑line style to comply with PEP 257 and remove in‑line `# noqa` directives.
+- Reorganized `sensor.py` with clear section headers and streamlined comments for readability.
+
+## [1.3.8] - 2025-06-16
+### Added
+- Service pollenlevels.force_update to manually trigger an immediate refresh of all sensors and reset the update interval.
+- New Last Updated metadata sensor displaying the ISO‑8601 timestamp of the last successful data fetch.
+
+### Changed
+- Cleaned up docstrings to imperative style to comply with PEP 257 and avoid per-line # noqa directives.
+- Reorganized sensor.py with clear section headers and comments.
+
 ## [1.3.7.1] - 2025-05-29
 ### Added
 - **New plant sensor attribute**: Added `cross_reaction` field showing pollen cross-reactivity information for each plant type.

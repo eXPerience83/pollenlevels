@@ -20,5 +20,23 @@
       "invalid_language": "Неверный код языка",
       "empty": "Это поле не может быть пустым"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Типы пыльцы ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Растения ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Информация о пыльце ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Регион" },
+      "date": { "name": "Дата" },
+      "last_updated": { "name": "Последнее обновление" }
+    }
   }
 }

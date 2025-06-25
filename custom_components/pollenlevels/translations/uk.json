@@ -20,5 +20,23 @@
       "invalid_language": "Невірний код мови",
       "empty": "Це поле не може бути порожнім"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Типи пилку ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Рослини ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Інформація про пилок ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Регіон" },
+      "date": { "name": "Дата" },
+      "last_updated": { "name": "Останнє оновлення" }
+    }
   }
 }
