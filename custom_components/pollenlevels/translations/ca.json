@@ -20,5 +20,23 @@
       "invalid_language": "Codi d’idioma no vàlid",
       "empty": "Aquest camp no pot estar buit"
     }
+  },
+  "device": {
+    "types": {
+      "name": "Tipus de pol·len ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plantes ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informació del pol·len ({latitude},{longitude})"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Regió" },
+      "date": { "name": "Data" },
+      "last_updated": { "name": "Última actualització" }
+    }
   }
 }
