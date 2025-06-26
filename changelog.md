@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4] - 2025-06-21
+### Changed
+- Now the core sensor entities "Region", "Date" and "Last Updated" use `translation_key` and are automatically displayed in the user's language, matching device localization.
+- No more hard-coded names: all core fixed entities are now fully internationalized and can be customized in all supported languages via `translations/xx.json`.
+- Improved code and translation consistency for entity naming across the entire integration.
+
 ## [1.3.8.3] - 2025-06-21
 ### Added
 - Added full multi-language support for device and entity names in all supported languages (en, es, ca, de, fr, it, pl, ru, uk).
