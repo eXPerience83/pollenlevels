@@ -299,15 +299,13 @@ class _BaseMetaSensor(CoordinatorEntity):
 class RegionSensor(_BaseMetaSensor):
     """Represent region code sensor."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = "region"
+
     @property
     def unique_id(self) -> str:
         """Return unique ID for region sensor."""
         return f"{self.coordinator.entry_id}_region"
-
-    @property
-    def name(self):
-        """Return name for region sensor."""
-        return "Region"
 
     @property
     def state(self):
@@ -323,15 +321,13 @@ class RegionSensor(_BaseMetaSensor):
 class DateSensor(_BaseMetaSensor):
     """Represent forecast date sensor."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = "date"
+
     @property
     def unique_id(self) -> str:
         """Return unique ID for date sensor."""
         return f"{self.coordinator.entry_id}_date"
-
-    @property
-    def name(self):
-        """Return name for date sensor."""
-        return "Date"
 
     @property
     def state(self):
@@ -348,16 +344,13 @@ class LastUpdatedSensor(_BaseMetaSensor):
     """Represent timestamp of last successful update."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = True
+    _attr_translation_key = "last_updated"
 
     @property
     def unique_id(self) -> str:
         """Return unique ID for last updated sensor."""
         return f"{self.coordinator.entry_id}_last_updated"
-
-    @property
-    def name(self):
-        """Return name for last updated sensor."""
-        return "Last Updated"
 
     @property
     def state(self):
