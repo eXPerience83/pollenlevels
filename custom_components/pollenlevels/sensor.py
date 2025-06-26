@@ -247,19 +247,24 @@ class PollenSensor(CoordinatorEntity):
 
     @property
     def device_info(self):
-        """Return device info for sensor."""
+        """Return device info with translation support for the group."""
         group = self.coordinator.data[self.code].get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
-        device_name = (
-            f"Pollen Types ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
-            if group == "type"
-            else f"Plants ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
-        )
+        translation_keys = {
+            "type": "types",
+            "plant": "plants",
+            "meta": "info",
+        }
+        translation_key = translation_keys.get(group, "info")
         return {
             "identifiers": {(DOMAIN, device_id)},
-            "name": device_name,
             "manufacturer": "Google",
             "model": "Pollen API",
+            "translation_key": translation_key,
+            "translation_placeholders": {
+                "latitude": f"{self.coordinator.lat:.6f}",
+                "longitude": f"{self.coordinator.lon:.6f}",
+            }
         }
 
 
@@ -277,29 +282,30 @@ class _BaseMetaSensor(CoordinatorEntity):
 
     @property
     def device_info(self):
-        """Return device info for metadata sensors."""
+        """Return device info with translation for metadata sensors."""
         device_id = f"{self.coordinator.entry_id}_meta"
-        device_name = f"Pollen Info ({self.coordinator.lat:.6f},{self.coordinator.lon:.6f})"
         return {
             "identifiers": {(DOMAIN, device_id)},
-            "name": device_name,
             "manufacturer": "Google",
             "model": "Pollen API",
+            "translation_key": "info",
+            "translation_placeholders": {
+                "latitude": f"{self.coordinator.lat:.6f}",
+                "longitude": f"{self.coordinator.lon:.6f}",
+            }
         }
 
 
 class RegionSensor(_BaseMetaSensor):
     """Represent region code sensor."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = "region"
+
     @property
     def unique_id(self) -> str:
         """Return unique ID for region sensor."""
         return f"{self.coordinator.entry_id}_region"
-
-    @property
-    def name(self):
-        """Return name for region sensor."""
-        return "Region"
 
     @property
     def state(self):
@@ -315,15 +321,13 @@ class RegionSensor(_BaseMetaSensor):
 class DateSensor(_BaseMetaSensor):
     """Represent forecast date sensor."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = "date"
+
     @property
     def unique_id(self) -> str:
         """Return unique ID for date sensor."""
         return f"{self.coordinator.entry_id}_date"
-
-    @property
-    def name(self):
-        """Return name for date sensor."""
-        return "Date"
 
     @property
     def state(self):
@@ -340,16 +344,13 @@ class LastUpdatedSensor(_BaseMetaSensor):
     """Represent timestamp of last successful update."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = True
+    _attr_translation_key = "last_updated"
 
     @property
     def unique_id(self) -> str:
         """Return unique ID for last updated sensor."""
         return f"{self.coordinator.entry_id}_last_updated"
-
-    @property
-    def name(self):
-        """Return name for last updated sensor."""
-        return "Last Updated"
 
     @property
     def state(self):
