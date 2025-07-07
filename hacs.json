@@ -1,5 +1,6 @@
 {
   "name": "Pollen Levels",
+  "homeassistant": "2023.7.0",
   "content_in_root": false,
   "render_readme": true
 }
