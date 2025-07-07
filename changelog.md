@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.1] – 2025-07-07
+
+### Changed
+- Reordered keys in `manifest.json` to satisfy Hassfest requirements (domain, name, then the rest alphabetically).
+- Added `services.yaml` to document the `pollenlevels.force_update` service.
+- Introduced `CONFIG_SCHEMA` in `__init__.py` using `cv.config_entry_only_config_schema(DOMAIN)` to silence the configuration-schema warning.
+- Removed unsupported `"domains"` key from `hacs.json`.
+- Updated `hacs.json` to include only the necessary fields (`name`, `render_readme`, `content_in_root`).
+- Added required GitHub topics (`home-assistant`, `hacs`, `integration`, `sensor`, `pollen`, `allergy`) to pass HACS topic validation.
+
+### Fixed
+- Metadata ordering and format corrections to comply with CI validations.
+
 ## [1.4] - 2025-06-21
 ### Changed
 - Now the core sensor entities "Region", "Date" and "Last Updated" use `translation_key` and are automatically displayed in the user's language, matching device localization.
