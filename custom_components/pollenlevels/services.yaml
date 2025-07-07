@@ -1,0 +1,3 @@
+force_update:
+  description: "Refresh pollen data for all entries"
+  fields: {}
