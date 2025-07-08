@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.2] – 2025-07-09
+
+### Changed
+- Updated Readme and minor changes.
+
 ## [1.4.1] – 2025-07-07
 
 ### Changed
