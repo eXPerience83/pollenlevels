@@ -10,8 +10,6 @@ Get sensors for grass, tree, weed pollen, plus individual plants like **OAK**, *
 [![GitHub Release][release-shield]][release-url]
 [![License][license-shield]](LICENSE)
 [![hacs\_badge][hacs-shield]][hacs-url]
-![Downloads][downloads-shield]
-![Latest Downloads][downloads-latest-shield]
 
 [![Open your Home Assistant instance and add this repository inside HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eXPerience83&repository=pollenlevels&category=integration)
 
