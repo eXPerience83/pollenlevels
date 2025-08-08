@@ -1,8 +1,9 @@
 """Handle config & options flow for Pollen Levels integration."""
 import logging
+import re
+
 import aiohttp
 import voluptuous as vol
-import re
 
 from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
@@ -24,9 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 # - 2-3 character base language codes (e.g., "zh", "cmn")
 # - 2-4 character region suffixes (e.g., "zh-Hant", "zh-Hant-TW")
 # - Case-insensitive matching (supports "en-US", "en-us", etc.)
-LANGUAGE_CODE_REGEX = re.compile(
-    r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE
-)
+LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
 
 
 def is_valid_language_code(value: str) -> str:
@@ -43,6 +42,7 @@ def is_valid_language_code(value: str) -> str:
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Implement config flow for Pollen Levels."""
+
     VERSION = 1
 
     @staticmethod
@@ -55,24 +55,21 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input:
-            # ---- Duplicate prevention -------------------------------------------------
-            # Use a stable unique_id per (lat,lon) with 4 decimal precision so that
-            # we avoid duplicate entries for the same location.
-            try:
-                lat = float(user_input[CONF_LATITUDE])
-                lon = float(user_input[CONF_LONGITUDE])
-                await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
-                self._abort_if_unique_id_configured()
-            except Exception:  # pragma: no cover - defensive
-                # If something goes off with parsing, proceed; form validators will catch it.
-                pass
+            # HA schema already coerces/validates latitude/longitude.
+            lat = float(user_input[CONF_LATITUDE])
+            lon = float(user_input[CONF_LONGITUDE])
 
-            # ---- Field validation & API reachability ---------------------------------
+            # ---- Duplicate prevention ------------------------------------------
+            # Use a stable unique_id per (lat, lon) rounded to 4 decimals.
+            await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
+            self._abort_if_unique_id_configured()
+
+            # ---- Field validation & API reachability ---------------------------
             try:
-                # Validate language format locally first (UI-friendly errors)
+                # Validate language format locally first (UI-friendly errors).
                 is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
 
-                # Probe API to verify key/quota/connectivity before creating the entry
+                # Probe API to verify key/quota/connectivity before creating the entry.
                 session = async_get_clientsession(self.hass)
                 params = {
                     "key": user_input[CONF_API_KEY],
@@ -113,10 +110,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Create the entry with the provided data.
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
 
-        # Default values from HA config for the form
+        # Default values from HA config for the form.
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
@@ -127,7 +123,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_API_KEY): str,
                 vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
-                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
+                vol.Optional(
+                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
+                ): cv.longitude,
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
@@ -149,7 +147,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate language if provided
             try:
                 # Allow empty to "inherit" HA UI language, but if non-empty, validate format.
                 lang = user_input.get(
@@ -162,19 +159,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 if isinstance(lang, str) and lang.strip():
                     is_valid_language_code(lang)
 
-                # Update interval basic sanity check
-                interval = int(
-                    user_input.get(
-                        CONF_UPDATE_INTERVAL,
-                        self.entry.options.get(
-                            CONF_UPDATE_INTERVAL,
-                            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-                        ),
-                    )
-                )
-                if interval < 1:
-                    errors[CONF_UPDATE_INTERVAL] = "value_error"
-
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except Exception as err:  # pragma: no cover - defensive
@@ -182,10 +166,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Store options; the integration should reload to apply them.
                 return self.async_create_entry(title="", data=user_input)
 
-        # Defaults: prefer options, fall back to data, then HA language
+        # Defaults: prefer options, fall back to data, then HA language.
         current_interval = self.entry.options.get(
             CONF_UPDATE_INTERVAL,
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
@@ -199,9 +182,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
-                        vol.Coerce(int), vol.Range(min=1)
-                    ),
+                    vol.Optional(
+                        CONF_UPDATE_INTERVAL, default=current_interval
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
                 }
             ),
