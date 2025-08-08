@@ -35,6 +35,7 @@ Get sensors for grass, tree, weed pollen, plus individual plants like **OAK**, *
   * **Plants** (Oak, Pine, Birch, …)
   * **Pollen Info** (Region, Forecast Date, Last Updated)
 * **Configurable updates** – choose your own refresh interval (default 6 h).
+* **Options Flow** – change the update interval and the API response language directly from the integration options (no reinstall required).
 * **Manual refresh** – call the service `pollenlevels.force_update` to fetch new data instantly and reset the timer.
 * **Last Updated sensor** – shows the timestamp of the last successful update in *local* time.
 * **Rich attributes** – season status, plant family, cross‑reactivity info and more.
@@ -70,6 +71,15 @@ Get sensors for grass, tree, weed pollen, plus individual plants like **OAK**, *
    * **Location** (auto‑filled from HA config)
    * **Update Interval** (hours)
    * **Language Code** (e.g. `en`, `es`, `de`, `fr`, `uk`)
+
+## ⚙️ Options (interval & language)
+
+After adding the integration, you can change:
+- **Update interval (hours)**
+- **API response language code** (e.g., `en`, `es`, `fr`, `de`, `uk`)
+
+Open **Settings → Devices & Services → Pollen Levels → Configure**.
+Changes are stored as entry options and automatically applied after the integration reloads.
 
 ## 🗝️ Obtaining a Google API Key
 
