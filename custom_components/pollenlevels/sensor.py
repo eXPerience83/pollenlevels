@@ -1,4 +1,9 @@
-"""Provide Pollen Levels sensors with language support and metadata."""
+"""Provide Pollen Levels sensors with language support and metadata.
+
+Changes in 1.5.1:
+- Add 'description' attribute sourced from Google's `indexInfo.indexDescription`
+  for both pollen type and plant sensors. This is additive and non-breaking.
+"""
 
 import logging
 from datetime import timedelta
@@ -176,6 +181,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "source": "type",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
+                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
                 }
 
@@ -189,6 +195,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "source": "plant",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
+                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
                     "inSeason": item.get("inSeason"),
                     "type": desc.get("type"),
@@ -244,20 +251,25 @@ class PollenSensor(CoordinatorEntity):
     @property
     def extra_state_attributes(self):
         """Return extra attributes for sensor."""
+        info = self.coordinator.data[self.code]
         attrs = {
-            "category": self.coordinator.data[self.code].get("category"),
+            "category": info.get("category"),
             ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
         }
-        if self.coordinator.data[self.code].get("source") == "plant":
+
+        # Only add description if present to avoid showing a None attribute.
+        desc_text = info.get("description")
+        if desc_text is not None:
+            attrs["description"] = desc_text  # NEW in 1.5.1
+
+        if info.get("source") == "plant":
             attrs.update(
                 {
-                    "inSeason": self.coordinator.data[self.code].get("inSeason"),
-                    "type": self.coordinator.data[self.code].get("type"),
-                    "family": self.coordinator.data[self.code].get("family"),
-                    "season": self.coordinator.data[self.code].get("season"),
-                    "cross_reaction": self.coordinator.data[self.code].get(
-                        "cross_reaction"
-                    ),
+                    "inSeason": info.get("inSeason"),
+                    "type": info.get("type"),
+                    "family": info.get("family"),
+                    "season": info.get("season"),
+                    "cross_reaction": info.get("cross_reaction"),
                 }
             )
         return attrs
