@@ -14,6 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # ---- Service -------------------------------------------------------------
 
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register force_update service."""
     _LOGGER.debug("PollenLevels async_setup called")
@@ -23,9 +24,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         for entry in hass.config_entries.async_entries(DOMAIN):
             coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
             if coordinator:
-                _LOGGER.info(
-                    "Trigger manual refresh for entry %s", entry.entry_id
-                )
+                _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
                 # Wait until the update completes
                 await coordinator.async_refresh()
 
@@ -36,7 +35,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Forward config entry to sensor platform."""
+    """Forward config entry to sensor platform and register options listener."""
     _LOGGER.debug(
         "PollenLevels async_setup_entry for entry_id=%s title=%s",
         entry.entry_id,
@@ -48,6 +47,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         _LOGGER.error("Error forwarding entry setups: %s", err)
         raise ConfigEntryNotReady from err
+
+    # Register an update listener so that options changes trigger a reload.
+    # This ensures the coordinator picks up the new interval/language immediately.
+    entry.async_on_unload(entry.add_update_listener(_update_listener))
 
     _LOGGER.info("PollenLevels integration loaded successfully")
     return True
@@ -62,3 +65,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded and DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unloaded
+
+
+async def _update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update by reloading the entry.
+
+    Home Assistant calls this listener after the user saves Options.
+    Reloading recreates the coordinator with the new settings.
+    """
+    _LOGGER.debug("Reloading entry %s after options update", entry.entry_id)
+    await hass.config_entries.async_reload(entry.entry_id)
