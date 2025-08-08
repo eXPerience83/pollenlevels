@@ -1,4 +1,5 @@
 """Provide Pollen Levels sensors with language support and metadata."""
+
 import logging
 from datetime import timedelta
 
@@ -50,7 +51,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Read update interval and language from options first (if present)
     interval = entry.options.get(
-        CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+        CONF_UPDATE_INTERVAL,
+        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
     )
     lang = entry.options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
 
@@ -152,7 +154,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         new_data: dict[str, dict] = {}
 
         # Extract region code
-        if (region := payload.get("regionCode")):
+        if region := payload.get("regionCode"):
             new_data["region"] = {"source": "meta", "value": region}
 
         # Extract date and pollen information

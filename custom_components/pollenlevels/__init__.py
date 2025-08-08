@@ -1,4 +1,5 @@
 """Initialize Pollen Levels integration."""
+
 import logging
 
 import homeassistant.helpers.config_validation as cv

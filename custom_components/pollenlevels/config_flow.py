@@ -1,4 +1,5 @@
 """Handle config & options flow for Pollen Levels integration."""
+
 import logging
 import aiohttp
 import voluptuous as vol
@@ -24,9 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 # - 2-3 character base language codes (e.g., "zh", "cmn")
 # - 2-4 character region suffixes (e.g., "zh-Hant", "zh-Hant-TW")
 # - Case-insensitive matching (supports "en-US", "en-us", etc.)
-LANGUAGE_CODE_REGEX = re.compile(
-    r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE
-)
+LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
 
 
 def is_valid_language_code(value: str) -> str:
@@ -43,6 +42,7 @@ def is_valid_language_code(value: str) -> str:
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Implement config flow for Pollen Levels."""
+
     VERSION = 1
 
     @staticmethod
@@ -126,12 +126,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
-                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
+                vol.Optional(
+                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
+                ): cv.latitude,
+                vol.Optional(
+                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
+                ): cv.longitude,
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
+                vol.Optional(
+                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
+                ): str,
             }
         )
 
@@ -168,7 +174,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                         CONF_UPDATE_INTERVAL,
                         self.entry.options.get(
                             CONF_UPDATE_INTERVAL,
-                            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                            self.entry.data.get(
+                                CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                            ),
                         ),
                     )
                 )
@@ -199,9 +207,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
-                        vol.Coerce(int), vol.Range(min=1)
-                    ),
+                    vol.Optional(
+                        CONF_UPDATE_INTERVAL, default=current_interval
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
                 }
             ),
