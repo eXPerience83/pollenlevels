@@ -41,14 +41,25 @@ DEFAULT_ICON = "mdi:flower-pollen"
 async def async_setup_entry(hass, entry, async_add_entities):
     """Create coordinator and build sensors for pollen data."""
     # ------------------------------------------------------------------
-    # Coordinator
+    # Coordinator (read options first; fallback to data)
     # ------------------------------------------------------------------
 
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
-    interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-    lang = entry.data.get(CONF_LANGUAGE_CODE)
+
+    # Read update interval and language from options first (if present)
+    interval = entry.options.get(
+        CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    )
+    lang = entry.options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
+
+    _LOGGER.debug(
+        "Setting up PollenLevels coordinator for %s with interval=%s h, lang=%s",
+        entry.entry_id,
+        interval,
+        lang,
+    )
 
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, interval, lang, entry.entry_id
@@ -90,6 +101,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 # ---------------------------------------------------------------------------
 # DataUpdateCoordinator
 # ---------------------------------------------------------------------------
+
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
@@ -134,7 +146,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if resp.status != 200:
                     raise UpdateFailed(f"HTTP {resp.status}")
                 payload = await resp.json()
-        except Exception as err:
+        except Exception as err:  # pragma: no cover - defensive
             raise UpdateFailed(err) from err
 
         new_data: dict[str, dict] = {}
@@ -193,6 +205,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 # Generic Pollen Sensor (type & plant)
 # ---------------------------------------------------------------------------
 
+
 class PollenSensor(CoordinatorEntity):
     """Represent a pollen sensor for a type or plant."""
 
@@ -240,7 +253,9 @@ class PollenSensor(CoordinatorEntity):
                     "type": self.coordinator.data[self.code].get("type"),
                     "family": self.coordinator.data[self.code].get("family"),
                     "season": self.coordinator.data[self.code].get("season"),
-                    "cross_reaction": self.coordinator.data[self.code].get("cross_reaction"),
+                    "cross_reaction": self.coordinator.data[self.code].get(
+                        "cross_reaction"
+                    ),
                 }
             )
         return attrs
@@ -264,13 +279,14 @@ class PollenSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            }
+            },
         }
 
 
 # ---------------------------------------------------------------------------
 # Metadata Sensors (Region / Date / Last Updated)
 # ---------------------------------------------------------------------------
+
 
 class _BaseMetaSensor(CoordinatorEntity):
     """Provide base for metadata sensors."""
@@ -292,7 +308,7 @@ class _BaseMetaSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            }
+            },
         }
 
 
