@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.1] – 2025-08-08
+### Added
+- **Index description attribute**: Each pollen **type** and **plant** sensor now exposes the human-readable `description` derived from Google’s `indexInfo.indexDescription` (UPI). This is additive and does not change entity states or IDs.
+### Maintenance
+- Minor code hygiene in `config_flow.py`: import order clean-up and removal of a redundant manual interval check (schema already enforces `min=1`).
+
 ## [1.5.0] – 2025-08-08
 ### Added
 - **Options Flow** to change `update_interval` and `language_code` without reinstalling.
