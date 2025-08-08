@@ -1,9 +1,16 @@
-"""Handle config & options flow for Pollen Levels integration."""
+"""Handle config & options flow for Pollen Levels integration.
+
+Changes in 1.5.1:
+- Reorder imports (stdlib first) to keep ruff/isort happy.
+- Remove redundant manual 'interval < 1' check in Options; schema already enforces
+  `min=1`, avoiding the need for a custom translation key.
+"""
 
 import logging
+import re
+
 import aiohttp
 import voluptuous as vol
-import re
 
 from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
@@ -155,7 +162,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate language if provided
             try:
                 # Allow empty to "inherit" HA UI language, but if non-empty, validate format.
                 lang = user_input.get(
@@ -168,21 +174,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 if isinstance(lang, str) and lang.strip():
                     is_valid_language_code(lang)
 
-                # Update interval basic sanity check
-                interval = int(
-                    user_input.get(
-                        CONF_UPDATE_INTERVAL,
-                        self.entry.options.get(
-                            CONF_UPDATE_INTERVAL,
-                            self.entry.data.get(
-                                CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
-                            ),
-                        ),
-                    )
-                )
-                if interval < 1:
-                    errors[CONF_UPDATE_INTERVAL] = "value_error"
-
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except Exception as err:  # pragma: no cover - defensive
@@ -190,7 +181,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Store options; the integration should reload to apply them.
+                # Store options; the integration will reload (see __init__.py) to apply them.
                 return self.async_create_entry(title="", data=user_input)
 
         # Defaults: prefer options, fall back to data, then HA language
