@@ -21,6 +21,18 @@
       "empty": "Este campo no puede estar vacío"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opciones",
+        "description": "Cambia el intervalo de actualización y el idioma de respuesta de la API.",
+        "data": {
+          "update_interval": "Intervalo de actualización (horas)",
+          "language_code": "Código de idioma de la respuesta"
+        }
+      }
+    }
+  },
   "device": {
     "types": {
       "name": "Tipos de polen ({latitude},{longitude})"
@@ -34,9 +46,15 @@
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Región" },
-      "date": { "name": "Fecha" },
-      "last_updated": { "name": "Última actualización" }
+      "region": {
+        "name": "Región"
+      },
+      "date": {
+        "name": "Fecha"
+      },
+      "last_updated": {
+        "name": "Última actualización"
+      }
     }
   }
 }

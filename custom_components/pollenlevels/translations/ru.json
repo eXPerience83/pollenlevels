@@ -21,6 +21,18 @@
       "empty": "Это поле не может быть пустым"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Параметры",
+        "description": "Измените интервал обновления и язык ответа API.",
+        "data": {
+          "update_interval": "Интервал обновления (в часах)",
+          "language_code": "Код языка ответа API"
+        }
+      }
+    }
+  },
   "device": {
     "types": {
       "name": "Типы пыльцы ({latitude},{longitude})"
@@ -34,9 +46,15 @@
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Регион" },
-      "date": { "name": "Дата" },
-      "last_updated": { "name": "Последнее обновление" }
+      "region": {
+        "name": "Регион"
+      },
+      "date": {
+        "name": "Дата"
+      },
+      "last_updated": {
+        "name": "Последнее обновление"
+      }
     }
   }
 }

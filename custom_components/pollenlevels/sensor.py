@@ -1,4 +1,10 @@
-"""Provide Pollen Levels sensors with language support and metadata."""
+"""Provide Pollen Levels sensors with language support and metadata.
+
+Changes in 1.5.1:
+- Add 'description' attribute sourced from Google's `indexInfo.indexDescription`
+  for both pollen type and plant sensors. This is additive and non-breaking.
+"""
+
 import logging
 from datetime import timedelta
 
@@ -41,14 +47,26 @@ DEFAULT_ICON = "mdi:flower-pollen"
 async def async_setup_entry(hass, entry, async_add_entities):
     """Create coordinator and build sensors for pollen data."""
     # ------------------------------------------------------------------
-    # Coordinator
+    # Coordinator (read options first; fallback to data)
     # ------------------------------------------------------------------
 
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
-    interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-    lang = entry.data.get(CONF_LANGUAGE_CODE)
+
+    # Read update interval and language from options first (if present)
+    interval = entry.options.get(
+        CONF_UPDATE_INTERVAL,
+        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+    )
+    lang = entry.options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
+
+    _LOGGER.debug(
+        "Setting up PollenLevels coordinator for %s with interval=%s h, lang=%s",
+        entry.entry_id,
+        interval,
+        lang,
+    )
 
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, interval, lang, entry.entry_id
@@ -90,6 +108,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 # ---------------------------------------------------------------------------
 # DataUpdateCoordinator
 # ---------------------------------------------------------------------------
+
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
@@ -134,13 +153,13 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if resp.status != 200:
                     raise UpdateFailed(f"HTTP {resp.status}")
                 payload = await resp.json()
-        except Exception as err:
+        except Exception as err:  # pragma: no cover - defensive
             raise UpdateFailed(err) from err
 
         new_data: dict[str, dict] = {}
 
         # Extract region code
-        if (region := payload.get("regionCode")):
+        if region := payload.get("regionCode"):
             new_data["region"] = {"source": "meta", "value": region}
 
         # Extract date and pollen information
@@ -162,6 +181,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "source": "type",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
+                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
                 }
 
@@ -175,6 +195,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "source": "plant",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
+                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
                     "inSeason": item.get("inSeason"),
                     "type": desc.get("type"),
@@ -192,6 +213,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 # ---------------------------------------------------------------------------
 # Generic Pollen Sensor (type & plant)
 # ---------------------------------------------------------------------------
+
 
 class PollenSensor(CoordinatorEntity):
     """Represent a pollen sensor for a type or plant."""
@@ -229,18 +251,25 @@ class PollenSensor(CoordinatorEntity):
     @property
     def extra_state_attributes(self):
         """Return extra attributes for sensor."""
+        info = self.coordinator.data[self.code]
         attrs = {
-            "category": self.coordinator.data[self.code].get("category"),
+            "category": info.get("category"),
             ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
         }
-        if self.coordinator.data[self.code].get("source") == "plant":
+
+        # Only add description if present to avoid showing a None attribute.
+        desc_text = info.get("description")
+        if desc_text is not None:
+            attrs["description"] = desc_text  # NEW in 1.5.1
+
+        if info.get("source") == "plant":
             attrs.update(
                 {
-                    "inSeason": self.coordinator.data[self.code].get("inSeason"),
-                    "type": self.coordinator.data[self.code].get("type"),
-                    "family": self.coordinator.data[self.code].get("family"),
-                    "season": self.coordinator.data[self.code].get("season"),
-                    "cross_reaction": self.coordinator.data[self.code].get("cross_reaction"),
+                    "inSeason": info.get("inSeason"),
+                    "type": info.get("type"),
+                    "family": info.get("family"),
+                    "season": info.get("season"),
+                    "cross_reaction": info.get("cross_reaction"),
                 }
             )
         return attrs
@@ -264,13 +293,14 @@ class PollenSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            }
+            },
         }
 
 
 # ---------------------------------------------------------------------------
 # Metadata Sensors (Region / Date / Last Updated)
 # ---------------------------------------------------------------------------
+
 
 class _BaseMetaSensor(CoordinatorEntity):
     """Provide base for metadata sensors."""
@@ -292,7 +322,7 @@ class _BaseMetaSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            }
+            },
         }
 
 

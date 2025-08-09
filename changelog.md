@@ -1,12 +1,33 @@
 # Changelog
 
-## [1.4.2] – 2025-07-09
+## [1.5.2] – 2025-08-09
+### Added
+- **Localized Options Flow strings** for 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK). Users now see the Options dialog (title, description, fields) fully translated.
+### Maintenance
+- Version bump in `manifest.json` to 1.5.2.
+- Verified that translations match the Options Flow step id (`init`) and keys (`update_interval`, `language_code`).
 
+## [1.5.1] – 2025-08-08
+### Added
+- **Index description attribute**: Each pollen **type** and **plant** sensor now exposes the human-readable `description` derived from Google’s `indexInfo.indexDescription` (UPI). This is additive and does not change entity states or IDs.
+### Maintenance
+- Minor code hygiene in `config_flow.py`: import order clean-up and removal of a redundant manual interval check (schema already enforces `min=1`).
+
+## [1.5.0] – 2025-08-08
+### Added
+- **Options Flow** to change `update_interval` and `language_code` without reinstalling.
+- **Duplicate prevention**: entries are uniquely identified by `(latitude, longitude)` and duplicates are rejected.
+### Changed
+- Reused the same language-code validation in options to provide consistent, localized error messages.
+### Notes
+- To apply options immediately, the integration reloads after saving. Make sure the coordinator reads `entry.options` first (fallback to `entry.data`).
+
+
+## [1.4.2] – 2025-07-09
 ### Changed
 - Updated Readme and minor changes.
 
 ## [1.4.1] – 2025-07-07
-
 ### Changed
 - Reordered keys in `manifest.json` to satisfy Hassfest requirements (domain, name, then the rest alphabetically).
 - Added `services.yaml` to document the `pollenlevels.force_update` service.
@@ -14,7 +35,6 @@
 - Removed unsupported `"domains"` key from `hacs.json`.
 - Updated `hacs.json` to include only the necessary fields (`name`, `render_readme`, `content_in_root`).
 - Added required GitHub topics (`home-assistant`, `hacs`, `integration`, `sensor`, `pollen`, `allergy`) to pass HACS topic validation.
-
 ### Fixed
 - Metadata ordering and format corrections to comply with CI validations.
 
@@ -43,7 +63,6 @@
 ### Fixed
 - Ensure all sensor entities (including `PollenSensor`, `RegionSensor`, `DateSensor` and `LastUpdatedSensor`) subclass `CoordinatorEntity`, so their state updates immediately after calling `pollenlevels.force_update`.
 - Correct propagation of the `last_updated` timestamp to the **Last Updated** sensor on manual refresh.
-
 ### Changed
 - Rewrote all docstrings in imperative, one‑line style to comply with PEP 257 and remove in‑line `# noqa` directives.
 - Reorganized `sensor.py` with clear section headers and streamlined comments for readability.
@@ -52,7 +71,6 @@
 ### Added
 - Service pollenlevels.force_update to manually trigger an immediate refresh of all sensors and reset the update interval.
 - New Last Updated metadata sensor displaying the ISO‑8601 timestamp of the last successful data fetch.
-
 ### Changed
 - Cleaned up docstrings to imperative style to comply with PEP 257 and avoid per-line # noqa directives.
 - Reorganized sensor.py with clear section headers and comments.
@@ -60,13 +78,11 @@
 ## [1.3.7.1] - 2025-05-29
 ### Added
 - **New plant sensor attribute**: Added `cross_reaction` field showing pollen cross-reactivity information for each plant type.
-
 ### Fixed
 - **Critical syntax error**: Fixed unclosed parenthesis in config_flow.py that prevented integration loading.
 - **Language validation**: 
   - Improved error logging for invalid language codes
   - Corrected indentation in validation error handling
-
 ### Improved
 - **Data completeness**: Plant sensors now include all available API data including cross-reactivity warnings
 - **Error handling**: More detailed logging for configuration flow errors
@@ -78,19 +94,16 @@
   - Updated regex pattern to `^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$` (supports 3-letter base codes like `cmn` and regions like `zh-Hant`).
   - Added case-insensitive matching (`en-US` and `en-us` now both valid).
   - Improved empty string check with `.strip()` to catch whitespace-only inputs.
-
 ### Improved
 - Added detailed warning logs for language code validation failures in `config_flow.py`.
 
 ## [1.3.5] - 2025-05-27
 ### Added
 - New **Region** and **Date** metadata sensors to expose `regionCode` and API response date in a dedicated **Pollen Info** device.
-
 ### Improved
 - **Language code validation** refined using IETF regex `^[a-zA-Z]{2,3}(-[a-zA-Z]{2})?$` to support codes like `es`, `en-US`, `fr-CA`, etc.
 - Introduced `is_valid_language_code(value)` helper that raises `vol.Invalid("invalid_language")` for invalid formats and `vol.Invalid("empty")` for blank inputs.
 - Translations updated with new error keys `invalid_language` and `empty` across all supported languages.
-
 ### Fixed
 - ❗️ **UI schema serialization crash**: Removed `vol.All(cv.string, is_valid_language_code)` from the `data_schema` to restore compatibility with Home Assistant's UI config flow system.  
   Validation now occurs manually before API call, and error is assigned via `errors[CONF_LANGUAGE_CODE]`.
@@ -120,13 +133,11 @@
 ### Added
 - Optional `language_code` field in configuration to request API responses in the desired language.  
 - Translations updated to include `language_code` label and description.  
-
 ### Improved
 - Separated sensors into two devices: **Pollen Types** and **Plants** per location.  
 - Assigned distinct icons for `pollenTypeInfo` codes (GRASS, TREE, WEED).  
 - Assigned icons in *plant* sensors based on `type` attribute, falling back to default flower icon.  
 - Exposed additional attributes on *plant* sensors: `inSeason`, `type`, `family`, `season`.
-
 ### Breaking Changes
 - **REINSTALL REQUIRED**: Prior sensor and device entities must be **deleted** and the integration re-added to apply the new device grouping and attributes.
 

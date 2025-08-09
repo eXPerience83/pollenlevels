@@ -1,0 +1,16 @@
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+  "E501",  # line length (Black formats)
+]
+fix = true
+
+[tool.ruff.isort]
+known-first-party = ["custom_components.pollenlevels"]
+combine-as-imports = true

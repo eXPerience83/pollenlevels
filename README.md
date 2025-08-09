@@ -27,19 +27,20 @@ Get sensors for grass, tree, weed pollen, plus individual plants like **OAK**, *
 
 ## 🌟 Features
 
-* **Multi‑language UI** – translated into 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK) and able to request API data in *any* language.
+* **Multi-language UI** – translated into 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK) and able to request API data in *any* language.
 * **Dynamic sensors** – automatically creates sensors for every pollen type and plant found at your location.
 * **Smart grouping** – sensors are neatly organised into three logical devices:
-
   * **Pollen Types** (Grass / Tree / Weed)
   * **Plants** (Oak, Pine, Birch, …)
   * **Pollen Info** (Region, Forecast Date, Last Updated)
-* **Configurable updates** – choose your own refresh interval (default 6 h).
+* **Configurable updates** – choose your own refresh interval (default 6 h).
+* **Options Flow** – change the update interval and the API response language directly from the integration options (no reinstall required).
 * **Manual refresh** – call the service `pollenlevels.force_update` to fetch new data instantly and reset the timer.
 * **Last Updated sensor** – shows the timestamp of the last successful update in *local* time.
-* **Rich attributes** – season status, plant family, cross‑reactivity info and more.
+* **Rich attributes** – season status, plant family, cross-reactivity info, and index description (UPI).
 * **Zero YAML** – fully configurable from the Home Assistant UI.
-* **HACS native** – effortless install & one‑click updates via HACS.
+* **HACS native** – effortless install & one-click updates via HACS.
+
 
 ## ⚙️ Installation
 
@@ -70,6 +71,15 @@ Get sensors for grass, tree, weed pollen, plus individual plants like **OAK**, *
    * **Location** (auto‑filled from HA config)
    * **Update Interval** (hours)
    * **Language Code** (e.g. `en`, `es`, `de`, `fr`, `uk`)
+
+## ⚙️ Options (interval & language)
+
+After adding the integration, you can change:
+- **Update interval (hours)**
+- **API response language code** (e.g., `en`, `es`, `fr`, `de`, `uk`)
+
+Open **Settings → Devices & Services → Pollen Levels → Configure**.
+Changes are stored as entry options and automatically applied after the integration reloads.
 
 ## 🗝️ Obtaining a Google API Key
 

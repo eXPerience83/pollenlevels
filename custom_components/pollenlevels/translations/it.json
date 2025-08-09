@@ -21,6 +21,18 @@
       "empty": "Questo campo non può essere vuoto"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opzioni",
+        "description": "Modifica l’intervallo di aggiornamento e la lingua di risposta dell’API.",
+        "data": {
+          "update_interval": "Intervallo di aggiornamento (ore)",
+          "language_code": "Codice lingua per la risposta API"
+        }
+      }
+    }
+  },
   "device": {
     "types": {
       "name": "Tipi di polline ({latitude},{longitude})"
@@ -34,9 +46,15 @@
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regione" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Ultimo aggiornamento" }
+      "region": {
+        "name": "Regione"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Ultimo aggiornamento"
+      }
     }
   }
 }
