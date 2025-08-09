@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2] – 2025-08-09
+### Added
+- **Localized Options Flow strings** for 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK). Users now see the Options dialog (title, description, fields) fully translated.
+### Maintenance
+- Version bump in `manifest.json` to 1.5.2.
+- Verified that translations match the Options Flow step id (`init`) and keys (`update_interval`, `language_code`).
+
 ## [1.5.1] – 2025-08-08
 ### Added
 - **Index description attribute**: Each pollen **type** and **plant** sensor now exposes the human-readable `description` derived from Google’s `indexInfo.indexDescription` (UPI). This is additive and does not change entity states or IDs.
