@@ -21,6 +21,18 @@
       "empty": "Aquest camp no pot estar buit"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opcions",
+        "description": "Canvia l'interval d’actualització i l'idioma de resposta de l’API.",
+        "data": {
+          "update_interval": "Interval d’actualització (hores)",
+          "language_code": "Codi d’idioma de la resposta API"
+        }
+      }
+    }
+  },
   "device": {
     "types": {
       "name": "Tipus de pol·len ({latitude},{longitude})"
@@ -34,9 +46,15 @@
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regió" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Última actualització" }
+      "region": {
+        "name": "Regió"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Última actualització"
+      }
     }
   }
 }

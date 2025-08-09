@@ -21,6 +21,18 @@
       "empty": "Dieses Feld darf nicht leer sein"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Optionen",
+        "description": "Ändere das Aktualisierungsintervall und die API-Antwortsprache.",
+        "data": {
+          "update_interval": "Aktualisierungsintervall (Stunden)",
+          "language_code": "Sprachcode für Antwort"
+        }
+      }
+    }
+  },
   "device": {
     "types": {
       "name": "Pollenarten ({latitude},{longitude})"
@@ -34,9 +46,15 @@
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Region" },
-      "date": { "name": "Datum" },
-      "last_updated": { "name": "Letzte Aktualisierung" }
+      "region": {
+        "name": "Region"
+      },
+      "date": {
+        "name": "Datum"
+      },
+      "last_updated": {
+        "name": "Letzte Aktualisierung"
+      }
     }
   }
 }

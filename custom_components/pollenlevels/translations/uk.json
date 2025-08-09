@@ -21,6 +21,18 @@
       "empty": "Це поле не може бути порожнім"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Параметри",
+        "description": "Змініть інтервал оновлення та мову відповіді API.",
+        "data": {
+          "update_interval": "Інтервал оновлення (у годинах)",
+          "language_code": "Код мови відповіді API"
+        }
+      }
+    }
+  },
   "device": {
     "types": {
       "name": "Типи пилку ({latitude},{longitude})"
@@ -34,9 +46,15 @@
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Регіон" },
-      "date": { "name": "Дата" },
-      "last_updated": { "name": "Останнє оновлення" }
+      "region": {
+        "name": "Регіон"
+      },
+      "date": {
+        "name": "Дата"
+      },
+      "last_updated": {
+        "name": "Останнє оновлення"
+      }
     }
   }
 }

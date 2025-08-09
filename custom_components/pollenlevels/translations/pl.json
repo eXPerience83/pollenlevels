@@ -21,6 +21,18 @@
       "empty": "To pole nie może być puste"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opcje",
+        "description": "Zmień interwał aktualizacji i język odpowiedzi API.",
+        "data": {
+          "update_interval": "Interwał aktualizacji (godziny)",
+          "language_code": "Kod języka odpowiedzi API"
+        }
+      }
+    }
+  },
   "device": {
     "types": {
       "name": "Typy pyłków ({latitude},{longitude})"
@@ -34,9 +46,15 @@
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Region" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Ostatnia aktualizacja" }
+      "region": {
+        "name": "Region"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Ostatnia aktualizacja"
+      }
     }
   }
 }
