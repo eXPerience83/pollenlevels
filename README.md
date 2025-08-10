@@ -31,7 +31,39 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Configurable updates** — Change update interval and language without reinstalling.  
 - **Manual refresh** — Call `pollenlevels.force_update` to trigger an immediate update and reset the timer.  
 - **Last Updated sensor** — Shows timestamp of last successful update.  
-- **Rich attributes** — Includes `inSeason`, UPI `description`, health `advice`, `color_hex`, and plant details.  
+- **Rich attributes** — Includes `inSeason`, UPI `description`, health `advice`, `color_hex`, `color_rgb`, `color_raw`, and plant details.  
+
+
+## 🔧 Showing colors in the UI
+
+Home Assistant does **not** automatically color sensor icons from attributes.
+Use a card that lets you reference attributes:
+
+### Core **Template** card
+```yaml
+type: template
+entity: sensor.type_grass            # adjust entity id
+primary: >-
+  Grass: {{ states(entity) }} ({{ state_attr(entity, "category") }})
+icon: mdi:grass
+badge_icon: mdi:circle
+badge_color: '{{ state_attr(entity, "color_hex") or "var(--primary-color)" }}'
+```
+
+### Gauge (severity by value, independent of API color)
+```yaml
+type: gauge
+entity: sensor.type_grass
+min: 0
+max: 5
+severity:
+  green: 0
+  yellow: 2
+  red: 4
+```
+
+> Tip: Custom cards (e.g., Mushroom, button-card) can also use `color_hex` or `color_rgb` in their templates.
+
 
 ## ⚙️ Installation
 
