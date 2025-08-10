@@ -1,12 +1,9 @@
-"""Provide Pollen Levels sensors with language support and metadata.
-
-Changes in 1.5.1:
-- Add 'description' attribute sourced from Google's `indexInfo.indexDescription`
-  for both pollen type and plant sensors. This is additive and non-breaking.
-"""
+"""Provide Pollen Levels sensors with rich attributes and options support."""
+from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from typing import Any, Dict, Optional
 
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import (
@@ -40,33 +37,40 @@ TYPE_ICONS = {
 PLANT_TYPE_ICONS = TYPE_ICONS  # Reuse mapping for plant "type" attribute
 DEFAULT_ICON = "mdi:flower-pollen"
 
-# ---- Service -------------------------------------------------------------
-# (Service registration is handled in __init__.py)
+
+def _rgb_to_hex(color: Dict[str, Any] | None) -> Optional[str]:
+    """Convert {red, green, blue} floats in [0..1] to #RRGGBB. Returns None when not enough data."""
+    if not isinstance(color, dict):
+        return None
+    # Some responses might be partial (e.g., missing blue). Only compute when all are present.
+    r = color.get("red")
+    g = color.get("green")
+    b = color.get("blue")
+    if r is None or g is None or b is None:
+        return None
+    try:
+        ri = max(0, min(255, int(round(float(r) * 255))))
+        gi = max(0, min(255, int(round(float(g) * 255))))
+        bi = max(0, min(255, int(round(float(b) * 255))))
+        return f"#{ri:02X}{gi:02X}{bi:02X}"
+    except (TypeError, ValueError):
+        return None
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Create coordinator and build sensors for pollen data."""
     # ------------------------------------------------------------------
-    # Coordinator (read options first; fallback to data)
+    # Coordinator
     # ------------------------------------------------------------------
 
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
 
-    # Read update interval and language from options first (if present)
-    interval = entry.options.get(
-        CONF_UPDATE_INTERVAL,
-        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-    )
-    lang = entry.options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
-
-    _LOGGER.debug(
-        "Setting up PollenLevels coordinator for %s with interval=%s h, lang=%s",
-        entry.entry_id,
-        interval,
-        lang,
-    )
+    # Read options first (Options Flow), fallback to config entry data
+    opts = entry.options or {}
+    interval = opts.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+    lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
 
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, interval, lang, entry.entry_id
@@ -108,7 +112,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 # ---------------------------------------------------------------------------
 # DataUpdateCoordinator
 # ---------------------------------------------------------------------------
-
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
@@ -153,13 +156,13 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if resp.status != 200:
                     raise UpdateFailed(f"HTTP {resp.status}")
                 payload = await resp.json()
-        except Exception as err:  # pragma: no cover - defensive
+        except Exception as err:
             raise UpdateFailed(err) from err
 
         new_data: dict[str, dict] = {}
 
         # Extract region code
-        if region := payload.get("regionCode"):
+        if (region := payload.get("regionCode")):
             new_data["region"] = {"source": "meta", "value": region}
 
         # Extract date and pollen information
@@ -176,13 +179,17 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             for item in first_day.get("pollenTypeInfo", []) or []:
                 code = item.get("code")
                 idx = item.get("indexInfo", {}) or {}
-                key = f"type_{code.lower()}"
+                key = f"type_{(code or '').lower()}"
                 new_data[key] = {
                     "source": "type",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
-                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
+                    # New rich attributes for type sensors:
+                    "inSeason": item.get("inSeason"),
+                    "description": idx.get("indexDescription"),
+                    "advice": item.get("healthRecommendations"),
+                    "color_hex": _rgb_to_hex(idx.get("color")),
                 }
 
             # plantInfo → plant sensors
@@ -190,18 +197,24 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 code = item.get("code")
                 idx = item.get("indexInfo", {}) or {}
                 desc = item.get("plantDescription", {}) or {}
-                key = f"plants_{code.lower()}"
+                key = f"plants_{(code or '').lower()}"
                 new_data[key] = {
                     "source": "plant",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
-                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
+                    "code": code,  # New: plant code for traceability
                     "inSeason": item.get("inSeason"),
                     "type": desc.get("type"),
                     "family": desc.get("family"),
                     "season": desc.get("season"),
                     "cross_reaction": desc.get("crossReaction"),
+                    # New rich attributes for plant sensors:
+                    "description": idx.get("indexDescription"),
+                    "advice": item.get("healthRecommendations"),
+                    "color_hex": _rgb_to_hex(idx.get("color")),
+                    "picture": desc.get("picture"),
+                    "picture_closeup": desc.get("pictureCloseup"),
                 }
 
         self.data = new_data
@@ -213,7 +226,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 # ---------------------------------------------------------------------------
 # Generic Pollen Sensor (type & plant)
 # ---------------------------------------------------------------------------
-
 
 class PollenSensor(CoordinatorEntity):
     """Represent a pollen sensor for a type or plant."""
@@ -257,21 +269,27 @@ class PollenSensor(CoordinatorEntity):
             ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
         }
 
-        # Only add description if present to avoid showing a None attribute.
-        desc_text = info.get("description")
-        if desc_text is not None:
-            attrs["description"] = desc_text  # NEW in 1.5.1
+        # Common optional attributes across types and plants
+        for k in ("description", "inSeason", "advice", "color_hex"):
+            if info.get(k) is not None:
+                attrs[k] = info.get(k)
 
+        # Plant-specific attributes
         if info.get("source") == "plant":
-            attrs.update(
-                {
-                    "inSeason": info.get("inSeason"),
-                    "type": info.get("type"),
-                    "family": info.get("family"),
-                    "season": info.get("season"),
-                    "cross_reaction": info.get("cross_reaction"),
-                }
-            )
+            plant_attrs = {
+                "code": info.get("code"),
+                "type": info.get("type"),
+                "family": info.get("family"),
+                "season": info.get("season"),
+                "cross_reaction": info.get("cross_reaction"),
+                "picture": info.get("picture"),
+                "picture_closeup": info.get("picture_closeup"),
+            }
+            # Only include non-empty values
+            for k, v in plant_attrs.items():
+                if v is not None:
+                    attrs[k] = v
+
         return attrs
 
     @property
@@ -293,14 +311,13 @@ class PollenSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            },
+            }
         }
 
 
 # ---------------------------------------------------------------------------
 # Metadata Sensors (Region / Date / Last Updated)
 # ---------------------------------------------------------------------------
-
 
 class _BaseMetaSensor(CoordinatorEntity):
     """Provide base for metadata sensors."""
@@ -322,7 +339,7 @@ class _BaseMetaSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            },
+            }
         }
 
 
