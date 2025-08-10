@@ -240,7 +240,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "advice": item.get("healthRecommendations"),
                     "color_hex": _rgb_to_hex_triplet(rgb),
                     "color_rgb": list(rgb) if rgb is not None else None,
-                    "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
+                    "color_raw": (
+                        idx.get("color") if isinstance(idx.get("color"), dict) else None
+                    ),
                 }
 
             # plantInfo → plant sensors
@@ -266,7 +268,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "advice": item.get("healthRecommendations"),
                     "color_hex": _rgb_to_hex_triplet(rgb),
                     "color_rgb": list(rgb) if rgb is not None else None,
-                    "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
+                    "color_raw": (
+                        idx.get("color") if isinstance(idx.get("color"), dict) else None
+                    ),
                     "picture": desc.get("picture"),
                     "picture_closeup": desc.get("pictureCloseup"),
                 }
@@ -329,7 +333,14 @@ class PollenSensor(CoordinatorEntity):
         }
 
         # Common optional attributes across types and plants
-        for k in ("description", "inSeason", "advice", "color_hex", "color_rgb", "color_raw"):
+        for k in (
+            "description",
+            "inSeason",
+            "advice",
+            "color_hex",
+            "color_rgb",
+            "color_raw",
+        ):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
