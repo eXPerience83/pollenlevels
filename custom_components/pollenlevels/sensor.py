@@ -1,4 +1,5 @@
 """Provide Pollen Levels sensors with rich attributes and options support."""
+
 from __future__ import annotations
 
 import logging
@@ -69,7 +70,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Read options first (Options Flow), fallback to config entry data
     opts = entry.options or {}
-    interval = opts.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+    interval = opts.get(
+        CONF_UPDATE_INTERVAL,
+        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+    )
     lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
 
     coordinator = PollenDataUpdateCoordinator(
@@ -112,6 +116,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 # ---------------------------------------------------------------------------
 # DataUpdateCoordinator
 # ---------------------------------------------------------------------------
+
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with optional language code."""
@@ -162,7 +167,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         new_data: dict[str, dict] = {}
 
         # Extract region code
-        if (region := payload.get("regionCode")):
+        if region := payload.get("regionCode"):
             new_data["region"] = {"source": "meta", "value": region}
 
         # Extract date and pollen information
@@ -226,6 +231,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 # ---------------------------------------------------------------------------
 # Generic Pollen Sensor (type & plant)
 # ---------------------------------------------------------------------------
+
 
 class PollenSensor(CoordinatorEntity):
     """Represent a pollen sensor for a type or plant."""
@@ -311,13 +317,14 @@ class PollenSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            }
+            },
         }
 
 
 # ---------------------------------------------------------------------------
 # Metadata Sensors (Region / Date / Last Updated)
 # ---------------------------------------------------------------------------
+
 
 class _BaseMetaSensor(CoordinatorEntity):
     """Provide base for metadata sensors."""
@@ -339,7 +346,7 @@ class _BaseMetaSensor(CoordinatorEntity):
             "translation_placeholders": {
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
-            }
+            },
         }
 
 
