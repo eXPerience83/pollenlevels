@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.3] – 2025-08-09
+### Added
+- **Type sensors** now expose `inSeason`, `advice` (health recommendations when available), and `color_hex` derived from `indexInfo.color`. `description` (UPI) remains present.
+- **Plant sensors** now expose `advice` (if provided), `color_hex`, `code`, `picture`, and `picture_closeup`.
+### Notes
+- All additions are **non-breaking**: states and entity IDs are unchanged; attributes are added only when present in the API response.
+
 ## [1.5.2] – 2025-08-09
 ### Added
 - **Localized Options Flow strings** for 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK). Users now see the Options dialog (title, description, fields) fully translated.
