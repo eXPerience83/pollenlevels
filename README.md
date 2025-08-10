@@ -27,20 +27,23 @@ Get sensors for grass, tree, weed pollen, plus individual plants like **OAK**, *
 
 ## 🌟 Features
 
-* **Multi-language UI** – translated into 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK) and able to request API data in *any* language.
-* **Dynamic sensors** – automatically creates sensors for every pollen type and plant found at your location.
-* **Smart grouping** – sensors are neatly organised into three logical devices:
-  * **Pollen Types** (Grass / Tree / Weed)
-  * **Plants** (Oak, Pine, Birch, …)
-  * **Pollen Info** (Region, Forecast Date, Last Updated)
-* **Configurable updates** – choose your own refresh interval (default 6 h).
-* **Options Flow** – change the update interval and the API response language directly from the integration options (no reinstall required).
-* **Manual refresh** – call the service `pollenlevels.force_update` to fetch new data instantly and reset the timer.
-* **Last Updated sensor** – shows the timestamp of the last successful update in *local* time.
-* **Rich attributes** – season status, plant family, cross-reactivity info, and index description (UPI).
-* **Zero YAML** – fully configurable from the Home Assistant UI.
-* **HACS native** – effortless install & one-click updates via HACS.
-
+- **Multi-language support**  
+  UI available in 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK) + API responses in any language
+- **Dynamic sensors**  
+  Auto-creates sensors for all pollen types found in your location
+- **Smart grouping**  
+  Organizes sensors into intuitive devices:
+  - Pollen Types (Grass/Tree/Weed)
+  - Plants (Oak/Pine/Birch/etc.)
+  - Pollen Info (Region/Date metadata)
+- **Configurable updates (Options Flow)**  
+  Change update interval and language without reinstalling
+- **Manual refresh**  
+  Call the service `pollenlevels.force_update` to trigger an immediate update and reset the refresh timer.
+- **Last Updated sensor**  
+  Shows the timestamp of the last successful data fetch in local time.
+- **Richer attributes (types & plants)**  
+  `inSeason`, UPI `description`, `advice` (health recommendations), `color_hex`, and for plants also `code`, `picture`, `picture_closeup`.
 
 ## ⚙️ Installation
 
