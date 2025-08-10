@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.4] – 2025-08-10
+### Fixed
+- **Color extraction**: `color_hex` is now produced even when the API omits one or more channels (e.g., only `green`+`blue`). Missing channels default to `0`. Also accepts either `0..1` floats or `0..255` values.
+### Added
+- New attributes to make colors easier to consume in Lovelace:
+  - `color_rgb`: `[R, G, B]` integers (0–255)
+  - `color_raw`: original API color dict for traceability
+- README: new section with examples on how to **display color** in core cards (Template / Gauge).
+### Notes
+- No breaking changes: entity states and IDs are unchanged; attributes are additive.
+
 ## [1.5.3] – 2025-08-09
 ### Added
 - **Type sensors** now expose `inSeason`, `advice` (health recommendations when available), and `color_hex` derived from `indexInfo.color`. `description` (UPI) remains present.
