@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.5.5] – 2025-08-11
+### Docs
+- **button-card example**: fixed JavaScript snippets to access entity state via `states[entity]` and use the correct `color` property for icon tinting.
+- Minor wording polish in the README around native vs. custom color handling.
+### Maintenance
+- Bump `manifest.json` version to **1.5.5**.
+### Notes
+- No code changes; this release is documentation-only and safe to update.
+
+## [1.5.4] – 2025-08-10
+### Fixed
+- **Color extraction**: `color_hex` is now produced even when the API omits one or more channels (e.g., only `green`+`blue`). Missing channels default to `0`. Also accepts either `0..1` floats or `0..255` values.
+### Added
+- New attributes to make colors easier to consume in Lovelace:
+  - `color_rgb`: `[R, G, B]` integers (0–255)
+  - `color_raw`: original API color dict for traceability
+### Docs
+- **Corrected UI examples**:
+  - Removed the non-existent core card type **`template`** (caused “Unknown type: template”).
+  - Clarified that **Markdown** sanitizes HTML and **will not** render inline CSS colors.
+  - Added working examples for **Mushroom (mushroom-template-card)** and **button-card** using the `color_hex` attribute.
+  - Kept native **Entities**, **Tile + Template Sensor**, and **Gauge** examples (no custom cards required).
+### Notes
+- No breaking changes: entity states and IDs are unchanged; attributes are additive.
+
+## [1.5.3] – 2025-08-09
+### Added
+- **Type sensors** now expose `inSeason`, `advice` (health recommendations when available), and `color_hex` derived from `indexInfo.color`. `description` (UPI) remains present.
+- **Plant sensors** now expose `advice` (if provided), `color_hex`, `code`, `picture`, and `picture_closeup`.
+### Notes
+- All additions are **non-breaking**: states and entity IDs are unchanged; attributes are added only when present in the API response.
+
 ## [1.5.2] – 2025-08-09
 ### Added
 - **Localized Options Flow strings** for 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK). Users now see the Options dialog (title, description, fields) fully translated.

@@ -1,12 +1,20 @@
-"""Provide Pollen Levels sensors with language support and metadata.
+"""Provide Pollen Levels sensors with rich attributes and options support.
 
-Changes in 1.5.1:
-- Add 'description' attribute sourced from Google's `indexInfo.indexDescription`
-  for both pollen type and plant sensors. This is additive and non-breaking.
+Changes in 1.5.4:
+- Make color conversion resilient to partial color dicts (e.g., missing "red")
+  and accept both 0..1 floats and 0..255 ints.
+- Expose additional color attributes:
+    * color_hex : "#RRGGBB" for quick consumption in cards
+    * color_rgb : [R, G, B] integers 0..255
+    * color_raw : raw color dict from the API for traceability
+- Keep attributes additive and non-breaking.
 """
+
+from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from typing import Any, Dict, Optional, Tuple
 
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import (
@@ -40,33 +48,76 @@ TYPE_ICONS = {
 PLANT_TYPE_ICONS = TYPE_ICONS  # Reuse mapping for plant "type" attribute
 DEFAULT_ICON = "mdi:flower-pollen"
 
-# ---- Service -------------------------------------------------------------
-# (Service registration is handled in __init__.py)
+
+def _normalize_channel(v: Any) -> Optional[int]:
+    """Normalize a single channel to 0..255.
+
+    Accepts:
+      - float in 0..1 (from API)
+      - int/float in 0..255 (defensive if API ever returns ints)
+
+    Returns None if the value cannot be parsed.
+    """
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+
+    # If looks like 0..1, scale to 0..255; otherwise clamp to 0..255
+    if 0.0 <= f <= 1.0:
+        f *= 255.0
+    return max(0, min(255, int(round(f))))
+
+
+def _rgb_from_api(color: Dict[str, Any] | None) -> Optional[Tuple[int, int, int]]:
+    """Build an (R, G, B) tuple from API color dict, tolerating missing channels.
+
+    - Missing channels default to 0 so we can still provide a usable color.
+    - Returns None only when 'color' is not a dict at all.
+    """
+    if not isinstance(color, dict):
+        return None
+
+    r = _normalize_channel(color.get("red", 0))
+    g = _normalize_channel(color.get("green", 0))
+    b = _normalize_channel(color.get("blue", 0))
+
+    # If all failed to parse, consider it missing
+    if r is None and g is None and b is None:
+        return None
+
+    # Replace any missing with 0 (graceful degradation)
+    r = r if r is not None else 0
+    g = g if g is not None else 0
+    b = b if b is not None else 0
+    return (r, g, b)
+
+
+def _rgb_to_hex_triplet(rgb: Tuple[int, int, int] | None) -> Optional[str]:
+    """Convert (R,G,B) 0..255 to #RRGGBB."""
+    if rgb is None:
+        return None
+    r, g, b = rgb
+    return f"#{r:02X}{g:02X}{b:02X}"
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Create coordinator and build sensors for pollen data."""
     # ------------------------------------------------------------------
-    # Coordinator (read options first; fallback to data)
+    # Coordinator
     # ------------------------------------------------------------------
 
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
 
-    # Read update interval and language from options first (if present)
-    interval = entry.options.get(
+    # Read options first (Options Flow), fallback to config entry data
+    opts = entry.options or {}
+    interval = opts.get(
         CONF_UPDATE_INTERVAL,
         entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
     )
-    lang = entry.options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
-
-    _LOGGER.debug(
-        "Setting up PollenLevels coordinator for %s with interval=%s h, lang=%s",
-        entry.entry_id,
-        interval,
-        lang,
-    )
+    lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
 
     coordinator = PollenDataUpdateCoordinator(
         hass, api_key, lat, lon, interval, lang, entry.entry_id
@@ -153,7 +204,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if resp.status != 200:
                     raise UpdateFailed(f"HTTP {resp.status}")
                 payload = await resp.json()
-        except Exception as err:  # pragma: no cover - defensive
+        except Exception as err:
             raise UpdateFailed(err) from err
 
         new_data: dict[str, dict] = {}
@@ -176,13 +227,22 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             for item in first_day.get("pollenTypeInfo", []) or []:
                 code = item.get("code")
                 idx = item.get("indexInfo", {}) or {}
-                key = f"type_{code.lower()}"
+                rgb = _rgb_from_api(idx.get("color"))
+                key = f"type_{(code or '').lower()}"
                 new_data[key] = {
                     "source": "type",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
-                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
+                    # Rich attributes for type sensors:
+                    "inSeason": item.get("inSeason"),
+                    "description": idx.get("indexDescription"),
+                    "advice": item.get("healthRecommendations"),
+                    "color_hex": _rgb_to_hex_triplet(rgb),
+                    "color_rgb": list(rgb) if rgb is not None else None,
+                    "color_raw": (
+                        idx.get("color") if isinstance(idx.get("color"), dict) else None
+                    ),
                 }
 
             # plantInfo → plant sensors
@@ -190,18 +250,29 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 code = item.get("code")
                 idx = item.get("indexInfo", {}) or {}
                 desc = item.get("plantDescription", {}) or {}
-                key = f"plants_{code.lower()}"
+                rgb = _rgb_from_api(idx.get("color"))
+                key = f"plants_{(code or '').lower()}"
                 new_data[key] = {
                     "source": "plant",
                     "value": idx.get("value"),
                     "category": idx.get("category"),
-                    "description": idx.get("indexDescription"),  # NEW in 1.5.1
                     "displayName": item.get("displayName", code),
+                    "code": code,  # Plant code for traceability (different from UPI code)
                     "inSeason": item.get("inSeason"),
                     "type": desc.get("type"),
                     "family": desc.get("family"),
                     "season": desc.get("season"),
                     "cross_reaction": desc.get("crossReaction"),
+                    # Rich attributes for plant sensors:
+                    "description": idx.get("indexDescription"),
+                    "advice": item.get("healthRecommendations"),
+                    "color_hex": _rgb_to_hex_triplet(rgb),
+                    "color_rgb": list(rgb) if rgb is not None else None,
+                    "color_raw": (
+                        idx.get("color") if isinstance(idx.get("color"), dict) else None
+                    ),
+                    "picture": desc.get("picture"),
+                    "picture_closeup": desc.get("pictureCloseup"),
                 }
 
         self.data = new_data
@@ -250,28 +321,44 @@ class PollenSensor(CoordinatorEntity):
 
     @property
     def extra_state_attributes(self):
-        """Return extra attributes for sensor."""
+        """Return extra attributes for sensor.
+
+        Note: HA does not auto-color sensor icons based on attributes.
+        Cards must reference 'color_hex' or 'color_rgb' as needed.
+        """
         info = self.coordinator.data[self.code]
         attrs = {
             "category": info.get("category"),
             ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
         }
 
-        # Only add description if present to avoid showing a None attribute.
-        desc_text = info.get("description")
-        if desc_text is not None:
-            attrs["description"] = desc_text  # NEW in 1.5.1
+        # Common optional attributes across types and plants
+        for k in (
+            "description",
+            "inSeason",
+            "advice",
+            "color_hex",
+            "color_rgb",
+            "color_raw",
+        ):
+            if info.get(k) is not None:
+                attrs[k] = info.get(k)
 
+        # Plant-specific attributes
         if info.get("source") == "plant":
-            attrs.update(
-                {
-                    "inSeason": info.get("inSeason"),
-                    "type": info.get("type"),
-                    "family": info.get("family"),
-                    "season": info.get("season"),
-                    "cross_reaction": info.get("cross_reaction"),
-                }
-            )
+            plant_attrs = {
+                "code": info.get("code"),
+                "type": info.get("type"),
+                "family": info.get("family"),
+                "season": info.get("season"),
+                "cross_reaction": info.get("cross_reaction"),
+                "picture": info.get("picture"),
+                "picture_closeup": info.get("picture_closeup"),
+            }
+            for k, v in plant_attrs.items():
+                if v is not None:
+                    attrs[k] = v
+
         return attrs
 
     @property
