@@ -7,7 +7,12 @@
 - New attributes to make colors easier to consume in Lovelace:
   - `color_rgb`: `[R, G, B]` integers (0–255)
   - `color_raw`: original API color dict for traceability
-- README: new section with examples on how to **display color** in core cards (Template / Gauge).
+### Docs
+- **Corrected UI examples**:
+  - Removed the non-existent core card type **`template`** (caused “Unknown type: template”).
+  - Clarified that **Markdown** sanitizes HTML and **will not** render inline CSS colors.
+  - Added working examples for **Mushroom (mushroom-template-card)** and **button-card** using the `color_hex` attribute.
+  - Kept native **Entities**, **Tile + Template Sensor**, and **Gauge** examples (no custom cards required).
 ### Notes
 - No breaking changes: entity states and IDs are unchanged; attributes are additive.
 
