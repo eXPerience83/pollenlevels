@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.5.5] – 2025-08-10
+## [1.5.5] – 2025-08-11
 ### Docs
 - **button-card example**: fixed JavaScript snippets to access entity state via `states[entity]` and use the correct `color` property for icon tinting.
 - Minor wording polish in the README around native vs. custom color handling.
