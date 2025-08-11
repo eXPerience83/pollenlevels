@@ -130,13 +130,13 @@ entity: sensor.type_grass
 icon: mdi:grass
 show_state: false
 name: '[[[
-  const s = entity || states[entity.entity_id];
+  const s = states[entity];
   const cat = s?.attributes?.category ?? "";
   return `Grass: ${s?.state ?? "unknown"} (${cat})`;
 ]]]'
 # Icon color driven by attribute
 color: '[[[
-  const s = entity || states[entity.entity_id];
+  const s = states[entity];
   return s?.attributes?.color_hex || "var(--primary-color)";
 ]]]'
 ```
