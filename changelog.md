@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.5] – 2025-08-10
+### Docs
+- **button-card example**: fixed JavaScript snippets to access entity state via `states[entity]` and use the correct `color` property for icon tinting.
+- Minor wording polish in the README around native vs. custom color handling.
+### Maintenance
+- Bump `manifest.json` version to **1.5.5**.
+### Notes
+- No code changes; this release is documentation-only and safe to update.
+
 ## [1.5.4] – 2025-08-10
 ### Fixed
 - **Color extraction**: `color_hex` is now produced even when the API omits one or more channels (e.g., only `green`+`blue`). Missing channels default to `0`. Also accepts either `0..1` floats or `0..255` values.
