@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.6.1] – 2025-08-14
+### Changed
+- **Options Flow**: unify D+1 / D+2 toggles into a single selector:
+  `create_forecast_sensors` with values `none` (default), `D+1`, `D+1+2`.
+- Add validation to ensure `forecast_days` covers the selected per-day sensors.
+- Update translations (EN/ES/CA/DE/FR/IT/PL/RU/UK) and docs.
+
+## [1.6.0] – 2025-08-14
+### Added
+- Multi-day forecast for pollen **TYPES** (GRASS/TREE/WEED):
+  - `forecast` attribute (list of entries with `offset`, `date`, `has_index`, `value`, `category`, `description`, `color_*`).
+  - Convenience attributes: `tomorrow_*`, `d2_*`, plus `trend` and `expected_peak`.
+  - Optional per-day TYPE sensors for **(D+1)** and **(D+2)**.
+### Notes
+- Plants remain current-day only in 1.6.0. Forecast for plants will be considered in the next phase.
+
 ## [1.5.5] – 2025-08-11
 ### Docs
 - **button-card example**: fixed JavaScript snippets to access entity state via `states[entity]` and use the correct `color` property for icon tinting.
