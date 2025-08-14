@@ -18,43 +18,34 @@
       "cannot_connect": "Impossible de se connecter au service",
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
-      "empty": "Ce champ ne peut pas être vide"
+      "empty": "Ce champ ne peut pas être vide",
+      "invalid_option_combo": "Augmentez « Jours de prévision » pour couvrir les capteurs par jour sélectionnés."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Modifiez l’intervalle de mise à jour et la langue de réponse de l’API.",
+        "description": "Modifiez l’intervalle de mise à jour, la langue de réponse de l’API, les jours de prévision et les capteurs par jour pour les TYPES.",
         "data": {
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Code langue pour la réponse API"
+          "language_code": "Code langue pour la réponse API",
+          "forecast_days": "Jours de prévision (1–5)",
+          "create_forecast_sensors": "Capteurs par jour (TYPES) : none, D+1, D+1+2"
         }
       }
     }
   },
   "device": {
-    "types": {
-      "name": "Types de pollen ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Plantes ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Info pollen ({latitude},{longitude})"
-    }
+    "types": { "name": "Types de pollen ({latitude},{longitude})" },
+    "plants": { "name": "Plantes ({latitude},{longitude})" },
+    "info": { "name": "Info pollen ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Région"
-      },
-      "date": {
-        "name": "Date"
-      },
-      "last_updated": {
-        "name": "Dernière mise à jour"
-      }
+      "region": { "name": "Région" },
+      "date": { "name": "Date" },
+      "last_updated": { "name": "Dernière mise à jour" }
     }
   }
 }
