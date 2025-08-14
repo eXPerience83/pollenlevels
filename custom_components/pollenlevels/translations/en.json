@@ -18,43 +18,34 @@
       "cannot_connect": "Cannot connect to service",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
-      "empty": "This field cannot be empty"
+      "empty": "This field cannot be empty",
+      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Change the update interval and the API response language.",
+        "description": "Change the update interval, API response language, forecast days and per-day TYPE sensors.",
         "data": {
           "update_interval": "Update interval (hours)",
-          "language_code": "API response language code"
+          "language_code": "API response language code",
+          "forecast_days": "Forecast days (1–5)",
+          "create_forecast_sensors": "Per-day TYPE sensors (none, D+1, D+1+2)"
         }
       }
     }
   },
   "device": {
-    "types": {
-      "name": "Pollen Types ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Plants ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Pollen Info ({latitude},{longitude})"
-    }
+    "types": { "name": "Pollen Types ({latitude},{longitude})" },
+    "plants": { "name": "Plants ({latitude},{longitude})" },
+    "info": { "name": "Pollen Info ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Region"
-      },
-      "date": {
-        "name": "Date"
-      },
-      "last_updated": {
-        "name": "Last Updated"
-      }
+      "region": { "name": "Region" },
+      "date": { "name": "Date" },
+      "last_updated": { "name": "Last Updated" }
     }
   }
 }
