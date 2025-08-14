@@ -1,4 +1,4 @@
-name: Validate with hassfest
+name: Validate (Hassfest)
 
 on:
   push:
@@ -7,11 +7,20 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read  # Minimal token permissions
+
 jobs:
   hassfest:
+    name: Hassfest validation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Run hassfest
-        uses: home-assistant/actions/hassfest@master
+
+      - name: Run Hassfest
+        uses: home-assistant/actions/hassfest@main  # Use the current default branch
