@@ -95,10 +95,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     lon = entry.data[CONF_LONGITUDE]
 
     opts = entry.options or {}
-    interval = opts.get(
-        CONF_UPDATE_INTERVAL,
-        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-    )
+    interval = opts.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
     lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
     forecast_days = int(opts.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
 
@@ -132,17 +129,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
             continue
         sensors.append(PollenSensor(coordinator, code))
 
-    sensors.extend(
-        [
-            RegionSensor(coordinator),
-            DateSensor(coordinator),
-            LastUpdatedSensor(coordinator),
-        ]
-    )
+    sensors.extend([RegionSensor(coordinator), DateSensor(coordinator), LastUpdatedSensor(coordinator)])
 
-    _LOGGER.debug(
-        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
-    )
+    _LOGGER.debug("Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors])
     async_add_entities(sensors, True)
 
 
@@ -163,12 +152,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         create_d2: bool,
     ):
         """Initialize coordinator with configuration and interval."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=f"{DOMAIN}_{entry_id}",
-            update_interval=timedelta(hours=hours),
-        )
+        super().__init__(hass, _LOGGER, name=f"{DOMAIN}_{entry_id}", update_interval=timedelta(hours=hours))
         self.api_key = api_key
         self.lat = lat
         self.lon = lon
@@ -259,9 +243,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": titem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": (
-                    idx.get("color") if isinstance(idx.get("color"), dict) else None
-                ),
+                "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
             }
 
         # Current-day PLANTS (unchanged in Phase 1.1)
@@ -286,9 +268,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": pitem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": (
-                    idx.get("color") if isinstance(idx.get("color"), dict) else None
-                ),
+                "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
                 "picture": desc.get("picture"),
                 "picture_closeup": desc.get("pictureCloseup"),
             }
@@ -319,48 +299,38 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         "has_index": has_index,
                         "value": idx.get("value") if has_index else None,
                         "category": idx.get("category") if has_index else None,
-                        "description": (
-                            idx.get("indexDescription") if has_index else None
-                        ),
+                        "description": idx.get("indexDescription") if has_index else None,
                         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
-                        "color_rgb": (
-                            list(rgb) if (has_index and rgb is not None) else None
-                        ),
-                        "color_raw": (
-                            idx.get("color")
-                            if has_index and isinstance(idx.get("color"), dict)
-                            else None
-                        ),
+                        "color_rgb": list(rgb) if (has_index and rgb is not None) else None,
+                        "color_raw": idx.get("color") if has_index and isinstance(idx.get("color"), dict) else None,
                     }
                 )
             base["forecast"] = forecast_list
 
             # Convenience for tomorrow (1) and d2 (2)
-            def _set_convenience(prefix: str, off: int):
-                f = next((d for d in forecast_list if d["offset"] == off), None)
-                base[f"{prefix}_has_index"] = f.get("has_index") if f else False
-                base[f"{prefix}_value"] = (
-                    f.get("value") if f and f.get("has_index") else None
-                )
-                base[f"{prefix}_category"] = (
-                    f.get("category") if f and f.get("has_index") else None
-                )
-                base[f"{prefix}_description"] = (
-                    f.get("description") if f and f.get("has_index") else None
-                )
-                base[f"{prefix}_color_hex"] = (
-                    f.get("color_hex") if f and f.get("has_index") else None
-                )
+            # Bind loop variables into defaults to avoid late-binding issues (ruff B023).
+            def _set_convenience(
+                prefix: str,
+                off: int,
+                *,
+                _forecast_list=forecast_list,
+                _base=base,
+            ) -> None:
+                """Set convenience attributes for a given offset using bound snapshot values."""
+                f = next((d for d in _forecast_list if d["offset"] == off), None)
+                _base[f"{prefix}_has_index"] = f.get("has_index") if f else False
+                _base[f"{prefix}_value"] = f.get("value") if f and f.get("has_index") else None
+                _base[f"{prefix}_category"] = f.get("category") if f and f.get("has_index") else None
+                _base[f"{prefix}_description"] = f.get("description") if f and f.get("has_index") else None
+                _base[f"{prefix}_color_hex"] = f.get("color_hex") if f and f.get("has_index") else None
 
             _set_convenience("tomorrow", 1)
             _set_convenience("d2", 2)
 
-            # Trend
+            # Trend (use PEP 604 union in isinstance as suggested by ruff UP038)
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, (int, float)) and isinstance(
-                tomorrow_val, (int, float)
-            ):
+            if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
                 elif tomorrow_val < now_val:
@@ -373,16 +343,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Expected peak (excluding today)
             peak = None
             for f in forecast_list:
-                if f.get("has_index") and isinstance(f.get("value"), (int, float)):
+                if f.get("has_index") and isinstance(f.get("value"), int | float):
                     if peak is None or f["value"] > peak["value"]:
                         peak = f
             base["expected_peak"] = (
-                {
-                    "offset": peak["offset"],
-                    "date": peak["date"],
-                    "value": peak["value"],
-                    "category": peak["category"],
-                }
+                {"offset": peak["offset"], "date": peak["date"], "value": peak["value"], "category": peak["category"]}
                 if peak
                 else None
             )
@@ -390,19 +355,28 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             new_data[type_key] = base
 
             # Optional per-day sensors (only if requested and day exists)
-            def _add_day_sensor(off: int):
-                f = next((d for d in forecast_list if d["offset"] == off), None)
+            # Bind loop variables into defaults to avoid B023.
+            def _add_day_sensor(
+                off: int,
+                *,
+                _forecast_list=forecast_list,
+                _base=base,
+                _tcode=tcode,
+                _type_key=type_key,
+            ) -> None:
+                """Create per-day type sensor for a given offset using bound snapshot values."""
+                f = next((d for d in _forecast_list if d["offset"] == off), None)
                 if not f:
                     return
-                dname = f"{base.get('displayName', tcode)} (D+{off})"
-                new_data[f"{type_key}_d{off}"] = {
+                dname = f"{_base.get('displayName', _tcode)} (D+{off})"
+                new_data[f"{_type_key}_d{off}"] = {
                     "source": "type",
                     "displayName": dname,
                     "value": f.get("value") if f.get("has_index") else None,
                     "category": f.get("category") if f.get("has_index") else None,
                     "description": f.get("description") if f.get("has_index") else None,
-                    "inSeason": base.get("inSeason"),
-                    "advice": base.get("advice"),
+                    "inSeason": _base.get("inSeason"),
+                    "advice": _base.get("advice"),
                     "color_hex": f.get("color_hex"),
                     "color_rgb": f.get("color_rgb"),
                     "color_raw": f.get("color_raw"),
