@@ -5,13 +5,16 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
-select = ["E", "F", "W", "I", "UP", "B"]  # pycodestyle/pyflakes/isort/pyupgrade/bugbear
-ignore = [
-  "E501",  # line length (Black formats)
-]
-fix = true
+fix = true  # default fix behavior when running 'ruff' without flags
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+# pycodestyle/pyflakes/isort/pyupgrade/bugbear
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+  "E501",  # line length (Black handles formatting)
+]
+
+[tool.ruff.lint.isort]
 known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
 
