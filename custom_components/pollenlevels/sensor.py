@@ -19,28 +19,28 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any
 
-from homeassistant.util import dt as dt_util
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-    UpdateFailed,
-    CoordinatorEntity,
-)
+from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
+    CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
-    CONF_LANGUAGE_CODE,
-    CONF_FORECAST_DAYS,
-    CONF_CREATE_FORECAST_SENSORS,
     DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
 
@@ -57,7 +57,7 @@ PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
 
 
-def _normalize_channel(v: Any) -> Optional[int]:
+def _normalize_channel(v: Any) -> int | None:
     """Normalize a single channel to 0..255 (accept 0..1 or 0..255 inputs)."""
     try:
         f = float(v)
@@ -68,7 +68,7 @@ def _normalize_channel(v: Any) -> Optional[int]:
     return max(0, min(255, int(round(f))))
 
 
-def _rgb_from_api(color: Dict[str, Any] | None) -> Optional[Tuple[int, int, int]]:
+def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
     """Build an (R, G, B) tuple from API color dict, tolerating missing channels."""
     if not isinstance(color, dict):
         return None
@@ -80,7 +80,7 @@ def _rgb_from_api(color: Dict[str, Any] | None) -> Optional[Tuple[int, int, int]
     return (r or 0, g or 0, b or 0)
 
 
-def _rgb_to_hex_triplet(rgb: Tuple[int, int, int] | None) -> Optional[str]:
+def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
     """Convert (R,G,B) 0..255 to #RRGGBB."""
     if rgb is None:
         return None
@@ -95,7 +95,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     lon = entry.data[CONF_LONGITUDE]
 
     opts = entry.options or {}
-    interval = opts.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+    interval = opts.get(
+        CONF_UPDATE_INTERVAL,
+        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+    )
     lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
     forecast_days = int(opts.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
 
@@ -123,15 +126,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
         _LOGGER.warning("No pollen data found during initial setup")
         return
 
-    sensors: List[CoordinatorEntity] = []
+    sensors: list[CoordinatorEntity] = []
     for code in coordinator.data:
         if code in ("region", "date"):
             continue
         sensors.append(PollenSensor(coordinator, code))
 
-    sensors.extend([RegionSensor(coordinator), DateSensor(coordinator), LastUpdatedSensor(coordinator)])
+    sensors.extend(
+        [
+            RegionSensor(coordinator),
+            DateSensor(coordinator),
+            LastUpdatedSensor(coordinator),
+        ]
+    )
 
-    _LOGGER.debug("Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors])
+    _LOGGER.debug(
+        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
+    )
     async_add_entities(sensors, True)
 
 
@@ -145,14 +156,19 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         lat: float,
         lon: float,
         hours: int,
-        language: Optional[str],
+        language: str | None,
         entry_id: str,
         forecast_days: int,
         create_d1: bool,
         create_d2: bool,
     ):
         """Initialize coordinator with configuration and interval."""
-        super().__init__(hass, _LOGGER, name=f"{DOMAIN}_{entry_id}", update_interval=timedelta(hours=hours))
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_{entry_id}",
+            update_interval=timedelta(hours=hours),
+        )
         self.api_key = api_key
         self.lat = lat
         self.lon = lon
@@ -243,7 +259,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": titem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
+                "color_raw": (
+                    idx.get("color") if isinstance(idx.get("color"), dict) else None
+                ),
             }
 
         # Current-day PLANTS (unchanged in Phase 1.1)
@@ -268,7 +286,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": pitem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
+                "color_raw": (
+                    idx.get("color") if isinstance(idx.get("color"), dict) else None
+                ),
                 "picture": desc.get("picture"),
                 "picture_closeup": desc.get("pictureCloseup"),
             }
@@ -299,10 +319,18 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         "has_index": has_index,
                         "value": idx.get("value") if has_index else None,
                         "category": idx.get("category") if has_index else None,
-                        "description": idx.get("indexDescription") if has_index else None,
+                        "description": (
+                            idx.get("indexDescription") if has_index else None
+                        ),
                         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
-                        "color_rgb": list(rgb) if (has_index and rgb is not None) else None,
-                        "color_raw": idx.get("color") if has_index and isinstance(idx.get("color"), dict) else None,
+                        "color_rgb": (
+                            list(rgb) if (has_index and rgb is not None) else None
+                        ),
+                        "color_raw": (
+                            idx.get("color")
+                            if has_index and isinstance(idx.get("color"), dict)
+                            else None
+                        ),
                     }
                 )
             base["forecast"] = forecast_list
@@ -319,10 +347,18 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 """Set convenience attributes for a given offset using bound snapshot values."""
                 f = next((d for d in _forecast_list if d["offset"] == off), None)
                 _base[f"{prefix}_has_index"] = f.get("has_index") if f else False
-                _base[f"{prefix}_value"] = f.get("value") if f and f.get("has_index") else None
-                _base[f"{prefix}_category"] = f.get("category") if f and f.get("has_index") else None
-                _base[f"{prefix}_description"] = f.get("description") if f and f.get("has_index") else None
-                _base[f"{prefix}_color_hex"] = f.get("color_hex") if f and f.get("has_index") else None
+                _base[f"{prefix}_value"] = (
+                    f.get("value") if f and f.get("has_index") else None
+                )
+                _base[f"{prefix}_category"] = (
+                    f.get("category") if f and f.get("has_index") else None
+                )
+                _base[f"{prefix}_description"] = (
+                    f.get("description") if f and f.get("has_index") else None
+                )
+                _base[f"{prefix}_color_hex"] = (
+                    f.get("color_hex") if f and f.get("has_index") else None
+                )
 
             _set_convenience("tomorrow", 1)
             _set_convenience("d2", 2)
@@ -330,7 +366,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Trend (use PEP 604 union in isinstance as suggested by ruff UP038)
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
+            if isinstance(now_val, int | float) and isinstance(
+                tomorrow_val, int | float
+            ):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
                 elif tomorrow_val < now_val:
@@ -347,7 +385,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     if peak is None or f["value"] > peak["value"]:
                         peak = f
             base["expected_peak"] = (
-                {"offset": peak["offset"], "date": peak["date"], "value": peak["value"], "category": peak["category"]}
+                {
+                    "offset": peak["offset"],
+                    "date": peak["date"],
+                    "value": peak["value"],
+                    "category": peak["category"],
+                }
                 if peak
                 else None
             )
