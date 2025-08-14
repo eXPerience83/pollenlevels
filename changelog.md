@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.2] – 2025-08-14
+### Changed
+- **Auto Format workflow**:
+  - Remove custom branch dropdown; rely on GitHub’s native branch selector (shows only existing branches).
+  - Stop creating PRs (avoids “GitHub Actions is not permitted to create or approve pull requests”); now commits are pushed back to the same branch.
+  - Comments rewritten in English.
+- **Ruff config**: migrate to `tool.ruff.lint` / `tool.ruff.lint.isort` to remove deprecation warnings on 0.5.x.
+- Bump manifest version to **1.6.2**.
+
 ## [1.6.1] – 2025-08-14
 ### Changed
 - **Options Flow**: unify D+1 / D+2 toggles into a single selector:
