@@ -18,43 +18,34 @@
       "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
       "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
-      "empty": "Dieses Feld darf nicht leer sein"
+      "empty": "Dieses Feld darf nicht leer sein",
+      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Optionen",
-        "description": "Ändere das Aktualisierungsintervall und die API-Antwortsprache.",
+        "description": "Ändere Aktualisierungsintervall, API-Antwortsprache, Vorhersagetage und Tagessensoren für TYPEN.",
         "data": {
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für Antwort"
+          "language_code": "Sprachcode für Antwort",
+          "forecast_days": "Vorhersagetage (1–5)",
+          "create_forecast_sensors": "Tagessensoren (TYPEN): none, D+1, D+1+2"
         }
       }
     }
   },
   "device": {
-    "types": {
-      "name": "Pollenarten ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Pflanzen ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Polleninformationen ({latitude},{longitude})"
-    }
+    "types": { "name": "Pollenarten ({latitude},{longitude})" },
+    "plants": { "name": "Pflanzen ({latitude},{longitude})" },
+    "info": { "name": "Polleninformationen ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Region"
-      },
-      "date": {
-        "name": "Datum"
-      },
-      "last_updated": {
-        "name": "Letzte Aktualisierung"
-      }
+      "region": { "name": "Region" },
+      "date": { "name": "Datum" },
+      "last_updated": { "name": "Letzte Aktualisierung" }
     }
   }
 }
