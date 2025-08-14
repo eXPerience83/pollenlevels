@@ -10,7 +10,9 @@ CONF_LANGUAGE_CODE = "language_code"
 
 # Forecast-related options (Phase 1.1: types only)
 CONF_FORECAST_DAYS = "forecast_days"
-CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"  # values: "none" | "D+1" | "D+1+2"
+CONF_CREATE_FORECAST_SENSORS = (
+    "create_forecast_sensors"  # values: "none" | "D+1" | "D+1+2"
+)
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 6

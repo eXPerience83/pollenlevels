@@ -132,12 +132,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
-                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
-                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
-                    vol.Coerce(int), vol.Range(min=1)
-                ),
-                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
+                vol.Optional(
+                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
+                ): cv.latitude,
+                vol.Optional(
+                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
+                ): cv.longitude,
+                vol.Optional(
+                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
+                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                vol.Optional(
+                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
+                ): str,
             }
         )
 
@@ -170,7 +176,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
-                        self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+                        self.entry.options.get(
+                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
+                        ),
                     )
                 )
                 if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
@@ -205,10 +213,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         current_lang = self.entry.options.get(
-            CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language)
+            CONF_LANGUAGE_CODE,
+            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
         )
         current_days = self.entry.options.get(
-            CONF_FORECAST_DAYS, self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
+            CONF_FORECAST_DAYS,
+            self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
@@ -216,16 +226,16 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
-                        vol.Coerce(int), vol.Range(min=1)
-                    ),
+                    vol.Optional(
+                        CONF_UPDATE_INTERVAL, default=current_interval
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
                     vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.In(
                         list(range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1))
                     ),
-                    vol.Optional(CONF_CREATE_FORECAST_SENSORS, default=current_mode): vol.In(
-                        FORECAST_SENSORS_CHOICES
-                    ),
+                    vol.Optional(
+                        CONF_CREATE_FORECAST_SENSORS, default=current_mode
+                    ): vol.In(FORECAST_SENSORS_CHOICES),
                 }
             ),
             errors=errors,

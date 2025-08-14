@@ -95,7 +95,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     lon = entry.data[CONF_LONGITUDE]
 
     opts = entry.options or {}
-    interval = opts.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
+    interval = opts.get(
+        CONF_UPDATE_INTERVAL,
+        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+    )
     lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
     forecast_days = int(opts.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
 
@@ -129,9 +132,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
             continue
         sensors.append(PollenSensor(coordinator, code))
 
-    sensors.extend([RegionSensor(coordinator), DateSensor(coordinator), LastUpdatedSensor(coordinator)])
+    sensors.extend(
+        [
+            RegionSensor(coordinator),
+            DateSensor(coordinator),
+            LastUpdatedSensor(coordinator),
+        ]
+    )
 
-    _LOGGER.debug("Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors])
+    _LOGGER.debug(
+        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
+    )
     async_add_entities(sensors, True)
 
 
@@ -152,7 +163,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         create_d2: bool,
     ):
         """Initialize coordinator with configuration and interval."""
-        super().__init__(hass, _LOGGER, name=f"{DOMAIN}_{entry_id}", update_interval=timedelta(hours=hours))
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_{entry_id}",
+            update_interval=timedelta(hours=hours),
+        )
         self.api_key = api_key
         self.lat = lat
         self.lon = lon
@@ -243,7 +259,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": titem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
+                "color_raw": (
+                    idx.get("color") if isinstance(idx.get("color"), dict) else None
+                ),
             }
 
         # Current-day PLANTS (unchanged in Phase 1.1)
@@ -268,7 +286,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": pitem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": idx.get("color") if isinstance(idx.get("color"), dict) else None,
+                "color_raw": (
+                    idx.get("color") if isinstance(idx.get("color"), dict) else None
+                ),
                 "picture": desc.get("picture"),
                 "picture_closeup": desc.get("pictureCloseup"),
             }
@@ -299,10 +319,18 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         "has_index": has_index,
                         "value": idx.get("value") if has_index else None,
                         "category": idx.get("category") if has_index else None,
-                        "description": idx.get("indexDescription") if has_index else None,
+                        "description": (
+                            idx.get("indexDescription") if has_index else None
+                        ),
                         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
-                        "color_rgb": list(rgb) if (has_index and rgb is not None) else None,
-                        "color_raw": idx.get("color") if has_index and isinstance(idx.get("color"), dict) else None,
+                        "color_rgb": (
+                            list(rgb) if (has_index and rgb is not None) else None
+                        ),
+                        "color_raw": (
+                            idx.get("color")
+                            if has_index and isinstance(idx.get("color"), dict)
+                            else None
+                        ),
                     }
                 )
             base["forecast"] = forecast_list
@@ -311,10 +339,18 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             def _set_convenience(prefix: str, off: int):
                 f = next((d for d in forecast_list if d["offset"] == off), None)
                 base[f"{prefix}_has_index"] = f.get("has_index") if f else False
-                base[f"{prefix}_value"] = f.get("value") if f and f.get("has_index") else None
-                base[f"{prefix}_category"] = f.get("category") if f and f.get("has_index") else None
-                base[f"{prefix}_description"] = f.get("description") if f and f.get("has_index") else None
-                base[f"{prefix}_color_hex"] = f.get("color_hex") if f and f.get("has_index") else None
+                base[f"{prefix}_value"] = (
+                    f.get("value") if f and f.get("has_index") else None
+                )
+                base[f"{prefix}_category"] = (
+                    f.get("category") if f and f.get("has_index") else None
+                )
+                base[f"{prefix}_description"] = (
+                    f.get("description") if f and f.get("has_index") else None
+                )
+                base[f"{prefix}_color_hex"] = (
+                    f.get("color_hex") if f and f.get("has_index") else None
+                )
 
             _set_convenience("tomorrow", 1)
             _set_convenience("d2", 2)
@@ -322,7 +358,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Trend
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
+            if isinstance(now_val, (int, float)) and isinstance(
+                tomorrow_val, (int, float)
+            ):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
                 elif tomorrow_val < now_val:
@@ -339,7 +377,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     if peak is None or f["value"] > peak["value"]:
                         peak = f
             base["expected_peak"] = (
-                {"offset": peak["offset"], "date": peak["date"], "value": peak["value"], "category": peak["category"]}
+                {
+                    "offset": peak["offset"],
+                    "date": peak["date"],
+                    "value": peak["value"],
+                    "category": peak["category"],
+                }
                 if peak
                 else None
             )
