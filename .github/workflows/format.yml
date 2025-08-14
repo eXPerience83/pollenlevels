@@ -1,27 +1,73 @@
-name: Format (Black auto-commit)
+name: Auto Format (Black + Ruff)
 
 on:
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Branch to format (defaults to current ref)"
+        required: false
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# We need write permissions to push a branch and open a PR
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   format:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (requested ref or current)
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
+          ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.ref }}
+          fetch-depth: 0  # Required for creating branches and PRs
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install Black
-        run: pip install black
-      - name: Run Black
-        run: black .
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+          cache: pip
+
+      - name: Install formatters
+        run: |
+          # Install pinned versions for reproducibility
+          python -m pip install --upgrade pip
+          pip install "ruff==0.5.7" "black==24.8.0"
+
+      - name: Ruff (fix safe issues)
+        run: |
+          # Apply safe auto-fixes, keep style consistent with pyproject.toml
+          ruff check . --fix
+
+      - name: Black (format)
+        run: |
+          black .
+
+      - name: Create Pull Request if changes
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
         with:
-          commit_message: "chore: format with Black"
-          commit_user_name: "github-actions[bot]"
-          commit_user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          commit-message: "style: apply Ruff fixes and Black formatting"
+          title: "style: auto-format (Ruff + Black)"
+          body: |
+            Automated formatting run:
+            - `ruff check --fix`
+            - `black .`
+
+            > This PR was created by the **Auto Format** workflow.
+          branch: chore/auto-format/${{ github.run_id }}
+          labels: |
+            chore
+            ci
+          signoff: false
+          delete-branch: true
+
+      - name: PR URL
+        if: steps.cpr.outputs.pull-request-url
+        run: echo "Created PR: ${{ steps.cpr.outputs.pull-request-url }}"
