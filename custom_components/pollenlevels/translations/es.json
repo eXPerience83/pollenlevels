@@ -18,43 +18,34 @@
       "cannot_connect": "No se puede conectar al servicio",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
-      "empty": "Este campo no puede estar vacío"
+      "empty": "Este campo no puede estar vacío",
+      "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Opciones",
-        "description": "Cambia el intervalo de actualización y el idioma de respuesta de la API.",
+        "description": "Cambia el intervalo de actualización, el idioma de respuesta del API, los días de previsión y los sensores por día para TIPOS.",
         "data": {
           "update_interval": "Intervalo de actualización (horas)",
-          "language_code": "Código de idioma de la respuesta"
+          "language_code": "Código de idioma de la respuesta",
+          "forecast_days": "Días de previsión (1–5)",
+          "create_forecast_sensors": "Sensores por día (TIPOS): none, D+1, D+1+2"
         }
       }
     }
   },
   "device": {
-    "types": {
-      "name": "Tipos de polen ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Plantas ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Información de polen ({latitude},{longitude})"
-    }
+    "types": { "name": "Tipos de polen ({latitude},{longitude})" },
+    "plants": { "name": "Plantas ({latitude},{longitude})" },
+    "info": { "name": "Información de polen ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Región"
-      },
-      "date": {
-        "name": "Fecha"
-      },
-      "last_updated": {
-        "name": "Última actualización"
-      }
+      "region": { "name": "Región" },
+      "date": { "name": "Fecha" },
+      "last_updated": { "name": "Última actualización" }
     }
   }
 }
