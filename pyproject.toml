@@ -5,7 +5,7 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
-select = ["E", "F", "W", "I", "UP", "B"]
+select = ["E", "F", "W", "I", "UP", "B"]  # pycodestyle/pyflakes/isort/pyupgrade/bugbear
 ignore = [
   "E501",  # line length (Black formats)
 ]
@@ -14,3 +14,12 @@ fix = true
 [tool.ruff.isort]
 known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
+
+# --- Optional hardening (uncomment if needed) ---
+# [tool.ruff]
+# force-exclude = true
+# exclude = [".git", ".venv", "venv", ".mypy_cache", ".pytest_cache", "build", "dist"]
+
+# If you re-export symbols in __init__.py and want to ignore F401 there:
+# [tool.ruff.per-file-ignores]
+# "custom_components/pollenlevels/__init__.py" = ["F401"]
