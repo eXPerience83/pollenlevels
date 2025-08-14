@@ -1,10 +1,12 @@
 """Handle config & options flow for Pollen Levels integration.
 
-Changes in 1.5.1:
-- Reorder imports (stdlib first) to keep ruff/isort happy.
-- Remove redundant manual 'interval < 1' check in Options; schema already enforces
-  `min=1`, avoiding the need for a custom translation key.
+Phase 1.1 notes (v1.6.1):
+- Replace two boolean toggles (D+1 and D+2) with a single selector 'create_forecast_sensors':
+  values: "none" (default), "D+1", "D+1+2".
+- Validate coherence with 'forecast_days' (e.g., choosing "D+1+2" requires forecast_days >= 3).
 """
+
+from __future__ import annotations
 
 import logging
 import re
@@ -24,14 +26,18 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
     CONF_LANGUAGE_CODE,
+    # Forecast options
+    CONF_FORECAST_DAYS,
+    CONF_CREATE_FORECAST_SENSORS,
+    DEFAULT_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
+    MAX_FORECAST_DAYS,
+    FORECAST_SENSORS_CHOICES,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-# Improved regex to support base and region subtags:
-# - 2-3 character base language codes (e.g., "zh", "cmn")
-# - 2-4 character region suffixes (e.g., "zh-Hant", "zh-Hant-TW")
-# - Case-insensitive matching (supports "en-US", "en-us", etc.)
+# Regex to support base and region subtags (e.g., "zh", "zh-Hant", "zh-Hant-TW")
 LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
 
 
@@ -63,23 +69,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input:
             # ---- Duplicate prevention -------------------------------------------------
-            # Use a stable unique_id per (lat,lon) with 4 decimal precision so that
-            # we avoid duplicate entries for the same location.
             try:
                 lat = float(user_input[CONF_LATITUDE])
                 lon = float(user_input[CONF_LONGITUDE])
                 await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
                 self._abort_if_unique_id_configured()
             except Exception:  # pragma: no cover - defensive
-                # If something goes off with parsing, proceed; form validators will catch it.
                 pass
 
             # ---- Field validation & API reachability ---------------------------------
             try:
-                # Validate language format locally first (UI-friendly errors)
                 is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
 
-                # Probe API to verify key/quota/connectivity before creating the entry
                 session = async_get_clientsession(self.hass)
                 params = {
                     "key": user_input[CONF_API_KEY],
@@ -120,10 +121,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Create the entry with the provided data.
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
 
-        # Default values from HA config for the form
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
@@ -133,18 +132,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(
-                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
-                ): cv.latitude,
-                vol.Optional(
-                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
-                ): cv.longitude,
-                vol.Optional(
-                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                vol.Optional(
-                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
-                ): str,
+                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
+                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
+                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
+                    vol.Coerce(int), vol.Range(min=1)
+                ),
+                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
             }
         )
 
@@ -163,16 +156,39 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             try:
-                # Allow empty to "inherit" HA UI language, but if non-empty, validate format.
+                # Language validation: allow empty (inherit HA language), if provided validate format.
                 lang = user_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
-                        CONF_LANGUAGE_CODE,
-                        self.entry.data.get(CONF_LANGUAGE_CODE, ""),
+                        CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, "")
                     ),
                 )
                 if isinstance(lang, str) and lang.strip():
                     is_valid_language_code(lang)
+
+                # forecast_days within supported range 1..5
+                days = int(
+                    user_input.get(
+                        CONF_FORECAST_DAYS,
+                        self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+                    )
+                )
+                if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
+                    errors["base"] = "cannot_connect"
+
+                # validate combo for per-day sensors
+                mode = user_input.get(
+                    CONF_CREATE_FORECAST_SENSORS,
+                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                )
+                needed = 1
+                if mode == "D+1":
+                    needed = 2
+                elif mode == "D+1+2":
+                    needed = 3
+                if days < needed:
+                    # Field-level error to guide the user
+                    errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
@@ -181,27 +197,35 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Store options; the integration will reload (see __init__.py) to apply them.
                 return self.async_create_entry(title="", data=user_input)
 
-        # Defaults: prefer options, fall back to data, then HA language
+        # Defaults: prefer options, fall back to data/const
         current_interval = self.entry.options.get(
             CONF_UPDATE_INTERVAL,
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         current_lang = self.entry.options.get(
-            CONF_LANGUAGE_CODE,
-            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
+            CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language)
         )
+        current_days = self.entry.options.get(
+            CONF_FORECAST_DAYS, self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
+        )
+        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
-                        CONF_UPDATE_INTERVAL, default=current_interval
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
+                        vol.Coerce(int), vol.Range(min=1)
+                    ),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
+                    vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.In(
+                        list(range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1))
+                    ),
+                    vol.Optional(CONF_CREATE_FORECAST_SENSORS, default=current_mode): vol.In(
+                        FORECAST_SENSORS_CHOICES
+                    ),
                 }
             ),
             errors=errors,
