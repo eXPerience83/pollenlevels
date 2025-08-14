@@ -1,10 +1,9 @@
 name: Lint
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  push:            # Run on push to any branch
+  pull_request:    # Run on PRs from/to any branch
+  workflow_dispatch:  # Allow manual runs from the Actions tab
 
 jobs:
   lint:
@@ -16,6 +15,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"  # Speed up subsequent installs
 
       - name: Install dependencies
         run: pip install black ruff
