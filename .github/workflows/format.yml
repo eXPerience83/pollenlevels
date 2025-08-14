@@ -3,16 +3,21 @@ name: Auto Format (Black + Ruff)
 on:
   workflow_dispatch:
     inputs:
-      target_branch:
-        description: "Branch to format (defaults to current ref)"
+      # OPCIONAL: menú estático de ramas (puedes editar la lista)
+      branch:
+        description: "Select branch to format (optional; otherwise use the branch in the top 'Run workflow' dropdown)"
         required: false
-        default: ""
+        type: choice
+        options:
+          - ""        # empty = use the branch selected in GitHub's built-in dropdown
+          - main
+          - develop
+          - release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Needed to push a branch and open a PR
 permissions:
   contents: write
   pull-requests: write
@@ -20,13 +25,15 @@ permissions:
 jobs:
   format:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout (requested ref or current)
+      - name: Checkout (selected or current)
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.ref }}
-          fetch-depth: 0  # Required to create branches/PRs
+          # Prioridad:
+          # 1) Input 'branch' si eliges una opción no vacía del menú propio
+          # 2) La rama que elijas en el dropdown nativo "Run workflow → Branch"
+          ref: ${{ inputs.branch != '' && inputs.branch || github.ref }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,7 +46,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install "ruff==0.5.7" "black==24.8.0"
 
-      - name: Ruff (safe fixes)
+      - name: Ruff (fix)
         run: ruff check . --fix
 
       - name: Black (format)
@@ -53,13 +60,7 @@ jobs:
           title: "style: auto-format (Ruff + Black)"
           body: |
             Automated formatting run:
-            - `ruff check --fix`
-            - `black .`
-
-            > This PR was created by the **Auto Format** workflow.
+            - ruff check --fix
+            - black .
           branch: chore/auto-format/${{ github.run_id }}
-          labels: |
-            chore
-            ci
-          signoff: false
           delete-branch: true
