@@ -18,43 +18,34 @@
       "cannot_connect": "Не вдається підключитися до сервісу",
       "quota_exceeded": "Перевищено ліміт запитів",
       "invalid_language": "Невірний код мови",
-      "empty": "Це поле не може бути порожнім"
+      "empty": "Це поле не може бути порожнім",
+      "invalid_option_combo": "Збільште «Дні прогнозу», щоб охопити вибрані денні датчики."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Параметри",
-        "description": "Змініть інтервал оновлення та мову відповіді API.",
+        "description": "Змініть інтервал оновлення, мову відповіді API, кількість днів прогнозу та денні датчики для ТИПІВ.",
         "data": {
           "update_interval": "Інтервал оновлення (у годинах)",
-          "language_code": "Код мови відповіді API"
+          "language_code": "Код мови відповіді API",
+          "forecast_days": "Дні прогнозу (1–5)",
+          "create_forecast_sensors": "Денні датчики (ТИПИ): none, D+1, D+1+2"
         }
       }
     }
   },
   "device": {
-    "types": {
-      "name": "Типи пилку ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Рослини ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Інформація про пилок ({latitude},{longitude})"
-    }
+    "types": { "name": "Типи пилку ({latitude},{longitude})" },
+    "plants": { "name": "Рослини ({latitude},{longitude})" },
+    "info": { "name": "Інформація про пилок ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Регіон"
-      },
-      "date": {
-        "name": "Дата"
-      },
-      "last_updated": {
-        "name": "Останнє оновлення"
-      }
+      "region": { "name": "Регіон" },
+      "date": { "name": "Дата" },
+      "last_updated": { "name": "Останнє оновлення" }
     }
   }
 }
