@@ -1,24 +1,23 @@
 name: Auto Format (Black + Ruff)
 
 on:
-  # Manual run. Use GitHub's native "Run workflow → Branch" dropdown to pick a REAL branch.
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  push:
+    paths:
+      - "**/*.py"
+      - ".github/workflows/format.yml"
+      - "pyproject.toml"
 
 permissions:
-  contents: write  # needed to push commits to the selected branch
+  contents: write
 
 jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (current ref selected in the UI)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Rely on GitHub's native branch selector; this ensures only real branches are shown.
           fetch-depth: 0
 
       - name: Set up Python
@@ -32,24 +31,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install "ruff==0.5.7" "black==24.8.0"
 
+      # Nota: --unsafe-fixes permite a Ruff aplicar cambios que podrían alterar el comportamiento.
+      # Aquí lo usamos SOLO en el job de formato automático, no en el job de lint estricto.
       - name: Ruff (fix)
-        run: ruff check . --fix
+        run: ruff check . --fix --unsafe-fixes || true
 
-      - name: Black (format)
+      - name: Black
         run: black .
 
-      - name: Commit & Push if changes
-        # Commit back to the SAME branch. No PR is created to avoid org policy errors.
-        shell: bash
+      - name: Commit & push if changed
         run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            echo "No changes to commit."
-            exit 0
+          if ! git diff --quiet; then
+            git config user.name "${GITHUB_ACTOR}"
+            git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+            git add -A
+            git commit -m "style: auto-format (Ruff + Black)"
+            git push
+          else
+            echo "No formatting changes."
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "style: apply Ruff fixes and Black formatting"
-          # Push back to the currently checked out branch (selected in the UI).
-          git push
