@@ -1,4 +1,7 @@
 # Define constants for Pollen Levels integration
+# Revert create_forecast_sensors values back to the published 1.6.3 style:
+#   "none" | "D+1" | "D+1+2"
+# This removes the need for legacy normalization (d1/d12) introduced in alphas.
 
 DOMAIN = "pollenlevels"
 
@@ -10,17 +13,18 @@ CONF_LANGUAGE_CODE = "language_code"
 
 # Forecast / options (Phase 2)
 CONF_FORECAST_DAYS = "forecast_days"  # 1..5 days for forecast
-CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"  # none | d1 | d12
+# Persisted values are historical ("D+1", "D+1+2") to match v1.6.3 behavior
+CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 6  # hours
 DEFAULT_FORECAST_DAYS = 3
 DEFAULT_CREATE_FORECAST_SENSORS = "none"
 
-# Allowed values for per-day sensors option
+# Allowed values for per-day sensors option (published form)
 CFS_NONE = "none"
-CFS_D1 = "d1"
-CFS_D12 = "d12"
+CFS_D1 = "D+1"
+CFS_D12 = "D+1+2"
 ALLOWED_CFS = {CFS_NONE, CFS_D1, CFS_D12}
 
 # Types for convenience
