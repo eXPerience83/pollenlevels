@@ -1,29 +1,23 @@
 [tool.black]
-# Keep Black aligned across CI and local runs
 line-length = 88
 target-version = ["py311"]
-preview = false
+extend-exclude = "/(.git|.github|.venv|venv|build|dist)/"
 
 [tool.ruff]
-# Global settings that are not deprecated
-target-version = "py311"
 line-length = 88
+target-version = "py311"
+src = ["custom_components", "tests"]
 
 [tool.ruff.lint]
-# Use the modern [tool.ruff.lint] namespace (old top-level options are deprecated).
-# Enable a sensible baseline of rules:
-#  - E, F: Pyflakes / PEP8 errors
-#  - W: Pycodestyle warnings
-#  - I: isort (imports)
-#  - B: flake8-bugbear
-#  - UP: pyupgrade rules
-#  - PL: Pylint-like rules (subset)
-select = ["E", "F", "W", "I", "B", "UP", "PL"]
-
-# Examples of ignores you may want (kept minimal by default):
-# ignore = ["D", "ANN", "T20"]  # docstrings, type-annotations, print statements
+select = ["E", "F", "W", "B", "UP", "PL", "RUF"]
+# No ignoramos E501 para obligar a envolver docstrings/comentarios.
+# Si en algún momento deseas relajarlo, añade "E501" a ignore.
+ignore = []
 
 [tool.ruff.lint.isort]
-# Ensure imports of the integration are treated as first-party
-known-first-party = ["custom_components.pollenlevels"]
-combine-as-imports = true
+known-first-party = ["custom_components"]
+
+[tool.ruff.lint.per-file-ignores]
+# `config_flow.py` tiende a crecer en complejidad por la lógica de formularios.
+# Mantenemos el código limpio, pero evitamos roturas por una rama extra.
+"custom_components/pollenlevels/config_flow.py" = ["PLR0912", "PLR0915"]
