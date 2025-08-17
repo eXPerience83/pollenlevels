@@ -28,8 +28,8 @@
       "empty": "Language cannot be empty",
       "invalid_days": "Invalid number of forecast days",
       "invalid_cfs": "Invalid selection",
-      "requires_days_2": "Select at least 2 days to enable D+1",
-      "requires_days_3": "Select at least 3 days to enable D+2",
+      "requires_days_2": "Select at least 2 days to enable Tomorrow",
+      "requires_days_3": "Select at least 3 days to enable the Day after tomorrow",
       "invalid_auth": "Invalid API key or unauthorized",
       "quota_exceeded": "Quota exceeded — try again later",
       "cannot_connect": "Cannot connect"
@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "None",
-      "d1": "D+1 only",
-      "d12": "D+1 and D+2"
+      "d1": "Tomorrow only",
+      "d12": "Tomorrow and the day after"
     }
   },
   "device": {
