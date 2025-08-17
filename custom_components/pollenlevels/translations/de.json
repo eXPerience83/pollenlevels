@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "Keine",
-      "d1": "Nur morgen",
-      "d12": "Morgen und übermorgen"
+      "D+1": "Nur morgen",
+      "D+1+2": "Morgen und übermorgen"
     }
   },
   "device": {
