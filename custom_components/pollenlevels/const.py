@@ -8,14 +8,14 @@ CONF_LONGITUDE = "longitude"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_LANGUAGE_CODE = "language_code"
 
-# New in 1.6.x (Phase 2)
+# Forecast / options (Phase 2)
 CONF_FORECAST_DAYS = "forecast_days"  # 1..5 days for forecast
 CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"  # none | d1 | d12
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 6  # hours
-DEFAULT_FORECAST_DAYS = 3  # sensible default to unlock tomorrow/d2 where available
-DEFAULT_CREATE_FORECAST_SENSORS = "none"  # only base TYPE sensors by default
+DEFAULT_FORECAST_DAYS = 3
+DEFAULT_CREATE_FORECAST_SENSORS = "none"
 
 # Allowed values for per-day sensors option
 CFS_NONE = "none"
@@ -25,3 +25,6 @@ ALLOWED_CFS = {CFS_NONE, CFS_D1, CFS_D12}
 
 # Types for convenience
 POLLEN_TYPES = ("GRASS", "TREE", "WEED")
+
+# Public API endpoint (shared by config_flow and sensors)
+API_URL = "https://pollen.googleapis.com/v1/forecast:lookup"
