@@ -2,38 +2,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configuración Niveles de Polen",
-        "description": "Introduce tu clave de API de Google, latitud, longitud, intervalo de actualización (horas) y código de idioma para la respuesta.",
+        "title": "Pollen Levels",
+        "description": "Conecta con Google Maps Pollen API.",
         "data": {
-          "api_key": "Clave API",
+          "api_key": "Clave de API de Google",
           "latitude": "Latitud",
           "longitude": "Longitud",
           "update_interval": "Intervalo de actualización (horas)",
-          "language_code": "Código de idioma de la respuesta"
+          "language_code": "Código de idioma de la respuesta API"
+        }
+      },
+      "init": {
+        "title": "Opciones",
+        "description": "Ajusta intervalo, idioma y previsión.",
+        "data": {
+          "update_interval": "Intervalo de actualización (horas)",
+          "language_code": "Código de idioma de la respuesta API",
+          "forecast_days": "Días de previsión (1–5)",
+          "create_forecast_sensors": "Sensores por-día para TIPOS"
         }
       }
     },
     "error": {
-      "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio",
-      "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
-      "empty": "Este campo no puede estar vacío",
-      "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados."
+      "empty": "El idioma no puede estar vacío",
+      "invalid_days": "Número de días de previsión no válido",
+      "invalid_cfs": "Selección no válida",
+      "requires_days_2": "Selecciona al menos 2 días para activar D+1",
+      "requires_days_3": "Selecciona al menos 3 días para activar D+2"
     }
   },
   "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Opciones",
-        "description": "Cambia el intervalo de actualización, el idioma de respuesta del API, los días de previsión y los sensores por día para TIPOS.",
-        "data": {
-          "update_interval": "Intervalo de actualización (horas)",
-          "language_code": "Código de idioma de la respuesta",
-          "forecast_days": "Días de previsión (1–5)",
-          "create_forecast_sensors": "Sensores por día (TIPOS): none, D+1, D+1+2"
-        }
-      }
+    "cfs": {
+      "none": "Ninguno",
+      "d1": "Solo D+1",
+      "d12": "D+1 y D+2"
     }
   },
   "device": {
