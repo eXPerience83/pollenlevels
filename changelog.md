@@ -4,6 +4,7 @@
 ### Added
 - **PLANTS forecast**: plant sensors now expose `forecast` (with `tomorrow_*`, `d2_*`, `trend`, `expected_peak`), same as TYPES.
 - **Initial setup validation**: online check of API key / location (403 → invalid_auth, 429 → quota_exceeded, others → cannot_connect).
+- Options UI now uses **natural language** labels for per-day sensors (Tomorrow / Day after tomorrow), fully localized.
 ### Changed
 - Unified forecast parsing for TYPES and PLANTS (1–5 days).
 - Proactive cleanup of **stale per-day TYPE sensors** on options reload (e.g., switching `D+1+2` → `none` or reducing forecast days).
