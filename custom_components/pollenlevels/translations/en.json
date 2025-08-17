@@ -2,38 +2,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "Pollen Levels Configuration",
-        "description": "Enter your Google API Key, latitude, longitude, update interval (hours) and API response language code.",
+        "title": "Pollen Levels",
+        "description": "Connect to Google Maps Pollen API.",
         "data": {
-          "api_key": "API Key",
+          "api_key": "Google API Key",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code"
         }
-      }
-    },
-    "error": {
-      "invalid_auth": "Invalid API key",
-      "cannot_connect": "Cannot connect to service",
-      "quota_exceeded": "Quota exceeded",
-      "invalid_language": "Invalid language code",
-      "empty": "This field cannot be empty",
-      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
-    }
-  },
-  "options": {
-    "step": {
+      },
       "init": {
-        "title": "Pollen Levels – Options",
-        "description": "Change the update interval, API response language, forecast days and per-day TYPE sensors.",
+        "title": "Options",
+        "description": "Adjust update interval, language and forecast settings.",
         "data": {
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",
           "forecast_days": "Forecast days (1–5)",
-          "create_forecast_sensors": "Per-day TYPE sensors (none, D+1, D+1+2)"
+          "create_forecast_sensors": "Per-day TYPE sensors"
         }
       }
+    },
+    "error": {
+      "invalid_language": "Invalid language code",
+      "empty": "Language cannot be empty",
+      "invalid_days": "Invalid number of forecast days",
+      "invalid_cfs": "Invalid selection",
+      "requires_days_2": "Select at least 2 days to enable D+1",
+      "requires_days_3": "Select at least 3 days to enable D+2"
+    }
+  },
+  "options": {
+    "cfs": {
+      "none": "None",
+      "d1": "D+1 only",
+      "d12": "D+1 and D+2"
     }
   },
   "device": {
