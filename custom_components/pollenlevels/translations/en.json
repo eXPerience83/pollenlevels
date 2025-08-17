@@ -29,7 +29,10 @@
       "invalid_days": "Invalid number of forecast days",
       "invalid_cfs": "Invalid selection",
       "requires_days_2": "Select at least 2 days to enable D+1",
-      "requires_days_3": "Select at least 3 days to enable D+2"
+      "requires_days_3": "Select at least 3 days to enable D+2",
+      "invalid_auth": "Invalid API key or unauthorized",
+      "quota_exceeded": "Quota exceeded — try again later",
+      "cannot_connect": "Cannot connect"
     }
   },
   "options": {
