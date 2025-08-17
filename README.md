@@ -50,13 +50,13 @@ You can change:
 - **API response language code**
 - **Forecast days** (`1–5`) for pollen TYPES
 - **Per-day TYPE sensors** via `create_forecast_sensors`:
-  - **None** → no extra sensors
-  - **Tomorrow only** → sensors for each TYPE with suffix `(D+1)`
-  - **Tomorrow and the day after** → sensors for `(D+1)` and `(D+2)`
+  - `none` → no extra sensors
+  - `D+1` → sensors for each TYPE with suffix `(D+1)`
+  - `D+1+2` → sensors for `(D+1)` and `(D+2)`
 
 > **Validation rules:**
-> - *Tomorrow only* requires `forecast_days ≥ 2`
-> - *Tomorrow and the day after* requires `forecast_days ≥ 3`
+> - `D+1` requires `forecast_days ≥ 2`
+> - `D+1+2` requires `forecast_days ≥ 3`
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
