@@ -2,50 +2,53 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configuració Nivells de Polen",
-        "description": "Introdueix la teva clau d’API de Google, latitud, longitud, interval d’actualització (hores) i codi d’idioma per a la resposta.",
+        "title": "Pollen Levels",
+        "description": "Connecta amb Google Maps Pollen API.",
         "data": {
-          "api_key": "Clau API",
+          "api_key": "Clau d'API de Google",
           "latitude": "Latitud",
           "longitude": "Longitud",
-          "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta API"
+          "update_interval": "Interval d'actualització (hores)",
+          "language_code": "Codi d'idioma de la resposta API"
+        }
+      },
+      "init": {
+        "title": "Opcions",
+        "description": "Ajusta interval, idioma i previsió.",
+        "data": {
+          "update_interval": "Interval d'actualització (hores)",
+          "language_code": "Codi d'idioma de la resposta API",
+          "forecast_days": "Dies de previsió (1–5)",
+          "create_forecast_sensors": "Sensors per dia per a TIPUS"
         }
       }
     },
     "error": {
-      "invalid_auth": "Clau API no vàlida",
-      "cannot_connect": "No es pot connectar al servei",
-      "quota_exceeded": "Quota excedida",
-      "invalid_language": "Codi d’idioma no vàlid",
-      "empty": "Aquest camp no pot estar buit",
-      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats."
+      "invalid_language": "Codi d'idioma no vàlid",
+      "empty": "L'idioma no pot ser buit",
+      "invalid_days": "Nombre de dies de previsió no vàlid",
+      "invalid_cfs": "Selecció no vàlida",
+      "requires_days_2": "Selecciona almenys 2 dies per activar D+1",
+      "requires_days_3": "Selecciona almenys 3 dies per activar D+2"
     }
   },
   "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Opcions",
-        "description": "Canvia l'interval d’actualització, l'idioma de resposta de l’API, els dies de previsió i els sensors per dia per a TIPUS.",
-        "data": {
-          "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta API",
-          "forecast_days": "Dies de previsió (1–5)",
-          "create_forecast_sensors": "Sensors per dia (TIPUS): none, D+1, D+1+2"
-        }
-      }
+    "cfs": {
+      "none": "Cap",
+      "d1": "Només D+1",
+      "d12": "D+1 i D+2"
     }
   },
   "device": {
     "types": { "name": "Tipus de pol·len ({latitude},{longitude})" },
     "plants": { "name": "Plantes ({latitude},{longitude})" },
-    "info": { "name": "Informació del pol·len ({latitude},{longitude})" }
+    "info": { "name": "Informació de pol·len ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
       "region": { "name": "Regió" },
       "date": { "name": "Data" },
-      "last_updated": { "name": "Última actualització" }
+      "last_updated": { "name": "Darrera actualització" }
     }
   }
 }
