@@ -5,9 +5,16 @@
 - **PLANTS forecast**: plant sensors now expose `forecast` (with `tomorrow_*`, `d2_*`, `trend`, `expected_peak`), same as TYPES.
 - **Initial setup validation**: online check of API key / location (403 → invalid_auth, 429 → quota_exceeded, others → cannot_connect).
 - Options UI now uses **natural language** labels for per-day sensors (Tomorrow / Day after tomorrow), fully localized.
+
 ### Changed
 - Unified forecast parsing for TYPES and PLANTS (1–5 days).
 - Proactive cleanup of **stale per-day TYPE sensors** on options reload (e.g., switching `D+1+2` → `none` or reducing forecast days).
+
+### Fixed (hotfix 1.6.4a)
+- **Color robustness**: when the API omits one or more RGB channels, missing channels now default to **0** so `color_hex` is always emitted when a color dict is present (restores 1.5.4 behavior).
+- **Translated device grouping**: restore three localized device groups (**Types / Plants / Info**) using `translation_key` + placeholders (parity with 1.6.3).
+- **Options compatibility**: accept legacy values **`D+1` / `D+1+2`** and normalize them to **`d1` / `d12`** automatically (both in Options UI default and effective runtime).
+- **Plant icon** updates dynamically based on the latest `type`.
 ### Translations
 - Added localized strings for **`forecast_days`** and **`create_forecast_sensors`** (9 languages).
 
