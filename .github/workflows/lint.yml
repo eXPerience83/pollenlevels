@@ -1,27 +1,51 @@
-name: Lint
+name: Lint (Ruff + Black --check)
 
 on:
-  push:            # Run on push to any branch
-  pull_request:    # Run on PRs from/to any branch
-  workflow_dispatch:  # Allow manual runs from the Actions tab
+  pull_request:
+    paths:
+      - "**/*.py"
+      - ".github/workflows/lint.yml"
+      - "pyproject.toml"
+      - "requirements-dev.txt"
+  push:
+    branches:
+      - eXPerience83-forecast
+      - main
+    paths:
+      - "**/*.py"
+      - ".github/workflows/lint.yml"
+      - "pyproject.toml"
+      - "requirements-dev.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"  # Speed up subsequent installs
+          cache: pip
 
-      - name: Install dependencies
-        run: pip install black ruff
+      - name: Install linters (pinned)
+        # Use the same versions as the formatting job to guarantee identical behavior.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          black --version
+          ruff --version
 
-      - name: Ruff check
+      - name: Ruff (no fixes, gate)
         run: ruff check .
 
-      - name: Black check
+      - name: Black --check (gate)
         run: black --check .
