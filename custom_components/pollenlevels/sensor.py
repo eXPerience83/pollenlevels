@@ -5,16 +5,10 @@ Phase 2:
 - Keep per-day optional sensors only for TYPES, controlled by `create_forecast_sensors`.
 - Clean up outdated per-day sensors on options reload.
 
-Hotfixes for 1.6.4a:
-- Color robustness: default missing RGB channels to 0 so `color_hex` is always produced
-  when a color dict is present (regression vs 1.5.4/1.6.3).
-- Device grouping with translations: restore three translated groups (Types / Plants / Info)
-  via `translation_key` + placeholders, as in 1.6.3.
-- Backward compatibility for option values: accept legacy "D+1" / "D+1+2" by normalizing to "d1" / "d12".
-- Dynamic plant icon: compute icon on every update (in case `type` changes).
-
-Hotfix 1.6.4.1 (maintenance, no behavior change):
-- Import API_URL from const.py to avoid duplicating the endpoint definition.
+Maintenance 1.6.4.2:
+- Revert option values for per-day sensors to published style: "D+1" / "D+1+2".
+  This removes legacy normalization code introduced in alphas (d1/d12),
+  simplifying coordinator configuration parsing.
 """
 
 from __future__ import annotations
@@ -54,7 +48,7 @@ from .const import (
     CFS_D1,
     CFS_D12,
     POLLEN_TYPES,
-    API_URL,  # ← use central constant
+    API_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -117,24 +111,6 @@ def _to_iso(year: int, month: int, day: int) -> str:
         return f"{year:04d}-{month:02d}-{day:02d}"
 
 
-def _normalize_cfs(value: Any) -> str:
-    """Normalize 'create_forecast_sensors' option across legacy and new values."""
-    if not isinstance(value, str):
-        return DEFAULT_CREATE_FORECAST_SENSORS
-    v = value.strip().lower()
-    if v in {"d1", "d+1"}:
-        return "d1"
-    if v in {"d12", "d+1+2", "d1+2"}:
-        return "d12"
-    if v in {"none", ""}:
-        return "none"
-    if value in {"D+1"}:
-        return "d1"
-    if value in {"D+1+2"}:
-        return "d12"
-    return DEFAULT_CREATE_FORECAST_SENSORS
-
-
 # ---------------------- Data model -----------------------------------------
 
 
@@ -180,9 +156,9 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE, hass.config.language or "en")
         )
         self.days: int = int(entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
-        # Normalize legacy values for per-day sensors (D+1/D+1+2)
+        # Per-day sensors option (now using published values: "none" | "D+1" | "D+1+2")
         raw_cfs = entry.options.get(CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS)
-        self.cfs: str = _normalize_cfs(raw_cfs)
+        self.cfs: str = raw_cfs if raw_cfs in (CFS_NONE, CFS_D1, CFS_D12) else CFS_NONE
 
         super().__init__(
             hass,
@@ -370,7 +346,7 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
 
 
-# ---------------------- Entities -------------------------------------------
+# ---------------------- Entities, setup and cleanup ------------------------
 
 
 class BasePollenEntity(CoordinatorEntity[PollenCoordinator]):
