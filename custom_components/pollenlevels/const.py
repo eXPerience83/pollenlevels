@@ -32,3 +32,7 @@ POLLEN_TYPES = ("GRASS", "TREE", "WEED")
 
 # Public API endpoint (shared by config_flow and sensors)
 API_URL = "https://pollen.googleapis.com/v1/forecast:lookup"
+
+# Minimum forecast days required by each 'create_forecast_sensors' option
+MIN_DAYS_FOR_D1: int = 2
+MIN_DAYS_FOR_D12: int = 3
