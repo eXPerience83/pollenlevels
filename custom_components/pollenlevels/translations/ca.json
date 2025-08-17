@@ -3,13 +3,13 @@
     "step": {
       "user": {
         "title": "Pollen Levels",
-        "description": "Connecta amb Google Maps Pollen API.",
+        "description": "Connecta amb l'API de pol·len de Google Maps.",
         "data": {
           "api_key": "Clau d'API de Google",
           "latitude": "Latitud",
           "longitude": "Longitud",
           "update_interval": "Interval d'actualització (hores)",
-          "language_code": "Codi d'idioma de la resposta API"
+          "language_code": "Codi d'idioma de la resposta de l'API"
         }
       },
       "init": {
@@ -17,7 +17,7 @@
         "description": "Ajusta interval, idioma i previsió.",
         "data": {
           "update_interval": "Interval d'actualització (hores)",
-          "language_code": "Codi d'idioma de la resposta API",
+          "language_code": "Codi d'idioma de la resposta de l'API",
           "forecast_days": "Dies de previsió (1–5)",
           "create_forecast_sensors": "Sensors per dia per a TIPUS"
         }
@@ -25,30 +25,33 @@
     },
     "error": {
       "invalid_language": "Codi d'idioma no vàlid",
-      "empty": "L'idioma no pot ser buit",
+      "empty": "L'idioma no pot estar buit",
       "invalid_days": "Nombre de dies de previsió no vàlid",
       "invalid_cfs": "Selecció no vàlida",
-      "requires_days_2": "Selecciona almenys 2 dies per activar D+1",
-      "requires_days_3": "Selecciona almenys 3 dies per activar D+2"
+      "requires_days_2": "Selecciona almenys 2 dies per activar Demà",
+      "requires_days_3": "Selecciona almenys 3 dies per activar Demà passat",
+      "invalid_auth": "Clau d'API no vàlida o sense autorització",
+      "quota_exceeded": "Quota superada — torna-ho a provar més tard",
+      "cannot_connect": "No es pot connectar"
     }
   },
   "options": {
     "cfs": {
       "none": "Cap",
-      "d1": "Només D+1",
-      "d12": "D+1 i D+2"
+      "d1": "Només demà",
+      "d12": "Demà i demà passat"
     }
   },
   "device": {
     "types": { "name": "Tipus de pol·len ({latitude},{longitude})" },
     "plants": { "name": "Plantes ({latitude},{longitude})" },
-    "info": { "name": "Informació de pol·len ({latitude},{longitude})" }
+    "info": { "name": "Informació del pol·len ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
       "region": { "name": "Regió" },
       "date": { "name": "Data" },
-      "last_updated": { "name": "Darrera actualització" }
+      "last_updated": { "name": "Última actualització" }
     }
   }
 }
