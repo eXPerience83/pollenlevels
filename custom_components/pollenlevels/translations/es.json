@@ -19,7 +19,7 @@
           "update_interval": "Intervalo de actualización (horas)",
           "language_code": "Código de idioma de la respuesta API",
           "forecast_days": "Días de previsión (1–5)",
-          "create_forecast_sensors": "Sensores por-día para TIPOS"
+          "create_forecast_sensors": "Sensores por día para TIPOS"
         }
       }
     },
@@ -28,8 +28,8 @@
       "empty": "El idioma no puede estar vacío",
       "invalid_days": "Número de días de previsión no válido",
       "invalid_cfs": "Selección no válida",
-      "requires_days_2": "Selecciona al menos 2 días para activar D+1",
-      "requires_days_3": "Selecciona al menos 3 días para activar D+2",
+      "requires_days_2": "Selecciona al menos 2 días para activar Mañana",
+      "requires_days_3": "Selecciona al menos 3 días para activar Pasado mañana",
       "invalid_auth": "Clave de API no válida o sin autorización",
       "quota_exceeded": "Cuota excedida: inténtalo más tarde",
       "cannot_connect": "No se puede conectar"
@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "Ninguno",
-      "d1": "Solo D+1",
-      "d12": "D+1 y D+2"
+      "d1": "Solo mañana",
+      "d12": "Mañana y pasado mañana"
     }
   },
   "device": {
