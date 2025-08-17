@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "None",
-      "d1": "Tomorrow only",
-      "d12": "Tomorrow and the day after"
+      "D+1": "Tomorrow only",
+      "D+1+2": "Tomorrow and the day after"
     }
   },
   "device": {
