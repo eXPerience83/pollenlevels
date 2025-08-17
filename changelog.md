@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.4.4] – 2025-08-17
+### Fixed
+- **Critical**: restore a corrupted `sensor.py` that mixed class blocks, broke loops,
+  and truncated `_normalize_payload()`. Rebuilt the module in correct order,
+  re-added `BasePollenEntity`, fixed entity creation loops, and ensured the
+  normalized data schema includes `region`, `days`, `types`, `plants`, and
+  `last_updated`. HTTP handling now uses `HTTPStatus` consistently.
+- **Options validation**: add missing imports `MIN_DAYS_FOR_D1` / `MIN_DAYS_FOR_D12`
+  in `config_flow.py` so CFS vs. days checks are effective.
+
+### Notes
+- No functional regressions: sensors, attributes and options remain the same.
+- CI: **Ruff + Black** and **hassfest/HACS validate** should pass with these changes.
+
 ## [1.6.4.3] – 2025-08-17
 ### Fixed
 - **Ruff lint**: resolve remaining `UP038` and `B007` findings in `sensor.py`
