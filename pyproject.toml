@@ -1,28 +1,29 @@
 [tool.black]
+# Keep Black aligned across CI and local runs
 line-length = 88
 target-version = ["py311"]
+preview = false
 
 [tool.ruff]
-line-length = 88
+# Global settings that are not deprecated
 target-version = "py311"
-fix = true  # default fix behavior when running 'ruff' without flags
+line-length = 88
 
 [tool.ruff.lint]
-# pycodestyle/pyflakes/isort/pyupgrade/bugbear
-select = ["E", "F", "W", "I", "UP", "B"]
-ignore = [
-  "E501",  # line length (Black handles formatting)
-]
+# Use the modern [tool.ruff.lint] namespace (old top-level options are deprecated).
+# Enable a sensible baseline of rules:
+#  - E, F: Pyflakes / PEP8 errors
+#  - W: Pycodestyle warnings
+#  - I: isort (imports)
+#  - B: flake8-bugbear
+#  - UP: pyupgrade rules
+#  - PL: Pylint-like rules (subset)
+select = ["E", "F", "W", "I", "B", "UP", "PL"]
+
+# Examples of ignores you may want (kept minimal by default):
+# ignore = ["D", "ANN", "T20"]  # docstrings, type-annotations, print statements
 
 [tool.ruff.lint.isort]
+# Ensure imports of the integration are treated as first-party
 known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
-
-# --- Optional hardening (uncomment if needed) ---
-# [tool.ruff]
-# force-exclude = true
-# exclude = [".git", ".venv", "venv", ".mypy_cache", ".pytest_cache", "build", "dist"]
-
-# If you re-export symbols in __init__.py and want to ignore F401 there:
-# [tool.ruff.per-file-ignores]
-# "custom_components/pollenlevels/__init__.py" = ["F401"]
