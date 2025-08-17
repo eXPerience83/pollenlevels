@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "Ninguno",
-      "d1": "Solo mañana",
-      "d12": "Mañana y pasado mañana"
+      "D+1": "Solo mañana",
+      "D+1+2": "Mañana y pasado mañana"
     }
   },
   "device": {
