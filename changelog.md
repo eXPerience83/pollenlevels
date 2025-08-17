@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.3] – 2025-08-17
+### Fixed
+- **Entity cleanup**: remove stale per-day TYPE sensors `(D+1)/(D+2)` from the **Entity Registry** on entry setup when options no longer request them or `forecast_days` is insufficient. This prevents “Unavailable” leftovers after Options → Reload.
+### Improved
+- **Icons (plants)**: normalize `type` to uppercase to map icons consistently.
+
 ## [1.6.2] – 2025-08-14
 ### Changed
 - **Auto Format workflow**:
