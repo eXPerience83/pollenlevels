@@ -2,38 +2,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "Налаштування рівнів пилку",
-        "description": "Введіть ваш Google API Key, широту, довготу, інтервал оновлення (у годинах) та код мови для відповіді API.",
+        "title": "Pollen Levels",
+        "description": "Підключення до Google Maps Pollen API.",
         "data": {
-          "api_key": "Ключ API",
+          "api_key": "Ключ API Google",
           "latitude": "Широта",
           "longitude": "Довгота",
-          "update_interval": "Інтервал оновлення (у годинах)",
+          "update_interval": "Інтервал оновлення (години)",
           "language_code": "Код мови відповіді API"
+        }
+      },
+      "init": {
+        "title": "Параметри",
+        "description": "Налаштуйте інтервал, мову та прогноз.",
+        "data": {
+          "update_interval": "Інтервал оновлення (години)",
+          "language_code": "Код мови відповіді API",
+          "forecast_days": "Дні прогнозу (1–5)",
+          "create_forecast_sensors": "Денні датчики для ТИПІВ"
         }
       }
     },
     "error": {
-      "invalid_auth": "Невірний API ключ",
-      "cannot_connect": "Не вдається підключитися до сервісу",
-      "quota_exceeded": "Перевищено ліміт запитів",
-      "invalid_language": "Невірний код мови",
-      "empty": "Це поле не може бути порожнім",
-      "invalid_option_combo": "Збільште «Дні прогнозу», щоб охопити вибрані денні датчики."
+      "invalid_language": "Неправильний код мови",
+      "empty": "Мова не може бути порожньою",
+      "invalid_days": "Неправильна кількість днів прогнозу",
+      "invalid_cfs": "Неправильний вибір",
+      "requires_days_2": "Оберіть щонайменше 2 дні, щоб увімкнути D+1",
+      "requires_days_3": "Оберіть щонайменше 3 дні, щоб увімкнути D+2"
     }
   },
   "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Параметри",
-        "description": "Змініть інтервал оновлення, мову відповіді API, кількість днів прогнозу та денні датчики для ТИПІВ.",
-        "data": {
-          "update_interval": "Інтервал оновлення (у годинах)",
-          "language_code": "Код мови відповіді API",
-          "forecast_days": "Дні прогнозу (1–5)",
-          "create_forecast_sensors": "Денні датчики (ТИПИ): none, D+1, D+1+2"
-        }
-      }
+    "cfs": {
+      "none": "Немає",
+      "d1": "Лише D+1",
+      "d12": "D+1 і D+2"
     }
   },
   "device": {
