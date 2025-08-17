@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.4.5] – 2025-08-17
+### Fixed
+- **Lint stability:** Refactor `config_flow.py` to reduce branches/statements in
+  `async_step_user` by extracting `_validate_online()` and a tiny helper for unique-id.
+  This resolves **PLR0912** and **PLR0915** without changing behavior.
+- **Magic number:** Introduce `MIN_FORECAST_DAYS`/`MAX_FORECAST_DAYS` in `const.py`
+  and use them in options validation and schema (`config_flow.py`), fixing **PLR2004**.
+
+### Notes
+- Online validation logic is unchanged: `403 → invalid_auth`, `429 → quota_exceeded`,
+  other non-200 → `cannot_connect`. JSON parsing remains defensive and logs details.
+- No user-facing changes; options UI and translations remain identical.
+
 ## [1.6.4.4] – 2025-08-17
 ### Fixed
 - **Critical**: restore a corrupted `sensor.py` that mixed class blocks, broke loops,
