@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "Nessuno",
-      "d1": "Solo domani",
-      "d12": "Domani e dopodomani"
+      "D+1": "Solo domani",
+      "D+1+2": "Domani e dopodomani"
     }
   },
   "device": {
