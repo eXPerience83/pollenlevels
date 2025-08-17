@@ -5,10 +5,10 @@ Phase 2:
 - Keep per-day optional sensors only for TYPES, controlled by `create_forecast_sensors`.
 - Clean up outdated per-day sensors on options reload.
 
-Maintenance 1.6.4.2:
-- Revert option values for per-day sensors to published style: "D+1" / "D+1+2".
-  This removes legacy normalization code introduced in alphas (d1/d12),
-  simplifying coordinator configuration parsing.
+Maintenance 1.6.4.3:
+- Fix Ruff lint issues (UP038, B007) to make the Auto Format workflow pass:
+  * Use PEP 604 unions in isinstance checks (e.g., `int | float`).
+  * Rename unused loop control variables to `_name`.
 """
 
 from __future__ import annotations
@@ -71,7 +71,8 @@ def _normalize_channel(v: Any) -> Optional[int]:
     try:
         if v is None:
             return 0
-        if isinstance(v, (int, float)):
+        # Ruff UP038: prefer PEP 604 unions in isinstance checks
+        if isinstance(v, int | float):
             f = float(v)
             if 0.0 <= f <= 1.0:
                 return int(round(f * 255.0))
@@ -314,8 +315,9 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             now = next((d for d in flist if d["offset"] == 0), None)
             nxt = next((d for d in flist if d["offset"] == 1), None)
             base["trend"] = None
-            if now and nxt and isinstance(now.get("value"), (int, float)) and isinstance(
-                nxt.get("value"), (int, float)
+            # Ruff UP038: prefer PEP 604 unions in isinstance checks
+            if now and nxt and isinstance(now.get("value"), int | float) and isinstance(
+                nxt.get("value"), int | float
             ):
                 if nxt["value"] > now["value"]:
                     base["trend"] = "up"
@@ -327,7 +329,7 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # expected_peak (max value in future horizon)
             peak = None
             for f in flist:
-                if f.get("has_index") and isinstance(f.get("value"), (int, float)):
+                if f.get("has_index") and isinstance(f.get("value"), int | float):
                     if peak is None or f["value"] > peak["value"]:
                         peak = f
             base["expected_peak"] = peak
@@ -609,11 +611,11 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities):
     entities.append(LastUpdatedSensor(coordinator))
 
     # Types
-    for tcode, tdata in (coordinator.data.get("types") or {}).items():
+    for tcode, _tdata in (coordinator.data.get("types") or {}).items():
         entities.append(PollenTypeSensor(coordinator, tcode))
 
     # Plants
-    for pcode, pdata in (coordinator.data.get("plants") or {}).items():
+    for pcode, _pdata in (coordinator.data.get("plants") or {}).items():
         entities.append(PollenPlantSensor(coordinator, pcode))
 
     # Optional per-day sensors for TYPES
