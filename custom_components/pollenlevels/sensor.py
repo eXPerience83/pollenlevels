@@ -12,6 +12,9 @@ Hotfixes for 1.6.4a:
   via `translation_key` + placeholders, as in 1.6.3.
 - Backward compatibility for option values: accept legacy "D+1" / "D+1+2" by normalizing to "d1" / "d12".
 - Dynamic plant icon: compute icon on every update (in case `type` changes).
+
+Hotfix 1.6.4.1 (maintenance, no behavior change):
+- Import API_URL from const.py to avoid duplicating the endpoint definition.
 """
 
 from __future__ import annotations
@@ -51,6 +54,7 @@ from .const import (
     CFS_D1,
     CFS_D12,
     POLLEN_TYPES,
+    API_URL,  # ← use central constant
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,8 +62,6 @@ _LOGGER = logging.getLogger(__name__)
 TYPE_ICONS = {"GRASS": "mdi:grass", "TREE": "mdi:tree", "WEED": "mdi:flower-tulip"}
 PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
-
-API_URL = "https://pollen.googleapis.com/v1/forecast:lookup"
 
 
 # ---------------------- Helpers: colors, dates, options --------------------
