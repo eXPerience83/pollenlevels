@@ -73,8 +73,8 @@ def _normalize_channel(v: Any) -> int | None:
         if isinstance(v, int | float):
             f = float(v)
             if 0.0 <= f <= 1.0:
-                return int(round(f * 255.0))
-            v_int = int(round(f))
+                return round(f * 255.0)
+            v_int = round(f)
             return max(0, min(255, v_int))
     except Exception:  # pragma: no cover - defensive
         return 0

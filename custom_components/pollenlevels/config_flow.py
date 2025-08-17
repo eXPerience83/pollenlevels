@@ -61,7 +61,9 @@ def _is_valid_language_code(value: str) -> str:
     return value
 
 
-async def _validate_online(hass, *, api_key: str, lat: float, lon: float, lang: str) -> str | None:
+async def _validate_online(
+    hass, *, api_key: str, lat: float, lon: float, lang: str
+) -> str | None:
     """Ping the Google Pollen endpoint to validate API key and location.
 
     Returns an error key or None if everything looks ok.
@@ -164,12 +166,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
-                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
-                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
-                    vol.Coerce(int), vol.Range(min=1)
-                ),
-                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
+                vol.Optional(
+                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
+                ): cv.latitude,
+                vol.Optional(
+                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
+                ): cv.longitude,
+                vol.Optional(
+                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
+                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                vol.Optional(
+                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
+                ): str,
             }
         )
 
@@ -202,7 +210,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
-                        self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+                        self.entry.options.get(
+                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
+                        ),
                     )
                 )
                 if days < 1 or days > MAX_FORECAST_DAYS:
@@ -237,10 +247,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         # Defaults (prefer options).
         current_interval = self.entry.options.get(
-            CONF_UPDATE_INTERVAL, self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            CONF_UPDATE_INTERVAL,
+            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         current_lang = self.entry.options.get(
-            CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language)
+            CONF_LANGUAGE_CODE,
+            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
         )
         current_days = self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
         current_cfs = self.entry.options.get(
@@ -251,16 +263,16 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
-                        vol.Coerce(int), vol.Range(min=1)
-                    ),
+                    vol.Optional(
+                        CONF_UPDATE_INTERVAL, default=current_interval
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
                     vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=MAX_FORECAST_DAYS)
                     ),
-                    vol.Optional(CONF_CREATE_FORECAST_SENSORS, default=current_cfs): vol.In(
-                        tuple(ALLOWED_CFS)
-                    ),
+                    vol.Optional(
+                        CONF_CREATE_FORECAST_SENSORS, default=current_cfs
+                    ): vol.In(tuple(ALLOWED_CFS)),
                 }
             ),
             errors=errors,
