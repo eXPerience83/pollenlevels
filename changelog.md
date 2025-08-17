@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.4.1] – 2025-08-17
+### Maintenance
+- **Docs alignment**: README options now use the same localized wording as the UI (**“Tomorrow only” / “Tomorrow and the day after”**).
+- **Code cleanup**: import `API_URL` from `const.py` in `sensor.py` to avoid duplicating the endpoint string.
+
 ## [1.6.4] – 2025-08-17
 ### Added
 - **PLANTS forecast**: plant sensors now expose `forecast` (with `tomorrow_*`, `d2_*`, `trend`, `expected_peak`), same as TYPES.
