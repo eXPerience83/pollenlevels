@@ -7,9 +7,10 @@ on:
       - "**/*.py"
       - ".github/workflows/format.yml"
       - "pyproject.toml"
+      - "requirements-dev.txt"
 
 permissions:
-  contents: write
+  contents: write  # Required to push to the same branch
 
 jobs:
   format:
@@ -18,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # We may commit and push back to the same branch
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,20 +27,24 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install formatters
+      - name: Install formatters (pinned via requirements-dev.txt)
+        # Using a single source of truth keeps versions perfectly aligned across jobs.
         run: |
           python -m pip install --upgrade pip
-          pip install "ruff==0.5.7" "black==24.8.0"
+          pip install -r requirements-dev.txt
+          black --version
+          ruff --version
 
-      # Nota: --unsafe-fixes permite a Ruff aplicar cambios que podrían alterar el comportamiento.
-      # Aquí lo usamos SOLO en el job de formato automático, no en el job de lint estricto.
-      - name: Ruff (fix)
+      - name: Ruff (apply fixes)
+        # We allow unsafe fixes here to auto-heal code in a formatting job.
+        # This job is not a gate; it's a helper to keep the branch tidy.
         run: ruff check . --fix --unsafe-fixes || true
 
-      - name: Black
+      - name: Black (apply formatting)
         run: black .
 
       - name: Commit & push if changed
+        # If Black/Ruff modified files, commit and push back to the same branch.
         run: |
           if ! git diff --quiet; then
             git config user.name "${GITHUB_ACTOR}"
@@ -49,4 +54,5 @@ jobs:
             git push
           else
             echo "No formatting changes."
+    
           fi
