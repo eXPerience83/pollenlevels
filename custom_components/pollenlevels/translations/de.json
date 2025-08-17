@@ -5,11 +5,11 @@
         "title": "Pollen Levels",
         "description": "Mit der Google Maps Pollen API verbinden.",
         "data": {
-          "api_key": "Google API-Schlüssel",
+          "api_key": "Google-API-Schlüssel",
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprache des API-Ergebnisses"
+          "language_code": "Sprachcode der API-Antwort"
         }
       },
       "init": {
@@ -17,9 +17,9 @@
         "description": "Intervall, Sprache und Vorhersage einstellen.",
         "data": {
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprache des API-Ergebnisses",
+          "language_code": "Sprachcode der API-Antwort",
           "forecast_days": "Vorhersagetage (1–5)",
-          "create_forecast_sensors": "Tages-Sensoren für TYPEN"
+          "create_forecast_sensors": "Pro-Tag-TYP-Sensoren"
         }
       }
     },
@@ -28,15 +28,18 @@
       "empty": "Sprache darf nicht leer sein",
       "invalid_days": "Ungültige Anzahl an Vorhersagetagen",
       "invalid_cfs": "Ungültige Auswahl",
-      "requires_days_2": "Mindestens 2 Tage für D+1 auswählen",
-      "requires_days_3": "Mindestens 3 Tage für D+2 auswählen"
+      "requires_days_2": "Wähle mindestens 2 Tage, um Morgen zu aktivieren",
+      "requires_days_3": "Wähle mindestens 3 Tage, um Übermorgen zu aktivieren",
+      "invalid_auth": "Ungültiger API-Schlüssel oder nicht autorisiert",
+      "quota_exceeded": "Kontingent überschritten — später erneut versuchen",
+      "cannot_connect": "Verbindung nicht möglich"
     }
   },
   "options": {
     "cfs": {
       "none": "Keine",
-      "d1": "Nur D+1",
-      "d12": "D+1 und D+2"
+      "d1": "Nur morgen",
+      "d12": "Morgen und übermorgen"
     }
   },
   "device": {
