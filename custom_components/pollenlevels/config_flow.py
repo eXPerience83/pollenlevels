@@ -1,18 +1,23 @@
-"""Config & options flow for Pollen Levels (Google Pollen API).
+"""Handle config & options flow for Pollen Levels integration.
 
-This version restores the published option values for
-`create_forecast_sensors` ("D+1", "D+1+2") to avoid legacy migration, and
-keeps the initial online validation (API key / location):
-- HTTP 403 → "invalid_auth"
-- HTTP 429 → "quota_exceeded"
-- Other non-200 → "cannot_connect"
+Phase 2 (v1.6.4.x): keep forecast options and preserve initial online validation
+for API key / location:
+- 403 → invalid_auth
+- 429 → quota_exceeded
+- other non-200 → cannot_connect
+
+This file also:
+- Reverts 'create_forecast_sensors' accepted values to the published ones
+  ("D+1", "D+1+2") so we don't need legacy mapping.
+- Validates that selected 'create_forecast_sensors' is compatible with the
+  chosen 'forecast_days' (D+1 requires >= 2 days, D+1+2 requires >= 3 days).
 """
 
 from __future__ import annotations
 
-from http import HTTPStatus
 import logging
 import re
+from http import HTTPStatus
 from typing import Any
 
 import aiohttp
@@ -36,21 +41,23 @@ from .const import (
     ALLOWED_CFS,
 )
 
+# NOTE: We import API_URL from sensor to reuse the exact endpoint that powers
+# the coordinator. This avoids divergence between validation and runtime.
+# If at some point you move API_URL to const.py, just switch the import.
+from .sensor import API_URL  # type: ignore  # import-time dependency is intentional
+
 _LOGGER = logging.getLogger(__name__)
 
-# Regex supports base and region subtags (e.g., "zh", "zh-Hant", "zh-Hant-TW").
+# Regex to support base and region subtags (e.g., "zh", "zh-Hant", "zh-Hant-TW")
 LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
 
-# Avoid "magic numbers" in validations.
-MAX_FORECAST_DAYS = 5
-
-# Endpoint used to validate credentials and location with a minimal request.
-# We only ask for one day to keep it lightweight.
-GOOGLE_POLLEN_URL = "https://pollen.googleapis.com/v1/forecast:lookup"
+# Constants to avoid magic numbers in validation logic.
+MIN_DAYS_FOR_D1 = 2
+MIN_DAYS_FOR_D12 = 3
 
 
-def _is_valid_language_code(value: str) -> str:
-    """Validate IETF language code and raise HA-UI friendly keys."""
+def is_valid_language_code(value: str) -> str:
+    """Validate IETF language code, raising HA-UI friendly keys."""
     if not isinstance(value, str):
         raise vol.Invalid("invalid_language")
     if not value.strip():
@@ -64,48 +71,52 @@ def _is_valid_language_code(value: str) -> str:
 async def _validate_online(
     hass, *, api_key: str, lat: float, lon: float, lang: str
 ) -> str | None:
-    """Ping the Google Pollen endpoint to validate API key and location.
+    """Do a cheap online check to validate API key and coordinates.
 
-    Returns an error key or None if everything looks ok.
+    Returns one of:
+    - "invalid_auth"    → 403
+    - "quota_exceeded"  → 429
+    - "cannot_connect"  → other problems
+    - None              → looks OK
     """
+    # Keep a single return at the end to satisfy PLR0911.
+    err: str | None = None
+
     session = async_get_clientsession(hass)
-    params = {
-        "key": api_key,
-        "location.latitude": lat,
-        "location.longitude": lon,
-        "days": 1,
-        "languageCode": lang,
-    }
+    params = {"lat": f"{lat:.4f}", "lon": f"{lon:.4f}", "lang": (lang or "en").strip()}
+    headers = {"X-API-Key": api_key.strip()}
 
     try:
-        async with session.get(GOOGLE_POLLEN_URL, params=params) as resp:
+        timeout = aiohttp.ClientTimeout(total=15)
+        async with session.get(API_URL, params=params, headers=headers, timeout=timeout) as resp:
             text = await resp.text()
             _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
 
-            if resp.status == HTTPStatus.FORBIDDEN:  # 403
-                return "invalid_auth"
-            if resp.status == HTTPStatus.TOO_MANY_REQUESTS:  # 429
-                return "quota_exceeded"
-            if resp.status != HTTPStatus.OK:  # != 200
-                return "cannot_connect"
+            if resp.status == HTTPStatus.FORBIDDEN:
+                err = "invalid_auth"
+            elif resp.status == HTTPStatus.TOO_MANY_REQUESTS:
+                err = "quota_exceeded"
+            elif resp.status != HTTPStatus.OK:
+                err = "cannot_connect"
+            else:
+                # Some servers don't send application/json content-type strictly.
+                data = await resp.json(content_type=None)
+                if not data.get("dailyInfo"):
+                    _LOGGER.warning("Validation: 'dailyInfo' missing in response")
+                    err = "cannot_connect"
 
-            data = await resp.json()
     except aiohttp.ClientError:
         _LOGGER.exception("Validation network error")
-        return "cannot_connect"
-    except Exception:  # pragma: no cover - defensive
-        _LOGGER.exception("Unexpected error during validation")
-        return "cannot_connect"
+        err = "cannot_connect"
+    except Exception:  # pragma: no cover - safety net
+        _LOGGER.exception("Unexpected validation error")
+        err = "cannot_connect"
 
-    if not data or not data.get("dailyInfo"):
-        _LOGGER.warning("Validation: 'dailyInfo' missing")
-        return "cannot_connect"
-
-    return None
+    return err
 
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Pollen Levels."""
+    """Implement config flow for Pollen Levels."""
 
     VERSION = 1
 
@@ -119,7 +130,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input:
-            # Stable unique_id by (lat, lon).
+            # Stable unique_id by (lat, lon)
             try:
                 lat = float(user_input[CONF_LATITUDE])
                 lon = float(user_input[CONF_LONGITUDE])
@@ -128,35 +139,29 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:  # pragma: no cover - defensive
                 pass
 
-            # Validate language.
+            # Validate language field (if provided)
             try:
-                _is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
+                is_valid_language_code(user_input.get(CONF_LANGUAGE_CODE, "") or "en")
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
 
-            # Online validation (API key / location).
+            # Keep the online validation (auth/quotas/connectivity) before creating the entry
             if not errors:
-                api_key = user_input[CONF_API_KEY]
-                try:
-                    lat = float(user_input[CONF_LATITUDE])
-                    lon = float(user_input[CONF_LONGITUDE])
-                except Exception:
-                    errors["base"] = "cannot_connect"
-                else:
-                    err = await _validate_online(
-                        self.hass,
-                        api_key=api_key,
-                        lat=lat,
-                        lon=lon,
-                        lang=user_input[CONF_LANGUAGE_CODE],
-                    )
-                    if err:
-                        errors["base"] = err
+                lang = user_input.get(CONF_LANGUAGE_CODE) or (self.hass.config.language or "en")
+                err = await _validate_online(
+                    self.hass,
+                    api_key=str(user_input[CONF_API_KEY]),
+                    lat=float(user_input[CONF_LATITUDE]),
+                    lon=float(user_input[CONF_LONGITUDE]),
+                    lang=str(lang),
+                )
+                if err:
+                    errors["base"] = err
 
             if not errors:
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
 
-        # Defaults from HA config.
+        # Defaults from HA config
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
@@ -166,18 +171,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(
-                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
-                ): cv.latitude,
-                vol.Optional(
-                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
-                ): cv.longitude,
-                vol.Optional(
-                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                vol.Optional(
-                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
-                ): str,
+                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
+                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
+                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
+                    vol.Coerce(int), vol.Range(min=1)
+                ),
+                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
             }
         )
 
@@ -185,18 +184,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
-    """Options: interval, language, forecast days, and per-day forecast sensors."""
+    """Options: update interval, language, forecast days, per-day sensors for TYPES."""
 
     def __init__(self, entry: config_entries.ConfigEntry) -> None:
         self.entry = entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
-        """Display and process the options form."""
+        """Display and process options form."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             try:
-                # Optional language: if filled, validate.
+                # Language optional: if filled, validate
                 lang = user_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
@@ -204,21 +203,19 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     ),
                 )
                 if isinstance(lang, str) and lang.strip():
-                    _is_valid_language_code(lang)
+                    is_valid_language_code(lang)
 
-                # Forecast days: clip + validate.
+                # Forecast days: clip + validate in a simple, explicit way
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
-                        self.entry.options.get(
-                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
-                        ),
+                        self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
                     )
                 )
-                if days < 1 or days > MAX_FORECAST_DAYS:
+                if days < 1 or days > 5:
                     raise vol.Invalid("invalid_days")
 
-                # CFS validation per days.
+                # CFS validation per days
                 cfs = user_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
                     self.entry.options.get(
@@ -227,13 +224,13 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 )
                 if cfs not in ALLOWED_CFS:
                     raise vol.Invalid("invalid_cfs")
-                if cfs == "D+1" and days < 2:
+                if cfs == "D+1" and days < MIN_DAYS_FOR_D1:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "requires_days_2"
-                if cfs == "D+1+2" and days < 3:
+                if cfs == "D+1+2" and days < MIN_DAYS_FOR_D12:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "requires_days_3"
 
             except vol.Invalid as ve:
-                # Map non-field-specific errors.
+                # Map non-field-specific errors
                 if str(ve) in ("invalid_days", "invalid_cfs"):
                     errors["base"] = str(ve)
                 else:
@@ -245,14 +242,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        # Defaults (prefer options).
+        # Defaults (prefer options)
         current_interval = self.entry.options.get(
-            CONF_UPDATE_INTERVAL,
-            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+            CONF_UPDATE_INTERVAL, self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
         )
         current_lang = self.entry.options.get(
-            CONF_LANGUAGE_CODE,
-            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
+            CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language)
         )
         current_days = self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
         current_cfs = self.entry.options.get(
@@ -263,17 +258,18 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
-                        CONF_UPDATE_INTERVAL, default=current_interval
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
+                        vol.Coerce(int), vol.Range(min=1)
+                    ),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
                     vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.All(
-                        vol.Coerce(int), vol.Range(min=1, max=MAX_FORECAST_DAYS)
+                        vol.Coerce(int), vol.Range(min=1, max=5)
                     ),
-                    vol.Optional(
-                        CONF_CREATE_FORECAST_SENSORS, default=current_cfs
-                    ): vol.In(tuple(ALLOWED_CFS)),
+                    vol.Optional(CONF_CREATE_FORECAST_SENSORS, default=current_cfs): vol.In(
+                        tuple(ALLOWED_CFS)
+                    ),
                 }
             ),
             errors=errors,
         )
+        
