@@ -29,7 +29,10 @@
       "invalid_days": "Número de días de previsión no válido",
       "invalid_cfs": "Selección no válida",
       "requires_days_2": "Selecciona al menos 2 días para activar D+1",
-      "requires_days_3": "Selecciona al menos 3 días para activar D+2"
+      "requires_days_3": "Selecciona al menos 3 días para activar D+2",
+      "invalid_auth": "Clave de API no válida o sin autorización",
+      "quota_exceeded": "Cuota excedida: inténtalo más tarde",
+      "cannot_connect": "No se puede conectar"
     }
   },
   "options": {
