@@ -3,23 +3,23 @@
     "step": {
       "user": {
         "title": "Pollen Levels",
-        "description": "Connexion à l’API Google Maps Pollen.",
+        "description": "Se connecter à l’API Pollen de Google Maps.",
         "data": {
-          "api_key": "Clé d’API Google",
+          "api_key": "Clé API Google",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Langue de la réponse API"
+          "language_code": "Code de langue de la réponse API"
         }
       },
       "init": {
         "title": "Options",
-        "description": "Réglez l’intervalle, la langue et la prévision.",
+        "description": "Ajuster l’intervalle, la langue et la prévision.",
         "data": {
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Langue de la réponse API",
+          "language_code": "Code de langue de la réponse API",
           "forecast_days": "Jours de prévision (1–5)",
-          "create_forecast_sensors": "Capteurs par jour pour les TYPES"
+          "create_forecast_sensors": "Capteurs par jour pour TYPES"
         }
       }
     },
@@ -28,15 +28,18 @@
       "empty": "La langue ne peut pas être vide",
       "invalid_days": "Nombre de jours de prévision invalide",
       "invalid_cfs": "Sélection invalide",
-      "requires_days_2": "Choisissez au moins 2 jours pour activer D+1",
-      "requires_days_3": "Choisissez au moins 3 jours pour activer D+2"
+      "requires_days_2": "Sélectionnez au moins 2 jours pour activer Demain",
+      "requires_days_3": "Sélectionnez au moins 3 jours pour activer Après-demain",
+      "invalid_auth": "Clé API invalide ou non autorisée",
+      "quota_exceeded": "Quota dépassé — réessayez plus tard",
+      "cannot_connect": "Connexion impossible"
     }
   },
   "options": {
     "cfs": {
       "none": "Aucun",
-      "d1": "D+1 seulement",
-      "d12": "D+1 et D+2"
+      "d1": "Demain uniquement",
+      "d12": "Demain et après-demain"
     }
   },
   "device": {
