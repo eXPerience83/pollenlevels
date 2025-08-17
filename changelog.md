@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.4] – 2025-08-17
+### Added
+- **PLANTS forecast**: plant sensors now expose `forecast` (with `tomorrow_*`, `d2_*`, `trend`, `expected_peak`), same as TYPES.
+### Changed
+- Unified forecast parsing for TYPES and PLANTS (1–5 days).
+- Proactive cleanup of **stale per-day TYPE sensors** on options reload (e.g., switching `D+1+2` → `none` or reducing forecast days).
+### Translations
+- Added localized strings for **`forecast_days`** and **`create_forecast_sensors`** (9 languages).
+
 ## [1.6.3] – 2025-08-17
 ### Fixed
 - **Entity cleanup**: remove stale per-day TYPE sensors `(D+1)/(D+2)` from the **Entity Registry** on entry setup when options no longer request them or `forecast_days` is insufficient. This prevents “Unavailable” leftovers after Options → Reload.
