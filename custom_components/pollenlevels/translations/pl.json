@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "Brak",
-      "d1": "Tylko jutro",
-      "d12": "Jutro i pojutrze"
+      "D+1": "Tylko jutro",
+      "D+1+2": "Jutro i pojutrze"
     }
   },
   "device": {
