@@ -82,7 +82,7 @@ def _normalize_channel(v: Any) -> int | None:
 
 
 def _color_dict_to_rgb(
-    color: dict[str, Any] | None
+    color: dict[str, Any] | None,
 ) -> tuple[int | None, int | None, int | None]:
     """Convert API color dict to (R,G,B) 0..255 tuple.
 
