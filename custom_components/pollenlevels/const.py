@@ -1,4 +1,4 @@
-"""Constants for the Pollen Levels integration."""
+# Define constants for Pollen Levels integration
 
 DOMAIN = "pollenlevels"
 
@@ -8,16 +8,20 @@ CONF_LONGITUDE = "longitude"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_LANGUAGE_CODE = "language_code"
 
-# Forecast-related options
-CONF_FORECAST_DAYS = "forecast_days"  # int: how many days to request from API
-CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"  # enum: none, d1, d1_d2
+# New in 1.6.x (Phase 2)
+CONF_FORECAST_DAYS = "forecast_days"  # 1..5 days for forecast
+CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"  # none | d1 | d12
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 6  # hours
-DEFAULT_FORECAST_DAYS = 3  # today + D+1 + D+2 by default
-DEFAULT_CREATE_FORECAST_SENSORS = "none"  # do not create per-day sensors by default
+DEFAULT_FORECAST_DAYS = 3  # sensible default to unlock tomorrow/d2 where available
+DEFAULT_CREATE_FORECAST_SENSORS = "none"  # only base TYPE sensors by default
 
-# Allowed values for create_forecast_sensors
-CREATE_FC_NONE = "none"
-CREATE_FC_D1 = "d1"
-CREATE_FC_D1_D2 = "d1_d2"
+# Allowed values for per-day sensors option
+CFS_NONE = "none"
+CFS_D1 = "d1"
+CFS_D12 = "d12"
+ALLOWED_CFS = {CFS_NONE, CFS_D1, CFS_D12}
+
+# Types for convenience
+POLLEN_TYPES = ("GRASS", "TREE", "WEED")
