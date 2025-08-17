@@ -14,25 +14,25 @@ import re
 from typing import Any
 
 import aiohttp
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
-    DOMAIN,
+    ALLOWED_CFS,
+    API_URL,
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
+    CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
-    CONF_LANGUAGE_CODE,
-    CONF_FORECAST_DAYS,
-    CONF_CREATE_FORECAST_SENSORS,
-    DEFAULT_FORECAST_DAYS,
     DEFAULT_CREATE_FORECAST_SENSORS,
-    ALLOWED_CFS,
-    API_URL,
+    DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -106,7 +106,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         API_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
                     ) as resp:
                         text = await resp.text()
-                        _LOGGER.debug("Validation HTTP %s — %s", resp.status, text[:500])
+                        _LOGGER.debug(
+                            "Validation HTTP %s — %s", resp.status, text[:500]
+                        )
 
                         if resp.status == 403:
                             errors["base"] = "invalid_auth"
@@ -146,12 +148,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
-                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
-                vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
-                    vol.Coerce(int), vol.Range(min=1)
-                ),
-                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
+                vol.Optional(
+                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
+                ): cv.latitude,
+                vol.Optional(
+                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
+                ): cv.longitude,
+                vol.Optional(
+                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
+                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+                vol.Optional(
+                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
+                ): str,
             }
         )
 
@@ -184,7 +192,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
-                        self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+                        self.entry.options.get(
+                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
+                        ),
                     )
                 )
                 if days < 1 or days > 5:
@@ -219,29 +229,35 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         # Defaults (prefer options) — defensively coerce unknown values to 'none'
         current_interval = self.entry.options.get(
-            CONF_UPDATE_INTERVAL, self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            CONF_UPDATE_INTERVAL,
+            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         current_lang = self.entry.options.get(
-            CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language)
+            CONF_LANGUAGE_CODE,
+            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
         )
         current_days = self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
-        raw_cfs = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS)
-        current_cfs = raw_cfs if raw_cfs in ALLOWED_CFS else DEFAULT_CREATE_FORECAST_SENSORS
+        raw_cfs = self.entry.options.get(
+            CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS
+        )
+        current_cfs = (
+            raw_cfs if raw_cfs in ALLOWED_CFS else DEFAULT_CREATE_FORECAST_SENSORS
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(
-                        vol.Coerce(int), vol.Range(min=1)
-                    ),
+                    vol.Optional(
+                        CONF_UPDATE_INTERVAL, default=current_interval
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
                     vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=5)
                     ),
-                    vol.Optional(CONF_CREATE_FORECAST_SENSORS, default=current_cfs): vol.In(
-                        tuple(ALLOWED_CFS)
-                    ),
+                    vol.Optional(
+                        CONF_CREATE_FORECAST_SENSORS, default=current_cfs
+                    ): vol.In(tuple(ALLOWED_CFS)),
                 }
             ),
             errors=errors,

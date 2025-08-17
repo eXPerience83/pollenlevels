@@ -13,11 +13,10 @@ Maintenance 1.6.4.3:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import timedelta, date
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import date, timedelta
+from typing import Any
 
 import aiohttp
 from homeassistant.const import ATTR_ATTRIBUTION
@@ -33,22 +32,21 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    DOMAIN,
+    API_URL,
+    CFS_D1,
+    CFS_D12,
+    CFS_NONE,
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
+    CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
-    CONF_LANGUAGE_CODE,
-    CONF_FORECAST_DAYS,
-    DEFAULT_FORECAST_DAYS,
-    CONF_CREATE_FORECAST_SENSORS,
     DEFAULT_CREATE_FORECAST_SENSORS,
-    CFS_NONE,
-    CFS_D1,
-    CFS_D12,
-    POLLEN_TYPES,
-    API_URL,
+    DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,7 +59,7 @@ DEFAULT_ICON = "mdi:flower-pollen"
 # ---------------------- Helpers: colors, dates, options --------------------
 
 
-def _normalize_channel(v: Any) -> Optional[int]:
+def _normalize_channel(v: Any) -> int | None:
     """Normalize a single channel to 0..255.
 
     Accepts 0..1 floats or 0..255 numbers.
@@ -83,7 +81,9 @@ def _normalize_channel(v: Any) -> Optional[int]:
     return 0
 
 
-def _color_dict_to_rgb(color: Dict[str, Any] | None) -> Tuple[Optional[int], Optional[int], Optional[int]]:
+def _color_dict_to_rgb(
+    color: dict[str, Any] | None
+) -> tuple[int | None, int | None, int | None]:
     """Convert API color dict to (R,G,B) 0..255 tuple.
 
     Returns (None, None, None) when no color dict is provided at all.
@@ -97,7 +97,7 @@ def _color_dict_to_rgb(color: Dict[str, Any] | None) -> Tuple[Optional[int], Opt
     return r, g, b
 
 
-def _rgb_to_hex(r: Optional[int], g: Optional[int], b: Optional[int]) -> Optional[str]:
+def _rgb_to_hex(r: int | None, g: int | None, b: int | None) -> str | None:
     """Turn (R,G,B) to '#RRGGBB' if all components are present."""
     if r is None or g is None or b is None:
         return None
@@ -117,15 +117,15 @@ def _to_iso(year: int, month: int, day: int) -> str:
 
 @dataclass
 class PollenIndex:
-    value: Optional[float]
-    category: Optional[str]
-    description: Optional[str]
-    color_raw: Optional[dict]
-    color_rgb: Optional[List[int]]
-    color_hex: Optional[str]
+    value: float | None
+    category: str | None
+    description: str | None
+    color_raw: dict | None
+    color_rgb: list[int] | None
+    color_hex: str | None
 
     @classmethod
-    def from_index_info(cls, info: dict | None) -> "PollenIndex":
+    def from_index_info(cls, info: dict | None) -> PollenIndex:
         """Create a PollenIndex from API indexInfo (can be None)."""
         if not isinstance(info, dict):
             return cls(None, None, None, None, None, None)
@@ -151,14 +151,20 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.lon: float = float(entry.data[CONF_LONGITUDE])
         # Options (prefer options, fallback to data/defaults)
         self.interval_h: int = entry.options.get(
-            CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            CONF_UPDATE_INTERVAL,
+            entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         self.lang: str = entry.options.get(
-            CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE, hass.config.language or "en")
+            CONF_LANGUAGE_CODE,
+            entry.data.get(CONF_LANGUAGE_CODE, hass.config.language or "en"),
         )
-        self.days: int = int(entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
+        self.days: int = int(
+            entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
+        )
         # Per-day sensors option (now using published values: "none" | "D+1" | "D+1+2")
-        raw_cfs = entry.options.get(CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS)
+        raw_cfs = entry.options.get(
+            CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS
+        )
         self.cfs: str = raw_cfs if raw_cfs in (CFS_NONE, CFS_D1, CFS_D12) else CFS_NONE
 
         super().__init__(
@@ -179,12 +185,14 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
         session = async_get_clientsession(self.hass)
         try:
-            async with session.get(API_URL, params=params, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+            async with session.get(
+                API_URL, params=params, timeout=aiohttp.ClientTimeout(total=20)
+            ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     raise UpdateFailed(f"HTTP {resp.status}: {text}")
                 payload = await resp.json(content_type=None)
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             raise UpdateFailed("Timeout calling Pollen API") from err
         except aiohttp.ClientError as err:
             raise UpdateFailed(f"Client error: {err}") from err
@@ -232,7 +240,9 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "advice": p.get("advice"),
                     "cross_reaction": p.get("cross_reaction"),
                 }
-            days_norm.append({"offset": i, "date": iso, "types": ptypes, "plants": plants})
+            days_norm.append(
+                {"offset": i, "date": iso, "types": ptypes, "plants": plants}
+            )
 
         # Aggregate per TYPE across days
         types_agg: dict[str, dict[str, Any]] = {}
@@ -304,20 +314,31 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             for label, off in (("tomorrow", 1), ("d2", 2)):
                 found = next((d for d in flist if d["offset"] == off), None)
                 base[f"{label}_has_index"] = found.get("has_index") if found else False
-                base[f"{label}_value"] = found.get("value") if found and found.get("has_index") else None
-                base[f"{label}_category"] = found.get("category") if found and found.get("has_index") else None
-                base[f"{label}_description"] = (
-                    found.get("description") if found and found.get("has_index") else None
+                base[f"{label}_value"] = (
+                    found.get("value") if found and found.get("has_index") else None
                 )
-                base[f"{label}_color_hex"] = found.get("color_hex") if found and found.get("has_index") else None
+                base[f"{label}_category"] = (
+                    found.get("category") if found and found.get("has_index") else None
+                )
+                base[f"{label}_description"] = (
+                    found.get("description")
+                    if found and found.get("has_index")
+                    else None
+                )
+                base[f"{label}_color_hex"] = (
+                    found.get("color_hex") if found and found.get("has_index") else None
+                )
 
             # trend (0 vs 1)
             now = next((d for d in flist if d["offset"] == 0), None)
             nxt = next((d for d in flist if d["offset"] == 1), None)
             base["trend"] = None
             # Ruff UP038: prefer PEP 604 unions in isinstance checks
-            if now and nxt and isinstance(now.get("value"), int | float) and isinstance(
-                nxt.get("value"), int | float
+            if (
+                now
+                and nxt
+                and isinstance(now.get("value"), int | float)
+                and isinstance(nxt.get("value"), int | float)
             ):
                 if nxt["value"] > now["value"]:
                     base["trend"] = "up"
@@ -406,7 +427,7 @@ class RegionSensor(BasePollenEntity):
         self._attr_unique_id = f"{self._entry_id}_region"
 
     @property
-    def native_value(self) -> Optional[str]:
+    def native_value(self) -> str | None:
         return self.coordinator.data.get("regionCode")
 
 
@@ -425,7 +446,7 @@ class DateSensor(BasePollenEntity):
         self._attr_unique_id = f"{self._entry_id}_date"
 
     @property
-    def native_value(self) -> Optional[str]:
+    def native_value(self) -> str | None:
         days = self.coordinator.data.get("days") or []
         return (days[0].get("date") if days else None) or None
 
@@ -446,7 +467,7 @@ class LastUpdatedSensor(BasePollenEntity):
         self._attr_icon = "mdi:update"
 
     @property
-    def native_value(self) -> Optional[str]:
+    def native_value(self) -> str | None:
         return self.coordinator.data.get("last_updated")
 
 
@@ -470,7 +491,7 @@ class PollenTypeSensor(BasePollenEntity):
         return item.get("displayName") or self.code
 
     @property
-    def native_value(self) -> Optional[float]:
+    def native_value(self) -> float | None:
         item = (self.coordinator.data.get("types") or {}).get(self.code, {})
         f0 = next((d for d in item.get("forecast", []) if d["offset"] == 0), None)
         return f0.get("value") if f0 and f0.get("has_index") else None
@@ -521,7 +542,7 @@ class PollenPlantSensor(BasePollenEntity):
         return item.get("displayName") or self.code
 
     @property
-    def native_value(self) -> Optional[float]:
+    def native_value(self) -> float | None:
         item = (self.coordinator.data.get("plants") or {}).get(self.code, {})
         f0 = next((d for d in item.get("forecast", []) if d["offset"] == 0), None)
         return f0.get("value") if f0 and f0.get("has_index") else None
@@ -575,15 +596,23 @@ class PollenTypeDaySensor(PollenTypeSensor):
         self._attr_name = f"{self.display_name} (D+{offset})"
 
     @property
-    def native_value(self) -> Optional[float]:
+    def native_value(self) -> float | None:
         base = (self.coordinator.data.get("types") or {}).get(self.code, {})
-        f = next((d for d in base.get("forecast", []) if d["offset"] == self.offset), None)
+        f = next(
+            (d for d in base.get("forecast", []) if d["offset"] == self.offset), None
+        )
         return f.get("value") if f and f.get("has_index") else None
 
     @property
     def extra_state_attributes(self) -> dict:
         base = (self.coordinator.data.get("types") or {}).get(self.code, {})
-        f = next((d for d in base.get("forecast", []) if d["offset"] == self.offset), None) or {}
+        f = (
+            next(
+                (d for d in base.get("forecast", []) if d["offset"] == self.offset),
+                None,
+            )
+            or {}
+        )
         attrs = {
             **super().extra_state_attributes,
             "date": f.get("date"),

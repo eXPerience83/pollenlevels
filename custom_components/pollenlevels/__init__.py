@@ -8,6 +8,7 @@ Notes:
 from __future__ import annotations
 
 import logging
+
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -31,14 +32,18 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
                 await coordinator.async_refresh()
 
-    hass.services.async_register(DOMAIN, "force_update", handle_force_update_service, schema=None)
+    hass.services.async_register(
+        DOMAIN, "force_update", handle_force_update_service, schema=None
+    )
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Forward config entry to sensor platform and register options listener."""
     _LOGGER.debug(
-        "PollenLevels async_setup_entry for entry_id=%s title=%s", entry.entry_id, entry.title
+        "PollenLevels async_setup_entry for entry_id=%s title=%s",
+        entry.entry_id,
+        entry.title,
     )
     try:
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
@@ -54,7 +59,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload config entry and remove coordinator reference."""
-    _LOGGER.debug("PollenLevels async_unload_entry called for entry_id=%s", entry.entry_id)
+    _LOGGER.debug(
+        "PollenLevels async_unload_entry called for entry_id=%s", entry.entry_id
+    )
     unloaded = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
     if unloaded and DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
         hass.data[DOMAIN].pop(entry.entry_id)
