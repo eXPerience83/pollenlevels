@@ -2,38 +2,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "Konfiguracja Poziomów Pyłków",
-        "description": "Wprowadź swój klucz Google API, szerokość, długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi.",
+        "title": "Pollen Levels",
+        "description": "Połącz z Google Maps Pollen API.",
         "data": {
-          "api_key": "Klucz API",
+          "api_key": "Klucz API Google",
           "latitude": "Szerokość geograficzna",
           "longitude": "Długość geograficzna",
-          "update_interval": "Interwał aktualizacji (godziny)",
+          "update_interval": "Interwał aktualizacji (godz.)",
           "language_code": "Kod języka odpowiedzi API"
+        }
+      },
+      "init": {
+        "title": "Opcje",
+        "description": "Ustaw interwał, język i prognozę.",
+        "data": {
+          "update_interval": "Interwał aktualizacji (godz.)",
+          "language_code": "Kod języka odpowiedzi API",
+          "forecast_days": "Dni prognozy (1–5)",
+          "create_forecast_sensors": "Czujniki dzienne dla TYPÓW"
         }
       }
     },
     "error": {
-      "invalid_auth": "Nieprawidłowy klucz API",
-      "cannot_connect": "Brak połączenia z usługą",
-      "quota_exceeded": "Przekroczono limit",
       "invalid_language": "Nieprawidłowy kod języka",
-      "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
+      "empty": "Język nie może być pusty",
+      "invalid_days": "Nieprawidłowa liczba dni prognozy",
+      "invalid_cfs": "Nieprawidłowy wybór",
+      "requires_days_2": "Wybierz co najmniej 2 dni, aby włączyć D+1",
+      "requires_days_3": "Wybierz co najmniej 3 dni, aby włączyć D+2"
     }
   },
   "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Opcje",
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW.",
-        "data": {
-          "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API",
-          "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Czujniki dzienne (TYPY): none, D+1, D+1+2"
-        }
-      }
+    "cfs": {
+      "none": "Brak",
+      "d1": "Tylko D+1",
+      "d12": "D+1 i D+2"
     }
   },
   "device": {
