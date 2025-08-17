@@ -38,8 +38,8 @@
   "options": {
     "cfs": {
       "none": "Cap",
-      "d1": "Només demà",
-      "d12": "Demà i demà passat"
+      "D+1": "Només demà",
+      "D+1+2": "Demà i demà passat"
     }
   },
   "device": {
