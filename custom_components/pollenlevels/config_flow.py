@@ -1,9 +1,10 @@
 """Handle config & options flow for Pollen Levels integration.
 
-Phase 2: add forecast_days and create_forecast_sensors in Options.
-- Validate CFS option against forecast_days (d1 => >=2, d12 => >=3).
-- Validate API key / location online during initial setup (403→invalid_auth, 429→quota_exceeded, else→cannot_connect).
-- NEW (1.6.4a hotfix): Backward-compat normalization for legacy CFS values ("D+1", "D+1+2").
+Phase 2:
+- Keep forecast_days and create_forecast_sensors in Options.
+- REVERT: Persist 'create_forecast_sensors' values to published style "D+1" / "D+1+2".
+- Validate CFS option against forecast_days (D+1 => >=2, D+1+2 => >=3).
+- Preserve initial-setup online validation: 403→invalid_auth, 429→quota_exceeded, others→cannot_connect.
 """
 
 from __future__ import annotations
@@ -50,31 +51,6 @@ def is_valid_language_code(value: str) -> str:
         _LOGGER.warning("Invalid language code format: %s", value)
         raise vol.Invalid("invalid_language")
     return value
-
-
-def _normalize_cfs(value: Any) -> str:
-    """Map legacy values from 1.6.3 ('D+1', 'D+1+2') to new ones ('d1', 'd12').
-
-    Always returns one of: 'none' | 'd1' | 'd12'.
-    """
-    if not isinstance(value, str):
-        return DEFAULT_CREATE_FORECAST_SENSORS
-    v = value.strip().lower()
-    # Accept both legacy and new spellings
-    if v in {"d1", "d+1", "d1+0"}:
-        return "d1"
-    if v in {"d12", "d+1+2", "d1+2", "d1&2", "d1,2"}:
-        return "d12"
-    if v in {"none", ""}:
-        return "none"
-    if v in {"d+2", "d2"}:  # not a public option, but be forgiving
-        return "none"
-    # Legacy exact strings (uppercase, plus)
-    if value in {"D+1"}:
-        return "d1"
-    if value in {"D+1+2"}:
-        return "d12"
-    return DEFAULT_CREATE_FORECAST_SENSORS
 
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -204,7 +180,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 if isinstance(lang, str) and lang.strip():
                     is_valid_language_code(lang)
 
-                # Forecast days: clip + validate
+                # Forecast days: range validation
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
@@ -214,23 +190,19 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 if days < 1 or days > 5:
                     raise vol.Invalid("invalid_days")
 
-                # CFS validation per days (accept legacy values and normalize)
-                cfs_raw = user_input.get(
+                # CFS validation per days (values are "none" | "D+1" | "D+1+2")
+                cfs = user_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
                     self.entry.options.get(
                         CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS
                     ),
                 )
-                cfs = _normalize_cfs(cfs_raw)
                 if cfs not in ALLOWED_CFS:
                     raise vol.Invalid("invalid_cfs")
-                if cfs == "d1" and days < 2:
+                if cfs == "D+1" and days < 2:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "requires_days_2"
-                if cfs == "d12" and days < 3:
+                if cfs == "D+1+2" and days < 3:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "requires_days_3"
-
-                # If all good, store the normalized value
-                user_input[CONF_CREATE_FORECAST_SENSORS] = cfs
 
             except vol.Invalid as ve:
                 # Map non-field-specific errors
@@ -245,7 +217,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        # Defaults (prefer options) — normalize legacy CFS before showing
+        # Defaults (prefer options) — defensively coerce unknown values to 'none'
         current_interval = self.entry.options.get(
             CONF_UPDATE_INTERVAL, self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
         )
@@ -253,9 +225,8 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language)
         )
         current_days = self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
-        current_cfs = _normalize_cfs(
-            self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS)
-        )
+        raw_cfs = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS)
+        current_cfs = raw_cfs if raw_cfs in ALLOWED_CFS else DEFAULT_CREATE_FORECAST_SENSORS
 
         return self.async_show_form(
             step_id="init",
