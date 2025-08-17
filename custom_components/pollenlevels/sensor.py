@@ -1,6 +1,6 @@
 """Provide Pollen Levels sensors with multi-day forecast for pollen TYPES.
 
-Phase 1.1 (v1.6.1):
+Phase 1.1 (v1.6.x):
 - Unified per-day sensor option into a single selector 'create_forecast_sensors':
   values: "none" | "D+1" | "D+1+2".
 - Internally maps to create_d1/create_d2 flags for existing logic.
@@ -13,6 +13,12 @@ Phase 1.1 (v1.6.1):
 Robustness:
 - Days without indexInfo are represented with has_index=false and null values.
 - Entity names for per-day sensors use neutral suffixes "(D+1)" / "(D+2)".
+
+v1.6.3:
+- Add proactive cleanup of per-day entities (D+1/D+2) in the Entity Registry when options
+  no longer request them or forecast_days is insufficient. This prevents "Unavailable"
+  leftovers after reloading the entry.
+- Normalize plant 'type' to uppercase for icon mapping.
 """
 
 from __future__ import annotations
@@ -22,6 +28,7 @@ from datetime import timedelta
 from typing import Any
 
 from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.helpers import entity_registry as er  # <-- entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import (
@@ -88,6 +95,46 @@ def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
     return f"#{r:02X}{g:02X}{b:02X}"
 
 
+async def _cleanup_per_day_entities(hass, entry_id: str, allow_d1: bool, allow_d2: bool) -> int:
+    """Remove stale per-day entities (D+1/D+2) for this entry from the Entity Registry.
+
+    This is needed because Home Assistant keeps entity registry entries across reloads.
+    If options disable per-day sensors (or forecast_days is insufficient), we proactively
+    remove the registry entries so the UI doesn't show "Unavailable" ghosts.
+
+    Returns the number of removed entities.
+    """
+    registry = er.async_get(hass)
+    # Get all entities belonging to this config entry
+    entries = er.async_entries_for_config_entry(registry, entry_id)
+    removed = 0
+
+    # Helper: determine whether a unique_id corresponds to a D+1 or D+2 sensor
+    def _matches(uid: str, suffix: str) -> bool:
+        # Our unique_id format is: f"{entry_id}_{code}"
+        if not uid.startswith(f"{entry_id}_"):
+            return False
+        return uid.endswith(suffix)
+
+    # We remove any *_d1 if !allow_d1 and any *_d2 if !allow_d2
+    for ent in entries:
+        if ent.domain != "sensor" or ent.platform != DOMAIN:
+            continue
+        if not allow_d1 and _matches(ent.unique_id, "_d1"):
+            _LOGGER.debug("Removing stale D+1 entity from registry: %s (%s)", ent.entity_id, ent.unique_id)
+            registry.async_remove(ent.entity_id)
+            removed += 1
+            continue
+        if not allow_d2 and _matches(ent.unique_id, "_d2"):
+            _LOGGER.debug("Removing stale D+2 entity from registry: %s (%s)", ent.entity_id, ent.unique_id)
+            registry.async_remove(ent.entity_id)
+            removed += 1
+
+    if removed:
+        _LOGGER.info("Entity Registry cleanup: removed %d per-day sensors for entry %s", removed, entry_id)
+    return removed
+
+
 async def async_setup_entry(hass, entry, async_add_entities):
     """Create coordinator and build sensors for pollen data."""
     api_key = entry.data[CONF_API_KEY]
@@ -107,6 +154,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     create_d1 = mode == "D+1" or mode == "D+1+2"
     create_d2 = mode == "D+1+2"
 
+    # Decide if per-day entities are allowed *given current options*
+    allow_d1 = create_d1 and forecast_days >= 2
+    allow_d2 = create_d2 and forecast_days >= 3
+
+    # --- NEW: proactively remove stale D+ entities from the Entity Registry ----
+    await _cleanup_per_day_entities(hass, entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2)
+
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
         api_key=api_key,
@@ -116,8 +170,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         language=lang,
         entry_id=entry.entry_id,
         forecast_days=forecast_days,
-        create_d1=create_d1,
-        create_d2=create_d2,
+        create_d1=allow_d1,  # pass the effective flags
+        create_d2=allow_d2,
     )
     await coordinator.async_config_entry_first_refresh()
 
@@ -469,7 +523,9 @@ class PollenSensor(CoordinatorEntity):
         if info.get("source") == "type":
             base_key = self.code.split("_", 1)[1].split("_d", 1)[0].upper()
             return TYPE_ICONS.get(base_key, DEFAULT_ICON)
-        return PLANT_TYPE_ICONS.get(info.get("type"), DEFAULT_ICON)
+        # NEW: normalize plant 'type' to uppercase to map icons reliably
+        ptype = (info.get("type") or "").upper()
+        return PLANT_TYPE_ICONS.get(ptype, DEFAULT_ICON)
 
     @property
     def extra_state_attributes(self):
