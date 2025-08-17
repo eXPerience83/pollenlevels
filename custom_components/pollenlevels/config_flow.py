@@ -2,6 +2,7 @@
 
 Phase 2: add forecast_days and create_forecast_sensors in Options.
 - Validate CFS option against forecast_days (d1 => >=2, d12 => >=3).
+- NEW: Validate API key / location by calling the API during initial setup.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ import logging
 import re
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
@@ -28,6 +30,7 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_CREATE_FORECAST_SENSORS,
     ALLOWED_CFS,
+    API_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -72,10 +75,61 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:  # pragma: no cover - defensive
                 pass
 
+            # Validate language code first (cheap)
             try:
                 is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
+
+            # Online validation (only if language format OK)
+            if not errors:
+                api_key = user_input[CONF_API_KEY]
+                lat = float(user_input[CONF_LATITUDE])
+                lon = float(user_input[CONF_LONGITUDE])
+                lang = user_input[CONF_LANGUAGE_CODE] or "en"
+
+                params = {
+                    "key": api_key,
+                    "location.latitude": f"{lat:.6f}",
+                    "location.longitude": f"{lon:.6f}",
+                    # Minimal call: 1 day is enough to validate credentials and shape
+                    "days": 1,
+                    "languageCode": lang,
+                }
+
+                session = async_get_clientsession(self.hass)
+                try:
+                    # NOTE: We specify timeout to avoid hanging the UI.
+                    async with session.get(
+                        API_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
+                    ) as resp:
+                        text = await resp.text()
+                        _LOGGER.debug("Validation HTTP %s — %s", resp.status, text[:500])
+
+                        if resp.status == 403:
+                            errors["base"] = "invalid_auth"
+                        elif resp.status == 429:
+                            errors["base"] = "quota_exceeded"
+                        elif resp.status != 200:
+                            errors["base"] = "cannot_connect"
+                        else:
+                            # Try parse JSON and check the expected top-level key
+                            try:
+                                data = await resp.json(content_type=None)
+                            except Exception:  # pragma: no cover - defensive
+                                _LOGGER.exception("Validation JSON parse error")
+                                errors["base"] = "cannot_connect"
+                            else:
+                                if not data.get("dailyInfo"):
+                                    _LOGGER.warning("Validation: 'dailyInfo' missing")
+                                    errors["base"] = "cannot_connect"
+
+                except aiohttp.ClientError:
+                    _LOGGER.exception("Validation client error")
+                    errors["base"] = "cannot_connect"
+                except Exception:  # pragma: no cover - defensive
+                    _LOGGER.exception("Unexpected validation error")
+                    errors["base"] = "cannot_connect"
 
             if not errors:
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
