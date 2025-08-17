@@ -4,6 +4,14 @@ Phase 2:
 - Add `forecast` and convenience/derived attributes to PLANT sensors.
 - Keep per-day optional sensors only for TYPES, controlled by `create_forecast_sensors`.
 - Clean up outdated per-day sensors on options reload.
+
+Hotfixes for 1.6.4a:
+- Color robustness: default missing RGB channels to 0 so `color_hex` is always produced
+  when a color dict is present (regression vs 1.5.4/1.6.3).
+- Device grouping with translations: restore three translated groups (Types / Plants / Info)
+  via `translation_key` + placeholders, as in 1.6.3.
+- Backward compatibility for option values: accept legacy "D+1" / "D+1+2" by normalizing to "d1" / "d12".
+- Dynamic plant icon: compute icon on every update (in case `type` changes).
 """
 
 from __future__ import annotations
@@ -54,23 +62,36 @@ DEFAULT_ICON = "mdi:flower-pollen"
 API_URL = "https://pollen.googleapis.com/v1/forecast:lookup"
 
 
+# ---------------------- Helpers: colors, dates, options --------------------
+
+
 def _normalize_channel(v: Any) -> Optional[int]:
-    """Normalize a single channel to 0..255. Accepts 0..1 float or 0..255."""
+    """Normalize a single channel to 0..255.
+
+    Accepts 0..1 floats or 0..255 numbers.
+    IMPORTANT: When a color dict is present but a channel is missing/None,
+    we default that channel to 0 to keep color_hex available.
+    """
     try:
         if v is None:
-            return None
+            return 0
         if isinstance(v, (int, float)):
-            if 0 <= v <= 1:
-                return int(round(float(v) * 255))
-            v_int = int(round(float(v)))
+            f = float(v)
+            if 0.0 <= f <= 1.0:
+                return int(round(f * 255.0))
+            v_int = int(round(f))
             return max(0, min(255, v_int))
     except Exception:  # pragma: no cover - defensive
-        return None
-    return None
+        return 0
+    return 0
 
 
 def _color_dict_to_rgb(color: Dict[str, Any] | None) -> Tuple[Optional[int], Optional[int], Optional[int]]:
-    """Convert API color dict to (R,G,B) 0..255 tuple."""
+    """Convert API color dict to (R,G,B) 0..255 tuple.
+
+    Returns (None, None, None) when no color dict is provided at all.
+    Otherwise, missing channels default to 0 as per robustness policy.
+    """
     if not isinstance(color, dict):
         return None, None, None
     r = _normalize_channel(color.get("red"))
@@ -92,6 +113,27 @@ def _to_iso(year: int, month: int, day: int) -> str:
         return date(year, month, day).isoformat()
     except Exception:
         return f"{year:04d}-{month:02d}-{day:02d}"
+
+
+def _normalize_cfs(value: Any) -> str:
+    """Normalize 'create_forecast_sensors' option across legacy and new values."""
+    if not isinstance(value, str):
+        return DEFAULT_CREATE_FORECAST_SENSORS
+    v = value.strip().lower()
+    if v in {"d1", "d+1"}:
+        return "d1"
+    if v in {"d12", "d+1+2", "d1+2"}:
+        return "d12"
+    if v in {"none", ""}:
+        return "none"
+    if value in {"D+1"}:
+        return "d1"
+    if value in {"D+1+2"}:
+        return "d12"
+    return DEFAULT_CREATE_FORECAST_SENSORS
+
+
+# ---------------------- Data model -----------------------------------------
 
 
 @dataclass
@@ -136,7 +178,9 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE, hass.config.language or "en")
         )
         self.days: int = int(entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
-        self.cfs: str = entry.options.get(CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS)
+        # Normalize legacy values for per-day sensors (D+1/D+1+2)
+        raw_cfs = entry.options.get(CONF_CREATE_FORECAST_SENSORS, DEFAULT_CREATE_FORECAST_SENSORS)
+        self.cfs: str = _normalize_cfs(raw_cfs)
 
         super().__init__(
             hass,
@@ -328,7 +372,7 @@ class PollenCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 
 class BasePollenEntity(CoordinatorEntity[PollenCoordinator]):
-    """Common behavior for entities."""
+    """Common behavior for entities, with translated device grouping."""
 
     _attr_has_entity_name = True
 
@@ -336,16 +380,26 @@ class BasePollenEntity(CoordinatorEntity[PollenCoordinator]):
         super().__init__(coordinator)
         self._entry_id = coordinator.entry.entry_id
 
+    # Group key used for device translation: 'types' | 'plants' | 'info'
+    @property
+    def group_key(self) -> str:
+        return "info"
+
     @property
     def device_info(self):
-        """Group entities per logical device."""
+        """Group entities per logical translated device (Types / Plants / Info)."""
         lat = self.coordinator.lat
         lon = self.coordinator.lon
+        device_id = f"{self._entry_id}_{self.group_key}"
         return {
-            "identifiers": {(DOMAIN, f"{self._entry_id}")},
-            "name": f"Pollen Levels ({lat:.4f},{lon:.4f})",
+            "identifiers": {(DOMAIN, device_id)},
             "manufacturer": "Google Maps Pollen API",
             "model": "forecast:lookup",
+            "translation_key": self.group_key,
+            "translation_placeholders": {
+                "latitude": f"{lat:.4f}",
+                "longitude": f"{lon:.4f}",
+            },
         }
 
     @property
@@ -363,6 +417,10 @@ class RegionSensor(BasePollenEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "region"
 
+    @property
+    def group_key(self) -> str:  # ensure device under Info
+        return "info"
+
     def __init__(self, coordinator: PollenCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{self._entry_id}_region"
@@ -377,6 +435,10 @@ class DateSensor(BasePollenEntity):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "date"
+
+    @property
+    def group_key(self) -> str:
+        return "info"
 
     def __init__(self, coordinator: PollenCoordinator):
         super().__init__(coordinator)
@@ -394,6 +456,10 @@ class LastUpdatedSensor(BasePollenEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "last_updated"
 
+    @property
+    def group_key(self) -> str:
+        return "info"
+
     def __init__(self, coordinator: PollenCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{self._entry_id}_last_updated"
@@ -406,6 +472,10 @@ class LastUpdatedSensor(BasePollenEntity):
 
 class PollenTypeSensor(BasePollenEntity):
     """A sensor for a pollen TYPE (GRASS/TREE/WEED)."""
+
+    @property
+    def group_key(self) -> str:
+        return "types"
 
     def __init__(self, coordinator: PollenCoordinator, code: str):
         super().__init__(coordinator)
@@ -454,14 +524,15 @@ class PollenTypeSensor(BasePollenEntity):
 class PollenPlantSensor(BasePollenEntity):
     """A sensor for a specific plant/species."""
 
+    @property
+    def group_key(self) -> str:
+        return "plants"
+
     def __init__(self, coordinator: PollenCoordinator, code: str):
         super().__init__(coordinator)
         self.code = code
         self._attr_unique_id = f"{self._entry_id}_plant_{self.code.lower()}"
-        # Pick icon from plant "type" if present
-        plant = (self.coordinator.data.get("plants") or {}).get(self.code, {})
-        typ = (plant.get("type") or "").upper()
-        self._attr_icon = PLANT_TYPE_ICONS.get(typ, DEFAULT_ICON)
+        # name & icon are computed dynamically via properties
         self._attr_name = self.display_name
 
     @property
@@ -474,6 +545,13 @@ class PollenPlantSensor(BasePollenEntity):
         item = (self.coordinator.data.get("plants") or {}).get(self.code, {})
         f0 = next((d for d in item.get("forecast", []) if d["offset"] == 0), None)
         return f0.get("value") if f0 and f0.get("has_index") else None
+
+    @property
+    def icon(self) -> str:
+        """Compute icon dynamically from latest 'type'."""
+        base = (self.coordinator.data.get("plants") or {}).get(self.code, {})
+        typ = (base.get("type") or "").upper()
+        return PLANT_TYPE_ICONS.get(typ, DEFAULT_ICON)
 
     @property
     def extra_state_attributes(self) -> dict:
