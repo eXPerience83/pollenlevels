@@ -2,50 +2,53 @@
   "config": {
     "step": {
       "user": {
-        "title": "Konfiguration Pollenniveaus",
-        "description": "Gib deinen Google API-Schlüssel, Breiten- und Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
+        "title": "Pollen Levels",
+        "description": "Mit der Google Maps Pollen API verbinden.",
         "data": {
-          "api_key": "API-Schlüssel",
+          "api_key": "Google API-Schlüssel",
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für Antwort"
+          "language_code": "Sprache des API-Ergebnisses"
+        }
+      },
+      "init": {
+        "title": "Optionen",
+        "description": "Intervall, Sprache und Vorhersage einstellen.",
+        "data": {
+          "update_interval": "Aktualisierungsintervall (Stunden)",
+          "language_code": "Sprache des API-Ergebnisses",
+          "forecast_days": "Vorhersagetage (1–5)",
+          "create_forecast_sensors": "Tages-Sensoren für TYPEN"
         }
       }
     },
     "error": {
-      "invalid_auth": "Ungültiger API-Schlüssel",
-      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
-      "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
-      "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
+      "empty": "Sprache darf nicht leer sein",
+      "invalid_days": "Ungültige Anzahl an Vorhersagetagen",
+      "invalid_cfs": "Ungültige Auswahl",
+      "requires_days_2": "Mindestens 2 Tage für D+1 auswählen",
+      "requires_days_3": "Mindestens 3 Tage für D+2 auswählen"
     }
   },
   "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Optionen",
-        "description": "Ändere Aktualisierungsintervall, API-Antwortsprache, Vorhersagetage und Tagessensoren für TYPEN.",
-        "data": {
-          "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für Antwort",
-          "forecast_days": "Vorhersagetage (1–5)",
-          "create_forecast_sensors": "Tagessensoren (TYPEN): none, D+1, D+1+2"
-        }
-      }
+    "cfs": {
+      "none": "Keine",
+      "d1": "Nur D+1",
+      "d12": "D+1 und D+2"
     }
   },
   "device": {
-    "types": { "name": "Pollenarten ({latitude},{longitude})" },
+    "types": { "name": "Pollentypen ({latitude},{longitude})" },
     "plants": { "name": "Pflanzen ({latitude},{longitude})" },
-    "info": { "name": "Polleninformationen ({latitude},{longitude})" }
+    "info": { "name": "Polleninfo ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
       "region": { "name": "Region" },
       "date": { "name": "Datum" },
-      "last_updated": { "name": "Letzte Aktualisierung" }
+      "last_updated": { "name": "Zuletzt aktualisiert" }
     }
   }
 }
