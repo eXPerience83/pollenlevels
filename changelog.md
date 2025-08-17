@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.4.3] – 2025-08-17
+### Fixed
+- **Ruff lint**: resolve remaining `UP038` and `B007` findings in `sensor.py`
+  to make the **Auto Format (Black + Ruff)** workflow pass.
+  - Replace `isinstance(x, (int, float))` with `isinstance(x, int | float)`.
+  - Rename unused loop variables (`tdata`, `pdata`) to `_tdata`, `_pdata`.
+### Notes
+- No functional changes. API calls, entities, options, and translations unchanged.
+- `config_flow.py` continues to perform **online validation** (403 → `invalid_auth`, 429 → `quota_exceeded`, others → `cannot_connect`).
+
 ## [1.6.4.2] – 2025-08-17
 ### Changed
 - **Per-day sensors option values** reverted to published style: `none` / `D+1` / `D+1+2`.
