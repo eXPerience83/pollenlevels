@@ -36,6 +36,8 @@ from .const import (
     DOMAIN,
     MIN_DAYS_FOR_D1,
     MIN_DAYS_FOR_D12,
+    MIN_FORECAST_DAYS,
+    MAX_FORECAST_DAYS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -66,78 +68,115 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Return the options flow handler for this entry."""
         return PollenLevelsOptionsFlow(entry)
 
+    # ----------------------------- Helpers (reduce branches/statements) -----------------------------
+
+    async def _validate_online(
+        self, *, api_key: str, lat: float, lon: float, lang: str
+    ) -> str | None:
+        """Hit API once to validate credentials/location/language.
+
+        Returns an error-key string for the HA UI ("invalid_auth", "quota_exceeded",
+        "cannot_connect") or None when OK.
+        Designed to have a single return to avoid PLR0911.
+        """
+        error: str | None = None
+        params = {
+            "key": api_key,
+            "location.latitude": f"{lat:.6f}",
+            "location.longitude": f"{lon:.6f}",
+            # Minimal call: 1 day is enough to validate credentials and payload shape
+            "days": 1,
+            "languageCode": lang or "en",
+        }
+        session = async_get_clientsession(self.hass)
+        try:
+            async with session.get(
+                API_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
+            ) as resp:
+                text = await resp.text()
+                _LOGGER.debug("Validation HTTP %s — %s", resp.status, text[:500])
+
+                if resp.status == HTTPStatus.FORBIDDEN:
+                    error = "invalid_auth"
+                elif resp.status == HTTPStatus.TOO_MANY_REQUESTS:
+                    error = "quota_exceeded"
+                elif resp.status != HTTPStatus.OK:
+                    error = "cannot_connect"
+                else:
+                    try:
+                        data = await resp.json(content_type=None)
+                    except Exception:  # pragma: no cover - defensive
+                        _LOGGER.exception("Validation JSON parse error")
+                        error = "cannot_connect"
+                    else:
+                        if not data.get("dailyInfo"):
+                            _LOGGER.warning("Validation: 'dailyInfo' missing")
+                            error = "cannot_connect"
+        except aiohttp.ClientError:
+            _LOGGER.exception("Validation client error")
+            error = "cannot_connect"
+        except Exception:  # pragma: no cover - defensive
+            _LOGGER.exception("Unexpected validation error")
+            error = "cannot_connect"
+
+        return error
+
+    def _maybe_set_unique_id_from_coords(self, user_input: dict[str, Any]) -> None:
+        """Derive stable unique_id from (lat, lon); ignore failures."""
+        try:
+            lat = float(user_input[CONF_LATITUDE])
+            lon = float(user_input[CONF_LONGITUDE])
+            # Note: async_set_unique_id is awaited in the step method.
+            # We only format here.
+            uid = f"{lat:.4f}_{lon:.4f}"
+        except Exception:  # pragma: no cover - defensive
+            return
+
+        async def _set():
+            try:
+                await self.async_set_unique_id(uid)
+                self._abort_if_unique_id_configured()
+            except Exception:  # pragma: no cover - defensive
+                # Avoid blocking the flow if unique id couldn't be set
+                pass
+
+        # Schedule the awaitable into the step method using create_task from caller.
+        # We'll call this helper only inside the step where we can await.
+        self._pending_uid = _set  # type: ignore[attr-defined]
+
+    # ----------------------------------------- Steps ------------------------------------------------
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the initial configuration step."""
         errors: dict[str, str] = {}
 
         if user_input:
-            # Stable unique_id by (lat, lon)
-            try:
-                lat = float(user_input[CONF_LATITUDE])
-                lon = float(user_input[CONF_LONGITUDE])
-                await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
-                self._abort_if_unique_id_configured()
-            except Exception:  # pragma: no cover - defensive
-                pass
+            # Unique ID (stable by coordinates)
+            self._maybe_set_unique_id_from_coords(user_input)
+            if getattr(self, "_pending_uid", None):
+                await self._pending_uid()  # type: ignore[misc]
+                self._pending_uid = None  # type: ignore[attr-defined]
 
-            # Validate language code first (cheap)
+            # Validate language format first (cheap, UI-friendly)
             try:
                 is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
 
-            # Online validation (only if language format OK)
+            # Online validation only when no language errors
             if not errors:
                 api_key = user_input[CONF_API_KEY]
                 lat = float(user_input[CONF_LATITUDE])
                 lon = float(user_input[CONF_LONGITUDE])
                 lang = user_input[CONF_LANGUAGE_CODE] or "en"
 
-                params = {
-                    "key": api_key,
-                    "location.latitude": f"{lat:.6f}",
-                    "location.longitude": f"{lon:.6f}",
-                    # Minimal call: 1 day is enough to validate credentials and shape
-                    "days": 1,
-                    "languageCode": lang,
-                }
+                base_err = await self._validate_online(
+                    api_key=api_key, lat=lat, lon=lon, lang=lang
+                )
+                if base_err:
+                    errors["base"] = base_err
 
-                session = async_get_clientsession(self.hass)
-                try:
-                    # Specify timeout to avoid hanging the UI.
-                    async with session.get(
-                        API_URL, params=params, timeout=aiohttp.ClientTimeout(total=15)
-                    ) as resp:
-                        text = await resp.text()
-                        _LOGGER.debug(
-                            "Validation HTTP %s — %s", resp.status, text[:500]
-                        )
-
-                        if resp.status == HTTPStatus.FORBIDDEN:
-                            errors["base"] = "invalid_auth"
-                        elif resp.status == HTTPStatus.TOO_MANY_REQUESTS:
-                            errors["base"] = "quota_exceeded"
-                        elif resp.status != HTTPStatus.OK:
-                            errors["base"] = "cannot_connect"
-                        else:
-                            # Try parse JSON and check the expected top-level key
-                            try:
-                                data = await resp.json(content_type=None)
-                            except Exception:  # pragma: no cover - defensive
-                                _LOGGER.exception("Validation JSON parse error")
-                                errors["base"] = "cannot_connect"
-                            else:
-                                if not data.get("dailyInfo"):
-                                    _LOGGER.warning("Validation: 'dailyInfo' missing")
-                                    errors["base"] = "cannot_connect"
-
-                except aiohttp.ClientError:
-                    _LOGGER.exception("Validation client error")
-                    errors["base"] = "cannot_connect"
-                except Exception:  # pragma: no cover - defensive
-                    _LOGGER.exception("Unexpected validation error")
-                    errors["base"] = "cannot_connect"
-
+            # Create entry when everything is fine
             if not errors:
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
 
@@ -191,7 +230,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 if isinstance(lang, str) and lang.strip():
                     is_valid_language_code(lang)
 
-                # Forecast days: range validation
+                # Forecast days: range validation (avoid magic numbers)
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
@@ -200,7 +239,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                         ),
                     )
                 )
-                if days < 1 or days > 5:
+                if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
                     raise vol.Invalid("invalid_days")
 
                 # CFS validation per days (values are "none" | "D+1" | "D+1+2")
@@ -255,8 +294,11 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                         CONF_UPDATE_INTERVAL, default=current_interval
                     ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
-                    vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.All(
-                        vol.Coerce(int), vol.Range(min=1, max=5)
+                    vol.Optional(
+                        CONF_FORECAST_DAYS, default=current_days
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_FORECAST_DAYS, max=MAX_FORECAST_DAYS),
                     ),
                     vol.Optional(
                         CONF_CREATE_FORECAST_SENSORS, default=current_cfs
