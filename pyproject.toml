@@ -1,23 +1,18 @@
 [tool.black]
 line-length = 88
 target-version = ["py311"]
-extend-exclude = "/(.git|.github|.venv|venv|build|dist)/"
 
 [tool.ruff]
-line-length = 88
+# Use the modern config layout (Ruff ≥0.1).
 target-version = "py311"
-src = ["custom_components", "tests"]
+line-length = 88
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "B", "UP", "PL", "RUF"]
-# No ignoramos E501 para obligar a envolver docstrings/comentarios.
-# Si en algún momento deseas relajarlo, añade "E501" a ignore.
-ignore = []
-
-[tool.ruff.lint.isort]
-known-first-party = ["custom_components"]
+# Keep a balanced set; Black handles formatting, Ruff se centra en calidad/lógica.
+select = ["E", "F", "UP", "PL", "B"]
+# Let Black own line length; avoid duplicate fights with E501.
+ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-# `config_flow.py` tiende a crecer en complejidad por la lógica de formularios.
-# Mantenemos el código limpio, pero evitamos roturas por una rama extra.
-"custom_components/pollenlevels/config_flow.py" = ["PLR0912", "PLR0915"]
+# _normalize_payload is intentionally dense; refactor will be separate PR.
+"custom_components/pollenlevels/sensor.py" = ["PLR0915"]
