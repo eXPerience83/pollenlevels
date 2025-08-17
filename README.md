@@ -18,7 +18,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 > **New in 1.6.x**
 > - **1.6.0**: Multi-day forecast for pollen **TYPES** (GRASS/TREE/WEED) with `forecast` attribute, convenience attributes, and optional per-day sensors.  
-> - **1.6.1**: **Unified per-day sensor option** → `create_forecast_sensors` (`none` / `D+1` / `D+1+2`) with validation based on `forecast_days`.
+> - **1.6.1+**: Unified per-day sensor option → `create_forecast_sensors` with localized labels.
 
 ---
 
@@ -50,13 +50,13 @@ You can change:
 - **API response language code**
 - **Forecast days** (`1–5`) for pollen TYPES
 - **Per-day TYPE sensors** via `create_forecast_sensors`:
-  - `none` → no extra sensors
-  - `D+1` → sensors for each TYPE with suffix `(D+1)`
-  - `D+1+2` → sensors for `(D+1)` and `(D+2)`
+  - **None** → no extra sensors
+  - **Tomorrow only** → sensors for each TYPE with suffix `(D+1)`
+  - **Tomorrow and the day after** → sensors for `(D+1)` and `(D+2)`
 
 > **Validation rules:**
-> - `D+1` requires `forecast_days ≥ 2`
-> - `D+1+2` requires `forecast_days ≥ 3`
+> - *Tomorrow only* requires `forecast_days ≥ 2`
+> - *Tomorrow and the day after* requires `forecast_days ≥ 3`
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
