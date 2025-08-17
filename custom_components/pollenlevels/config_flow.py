@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 from http import HTTPStatus
+from typing import Any
 
 import aiohttp
 import voluptuous as vol
@@ -21,19 +21,21 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
-    DOMAIN,
+    ALLOWED_CFS,
+    API_URL,
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
+    CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
-    CONF_LANGUAGE_CODE,
-    CONF_FORECAST_DAYS,
-    CONF_CREATE_FORECAST_SENSORS,
-    DEFAULT_FORECAST_DAYS,
     DEFAULT_CREATE_FORECAST_SENSORS,
-    ALLOWED_CFS,
-    API_URL,
+    DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
+    MIN_DAYS_FOR_D1,
+    MIN_DAYS_FOR_D12,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -247,4 +249,4 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             ),
             errors=errors,
         )
-
+        
