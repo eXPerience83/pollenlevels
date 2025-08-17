@@ -14,12 +14,12 @@
       },
       "init": {
         "title": "Opcje",
-        "description": "Ustaw interwał, język i prognozę.",
+        "description": "Dostosuj interwał, język i prognozę.",
         "data": {
           "update_interval": "Interwał aktualizacji (godz.)",
           "language_code": "Kod języka odpowiedzi API",
           "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Czujniki dzienne dla TYPÓW"
+          "create_forecast_sensors": "Czujniki typu dla poszczególnych dni"
         }
       }
     },
@@ -28,15 +28,18 @@
       "empty": "Język nie może być pusty",
       "invalid_days": "Nieprawidłowa liczba dni prognozy",
       "invalid_cfs": "Nieprawidłowy wybór",
-      "requires_days_2": "Wybierz co najmniej 2 dni, aby włączyć D+1",
-      "requires_days_3": "Wybierz co najmniej 3 dni, aby włączyć D+2"
+      "requires_days_2": "Wybierz co najmniej 2 dni, aby włączyć Jutro",
+      "requires_days_3": "Wybierz co najmniej 3 dni, aby włączyć Pojutrze",
+      "invalid_auth": "Nieprawidłowy klucz API lub brak autoryzacji",
+      "quota_exceeded": "Przekroczono limit — spróbuj później",
+      "cannot_connect": "Nie można połączyć"
     }
   },
   "options": {
     "cfs": {
       "none": "Brak",
-      "d1": "Tylko D+1",
-      "d12": "D+1 i D+2"
+      "d1": "Tylko jutro",
+      "d12": "Jutro i pojutrze"
     }
   },
   "device": {
