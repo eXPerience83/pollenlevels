@@ -1,27 +1,32 @@
 # Changelog
 
+## [1.6.4.2] – 2025-08-17
+### Changed
+- **Per-day sensors option values** reverted to published style: `none` / `D+1` / `D+1+2`.
+  This removes legacy normalization (`d1`/`d12`) introduced in alphas and simplifies validation & configuration paths.
+### Notes
+- Initial setup validation (403/429/other) is preserved.
+- Entity Registry cleanup for per-day sensors remains unchanged.
+
 ## [1.6.4.1] – 2025-08-17
 ### Maintenance
 - **Docs alignment**: README options now use the same localized wording as the UI (**“Tomorrow only” / “Tomorrow and the day after”**).
-- **Code cleanup**: import `API_URL` from `const.py` in `sensor.py` to avoid duplicating the endpoint string.
+- **Code cleanup**: import `API_URL` from `const.py` in `sensor.py` to avoid duplicating the endpoint definition.
 
 ## [1.6.4] – 2025-08-17
 ### Added
 - **PLANTS forecast**: plant sensors now expose `forecast` (with `tomorrow_*`, `d2_*`, `trend`, `expected_peak`), same as TYPES.
 - **Initial setup validation**: online check of API key / location (403 → invalid_auth, 429 → quota_exceeded, others → cannot_connect).
-- Options UI now uses **natural language** labels for per-day sensors (Tomorrow / Day after tomorrow), fully localized.
+- Options UI for forecast & per-day sensors.
 
 ### Changed
 - Unified forecast parsing for TYPES and PLANTS (1–5 days).
-- Proactive cleanup of **stale per-day TYPE sensors** on options reload (e.g., switching `D+1+2` → `none` or reducing forecast days).
+- Proactive cleanup of **stale per-day TYPE sensors** on options reload.
 
 ### Fixed (hotfix 1.6.4a)
-- **Color robustness**: when the API omits one or more RGB channels, missing channels now default to **0** so `color_hex` is always emitted when a color dict is present (restores 1.5.4 behavior).
-- **Translated device grouping**: restore three localized device groups (**Types / Plants / Info**) using `translation_key` + placeholders (parity with 1.6.3).
-- **Options compatibility**: accept legacy values **`D+1` / `D+1+2`** and normalize them to **`d1` / `d12`** automatically (both in Options UI default and effective runtime).
+- **Color robustness**: missing RGB channels default to **0** so `color_hex` is always emitted when a color dict is present.
+- **Translated device grouping**: keep three localized device groups (**Types / Plants / Info**).
 - **Plant icon** updates dynamically based on the latest `type`.
-### Translations
-- Added localized strings for **`forecast_days`** and **`create_forecast_sensors`** (9 languages).
 
 ## [1.6.3] – 2025-08-17
 ### Fixed
