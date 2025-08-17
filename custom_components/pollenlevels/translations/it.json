@@ -3,23 +3,23 @@
     "step": {
       "user": {
         "title": "Pollen Levels",
-        "description": "Collega l’API Google Maps Pollen.",
+        "description": "Connettiti alla Google Maps Pollen API.",
         "data": {
           "api_key": "Chiave API Google",
           "latitude": "Latitudine",
           "longitude": "Longitudine",
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "language_code": "Lingua della risposta API"
+          "language_code": "Codice lingua della risposta API"
         }
       },
       "init": {
         "title": "Opzioni",
-        "description": "Imposta intervallo, lingua e previsione.",
+        "description": "Regola intervallo, lingua e previsione.",
         "data": {
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "language_code": "Lingua della risposta API",
+          "language_code": "Codice lingua della risposta API",
           "forecast_days": "Giorni di previsione (1–5)",
-          "create_forecast_sensors": "Sensori per-giorno per TIPI"
+          "create_forecast_sensors": "Sensori per giorno per TIPI"
         }
       }
     },
@@ -28,15 +28,18 @@
       "empty": "La lingua non può essere vuota",
       "invalid_days": "Numero di giorni di previsione non valido",
       "invalid_cfs": "Selezione non valida",
-      "requires_days_2": "Seleziona almeno 2 giorni per attivare D+1",
-      "requires_days_3": "Seleziona almeno 3 giorni per attivare D+2"
+      "requires_days_2": "Seleziona almeno 2 giorni per abilitare Domani",
+      "requires_days_3": "Seleziona almeno 3 giorni per abilitare Dopodomani",
+      "invalid_auth": "Chiave API non valida o non autorizzata",
+      "quota_exceeded": "Quota superata — riprova più tardi",
+      "cannot_connect": "Impossibile connettersi"
     }
   },
   "options": {
     "cfs": {
       "none": "Nessuno",
-      "d1": "Solo D+1",
-      "d12": "D+1 e D+2"
+      "d1": "Solo domani",
+      "d12": "Domani e dopodomani"
     }
   },
   "device": {
