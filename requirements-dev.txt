@@ -1,3 +1,0 @@
-# Dev tooling pinned to what CI installs
-black==25.1.0
-ruff==0.12.9
