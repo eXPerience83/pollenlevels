@@ -180,8 +180,11 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                         ),
                     )
                 )
+
+                # NOTE: Schema already constrains this, but we keep a defensive check.
                 if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
-                    errors["base"] = "cannot_connect"
+                    # Show as a field-level error to guide the user clearly.
+                    errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
 
                 # validate combo for per-day sensors
                 mode = user_input.get(
