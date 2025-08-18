@@ -2,56 +2,50 @@
   "config": {
     "step": {
       "user": {
-        "title": "Pollen Levels",
-        "description": "Mit der Google Maps Pollen API verbinden.",
+        "title": "Konfiguration Pollenniveaus",
+        "description": "Gib deinen Google API-Schlüssel, Breiten- und Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
         "data": {
-          "api_key": "Google-API-Schlüssel",
+          "api_key": "API-Schlüssel",
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode der API-Antwort"
-        }
-      },
-      "init": {
-        "title": "Optionen",
-        "description": "Intervall, Sprache und Vorhersage einstellen.",
-        "data": {
-          "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode der API-Antwort",
-          "forecast_days": "Vorhersagetage (1–5)",
-          "create_forecast_sensors": "Pro-Tag-TYP-Sensoren"
+          "language_code": "Sprachcode für Antwort"
         }
       }
     },
     "error": {
+      "invalid_auth": "Ungültiger API-Schlüssel",
+      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
+      "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
-      "empty": "Sprache darf nicht leer sein",
-      "invalid_days": "Ungültige Anzahl an Vorhersagetagen",
-      "invalid_cfs": "Ungültige Auswahl",
-      "requires_days_2": "Wähle mindestens 2 Tage, um Morgen zu aktivieren",
-      "requires_days_3": "Wähle mindestens 3 Tage, um Übermorgen zu aktivieren",
-      "invalid_auth": "Ungültiger API-Schlüssel oder nicht autorisiert",
-      "quota_exceeded": "Kontingent überschritten — später erneut versuchen",
-      "cannot_connect": "Verbindung nicht möglich"
+      "empty": "Dieses Feld darf nicht leer sein",
+      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
     }
   },
   "options": {
-    "cfs": {
-      "none": "Keine",
-      "D+1": "Nur morgen",
-      "D+1+2": "Morgen und übermorgen"
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Optionen",
+        "description": "Ändere Aktualisierungsintervall, API-Antwortsprache, Vorhersagetage und Tagessensoren für TYPEN.",
+        "data": {
+          "update_interval": "Aktualisierungsintervall (Stunden)",
+          "language_code": "Sprachcode für Antwort",
+          "forecast_days": "Vorhersagetage (1–5)",
+          "create_forecast_sensors": "Tagessensoren (TYPEN): none, D+1, D+1+2"
+        }
+      }
     }
   },
   "device": {
-    "types": { "name": "Pollentypen ({latitude},{longitude})" },
+    "types": { "name": "Pollenarten ({latitude},{longitude})" },
     "plants": { "name": "Pflanzen ({latitude},{longitude})" },
-    "info": { "name": "Polleninfo ({latitude},{longitude})" }
+    "info": { "name": "Polleninformationen ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
       "region": { "name": "Region" },
       "date": { "name": "Datum" },
-      "last_updated": { "name": "Zuletzt aktualisiert" }
+      "last_updated": { "name": "Letzte Aktualisierung" }
     }
   }
 }

@@ -2,50 +2,44 @@
   "config": {
     "step": {
       "user": {
-        "title": "Pollen Levels",
-        "description": "Подключение к Google Maps Pollen API.",
+        "title": "Настройка уровней пыльцы",
+        "description": "Введите ваш Google API Key, широту, долготу, интервал обновления (в часах) и код языка для ответа API.",
         "data": {
-          "api_key": "Ключ API Google",
+          "api_key": "Ключ API",
           "latitude": "Широта",
           "longitude": "Долгота",
-          "update_interval": "Интервал обновления (часы)",
-          "language_code": "Язык ответа API"
-        }
-      },
-      "init": {
-        "title": "Параметры",
-        "description": "Настройте интервал, язык и прогноз.",
-        "data": {
-          "update_interval": "Интервал обновления (часы)",
-          "language_code": "Язык ответа API",
-          "forecast_days": "Дни прогноза (1–5)",
-          "create_forecast_sensors": "Дневные датчики для ТИПОВ"
+          "update_interval": "Интервал обновления (в часах)",
+          "language_code": "Код языка ответа API"
         }
       }
     },
     "error": {
-      "invalid_language": "Неверный языковой код",
-      "empty": "Язык не может быть пустым",
-      "invalid_days": "Неверное число дней прогноза",
-      "invalid_cfs": "Неверный выбор",
-      "requires_days_2": "Выберите не менее 2 дней, чтобы включить Завтра",
-      "requires_days_3": "Выберите не менее 3 дней, чтобы включить Послезавтра",
-      "invalid_auth": "Неверный ключ API или нет доступа",
-      "quota_exceeded": "Превышена квота — повторите позже",
-      "cannot_connect": "Не удаётся подключиться"
+      "invalid_auth": "Неверный API ключ",
+      "cannot_connect": "Не удаётся подключиться к сервису",
+      "quota_exceeded": "Превышен лимит запросов",
+      "invalid_language": "Неверный код языка",
+      "empty": "Это поле не может быть пустым",
+      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням."
     }
   },
   "options": {
-    "cfs": {
-      "none": "Нет",
-      "D+1": "Только завтра",
-      "D+1+2": "Завтра и послезавтра"
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Параметры",
+        "description": "Измените интервал обновления, язык ответа API, дни прогноза и дневные датчики для ТИПОВ.",
+        "data": {
+          "update_interval": "Интервал обновления (в часах)",
+          "language_code": "Код языка ответа API",
+          "forecast_days": "Дни прогноза (1–5)",
+          "create_forecast_sensors": "Дневные датчики (ТИПЫ): none, D+1, D+1+2"
+        }
+      }
     }
   },
   "device": {
     "types": { "name": "Типы пыльцы ({latitude},{longitude})" },
     "plants": { "name": "Растения ({latitude},{longitude})" },
-    "info": { "name": "Инфо о пыльце ({latitude},{longitude})" }
+    "info": { "name": "Информация о пыльце ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {

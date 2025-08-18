@@ -2,44 +2,38 @@
   "config": {
     "step": {
       "user": {
-        "title": "Pollen Levels",
-        "description": "Підключення до Google Maps Pollen API.",
+        "title": "Налаштування рівнів пилку",
+        "description": "Введіть ваш Google API Key, широту, довготу, інтервал оновлення (у годинах) та код мови для відповіді API.",
         "data": {
-          "api_key": "Ключ API Google",
+          "api_key": "Ключ API",
           "latitude": "Широта",
           "longitude": "Довгота",
-          "update_interval": "Інтервал оновлення (години)",
+          "update_interval": "Інтервал оновлення (у годинах)",
           "language_code": "Код мови відповіді API"
-        }
-      },
-      "init": {
-        "title": "Параметри",
-        "description": "Налаштуйте інтервал, мову та прогноз.",
-        "data": {
-          "update_interval": "Інтервал оновлення (години)",
-          "language_code": "Код мови відповіді API",
-          "forecast_days": "Дні прогнозу (1–5)",
-          "create_forecast_sensors": "Щоденні датчики для ТИПІВ"
         }
       }
     },
     "error": {
-      "invalid_language": "Некоректний код мови",
-      "empty": "Мова не може бути порожньою",
-      "invalid_days": "Некоректна кількість днів прогнозу",
-      "invalid_cfs": "Некоректний вибір",
-      "requires_days_2": "Виберіть щонайменше 2 дні, щоб увімкнути Завтра",
-      "requires_days_3": "Виберіть щонайменше 3 дні, щоб увімкнути Післязавтра",
-      "invalid_auth": "Некоректний ключ API або немає доступу",
-      "quota_exceeded": "Квоту вичерпано — спробуйте пізніше",
-      "cannot_connect": "Неможливо підключитися"
+      "invalid_auth": "Невірний API ключ",
+      "cannot_connect": "Не вдається підключитися до сервісу",
+      "quota_exceeded": "Перевищено ліміт запитів",
+      "invalid_language": "Невірний код мови",
+      "empty": "Це поле не може бути порожнім",
+      "invalid_option_combo": "Збільште «Дні прогнозу», щоб охопити вибрані денні датчики."
     }
   },
   "options": {
-    "cfs": {
-      "none": "Немає",
-      "D+1": "Лише завтра",
-      "D+1+2": "Завтра і післязавтра"
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Параметри",
+        "description": "Змініть інтервал оновлення, мову відповіді API, кількість днів прогнозу та денні датчики для ТИПІВ.",
+        "data": {
+          "update_interval": "Інтервал оновлення (у годинах)",
+          "language_code": "Код мови відповіді API",
+          "forecast_days": "Дні прогнозу (1–5)",
+          "create_forecast_sensors": "Денні датчики (ТИПИ): none, D+1, D+1+2"
+        }
+      }
     }
   },
   "device": {

@@ -2,44 +2,38 @@
   "config": {
     "step": {
       "user": {
-        "title": "Pollen Levels",
-        "description": "Connettiti alla Google Maps Pollen API.",
+        "title": "Configurazione Livelli di Polen",
+        "description": "Inserisci la tua chiave API Google, latitudine, longitudine, intervallo di aggiornamento (ore) e il codice lingua per la risposta.",
         "data": {
-          "api_key": "Chiave API Google",
+          "api_key": "Chiave API",
           "latitude": "Latitudine",
           "longitude": "Longitudine",
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "language_code": "Codice lingua della risposta API"
-        }
-      },
-      "init": {
-        "title": "Opzioni",
-        "description": "Regola intervallo, lingua e previsione.",
-        "data": {
-          "update_interval": "Intervallo di aggiornamento (ore)",
-          "language_code": "Codice lingua della risposta API",
-          "forecast_days": "Giorni di previsione (1–5)",
-          "create_forecast_sensors": "Sensori per giorno per TIPI"
+          "language_code": "Codice lingua per la risposta API"
         }
       }
     },
     "error": {
+      "invalid_auth": "Chiave API non valida",
+      "cannot_connect": "Impossibile connettersi al servizio",
+      "quota_exceeded": "Quota superata",
       "invalid_language": "Codice lingua non valido",
-      "empty": "La lingua non può essere vuota",
-      "invalid_days": "Numero di giorni di previsione non valido",
-      "invalid_cfs": "Selezione non valida",
-      "requires_days_2": "Seleziona almeno 2 giorni per abilitare Domani",
-      "requires_days_3": "Seleziona almeno 3 giorni per abilitare Dopodomani",
-      "invalid_auth": "Chiave API non valida o non autorizzata",
-      "quota_exceeded": "Quota superata — riprova più tardi",
-      "cannot_connect": "Impossibile connettersi"
+      "empty": "Questo campo non può essere vuoto",
+      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati."
     }
   },
   "options": {
-    "cfs": {
-      "none": "Nessuno",
-      "D+1": "Solo domani",
-      "D+1+2": "Domani e dopodomani"
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opzioni",
+        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta API, i giorni di previsione e i sensori giornalieri per i TIPI.",
+        "data": {
+          "update_interval": "Intervallo di aggiornamento (ore)",
+          "language_code": "Codice lingua per la risposta API",
+          "forecast_days": "Giorni di previsione (1–5)",
+          "create_forecast_sensors": "Sensori per giorno (TIPI): none, D+1, D+1+2"
+        }
+      }
     }
   },
   "device": {

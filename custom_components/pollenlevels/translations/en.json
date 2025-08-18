@@ -2,44 +2,38 @@
   "config": {
     "step": {
       "user": {
-        "title": "Pollen Levels",
-        "description": "Connect to Google Maps Pollen API.",
+        "title": "Pollen Levels Configuration",
+        "description": "Enter your Google API Key, latitude, longitude, update interval (hours) and API response language code.",
         "data": {
-          "api_key": "Google API Key",
+          "api_key": "API Key",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code"
         }
-      },
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Cannot connect to service",
+      "quota_exceeded": "Quota exceeded",
+      "invalid_language": "Invalid language code",
+      "empty": "This field cannot be empty",
+      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
+    }
+  },
+  "options": {
+    "step": {
       "init": {
-        "title": "Options",
-        "description": "Adjust update interval, language and forecast settings.",
+        "title": "Pollen Levels – Options",
+        "description": "Change the update interval, API response language, forecast days and per-day TYPE sensors.",
         "data": {
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",
           "forecast_days": "Forecast days (1–5)",
-          "create_forecast_sensors": "Per-day TYPE sensors"
+          "create_forecast_sensors": "Per-day TYPE sensors (none, D+1, D+1+2)"
         }
       }
-    },
-    "error": {
-      "invalid_language": "Invalid language code",
-      "empty": "Language cannot be empty",
-      "invalid_days": "Invalid number of forecast days",
-      "invalid_cfs": "Invalid selection",
-      "requires_days_2": "Select at least 2 days to enable Tomorrow",
-      "requires_days_3": "Select at least 3 days to enable the Day after tomorrow",
-      "invalid_auth": "Invalid API key or unauthorized",
-      "quota_exceeded": "Quota exceeded — try again later",
-      "cannot_connect": "Cannot connect"
-    }
-  },
-  "options": {
-    "cfs": {
-      "none": "None",
-      "D+1": "Tomorrow only",
-      "D+1+2": "Tomorrow and the day after"
     }
   },
   "device": {

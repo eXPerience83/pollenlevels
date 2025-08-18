@@ -3,16 +3,26 @@ line-length = 88
 target-version = ["py311"]
 
 [tool.ruff]
-# Use the modern config layout (Ruff ≥0.1).
-target-version = "py311"
 line-length = 88
+target-version = "py311"
+fix = true  # default fix behavior when running 'ruff' without flags
 
 [tool.ruff.lint]
-# Keep a balanced set; Black handles formatting, Ruff se centra en calidad/lógica.
-select = ["E", "F", "UP", "PL", "B"]
-# Let Black own line length; avoid duplicate fights with E501.
-ignore = ["E501"]
+# pycodestyle/pyflakes/isort/pyupgrade/bugbear
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+  "E501",  # line length (Black handles formatting)
+]
 
-[tool.ruff.lint.per-file-ignores]
-# _normalize_payload is intentionally dense; refactor will be separate PR.
-"custom_components/pollenlevels/sensor.py" = ["PLR0915"]
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components.pollenlevels"]
+combine-as-imports = true
+
+# --- Optional hardening (uncomment if needed) ---
+# [tool.ruff]
+# force-exclude = true
+# exclude = [".git", ".venv", "venv", ".mypy_cache", ".pytest_cache", "build", "dist"]
+
+# If you re-export symbols in __init__.py and want to ignore F401 there:
+# [tool.ruff.per-file-ignores]
+# "custom_components/pollenlevels/__init__.py" = ["F401"]

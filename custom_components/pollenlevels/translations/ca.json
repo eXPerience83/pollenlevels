@@ -2,44 +2,38 @@
   "config": {
     "step": {
       "user": {
-        "title": "Pollen Levels",
-        "description": "Connecta amb l'API de pol·len de Google Maps.",
+        "title": "Configuració Nivells de Polen",
+        "description": "Introdueix la teva clau d’API de Google, latitud, longitud, interval d’actualització (hores) i codi d’idioma per a la resposta.",
         "data": {
-          "api_key": "Clau d'API de Google",
+          "api_key": "Clau API",
           "latitude": "Latitud",
           "longitude": "Longitud",
-          "update_interval": "Interval d'actualització (hores)",
-          "language_code": "Codi d'idioma de la resposta de l'API"
-        }
-      },
-      "init": {
-        "title": "Opcions",
-        "description": "Ajusta interval, idioma i previsió.",
-        "data": {
-          "update_interval": "Interval d'actualització (hores)",
-          "language_code": "Codi d'idioma de la resposta de l'API",
-          "forecast_days": "Dies de previsió (1–5)",
-          "create_forecast_sensors": "Sensors per dia per a TIPUS"
+          "update_interval": "Interval d’actualització (hores)",
+          "language_code": "Codi d’idioma de la resposta API"
         }
       }
     },
     "error": {
-      "invalid_language": "Codi d'idioma no vàlid",
-      "empty": "L'idioma no pot estar buit",
-      "invalid_days": "Nombre de dies de previsió no vàlid",
-      "invalid_cfs": "Selecció no vàlida",
-      "requires_days_2": "Selecciona almenys 2 dies per activar Demà",
-      "requires_days_3": "Selecciona almenys 3 dies per activar Demà passat",
-      "invalid_auth": "Clau d'API no vàlida o sense autorització",
-      "quota_exceeded": "Quota superada — torna-ho a provar més tard",
-      "cannot_connect": "No es pot connectar"
+      "invalid_auth": "Clau API no vàlida",
+      "cannot_connect": "No es pot connectar al servei",
+      "quota_exceeded": "Quota excedida",
+      "invalid_language": "Codi d’idioma no vàlid",
+      "empty": "Aquest camp no pot estar buit",
+      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats."
     }
   },
   "options": {
-    "cfs": {
-      "none": "Cap",
-      "D+1": "Només demà",
-      "D+1+2": "Demà i demà passat"
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opcions",
+        "description": "Canvia l'interval d’actualització, l'idioma de resposta de l’API, els dies de previsió i els sensors per dia per a TIPUS.",
+        "data": {
+          "update_interval": "Interval d’actualització (hores)",
+          "language_code": "Codi d’idioma de la resposta API",
+          "forecast_days": "Dies de previsió (1–5)",
+          "create_forecast_sensors": "Sensors per dia (TIPUS): none, D+1, D+1+2"
+        }
+      }
     }
   },
   "device": {

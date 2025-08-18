@@ -18,7 +18,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 > **New in 1.6.x**
 > - **1.6.0**: Multi-day forecast for pollen **TYPES** (GRASS/TREE/WEED) with `forecast` attribute, convenience attributes, and optional per-day sensors.  
-> - **1.6.1+**: Unified per-day sensor option → `create_forecast_sensors` with localized labels.
+> - **1.6.1**: **Unified per-day sensor option** → `create_forecast_sensors` (`none` / `D+1` / `D+1+2`) with validation based on `forecast_days`.
 
 ---
 
