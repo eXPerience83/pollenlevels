@@ -1,55 +1,55 @@
-name: Ruff --fix + Black (apply) and push
+name: Auto Format (Black + Ruff)
 
 on:
-  workflow_dispatch: {}
-  # Si quieres que también se ejecute automáticamente en commits de cualquier rama:
-  # push:
-  #   branches: ["**"]
+  # Manual run. Use GitHub's native "Run workflow → Branch" dropdown to pick a REAL branch.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: write  # needed to push commits to the selected branch
 
 jobs:
   format:
-    name: Ruff --fix + Black (apply) and push
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo (full history)
+      - name: Checkout (current ref selected in the UI)
         uses: actions/checkout@v4
         with:
+          # Rely on GitHub's native branch selector; this ensures only real branches are shown.
           fetch-depth: 0
-          persist-credentials: true
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
-      - name: Install dev tools (pinned)
+      - name: Install formatters
         run: |
-          python -m pip install -U pip
-          pip install -r requirements-dev.txt
+          python -m pip install --upgrade pip
+          pip install "ruff==0.5.7" "black==24.8.0"
 
-      - name: Ruff apply fixes (do not fail if leftovers)
-        run: |
-          ruff check . --fix --unsafe-fixes --exit-zero
+      - name: Ruff (fix)
+        run: ruff check . --fix
 
-      - name: Black apply formatting
-        run: |
-          black .
+      - name: Black (format)
+        run: black .
 
-      - name: Commit and push if changed (same branch)
+      - name: Commit & Push if changes
+        # Commit back to the SAME branch. No PR is created to avoid org policy errors.
+        shell: bash
         run: |
-          set -e
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "style: apply Ruff fixes and Black formatting"
-            git push
-          else
+          set -euo pipefail
+          if git diff --quiet; then
             echo "No changes to commit."
-   
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: apply Ruff fixes and Black formatting"
+          # Push back to the currently checked out branch (selected in the UI).
+          git push

@@ -1,48 +1,24 @@
-name: Lint (Ruff + Black --check)
+name: Lint
 
 on:
-  # Run on any branch push when relevant files change
-  push:
-    paths:
-      - "**/*.py"
-      - ".github/workflows/lint.yml"
-      - "pyproject.toml"
-      - "requirements-dev.txt"
-  # Run on any pull request (safe: read-only token)
-  pull_request:
-    paths:
-      - "**/*.py"
-      - ".github/workflows/lint.yml"
-      - "pyproject.toml"
-      - "requirements-dev.txt"
-  # Manual run from Actions tab
-  workflow_dispatch:
-
-permissions:
-  contents: read
+  push:            # Run on push to any branch
+  pull_request:    # Run on PRs from/to any branch
+  workflow_dispatch:  # Allow manual runs from the Actions tab
 
 jobs:
   lint:
-    name: Ruff + Black (check)
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
+          cache: "pip"  # Speed up subsequent installs
 
-      - name: Install dev tools
-        run: |
-          python -m pip install -U pip
-          pip install -r requirements-dev.txt
-        # Using pinned versions from requirements-dev.txt keeps CI deterministic.
+      - name: Install dependencies
+        run: pip install black ruff
 
       - name: Ruff check
         run: ruff check .
