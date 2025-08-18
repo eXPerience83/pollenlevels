@@ -95,7 +95,9 @@ def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
     return f"#{r:02X}{g:02X}{b:02X}"
 
 
-async def _cleanup_per_day_entities(hass, entry_id: str, allow_d1: bool, allow_d2: bool) -> int:
+async def _cleanup_per_day_entities(
+    hass, entry_id: str, allow_d1: bool, allow_d2: bool
+) -> int:
     """Remove stale per-day entities (D+1/D+2) for this entry from the Entity Registry.
 
     This is needed because Home Assistant keeps entity registry entries across reloads.
@@ -121,17 +123,29 @@ async def _cleanup_per_day_entities(hass, entry_id: str, allow_d1: bool, allow_d
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
         if not allow_d1 and _matches(ent.unique_id, "_d1"):
-            _LOGGER.debug("Removing stale D+1 entity from registry: %s (%s)", ent.entity_id, ent.unique_id)
+            _LOGGER.debug(
+                "Removing stale D+1 entity from registry: %s (%s)",
+                ent.entity_id,
+                ent.unique_id,
+            )
             registry.async_remove(ent.entity_id)
             removed += 1
             continue
         if not allow_d2 and _matches(ent.unique_id, "_d2"):
-            _LOGGER.debug("Removing stale D+2 entity from registry: %s (%s)", ent.entity_id, ent.unique_id)
+            _LOGGER.debug(
+                "Removing stale D+2 entity from registry: %s (%s)",
+                ent.entity_id,
+                ent.unique_id,
+            )
             registry.async_remove(ent.entity_id)
             removed += 1
 
     if removed:
-        _LOGGER.info("Entity Registry cleanup: removed %d per-day sensors for entry %s", removed, entry_id)
+        _LOGGER.info(
+            "Entity Registry cleanup: removed %d per-day sensors for entry %s",
+            removed,
+            entry_id,
+        )
     return removed
 
 
@@ -159,7 +173,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     allow_d2 = create_d2 and forecast_days >= 3
 
     # --- NEW: proactively remove stale D+ entities from the Entity Registry ----
-    await _cleanup_per_day_entities(hass, entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2)
+    await _cleanup_per_day_entities(
+        hass, entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
+    )
 
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
