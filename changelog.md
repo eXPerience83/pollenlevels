@@ -1,7 +1,8 @@
 # Changelog
 
-## [1.6.3] – 2025-08-17
+## [1.6.3] – 2025-08-18
 ### Fixed
+- Language validation now accepts common **BCP-47** forms (e.g., `zh-Hant-TW`, `es-419`) and relies on the API’s **closest-match** fallback when a sub-locale is unavailable.
 - **Entity cleanup**: remove stale per-day TYPE sensors `(D+1)/(D+2)` from the **Entity Registry** on entry setup when options no longer request them or `forecast_days` is insufficient. This prevents “Unavailable” leftovers after Options → Reload.
 - **Options validation**: show a **field-level** error for `forecast_days` when the chosen value is not coherent, instead of a generic base error (improves user guidance).
 
