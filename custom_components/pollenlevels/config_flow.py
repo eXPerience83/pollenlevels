@@ -1,9 +1,21 @@
 """Handle config & options flow for Pollen Levels integration.
 
-Phase 1.1 notes (v1.6.1):
-- Replace two boolean toggles (D+1 and D+2) with a single selector 'create_forecast_sensors':
-  values: "none" (default), "D+1", "D+1+2".
+Notes:
+- Unified per-day sensors option: 'create_forecast_sensors' -> "none" | "D+1" | "D+1+2".
 - Validate coherence with 'forecast_days' (e.g., choosing "D+1+2" requires forecast_days >= 3).
+
+Language code validation (v1.6.3 alpha+):
+- Align validation with IETF BCP-47 commonly used patterns:
+  * language (2–3 letters)
+  * optional script (4 letters)
+  * optional region (2 letters OR 3 digits)
+  * optional single variant (5–8 alphanum OR 4 starting with digit)
+- This accepts tags like: "en", "en-US", "zh-Hant", "zh-Hant-TW", "es-419".
+- We intentionally keep it permissive and let the Google API:
+    - use the closest match when an exact locale is not available, or
+    - reject truly invalid inputs with an HTTP error.
+
+Docs: forecast.lookup says languageCode follows BCP-47 and falls back to closest match.
 """
 
 from __future__ import annotations
@@ -20,7 +32,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
-    # Forecast options
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
@@ -36,24 +47,47 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Regex to support base and region subtags (e.g., "zh", "zh-Hant", "zh-Hant-TW")
-LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
+# ---------------------------------------------------------------------------
+# BCP-47-ish regex:
+# - language: 2-3 letters
+# - script (optional): 4 letters
+# - region (optional): 2 letters OR 3 digits
+# - variant (optional): 5-8 alphanum OR 4 starting with a digit
+#
+# Examples accepted:
+#   en, en-US, zh-Hant, zh-Hant-TW, es-419, sr-Cyrl-RS, sl-rozaj
+# This is not a full BCP-47 grammar (extensions/privateuse omitted),
+# but it covers common real-world tags while keeping the validator simple.
+# ---------------------------------------------------------------------------
+LANGUAGE_CODE_REGEX = re.compile(
+    r"^[A-Za-z]{2,3}"
+    r"(?:-[A-Za-z]{4})?"                # optional script
+    r"(?:-(?:[A-Za-z]{2}|\d{3}))?"      # optional region
+    r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
+    re.IGNORECASE,
+)
 
 
 def is_valid_language_code(value: str) -> str:
-    """Validate IETF language code, raising a HA-UI friendly error key."""
+    """Validate language code format; raise user-friendly HA error keys.
+
+    We accept common BCP-47 patterns and rely on the API to perform:
+    - closest-match fallback when a sub-locale is unavailable
+    - final validation for totally invalid values
+    """
     if not isinstance(value, str):
         raise vol.Invalid("invalid_language")
-    if not value.strip():
+    norm = value.strip()
+    if not norm:
         raise vol.Invalid("empty")
-    if not LANGUAGE_CODE_REGEX.match(value):
-        _LOGGER.warning("Invalid language code format: %s", value)
+    if not LANGUAGE_CODE_REGEX.match(norm):
+        _LOGGER.warning("Invalid language code format (BCP-47-like check): %s", value)
         raise vol.Invalid("invalid_language")
-    return value
+    return norm
 
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Implement config flow for Pollen Levels."""
+    """Config flow for Pollen Levels."""
 
     VERSION = 1
 
@@ -67,19 +101,22 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input:
-            # ---- Duplicate prevention -------------------------------------------------
+            # Define upfront to avoid any edge-case scoping issues.
+            lat = float(user_input.get(CONF_LATITUDE))
+            lon = float(user_input.get(CONF_LONGITUDE))
+
+            # Unique ID by lat/lon to prevent duplicates.
             try:
-                lat = float(user_input[CONF_LATITUDE])
-                lon = float(user_input[CONF_LONGITUDE])
                 await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
                 self._abort_if_unique_id_configured()
             except Exception:  # pragma: no cover - defensive
                 pass
 
-            # ---- Field validation & API reachability ---------------------------------
             try:
+                # Validate language format (permissive BCP-47-like).
                 is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
 
+                # Connection check to surface invalid key/quotas early.
                 session = async_get_clientsession(self.hass)
                 params = {
                     "key": user_input[CONF_API_KEY],
@@ -131,12 +168,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(
-                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
-                ): cv.latitude,
-                vol.Optional(
-                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
-                ): cv.longitude,
+                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
+                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
@@ -161,7 +194,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             try:
-                # Language validation: allow empty (inherit HA language), if provided validate format.
+                # Language: allow empty (inherit HA language); if provided, validate.
                 lang = user_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
@@ -175,18 +208,13 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
-                        self.entry.options.get(
-                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
-                        ),
+                        self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
                     )
                 )
-
-                # NOTE: Schema already constrains this, but we keep a defensive check.
                 if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
-                    # Show as a field-level error to guide the user clearly.
                     errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
 
-                # validate combo for per-day sensors
+                # per-day sensors vs number of days
                 mode = user_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
                     self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
@@ -197,7 +225,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 elif mode == "D+1+2":
                     needed = 3
                 if days < needed:
-                    # Field-level error to guide the user
                     errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 
             except vol.Invalid as ve:
@@ -209,7 +236,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
-        # Defaults: prefer options, fall back to data/const
+        # Defaults: prefer options, fallback to data/HA config
         current_interval = self.entry.options.get(
             CONF_UPDATE_INTERVAL,
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
