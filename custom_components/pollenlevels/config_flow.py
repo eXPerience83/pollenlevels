@@ -16,6 +16,12 @@ Language code validation (v1.6.3 alpha+):
     - reject truly invalid inputs with an HTTP error.
 
 Docs: forecast.lookup says languageCode follows BCP-47 and falls back to closest match.
+
+v1.6.3 alpha4:
+- Setup step now mirrors Options behavior: an empty language code is allowed
+  (meaning “inherit HA language / let the API pick default”).
+  When empty, we skip both validation and sending `languageCode` to the API
+  during the connectivity probe. This avoids spurious "empty" errors.
 """
 
 from __future__ import annotations
@@ -113,8 +119,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 pass
 
             try:
-                # Validate language format (permissive BCP-47-like).
-                is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
+                # NEW: Mirror Options behavior — allow blank language (inherit / API default).
+                raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
+                lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
+                if lang:
+                    # Only validate if non-empty
+                    is_valid_language_code(lang)
 
                 # Connection check to surface invalid key/quotas early.
                 session = async_get_clientsession(self.hass)
@@ -123,8 +133,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "location.latitude": f"{lat:.6f}",
                     "location.longitude": f"{lon:.6f}",
                     "days": 1,
-                    "languageCode": user_input[CONF_LANGUAGE_CODE],
                 }
+                # Only send languageCode if non-empty (avoids API receiving an empty tag).
+                if lang:
+                    params["languageCode"] = lang
+
                 url = "https://pollen.googleapis.com/v1/forecast:lookup"
                 _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
                 async with session.get(url, params=params) as resp:
@@ -162,6 +175,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
+            # Keep default as HA language; user can clear it if desired.
             CONF_LANGUAGE_CODE: self.hass.config.language,
         }
 
@@ -177,9 +191,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                vol.Optional(
-                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
-                ): str,
+                # Note: string type retained; empty string is accepted and handled above.
+                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
             }
         )
 
