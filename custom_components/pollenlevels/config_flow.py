@@ -61,8 +61,8 @@ _LOGGER = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 LANGUAGE_CODE_REGEX = re.compile(
     r"^[A-Za-z]{2,3}"
-    r"(?:-[A-Za-z]{4})?"                # optional script
-    r"(?:-(?:[A-Za-z]{2}|\d{3}))?"      # optional region
+    r"(?:-[A-Za-z]{4})?"  # optional script
+    r"(?:-(?:[A-Za-z]{2}|\d{3}))?"  # optional region
     r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
     re.IGNORECASE,
 )
@@ -168,8 +168,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
-                vol.Optional(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]): cv.longitude,
+                vol.Optional(
+                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
+                ): cv.latitude,
+                vol.Optional(
+                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
+                ): cv.longitude,
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
@@ -208,7 +212,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
-                        self.entry.options.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+                        self.entry.options.get(
+                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
+                        ),
                     )
                 )
                 if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
