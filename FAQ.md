@@ -1,5 +1,5 @@
 # ❓ Frequently Asked Questions (FAQ)
-*Last verified: 2025-08-19 (UTC). See References below.*
+*Last verified: 2025-08-20 (UTC). See References below.*
 
 ## 1. How many requests can I make to the Google Maps Pollen API?
 As of **March 1, 2025**, Google Maps Platform applies **free monthly usage caps per SKU**.  
@@ -76,14 +76,17 @@ Typical quota items you’ll see (names may vary slightly by locale):
 - **Pollen – HeatMap Usage per minute**
 - **Pollen – HeatMap Usage per minute per user**
 
-**What this integration uses:** the **Forecast** endpoint (point forecast). It **does not** use heatmap tiles, so HeatMap quotas can be capped to prevent accidental usage.
+**What this integration uses:** the **Forecast** endpoint (point forecast).  
+**What we don’t use:** **HeatMap tiles** (map overlays via `heatmapTiles`).  
+
+> **Safe setting:** You can set **HeatMap** quotas to **0** (or the minimum allowed) to block tile usage and avoid accidental billing.
 
 **Recommended hard caps (safe defaults):**
 - **Forecast Usage per day** → **150**  
   (≈ 4,500/month, comfortably under the 5,000 free cap; increase only if you have multiple locations or frequent manual refreshes)
 - **Forecast Usage per minute** → **10**
 - **Forecast Usage per minute per user** → **10**
-- **HeatMap** quotas → set to **0** (or the **minimum allowed**) to block tile usage.
+- **HeatMap quotas** → **0** (or minimum allowed) to disable tiles.
 
 **How to edit a quota**
 1) Go to **Quotas** and choose **Pollen API**.  
@@ -101,7 +104,9 @@ FAQ: https://developers.google.com/maps/documentation/pollen/faq
 
 ## References (official)
 - **Core services pricing list (Environment → Pollen Usage)** — last updated shown on page: https://developers.google.com/maps/billing-and-pricing/pricing  
-- **Pollen API usage & billing (includes quota editing steps)**: https://developers.google.com/maps/documentation/pollen/usage-and-billing  
-- **Pollen API FAQ (6,000 QPM)**: https://developers.google.com/maps/documentation/pollen/faq  
+- **Pollen API usage & billing (quota editing steps)**: https://developers.google.com/maps/documentation/pollen/usage-and-billing  
+- **Pollen API — Forecast endpoint**: https://developers.google.com/maps/documentation/pollen/forecast  
+- **Pollen API — Heatmap tiles**: https://developers.google.com/maps/documentation/pollen/heatmap-tiles  
 - **Cap API usage (daily/minute/per-user caps)**: https://cloud.google.com/apis/docs/capping-api-usage  
-- **Budgets (alerts only, do not cap)**: https://cloud.google.com/billing/docs/how-to/budgets
+- **View/manage quotas in Console**: https://cloud.google.com/docs/quotas/view-manage  
+- **Pollen API FAQ (6,000 QPM)**: https://developers.google.com/maps/documentation/pollen/faq
