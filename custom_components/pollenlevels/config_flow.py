@@ -22,6 +22,9 @@ v1.6.3 alpha4:
   (meaning “inherit HA language / let the API pick default”).
   When empty, we skip both validation and sending `languageCode` to the API
   during the connectivity probe. This avoids spurious "empty" errors.
+
+Security (this file):
+- IMPORTANT: We redact API keys in debug logs. Never log secrets in plain text.
 """
 
 from __future__ import annotations
@@ -54,16 +57,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# BCP-47-ish regex:
-# - language: 2-3 letters
-# - script (optional): 4 letters
-# - region (optional): 2 letters OR 3 digits
-# - variant (optional): 5-8 alphanum OR 4 starting with a digit
-#
-# Examples accepted:
-#   en, en-US, zh-Hant, zh-Hant-TW, es-419, sr-Cyrl-RS, sl-rozaj
-# This is not a full BCP-47 grammar (extensions/privateuse omitted),
-# but it covers common real-world tags while keeping the validator simple.
+# BCP-47-ish regex (common patterns, not full grammar).
 # ---------------------------------------------------------------------------
 LANGUAGE_CODE_REGEX = re.compile(
     r"^[A-Za-z]{2,3}"
@@ -119,11 +113,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 pass
 
             try:
-                # NEW: Mirror Options behavior — allow blank language (inherit / API default).
+                # Allow blank language (inherit HA language / API default).
                 raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
                 lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
                 if lang:
-                    # Only validate if non-empty
                     is_valid_language_code(lang)
 
                 # Connection check to surface invalid key/quotas early.
@@ -134,12 +127,16 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "location.longitude": f"{lon:.6f}",
                     "days": 1,
                 }
-                # Only send languageCode if non-empty (avoids API receiving an empty tag).
                 if lang:
                     params["languageCode"] = lang
 
                 url = "https://pollen.googleapis.com/v1/forecast:lookup"
-                _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
+                # --- Security: redact API key in logs ---
+                safe_params = dict(params)
+                if "key" in safe_params:
+                    safe_params["key"] = "***"
+                _LOGGER.debug("Validating Pollen API URL: %s params %s", url, safe_params)
+
                 async with session.get(url, params=params) as resp:
                     text = await resp.text()
                     _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
