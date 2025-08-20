@@ -20,6 +20,11 @@ v1.6.3:
   leftovers after reloading the entry.
 - Normalize plant 'type' to uppercase for icon mapping.
 
+v1.6.3 fix (Python 3.11+):
+- Replace invalid `isinstance(x, int | float)` with `isinstance(x, (int, float))`.
+  `isinstance` expects a type or a tuple of types; using PEP 604 unions here raises TypeError.
+  This could break updates during trend/peak calculation on some payloads.
+
 Security (this file):
 - IMPORTANT: We redact API keys in debug logs. Never log secrets in plain text.
 """
@@ -439,11 +444,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             _set_convenience("tomorrow", 1)
             _set_convenience("d2", 2)
 
-            # Trend (use PEP 604 union in isinstance as suggested by ruff UP038)
+            # Trend:
+            # Use a tuple of types for isinstance (Python requirement).
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, int | float) and isinstance(
-                tomorrow_val, int | float
+            if isinstance(now_val, (int, float)) and isinstance(
+                tomorrow_val, (int, float)
             ):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
@@ -457,7 +463,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Expected peak (excluding today)
             peak = None
             for f in forecast_list:
-                if f.get("has_index") and isinstance(f.get("value"), int | float):
+                # Same isinstance fix here
+                if f.get("has_index") and isinstance(f.get("value"), (int, float)):
                     if peak is None or f["value"] > peak["value"]:
                         peak = f
             base["expected_peak"] = (
