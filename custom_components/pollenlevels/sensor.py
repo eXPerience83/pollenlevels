@@ -19,6 +19,9 @@ v1.6.3:
   no longer request them or forecast_days is insufficient. This prevents "Unavailable"
   leftovers after reloading the entry.
 - Normalize plant 'type' to uppercase for icon mapping.
+
+Security (this file):
+- IMPORTANT: We redact API keys in debug logs. Never log secrets in plain text.
 """
 
 from __future__ import annotations
@@ -264,7 +267,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         if self.language:
             params["languageCode"] = self.language
 
-        _LOGGER.debug("Fetching with params: %s", params)
+        # --- Security: redact API key in logs ---
+        safe_params = dict(params)
+        if "key" in safe_params:
+            safe_params["key"] = "***"
+        _LOGGER.debug("Fetching with params: %s", safe_params)
 
         try:
             async with self._session.get(url, params=params, timeout=10) as resp:
@@ -406,7 +413,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             base["forecast"] = forecast_list
 
             # Convenience for tomorrow (1) and d2 (2)
-            # Bind loop variables into defaults to avoid late-binding issues (ruff B023).
             def _set_convenience(
                 prefix: str,
                 off: int,
@@ -468,7 +474,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             new_data[type_key] = base
 
             # Optional per-day sensors (only if requested and day exists)
-            # Bind loop variables into defaults to avoid B023.
             def _add_day_sensor(
                 off: int,
                 *,
@@ -539,7 +544,7 @@ class PollenSensor(CoordinatorEntity):
         if info.get("source") == "type":
             base_key = self.code.split("_", 1)[1].split("_d", 1)[0].upper()
             return TYPE_ICONS.get(base_key, DEFAULT_ICON)
-        # NEW: normalize plant 'type' to uppercase to map icons reliably
+        # Normalize plant 'type' to uppercase to map icons reliably
         ptype = (info.get("type") or "").upper()
         return PLANT_TYPE_ICONS.get(ptype, DEFAULT_ICON)
 
@@ -585,7 +590,7 @@ class PollenSensor(CoordinatorEntity):
                 if info.get(k) is not None:
                     attrs[k] = info.get(k)
 
-        # Plant-specific attributes (unchanged Phase 1.1)
+        # Plant-specific attributes
         if info.get("source") == "plant":
             plant_attrs = {
                 "code": info.get("code"),
