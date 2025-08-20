@@ -18,7 +18,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 > **New in 1.6.x**
 > - **1.6.0**: Multi-day forecast for pollen **TYPES** (GRASS/TREE/WEED) with `forecast` attribute, convenience attributes, and optional per-day sensors.  
-> - **1.6.1**: **Unified per-day sensor option** → `create_forecast_sensors` (`none` / `D+1` / `D+1+2`) with validation based on `forecast_days`.
+> - **1.6.1**: **Unified per-day sensor option** → `create_forecast_sensors` (`none` / `D+1` / `D+1+2`) with validation based on `forecast_days`.  
+> - **1.6.3**: **Proactive cleanup** of per-day sensors in the Entity Registry after Options → Reload (no more “Unavailable” leftovers) + **language validation** aligned with BCP-47 patterns + **no API keys in logs**.
 
 ---
 
@@ -42,6 +43,14 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 ---
 
+## 🔒 Security & Privacy
+
+- Your **API key** is stored securely by Home Assistant.  
+- **We never log your API key**. Debug messages redact it (shown as `***`).  
+- Avoid sharing full debug logs publicly; review them for sensitive data before posting.
+
+---
+
 ## ⚙️ Options
 
 You can change:
@@ -58,7 +67,29 @@ You can change:
 > - `D+1` requires `forecast_days ≥ 2`
 > - `D+1+2` requires `forecast_days ≥ 3`
 
+> **After saving Options:** if per-day sensors are disabled or `forecast_days` becomes insufficient, the integration **removes** any stale D+1/D+2 entities from the **Entity Registry** automatically. No manual cleanup needed.
+
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
+
+---
+
+## 🗝️ Getting a Google API Key
+
+You need a valid Google Cloud API key with access to the **Maps Pollen API**.
+
+1. **Open** the [Google Cloud Console](https://console.cloud.google.com/).  
+2. **Create or select** a project and **enable billing** for it.  
+3. Go to **APIs & Services → Library** and **enable** the  
+   **[Maps Pollen API](https://console.cloud.google.com/apis/library/pollen.googleapis.com)**.  
+4. Go to **APIs & Services → Credentials → Create credentials → API key**.  
+5. **Restrict your key** (recommended):  
+   - **API restrictions** → **Restrict key** → select **Maps Pollen API** only.  
+   - **Application restrictions** (optional but recommended):  
+     - **HTTP referrers** (for frontend usages) or  
+     - **IP addresses** (for server-side usage, e.g. your HA host).  
+6. **Copy** the key and paste it in the integration setup.  
+
+👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to avoid exhausting your free tier.
 
 ---
 
@@ -171,14 +202,6 @@ color: '[[[
    * **Location**
    * **Update Interval** (hours)
    * **Language Code**
-
----
-
-## 🗝️ Getting a Google API Key
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Enable Billing and the **Maps Pollen API**.
-3. Create an **API Key** and restrict it to Maps Pollen API.
 
 ---
 
