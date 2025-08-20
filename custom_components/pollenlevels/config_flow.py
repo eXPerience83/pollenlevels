@@ -135,7 +135,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 safe_params = dict(params)
                 if "key" in safe_params:
                     safe_params["key"] = "***"
-                _LOGGER.debug("Validating Pollen API URL: %s params %s", url, safe_params)
+                _LOGGER.debug(
+                    "Validating Pollen API URL: %s params %s", url, safe_params
+                )
 
                 async with session.get(url, params=params) as resp:
                     text = await resp.text()
