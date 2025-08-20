@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.6.3] – 2025-08-18
+## [1.6.3] – 2025-08-20
 ### Fixed
 - Language validation now accepts common **BCP-47** forms (e.g., `zh-Hant-TW`, `es-419`) and relies on the API’s **closest-match** fallback when a sub-locale is unavailable.  
 - **Entity cleanup**: remove stale per-day TYPE sensors `(D+1)/(D+2)` from the **Entity Registry** on entry setup when options no longer request them or `forecast_days` is insufficient. Prevents “Unavailable” leftovers after Options → Reload.  
@@ -8,7 +8,8 @@
 - **Config step parity**: initial setup now allows an **empty** `language_code` (same as Options). When empty, validation is skipped and `languageCode` is not sent to the API during the probe.  
 
 ### Improved
-- **Icons (plants)**: normalize `type` to uppercase to map icons consistently.  
+- **Icons (plants)**: normalize `type` to uppercase to map icons consistently.
+- **Translations**: minor wording fixes in **CA** and **IT** titles.
 
 ## [1.6.2] – 2025-08-14
 ### Changed
