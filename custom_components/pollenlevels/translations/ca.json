@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configuració Nivells de Polen",
+        "title": "Configuració Nivells de pol·len",
         "description": "Introdueix la teva clau d’API de Google, latitud, longitud, interval d’actualització (hores) i codi d’idioma per a la resposta.",
         "data": {
           "api_key": "Clau API",
