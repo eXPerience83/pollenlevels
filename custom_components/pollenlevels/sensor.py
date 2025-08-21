@@ -1,20 +1,9 @@
-"""Provide Pollen Levels sensors with multi-day forecast for pollen TYPES.
+"""Pollen Levels sensors with multi-day forecast (types & plants).
 
-Phase 1.1 (v1.6.x):
-- Unified per-day sensor option into a single selector 'create_forecast_sensors':
-  values: "none" | "D+1" | "D+1+2".
-- Internally maps to create_d1/create_d2 flags for existing logic.
-
-v1.6.3:
-- Proactive cleanup of per-day entities (D+1/D+2) in Entity Registry on reload when
-  options disable them or forecast_days is insufficient.
-
-v1.6.3 beta1:
-- Runtime safety: sanitize language by trimming whitespace and omitting the
-  parameter if empty after normalization. Prevents sending 'languageCode=" es "'. 
-
-Security:
-- We redact API keys in debug logs. Never log secrets in plain text.
+Key points:
+- Cleans up stale per-day sensors (D+1/D+2) in Entity Registry on reload.
+- Normalizes language (trim/omit when empty) before calling the API.
+- Redacts API keys in debug logs.
 """
 
 from __future__ import annotations
@@ -94,20 +83,18 @@ def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
 async def _cleanup_per_day_entities(
     hass, entry_id: str, allow_d1: bool, allow_d2: bool
 ) -> int:
-    """Remove stale per-day entities (D+1/D+2) for this entry from the Entity Registry.
+    """Remove stale per-day entities (D+1/D+2) from the Entity Registry.
 
-    This is needed because Home Assistant keeps entity registry entries across reloads.
-    If options disable per-day sensors (or forecast_days is insufficient), we proactively
-    remove the registry entries so the UI doesn't show "Unavailable" ghosts.
-
-    Returns the number of removed entities.
+    HA keeps entity registry entries across reloads. If options disable per-day
+    sensors (or forecast_days is insufficient), we proactively remove registry
+    entries to avoid "Unavailable" ghosts in the UI.
     """
     registry = er.async_get(hass)
     entries = er.async_entries_for_config_entry(registry, entry_id)
     removed = 0
 
     def _matches(uid: str, suffix: str) -> bool:
-        """Return True if the entity unique_id belongs to this entry and ends with suffix."""
+        """Check if a unique_id belongs to this entry and ends with suffix."""
         if not uid.startswith(f"{entry_id}_"):
             return False
         return uid.endswith(suffix)
@@ -143,7 +130,7 @@ async def _cleanup_per_day_entities(
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Create coordinator and build sensors for pollen data."""
+    """Create coordinator and build sensors."""
     api_key = entry.data[CONF_API_KEY]
     lat = entry.data[CONF_LATITUDE]
     lon = entry.data[CONF_LONGITUDE]
@@ -176,10 +163,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lat=lat,
         lon=lon,
         hours=interval,
-        language=lang,  # will be normalized in the coordinator
+        language=lang,  # normalized in the coordinator
         entry_id=entry.entry_id,
         forecast_days=forecast_days,
-        create_d1=allow_d1,  # pass the effective flags
+        create_d1=allow_d1,  # pass effective flags
         create_d2=allow_d2,
     )
     await coordinator.async_config_entry_first_refresh()
@@ -210,7 +197,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
-    """Coordinate pollen data fetch with forecast support for types."""
+    """Coordinate pollen data fetch with forecast support for TYPES."""
 
     def __init__(
         self,
@@ -238,7 +225,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         # Normalize language once at runtime:
         # - Trim whitespace
-        # - Use None if empty after normalization (so we skip sending languageCode)
+        # - Use None if empty after normalization (skip sending languageCode)
         if isinstance(language, str):
             language = language.strip()
         self.language = language if language else None
@@ -264,7 +251,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         if self.language:
             params["languageCode"] = self.language
 
-        # --- Security: redact API key in logs ---
+        # Redact API key in logs
         safe_params = dict(params)
         if "key" in safe_params:
             safe_params["key"] = "***"
@@ -338,7 +325,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 ),
             }
 
-        # Current-day PLANTS (unchanged in Phase 1.1)
+        # Current-day PLANTS
         for pitem in first_day.get("plantInfo", []) or []:
             code = pitem.get("code")
             idx = pitem.get("indexInfo", {}) or {}
@@ -479,7 +466,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 _tcode=tcode,
                 _type_key=type_key,
             ) -> None:
-                """Create per-day type sensor for a given offset using bound snapshot values."""
+                """Create a per-day type sensor for a given offset."""
                 f = next((d for d in _forecast_list if d["offset"] == off), None)
                 if not f:
                     return
