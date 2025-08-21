@@ -4,7 +4,7 @@ Notes:
 - Unified per-day sensors option: 'create_forecast_sensors' -> "none" | "D+1" | "D+1+2".
 - Validate coherence with 'forecast_days' (e.g., choosing "D+1+2" requires forecast_days >= 3).
 
-Language code validation (v1.6.3 alpha+):
+Language code validation (v1.6.3+):
 - Align validation with IETF BCP-47 commonly used patterns:
   * language (2–3 letters)
   * optional script (4 letters)
@@ -15,13 +15,14 @@ Language code validation (v1.6.3 alpha+):
     - use the closest match when an exact locale is not available, or
     - reject truly invalid inputs with an HTTP error.
 
-Docs: forecast.lookup says languageCode follows BCP-47 and falls back to closest match.
-
 v1.6.3 alpha4:
 - Setup step now mirrors Options behavior: an empty language code is allowed
-  (meaning “inherit HA language / let the API pick default”).
-  When empty, we skip both validation and sending `languageCode` to the API
-  during the connectivity probe. This avoids spurious "empty" errors.
+  (meaning “inherit HA language / let the API pick default”). When empty, we
+  skip both validation and sending `languageCode` to the API during the probe.
+
+v1.6.3 beta1:
+- Persist the *normalized* language code (trimmed) in both Setup and Options.
+  This avoids storing values like " es " and sending them later to the API.
 
 Security (this file):
 - IMPORTANT: We redact API keys in debug logs. Never log secrets in plain text.
@@ -69,7 +70,7 @@ LANGUAGE_CODE_REGEX = re.compile(
 
 
 def is_valid_language_code(value: str) -> str:
-    """Validate language code format; raise user-friendly HA error keys.
+    """Validate language code format; return normalized (trimmed) value.
 
     We accept common BCP-47 patterns and rely on the API to perform:
     - closest-match fallback when a sub-locale is unavailable
@@ -79,6 +80,7 @@ def is_valid_language_code(value: str) -> str:
         raise vol.Invalid("invalid_language")
     norm = value.strip()
     if not norm:
+        # Caller should gate empty values, but keep explicit message here for completeness.
         raise vol.Invalid("empty")
     if not LANGUAGE_CODE_REGEX.match(norm):
         _LOGGER.warning("Invalid language code format (BCP-47-like check): %s", value)
@@ -117,7 +119,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
                 lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
                 if lang:
-                    is_valid_language_code(lang)
+                    # Persist the normalized (trimmed) language code.
+                    lang = is_valid_language_code(lang)
 
                 # Connection check to surface invalid key/quotas early.
                 session = async_get_clientsession(self.hass)
@@ -169,6 +172,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
+                # Persist normalized language (trimmed) or empty if user cleared it.
+                user_input[CONF_LANGUAGE_CODE] = lang
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
 
         defaults = {
@@ -213,14 +218,17 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             try:
                 # Language: allow empty (inherit HA language); if provided, validate.
-                lang = user_input.get(
+                raw_lang = user_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
                         CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, "")
                     ),
                 )
-                if isinstance(lang, str) and lang.strip():
-                    is_valid_language_code(lang)
+                lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
+                if lang:
+                    lang = is_valid_language_code(lang)
+                # Persist normalized (trimmed) language so we never store values with spaces.
+                user_input[CONF_LANGUAGE_CODE] = lang
 
                 # forecast_days within supported range 1..5
                 days = int(
