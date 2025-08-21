@@ -150,14 +150,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
+                vol.Optional(
+                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
+                ): cv.latitude,
                 vol.Optional(
                     CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
                 ): cv.longitude,
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
+                vol.Optional(
+                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
+                ): str,
             }
         )
 
