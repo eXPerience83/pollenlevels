@@ -4,24 +4,17 @@ Phase 1.1 (v1.6.x):
 - Unified per-day sensor option into a single selector 'create_forecast_sensors':
   values: "none" | "D+1" | "D+1+2".
 - Internally maps to create_d1/create_d2 flags for existing logic.
-- Everything else stays as in Phase 1:
-  * forecast attribute on type sensors (list of {offset, date, has_index, value, category, description, color_*})
-  * convenience fields: tomorrow_* and d2_*
-  * trend (vs tomorrow) and expected_peak
-  * optional per-day sensors for (D+1) and (D+2), created only if requested and data available.
-
-Robustness:
-- Days without indexInfo are represented with has_index=false and null values.
-- Entity names for per-day sensors use neutral suffixes "(D+1)" / "(D+2)".
 
 v1.6.3:
-- Add proactive cleanup of per-day entities (D+1/D+2) in the Entity Registry when options
-  no longer request them or forecast_days is insufficient. This prevents "Unavailable"
-  leftovers after reloading the entry.
-- Normalize plant 'type' to uppercase for icon mapping.
+- Proactive cleanup of per-day entities (D+1/D+2) in Entity Registry on reload when
+  options disable them or forecast_days is insufficient.
 
-Security (this file):
-- IMPORTANT: We redact API keys in debug logs. Never log secrets in plain text.
+v1.6.3 beta1:
+- Runtime safety: sanitize language by trimming whitespace and omitting the
+  parameter if empty after normalization. Prevents sending 'languageCode=" es "'. 
+
+Security:
+- We redact API keys in debug logs. Never log secrets in plain text.
 """
 
 from __future__ import annotations
@@ -31,7 +24,7 @@ from datetime import timedelta
 from typing import Any
 
 from homeassistant.const import ATTR_ATTRIBUTION
-from homeassistant.helpers import entity_registry as er  # <-- entity-registry cleanup
+from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import (
@@ -110,18 +103,15 @@ async def _cleanup_per_day_entities(
     Returns the number of removed entities.
     """
     registry = er.async_get(hass)
-    # Get all entities belonging to this config entry
     entries = er.async_entries_for_config_entry(registry, entry_id)
     removed = 0
 
-    # Helper: determine whether a unique_id corresponds to a D+1 or D+2 sensor
     def _matches(uid: str, suffix: str) -> bool:
-        # Our unique_id format is: f"{entry_id}_{code}"
+        """Return True if the entity unique_id belongs to this entry and ends with suffix."""
         if not uid.startswith(f"{entry_id}_"):
             return False
         return uid.endswith(suffix)
 
-    # We remove any *_d1 if !allow_d1 and any *_d2 if !allow_d2
     for ent in entries:
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
@@ -175,7 +165,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     allow_d1 = create_d1 and forecast_days >= 2
     allow_d2 = create_d2 and forecast_days >= 3
 
-    # --- NEW: proactively remove stale D+ entities from the Entity Registry ----
+    # Proactively remove stale D+ entities from the Entity Registry
     await _cleanup_per_day_entities(
         hass, entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
     )
@@ -186,7 +176,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lat=lat,
         lon=lon,
         hours=interval,
-        language=lang,
+        language=lang,  # will be normalized in the coordinator
         entry_id=entry.entry_id,
         forecast_days=forecast_days,
         create_d1=allow_d1,  # pass the effective flags
@@ -245,7 +235,14 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.api_key = api_key
         self.lat = lat
         self.lon = lon
-        self.language = language
+
+        # Normalize language once at runtime:
+        # - Trim whitespace
+        # - Use None if empty after normalization (so we skip sending languageCode)
+        if isinstance(language, str):
+            language = language.strip()
+        self.language = language if language else None
+
         self.entry_id = entry_id
         self.forecast_days = max(1, min(5, int(forecast_days)))
         self.create_d1 = create_d1
@@ -439,7 +436,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             _set_convenience("tomorrow", 1)
             _set_convenience("d2", 2)
 
-            # Trend (use PEP 604 union in isinstance as suggested by ruff UP038)
+            # Trend
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
             if isinstance(now_val, int | float) and isinstance(
