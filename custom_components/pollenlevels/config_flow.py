@@ -1,31 +1,9 @@
-"""Handle config & options flow for Pollen Levels integration.
+"""Config & options flow for Pollen Levels.
 
 Notes:
-- Unified per-day sensors option: 'create_forecast_sensors' -> "none" | "D+1" | "D+1+2".
-- Validate coherence with 'forecast_days' (e.g., choosing "D+1+2" requires forecast_days >= 3).
-
-Language code validation (v1.6.3+):
-- Align validation with IETF BCP-47 commonly used patterns:
-  * language (2–3 letters)
-  * optional script (4 letters)
-  * optional region (2 letters OR 3 digits)
-  * optional single variant (5–8 alphanum OR 4 starting with digit)
-- This accepts tags like: "en", "en-US", "zh-Hant", "zh-Hant-TW", "es-419".
-- We intentionally keep it permissive and let the Google API:
-    - use the closest match when an exact locale is not available, or
-    - reject truly invalid inputs with an HTTP error.
-
-v1.6.3 alpha4:
-- Setup step now mirrors Options behavior: an empty language code is allowed
-  (meaning “inherit HA language / let the API pick default”). When empty, we
-  skip both validation and sending `languageCode` to the API during the probe.
-
-v1.6.3 beta1:
-- Persist the *normalized* language code (trimmed) in both Setup and Options.
-  This avoids storing values like " es " and sending them later to the API.
-
-Security (this file):
-- IMPORTANT: We redact API keys in debug logs. Never log secrets in plain text.
+- Unified per-day sensors option ('create_forecast_sensors'): "none" | "D+1" | "D+1+2".
+- Allows empty language (omit languageCode). Trims language whitespace on save.
+- Redacts API keys in debug logs.
 """
 
 from __future__ import annotations
@@ -57,9 +35,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
 # BCP-47-ish regex (common patterns, not full grammar).
-# ---------------------------------------------------------------------------
 LANGUAGE_CODE_REGEX = re.compile(
     r"^[A-Za-z]{2,3}"
     r"(?:-[A-Za-z]{4})?"  # optional script
@@ -70,20 +46,14 @@ LANGUAGE_CODE_REGEX = re.compile(
 
 
 def is_valid_language_code(value: str) -> str:
-    """Validate language code format; return normalized (trimmed) value.
-
-    We accept common BCP-47 patterns and rely on the API to perform:
-    - closest-match fallback when a sub-locale is unavailable
-    - final validation for totally invalid values
-    """
+    """Validate language code format; return normalized (trimmed) value."""
     if not isinstance(value, str):
         raise vol.Invalid("invalid_language")
     norm = value.strip()
     if not norm:
-        # Caller should gate empty values, but keep explicit message here for completeness.
         raise vol.Invalid("empty")
     if not LANGUAGE_CODE_REGEX.match(norm):
-        _LOGGER.warning("Invalid language code format (BCP-47-like check): %s", value)
+        _LOGGER.warning("Invalid language code format (BCP-47-like): %s", value)
         raise vol.Invalid("invalid_language")
     return norm
 
@@ -95,7 +65,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     def async_get_options_flow(entry: config_entries.ConfigEntry):
-        """Return the options flow handler for this entry."""
+        """Return the options flow handler."""
         return PollenLevelsOptionsFlow(entry)
 
     async def async_step_user(self, user_input=None):
@@ -103,26 +73,22 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input:
-            # Define upfront to avoid any edge-case scoping issues.
             lat = float(user_input.get(CONF_LATITUDE))
             lon = float(user_input.get(CONF_LONGITUDE))
 
-            # Unique ID by lat/lon to prevent duplicates.
             try:
                 await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
                 self._abort_if_unique_id_configured()
-            except Exception:  # pragma: no cover - defensive
+            except Exception:  # defensive
                 pass
 
             try:
-                # Allow blank language (inherit HA language / API default).
+                # Allow blank language; if present, validate & normalize
                 raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
                 lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
                 if lang:
-                    # Persist the normalized (trimmed) language code.
                     lang = is_valid_language_code(lang)
 
-                # Connection check to surface invalid key/quotas early.
                 session = async_get_clientsession(self.hass)
                 params = {
                     "key": user_input[CONF_API_KEY],
@@ -134,13 +100,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     params["languageCode"] = lang
 
                 url = "https://pollen.googleapis.com/v1/forecast:lookup"
-                # --- Security: redact API key in logs ---
+
+                # Redact API key in logs
                 safe_params = dict(params)
                 if "key" in safe_params:
                     safe_params["key"] = "***"
-                _LOGGER.debug(
-                    "Validating Pollen API URL: %s params %s", url, safe_params
-                )
+                _LOGGER.debug("Validating API: %s params %s", url, safe_params)
 
                 async with session.get(url, params=params) as resp:
                     text = await resp.text()
@@ -167,38 +132,32 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except aiohttp.ClientError as err:
                 _LOGGER.error("Connection error: %s", err)
                 errors["base"] = "cannot_connect"
-            except Exception as err:  # pragma: no cover - defensive
+            except Exception as err:  # defensive
                 _LOGGER.exception("Unexpected error: %s", err)
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Persist normalized language (trimmed) or empty if user cleared it.
+                # Persist normalized (trimmed) language or empty if cleared
                 user_input[CONF_LANGUAGE_CODE] = lang
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
 
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
-            # Keep default as HA language; user can clear it if desired.
             CONF_LANGUAGE_CODE: self.hass.config.language,
         }
 
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
-                vol.Optional(
-                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
-                ): cv.latitude,
+                vol.Optional(CONF_LATITUDE, default=defaults[CONF_LATITUDE]): cv.latitude,
                 vol.Optional(
                     CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
                 ): cv.longitude,
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                # Note: string type retained; empty string is accepted and handled above.
-                vol.Optional(
-                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
-                ): str,
+                vol.Optional(CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]): str,
             }
         )
 
@@ -212,12 +171,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         self.entry = entry
 
     async def async_step_init(self, user_input=None):
-        """Display and process options form."""
+        """Display/process options form."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             try:
-                # Language: allow empty (inherit HA language); if provided, validate.
+                # Language: allow empty; if provided, validate & normalize.
                 raw_lang = user_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
@@ -227,10 +186,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
                 if lang:
                     lang = is_valid_language_code(lang)
-                # Persist normalized (trimmed) language so we never store values with spaces.
-                user_input[CONF_LANGUAGE_CODE] = lang
+                user_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
 
-                # forecast_days within supported range 1..5
+                # forecast_days within 1..5
                 days = int(
                     user_input.get(
                         CONF_FORECAST_DAYS,
@@ -257,7 +215,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
-            except Exception as err:  # pragma: no cover - defensive
+            except Exception as err:  # defensive
                 _LOGGER.exception("Options validation error: %s", err)
                 errors["base"] = "cannot_connect"
 
