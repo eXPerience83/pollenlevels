@@ -538,6 +538,7 @@ class PollenSensor(CoordinatorEntity):
         info = self.coordinator.data[self.code]
         attrs = {
             "category": info.get("category"),
+            # Always include explicit public attribution on all pollen sensors.
             ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
         }
 
@@ -632,6 +633,15 @@ class _BaseMetaSensor(CoordinatorEntity):
                 "longitude": f"{self.coordinator.lon:.6f}",
             },
         }
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Expose a public attribution on all metadata sensors.
+
+        This mirrors PollenSensor's attribution so *all* sensors in this
+        integration consistently show the data source.
+        """
+        return {ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API"}
 
 
 class RegionSensor(_BaseMetaSensor):
