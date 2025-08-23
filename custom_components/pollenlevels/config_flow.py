@@ -77,6 +77,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             lon = float(user_input.get(CONF_LONGITUDE))
 
             try:
+                # Unique ID is used to prevent duplicates (not used in entity unique_ids)
                 await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
                 self._abort_if_unique_id_configured()
             except Exception:  # defensive
@@ -107,7 +108,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     safe_params["key"] = "***"
                 _LOGGER.debug("Validating API: %s params %s", url, safe_params)
 
-                async with session.get(url, params=params) as resp:
+                # FIX: Add explicit timeout to prevent UI hangs on provider issues
+                async with session.get(
+                    url, params=params, timeout=aiohttp.ClientTimeout(total=15)
+                ) as resp:
                     text = await resp.text()
                     _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
                     if resp.status == 403:
