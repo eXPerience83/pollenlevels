@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.4] – 2025-08-22
+### Fixed
+- **Config Flow validation timeout**: Added `ClientTimeout(total=15)` to prevent UI hangs if the provider stalls.
+- **Coordinator hardening**: Sanitized exception messages and logs to avoid accidental API key leakage; explicit `ClientTimeout(total=10)` on fetch.
+
 ## [1.6.3] – 2025-08-22
 ### Fixed
 - Language validation now accepts common **BCP-47** forms (e.g., `zh-Hant-TW`, `es-419`) and relies on the API’s **closest-match** fallback when a sub-locale is unavailable.  
