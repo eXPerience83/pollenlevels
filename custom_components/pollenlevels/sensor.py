@@ -12,6 +12,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+import aiohttp  # NEW: for explicit ClientTimeout
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -258,7 +259,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Fetching with params: %s", safe_params)
 
         try:
-            async with self._session.get(url, params=params, timeout=10) as resp:
+            # FIX: Explicit total timeout for network call
+            async with self._session.get(
+                url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
                 if resp.status == 403:
                     raise UpdateFailed("Invalid API key")
                 if resp.status == 429:
@@ -267,7 +271,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     raise UpdateFailed(f"HTTP {resp.status}")
                 payload = await resp.json()
         except Exception as err:
-            raise UpdateFailed(err) from err
+            # FIX: Sanitize any occurrence of the API key from error messages
+            msg = str(err)
+            if self.api_key:
+                msg = msg.replace(self.api_key, "***")
+            _LOGGER.error("Pollen API error: %s", msg)
+            raise UpdateFailed(msg) from err
 
         new_data: dict[str, dict] = {}
 
@@ -509,6 +518,7 @@ class PollenSensor(CoordinatorEntity):
     @property
     def unique_id(self) -> str:
         """Return unique ID for sensor."""
+        # Uses the internal config entry_id (UUID-like, no dots) plus the code
         return f"{self.coordinator.entry_id}_{self.code}"
 
     @property
