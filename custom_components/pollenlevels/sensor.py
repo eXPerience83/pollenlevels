@@ -8,11 +8,13 @@ Key points:
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import random
 from datetime import timedelta
 from typing import Any
 
-import aiohttp  # NEW: for explicit ClientTimeout
+import aiohttp  # for explicit ClientTimeout
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -240,6 +242,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.last_updated = None
         self._session = async_get_clientsession(hass)
 
+    def _redact(self, text: str) -> str:
+        """Redact API key from any provided text."""
+        return text.replace(self.api_key, "***") if self.api_key else text
+
     async def _async_update_data(self):
         """Fetch pollen data and extract sensors for current day and forecast."""
         url = "https://pollen.googleapis.com/v1/forecast:lookup"
@@ -258,25 +264,79 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             safe_params["key"] = "***"
         _LOGGER.debug("Fetching with params: %s", safe_params)
 
-        try:
-            # FIX: Explicit total timeout for network call
-            async with self._session.get(
-                url, params=params, timeout=aiohttp.ClientTimeout(total=10)
-            ) as resp:
-                if resp.status == 403:
-                    raise UpdateFailed("Invalid API key")
-                if resp.status == 429:
-                    raise UpdateFailed("Quota exceeded")
-                if resp.status != 200:
-                    raise UpdateFailed(f"HTTP {resp.status}")
-                payload = await resp.json()
-        except Exception as err:
-            # FIX: Sanitize any occurrence of the API key from error messages
-            msg = str(err)
-            if self.api_key:
-                msg = msg.replace(self.api_key, "***")
-            _LOGGER.error("Pollen API error: %s", msg)
-            raise UpdateFailed(msg) from err
+        # --- Resilient fetch with exponential backoff (no retry on 403/429) ---
+        max_attempts = 3
+        backoff_base = 1.0  # seconds
+
+        payload: dict[str, Any] | None = None
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                async with self._session.get(
+                    url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+                ) as resp:
+                    status = resp.status
+
+                    # Do not retry on invalid auth / quota exceeded
+                    if status == 403:
+                        raise UpdateFailed("Invalid API key")
+                    if status == 429:
+                        raise UpdateFailed("Quota exceeded")
+
+                    # Retry on transient HTTP status
+                    transient_http = status == 408 or 500 <= status < 600
+                    if transient_http:
+                        body = self._redact(await resp.text())
+                        _LOGGER.debug(
+                            "Transient HTTP %s on attempt %d/%d (body=%s)",
+                            status,
+                            attempt,
+                            max_attempts,
+                            body,
+                        )
+                        if attempt < max_attempts:
+                            delay = backoff_base * (2 ** (attempt - 1))
+                            delay += random.uniform(0, 0.4)  # jitter to spread bursts
+                            await asyncio.sleep(delay)
+                            continue
+                        # last attempt → fall through to raise
+                        raise UpdateFailed(f"HTTP {status}")
+
+                    if status != 200:
+                        body = self._redact(await resp.text())
+                        raise UpdateFailed(f"HTTP {status}: {body}")
+
+                    payload = await resp.json()
+                    break  # success
+
+            except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+                # Network-level transient; retry with backoff
+                _LOGGER.debug(
+                    "Transient network error on attempt %d/%d: %s",
+                    attempt,
+                    max_attempts,
+                    self._redact(str(err)),
+                )
+                if attempt < max_attempts:
+                    delay = backoff_base * (2 ** (attempt - 1))
+                    delay += random.uniform(0, 0.4)
+                    await asyncio.sleep(delay)
+                    continue
+                msg = self._redact(str(err))
+                _LOGGER.error("Pollen API network error: %s", msg)
+                raise UpdateFailed(msg) from err
+            except UpdateFailed:
+                # Non-transient (or last transient) already mapped; re-raise as is.
+                raise
+            except Exception as err:
+                # Unknown errors: treat as non-transient
+                msg = self._redact(str(err))
+                _LOGGER.error("Pollen API error: %s", msg)
+                raise UpdateFailed(msg) from err
+
+        if payload is None:
+            # Defensive (shouldn't happen)
+            raise UpdateFailed("Empty payload")
 
         new_data: dict[str, dict] = {}
 
