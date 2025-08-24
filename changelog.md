@@ -4,6 +4,8 @@
 ### Fixed
 - **Config Flow validation timeout**: Added `ClientTimeout(total=15)` to prevent UI hangs if the provider stalls.
 - **Coordinator hardening**: Sanitized exception messages and logs to avoid accidental API key leakage; explicit `ClientTimeout(total=10)` on fetch.
+### Added
+- **Diagnostics**: New `diagnostics.py` with secret redaction (API key and location) and coordinator snapshot.
 
 ## [1.6.3] – 2025-08-22
 ### Fixed
