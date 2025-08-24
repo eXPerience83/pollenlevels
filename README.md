@@ -16,11 +16,6 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 [![Open your Home Assistant instance and add this repository inside HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eXPerience83&repository=pollenlevels&category=integration)
 
-> **New in 1.6.x**
-> - **1.6.0**: Multi-day forecast for pollen **TYPES** (GRASS/TREE/WEED) with `forecast` attribute, convenience attributes, and optional per-day sensors.  
-> - **1.6.1**: **Unified per-day sensor option** → `create_forecast_sensors` (`none` / `D+1` / `D+1+2`) with validation based on `forecast_days`.  
-> - **1.6.3**: **Proactive cleanup** of per-day sensors in the Entity Registry after Options → Reload (no more “Unavailable” leftovers) + **language validation** aligned with BCP-47 patterns + **no API keys in logs**.
-
 ---
 
 ## 🌟 Features
