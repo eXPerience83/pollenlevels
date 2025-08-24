@@ -18,12 +18,12 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
-    CONF_FORECAST_DAYS,
-    CONF_CREATE_FORECAST_SENSORS,
     DOMAIN,
 )
 
