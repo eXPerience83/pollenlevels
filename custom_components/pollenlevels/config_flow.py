@@ -3,7 +3,7 @@
 Notes:
 - Unified per-day sensors option ('create_forecast_sensors'): "none" | "D+1" | "D+1+2".
 - Allows empty language (omit languageCode). Trims language whitespace on save.
-- Redacts API keys in debug logs.
+- Redacts API keys in debug logs and error logs.
 """
 
 from __future__ import annotations
@@ -58,6 +58,16 @@ def is_valid_language_code(value: str) -> str:
     return norm
 
 
+def _redact(text: str | bytes | None, api_key: str | None) -> str:
+    """Redact API key if present in text for safe logging."""
+    if text is None:
+        return ""
+    s = text.decode() if isinstance(text, (bytes, bytearray)) else str(text)
+    if api_key:
+        return s.replace(api_key, "***")
+    return s
+
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
@@ -83,6 +93,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:  # defensive
                 pass
 
+            api_key = user_input.get(CONF_API_KEY, "")
+
             try:
                 # Allow blank language; if present, validate & normalize
                 raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
@@ -92,7 +104,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 session = async_get_clientsession(self.hass)
                 params = {
-                    "key": user_input[CONF_API_KEY],
+                    "key": api_key,
                     "location.latitude": f"{lat:.6f}",
                     "location.longitude": f"{lon:.6f}",
                     "days": 1,
@@ -108,12 +120,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     safe_params["key"] = "***"
                 _LOGGER.debug("Validating API: %s params %s", url, safe_params)
 
-                # FIX: Add explicit timeout to prevent UI hangs on provider issues
+                # Explicit timeout to prevent UI hangs on provider issues
                 async with session.get(
                     url, params=params, timeout=aiohttp.ClientTimeout(total=15)
                 ) as resp:
                     text = await resp.text()
-                    _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
+                    _LOGGER.debug("Validation HTTP %s — %s", resp.status, _redact(text, api_key))
                     if resp.status == 403:
                         errors["base"] = "invalid_auth"
                     elif resp.status == 429:
@@ -134,10 +146,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except aiohttp.ClientError as err:
-                _LOGGER.error("Connection error: %s", err)
+                # Redact API key from potential URL in exception text
+                _LOGGER.error("Connection error: %s", _redact(err, api_key))
                 errors["base"] = "cannot_connect"
             except Exception as err:  # defensive
-                _LOGGER.exception("Unexpected error: %s", err)
+                # Redact just in case the exception string embeds request info
+                _LOGGER.exception("Unexpected error: %s", _redact(err, api_key))
                 errors["base"] = "cannot_connect"
 
             if not errors:
