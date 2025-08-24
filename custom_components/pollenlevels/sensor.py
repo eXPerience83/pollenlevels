@@ -309,7 +309,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     payload = await resp.json()
                     break  # success
 
-            except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            except (TimeoutError, aiohttp.ClientError) as err:
                 # Network-level transient; retry with backoff
                 _LOGGER.debug(
                     "Transient network error on attempt %d/%d: %s",
