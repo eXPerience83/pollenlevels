@@ -26,14 +26,22 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcje",
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW.",
+        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
         "data": {
           "update_interval": "Interwał aktualizacji (godziny)",
           "language_code": "Kod języka odpowiedzi API",
           "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Czujniki dzienne (TYPY): none, D+1, D+1+2"
+          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
         }
       }
+    },
+    "error": {
+      "invalid_auth": "Nieprawidłowy klucz API",
+      "cannot_connect": "Brak połączenia z usługą",
+      "quota_exceeded": "Przekroczono limit",
+      "invalid_language": "Nieprawidłowy kod języka",
+      "empty": "To pole nie może być puste",
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
     }
   },
   "device": {
