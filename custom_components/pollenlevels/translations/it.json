@@ -26,14 +26,22 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opzioni",
-        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta API, i giorni di previsione e i sensori giornalieri per i TIPI.",
+        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta API, i giorni di previsione e i sensori giornalieri per i TIPI.\nOpzioni sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
         "data": {
           "update_interval": "Intervallo di aggiornamento (ore)",
           "language_code": "Codice lingua per la risposta API",
           "forecast_days": "Giorni di previsione (1–5)",
-          "create_forecast_sensors": "Sensori per giorno (TIPI): none, D+1, D+1+2"
+          "create_forecast_sensors": "Ambito dei sensori per giorno (TIPI)"
         }
       }
+    },
+    "error": {
+      "invalid_auth": "Chiave API non valida",
+      "cannot_connect": "Impossibile connettersi al servizio",
+      "quota_exceeded": "Quota superata",
+      "invalid_language": "Codice lingua non valido",
+      "empty": "Questo campo non può essere vuoto",
+      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati."
     }
   },
   "device": {
