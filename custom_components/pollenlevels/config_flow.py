@@ -8,6 +8,7 @@ Notes:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 
@@ -52,7 +53,7 @@ def _redact_api_key(text: object, api_key: str | None) -> str:
     """
     if text is None:
         return ""
-    # Ruff UP038: use PEP 604 unions in isinstance checks (Python 3.11 target)
+    # Use PEP-604 unions in isinstance checks (Python 3.11 target)
     s = text.decode() if isinstance(text, bytes | bytearray) else str(text)
     if api_key:
         return s.replace(api_key, "***")
@@ -151,11 +152,24 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ve,
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
+            except (TimeoutError, asyncio.TimeoutError) as err:
+                # Explicitly catch request timeouts to avoid noisy traces
+                _LOGGER.warning(
+                    "Validation timeout: %s",
+                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                )
+                errors["base"] = "cannot_connect"
             except aiohttp.ClientError as err:
-                _LOGGER.error("Connection error: %s", err)
+                _LOGGER.error(
+                    "Connection error: %s",
+                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                )
                 errors["base"] = "cannot_connect"
             except Exception as err:  # defensive
-                _LOGGER.exception("Unexpected error: %s", err)
+                _LOGGER.exception(
+                    "Unexpected error: %s",
+                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                )
                 errors["base"] = "cannot_connect"
 
             if not errors:
@@ -242,7 +256,10 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except Exception as err:  # defensive
-                _LOGGER.exception("Options validation error: %s", err)
+                _LOGGER.exception(
+                    "Options validation error: %s",
+                    _redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
+                )
                 errors["base"] = "cannot_connect"
 
             if not errors:
