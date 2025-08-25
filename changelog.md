@@ -3,6 +3,7 @@
 ## [1.6.5] – 2025-08-25
 ### Fixed
 - Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
+- **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors) to avoid leaking the API key in logs; explicit handling of `TimeoutError/asyncio.TimeoutError` returns a clean `cannot_connect`.
 ### Changed
 - Improved wording for `create_forecast_sensors` across all locales:
   - Field label now clarifies it’s the **range** for per-day TYPE sensors.
