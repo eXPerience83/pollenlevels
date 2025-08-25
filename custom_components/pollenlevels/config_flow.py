@@ -8,7 +8,6 @@ Notes:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 
@@ -152,7 +151,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ve,
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
-            except (TimeoutError, asyncio.TimeoutError) as err:
+            except TimeoutError as err:
                 # Explicitly catch request timeouts to avoid noisy traces
                 _LOGGER.warning(
                     "Validation timeout: %s",
