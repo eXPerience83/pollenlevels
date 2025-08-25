@@ -320,8 +320,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     payload = await resp.json()
                     break  # exit retry loop on success
 
-            except TimeoutError as err:
-                # IMPORTANT: catch built-in TimeoutError (not just asyncio.TimeoutError)
+            except (TimeoutError, asyncio.TimeoutError) as err:
+                # IMPORTANT: catch both built-in TimeoutError and asyncio.TimeoutError
                 if attempt < max_retries:
                     delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
                     _LOGGER.warning(
