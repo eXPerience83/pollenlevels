@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.5] – 2025-08-24
+### Fixed
+- Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
+
+### Changed
+- Improved wording for `create_forecast_sensors` across all locales:
+  - Field label now clarifies it’s the **range** for per-day TYPE sensors.
+  - Step description explains each choice with plain language:
+    - **Only today (none)**, **Through tomorrow (D+1)**, **Through day after tomorrow (D+2)** (and local equivalents).
+
 ## [1.6.4] – 2025-08-22
 ### Fixed
 - **Config Flow validation timeout**: Added `ClientTimeout(total=15)` to prevent UI hangs if the provider stalls.
