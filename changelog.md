@@ -1,14 +1,16 @@
 # Changelog
 
-## [1.6.5] – 2025-08-24
+## [1.6.5] – 2025-08-25
 ### Fixed
 - Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
-
 ### Changed
 - Improved wording for `create_forecast_sensors` across all locales:
   - Field label now clarifies it’s the **range** for per-day TYPE sensors.
   - Step description explains each choice with plain language:
     - **Only today (none)**, **Through tomorrow (D+1)**, **Through day after tomorrow (D+2)** (and local equivalents).
+### Reliability
+- Minimal safe backoff in coordinator: single retry on transient failures (**TimeoutError/asyncio.TimeoutError**, `aiohttp.ClientError`, `5xx`).
+  For **429**, honor `Retry-After` (seconds) capped at **5s**; otherwise wait ~**2s** plus small jitter.
 
 ## [1.6.4] – 2025-08-22
 ### Fixed
