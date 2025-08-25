@@ -4,15 +4,18 @@ Key points:
 - Cleans up stale per-day sensors (D+1/D+2) in Entity Registry on reload.
 - Normalizes language (trim/omit when empty) before calling the API.
 - Redacts API keys in debug logs.
+- Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import random
 from datetime import timedelta
 from typing import Any
 
-import aiohttp  # NEW: for explicit ClientTimeout
+import aiohttp  # For explicit ClientTimeout and ClientError
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -258,25 +261,106 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             safe_params["key"] = "***"
         _LOGGER.debug("Fetching with params: %s", safe_params)
 
-        try:
-            # FIX: Explicit total timeout for network call
-            async with self._session.get(
-                url, params=params, timeout=aiohttp.ClientTimeout(total=10)
-            ) as resp:
-                if resp.status == 403:
-                    raise UpdateFailed("Invalid API key")
-                if resp.status == 429:
-                    raise UpdateFailed("Quota exceeded")
-                if resp.status != 200:
-                    raise UpdateFailed(f"HTTP {resp.status}")
-                payload = await resp.json()
-        except Exception as err:
-            # FIX: Sanitize any occurrence of the API key from error messages
-            msg = str(err)
-            if self.api_key:
-                msg = msg.replace(self.api_key, "***")
-            _LOGGER.error("Pollen API error: %s", msg)
-            raise UpdateFailed(msg) from err
+        # --- Minimal, safe retry policy (single retry) -----------------------
+        max_retries = 1  # Keep it minimal to reduce cost/latency
+        for attempt in range(0, max_retries + 1):
+            try:
+                # Explicit total timeout for network call
+                async with self._session.get(
+                    url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+                ) as resp:
+                    # Non-retryable auth logic first
+                    if resp.status == 403:
+                        raise UpdateFailed("Invalid API key")
+
+                    # 429: may be transient — respect Retry-After if present
+                    if resp.status == 429:
+                        if attempt < max_retries:
+                            retry_after_raw = resp.headers.get("Retry-After")
+                            delay = 2.0
+                            if retry_after_raw:
+                                try:
+                                    delay = float(retry_after_raw)
+                                except (TypeError, ValueError):
+                                    delay = 2.0
+                            # Cap delay and add small jitter to avoid herding
+                            delay = min(delay, 5.0) + random.uniform(0.0, 0.4)
+                            _LOGGER.warning(
+                                "Pollen API 429 — retrying in %.2fs (attempt %d/%d)",
+                                delay,
+                                attempt + 1,
+                                max_retries,
+                            )
+                            await asyncio.sleep(delay)
+                            continue
+                        raise UpdateFailed("Quota exceeded")
+
+                    # 5xx -> retry once with short backoff
+                    if 500 <= resp.status <= 599:
+                        if attempt < max_retries:
+                            delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
+                            _LOGGER.warning(
+                                "Pollen API HTTP %s — retrying in %.2fs (attempt %d/%d)",
+                                resp.status,
+                                delay,
+                                attempt + 1,
+                                max_retries,
+                            )
+                            await asyncio.sleep(delay)
+                            continue
+                        raise UpdateFailed(f"HTTP {resp.status}")
+
+                    # Other 4xx (client errors except 403/429) are not retried
+                    if 400 <= resp.status < 500 and resp.status not in (403, 429):
+                        raise UpdateFailed(f"HTTP {resp.status}")
+
+                    if resp.status != 200:
+                        raise UpdateFailed(f"HTTP {resp.status}")
+
+                    payload = await resp.json()
+                    break  # exit retry loop on success
+
+            except (TimeoutError, asyncio.TimeoutError) as err:
+                # IMPORTANT: catch built-in TimeoutError (not just asyncio.TimeoutError)
+                if attempt < max_retries:
+                    delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
+                    _LOGGER.warning(
+                        "Pollen API timeout — retrying in %.2fs (attempt %d/%d)",
+                        delay,
+                        attempt + 1,
+                        max_retries,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                msg = str(err)
+                if self.api_key:
+                    msg = msg.replace(self.api_key, "***")
+                raise UpdateFailed(f"Timeout: {msg}") from err
+
+            except aiohttp.ClientError as err:
+                # Transient client-side issues (DNS reset, connector errors, etc.)
+                if attempt < max_retries:
+                    delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
+                    _LOGGER.warning(
+                        "Network error to Pollen API — retrying in %.2fs (attempt %d/%d)",
+                        delay,
+                        attempt + 1,
+                        max_retries,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                msg = str(err)
+                if self.api_key:
+                    msg = msg.replace(self.api_key, "***")
+                raise UpdateFailed(msg) from err
+
+            except Exception as err:  # Keep previous behavior for unexpected errors
+                msg = str(err)
+                if self.api_key:
+                    msg = msg.replace(self.api_key, "***")
+                _LOGGER.error("Pollen API error: %s", msg)
+                raise UpdateFailed(msg) from err
+        # --------------------------------------------------------------------
 
         new_data: dict[str, dict] = {}
 
