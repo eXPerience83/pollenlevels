@@ -4,6 +4,8 @@ Notes:
 - Unified per-day sensors option ('create_forecast_sensors'): "none" | "D+1" | "D+1+2".
 - Allows empty language (omit languageCode). Trims language whitespace on save.
 - Redacts API keys in debug logs.
+- Timeout handling: on Python 3.11, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
+  so catching `TimeoutError` is sufficient and preferred.
 """
 
 from __future__ import annotations
@@ -152,7 +154,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except TimeoutError as err:
-                # Explicitly catch both built-in and asyncio timeouts
+                # Catch built-in TimeoutError; on Python 3.11 this also covers asyncio.TimeoutError.
                 _LOGGER.warning(
                     "Validation timeout: %s",
                     _redact_api_key(err, user_input.get(CONF_API_KEY)),
