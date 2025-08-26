@@ -1,8 +1,6 @@
-# Changelog
-
 ## [1.6.5] – 2025-08-26
 ### Fixed
-- Timeouts: explicitly catch **`asyncio.TimeoutError`** in both **Config Flow** validation and **Coordinator** fetch loop, alongside built-in `TimeoutError`, ensuring aiohttp timeouts are always handled and mapped to clean errors/backoff (no noisy traces).
+- Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator. In Python 3.11 this also covers `asyncio.TimeoutError`, so listing both is redundant (autoformatted by ruff/pyupgrade).
 - Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
 - **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors) to avoid leaking the API key in logs; explicit handling of `TimeoutError/asyncio.TimeoutError` returns a clean `cannot_connect`.
 - **Reliability**: Coordinator now also catches `asyncio.TimeoutError` in addition to built-in `TimeoutError` for timeout retries.
