@@ -20,6 +20,9 @@
       "invalid_language": "Código de idioma no válido",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados."
+    },
+    "abort": {
+      "already_configured": "Esta ubicación ya está configurada."
     }
   },
   "options": {
