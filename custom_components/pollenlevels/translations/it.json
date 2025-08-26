@@ -3,13 +3,13 @@
     "step": {
       "user": {
         "title": "Configurazione Livelli di polline",
-        "description": "Inserisci la tua chiave API Google, latitudine, longitudine, intervallo di aggiornamento (ore) e il codice lingua per la risposta.",
+        "description": "Inserisci la tua chiave API Google, latitudine, longitudine, intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
         "data": {
           "api_key": "Chiave API",
           "latitude": "Latitudine",
           "longitude": "Longitudine",
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "language_code": "Codice lingua per la risposta API"
+          "language_code": "Codice lingua per la risposta dell'API"
         }
       }
     },
@@ -29,10 +29,10 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opzioni",
-        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta API, i giorni di previsione e i sensori giornalieri per i TIPI.\nOpzioni sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
+        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI.\nOpzioni sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
         "data": {
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "language_code": "Codice lingua per la risposta API",
+          "language_code": "Codice lingua per la risposta dell'API",
           "forecast_days": "Giorni di previsione (1–5)",
           "create_forecast_sensors": "Ambito dei sensori per giorno (TIPI)"
         }
