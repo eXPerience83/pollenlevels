@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+import asyncio  # NEW: explicit import to catch asyncio.TimeoutError
 
 import aiohttp
 import homeassistant.helpers.config_validation as cv
@@ -151,8 +152,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ve,
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
-            except TimeoutError as err:
-                # Explicitly catch request timeouts to avoid noisy traces
+            except (TimeoutError, asyncio.TimeoutError) as err:
+                # Explicitly catch both built-in and asyncio timeouts
                 _LOGGER.warning(
                     "Validation timeout: %s",
                     _redact_api_key(err, user_input.get(CONF_API_KEY)),
