@@ -20,6 +20,9 @@
       "invalid_language": "Codice lingua non valido",
       "empty": "Questo campo non può essere vuoto",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati."
+    },
+    "abort": {
+      "already_configured": "Questa posizione è già configurata."
     }
   },
   "options": {
