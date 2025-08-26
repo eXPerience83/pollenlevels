@@ -20,6 +20,9 @@
       "invalid_language": "Ungültiger Sprachcode",
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
+    },
+    "abort": {
+      "already_configured": "Dieser Standort ist bereits konfiguriert."
     }
   },
   "options": {
