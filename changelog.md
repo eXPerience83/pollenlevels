@@ -1,6 +1,7 @@
 ## [1.6.5] – 2025-08-26
 ### Fixed
-- Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator. In Python 3.11 this also covers `asyncio.TimeoutError`, so listing both is redundant (autoformatted by ruff/pyupgrade).
+- Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  
+  On Python 3.11 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
 - Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
 - **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors) to avoid leaking the API key in logs; explicit handling of `TimeoutError/asyncio.TimeoutError` returns a clean `cannot_connect`.
 - **Reliability**: Coordinator now also catches `asyncio.TimeoutError` in addition to built-in `TimeoutError` for timeout retries.
@@ -13,8 +14,8 @@
   - Step description explains each choice with plain language:
     - **Only today (none)**, **Through tomorrow (D+1)**, **Through day after tomorrow (D+2)** (and local equivalents).
 ### Reliability
-- Minimal safe backoff in coordinator: single retry on transient failures (**TimeoutError/asyncio.TimeoutError**, `aiohttp.ClientError`, `5xx`).
-  For **429**, honor `Retry-After` (seconds) capped at **5s**; otherwise wait ~**2s** plus small jitter.
+- Minimal safe backoff in coordinator: single retry on transient failures (**TimeoutError**, `aiohttp.ClientError`, `5xx`).
+  For **429**, honor numeric `Retry-After` seconds (capped at **5s**) or fall back to ~**2s** plus small jitter.
 
 ## [1.6.4] – 2025-08-22
 ### Fixed
