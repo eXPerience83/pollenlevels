@@ -5,6 +5,8 @@ Key points:
 - Normalizes language (trim/omit when empty) before calling the API.
 - Redacts API keys in debug logs.
 - Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
+- Timeout handling: on Python 3.11, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
+  so catching `TimeoutError` is sufficient and preferred.
 """
 
 from __future__ import annotations
@@ -321,7 +323,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     break  # exit retry loop on success
 
             except TimeoutError as err:
-                # IMPORTANT: catch both built-in TimeoutError and asyncio.TimeoutError
+                # Catch built-in TimeoutError; on Python 3.11 this also covers asyncio.TimeoutError.
                 if attempt < max_retries:
                     delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
                     _LOGGER.warning(
