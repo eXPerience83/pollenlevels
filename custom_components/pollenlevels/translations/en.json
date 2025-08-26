@@ -20,6 +20,9 @@
       "invalid_language": "Invalid language code",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
+    },
+    "abort": {
+      "already_configured": "This location is already configured."
     }
   },
   "options": {
