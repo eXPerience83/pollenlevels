@@ -320,7 +320,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     payload = await resp.json()
                     break  # exit retry loop on success
 
-            except TimeoutError as err:
+            except (TimeoutError, asyncio.TimeoutError) as err:
                 # IMPORTANT: catch both built-in TimeoutError and asyncio.TimeoutError
                 if attempt < max_retries:
                     delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
@@ -421,6 +421,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         # Current-day PLANTS
         for pitem in first_day.get("plantInfo", []) or []:
             code = pitem.get("code")
+            # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
+            # and silent overwrites. This is robust and avoids creating unstable entities.
+            if not code:
+                continue
             idx = pitem.get("indexInfo", {}) or {}
             desc = pitem.get("plantDescription", {}) or {}
             rgb = _rgb_from_api(idx.get("color"))
@@ -608,17 +612,19 @@ class PollenSensor(CoordinatorEntity):
     @property
     def name(self) -> str:
         """Return display name of sensor."""
-        return self.coordinator.data[self.code].get("displayName", self.code)
+        info = self.coordinator.data.get(self.code, {})
+        return info.get("displayName", self.code)
 
     @property
     def state(self):
         """Return current pollen index value."""
-        return self.coordinator.data[self.code].get("value")
+        info = self.coordinator.data.get(self.code, {})
+        return info.get("value")
 
     @property
     def icon(self) -> str:
         """Return icon for sensor."""
-        info = self.coordinator.data[self.code]
+        info = self.coordinator.data.get(self.code, {})
         if info.get("source") == "type":
             base_key = self.code.split("_", 1)[1].split("_d", 1)[0].upper()
             return TYPE_ICONS.get(base_key, DEFAULT_ICON)
@@ -629,7 +635,7 @@ class PollenSensor(CoordinatorEntity):
     @property
     def extra_state_attributes(self):
         """Return extra attributes for sensor."""
-        info = self.coordinator.data[self.code]
+        info = self.coordinator.data.get(self.code, {}) or {}
         attrs = {
             "category": info.get("category"),
             # Always include explicit public attribution on all pollen sensors.
@@ -689,7 +695,8 @@ class PollenSensor(CoordinatorEntity):
     @property
     def device_info(self):
         """Return device info with translation support for the group."""
-        group = self.coordinator.data[self.code].get("source")
+        info = self.coordinator.data.get(self.code, {}) or {}
+        group = info.get("source")
         device_id = f"{self.coordinator.entry_id}_{group}"
         translation_keys = {"type": "types", "plant": "plants", "meta": "info"}
         translation_key = translation_keys.get(group, "info")
