@@ -7,6 +7,7 @@
 - **Reliability**: Coordinator now also catches `asyncio.TimeoutError` in addition to built-in `TimeoutError` for timeout retries.
 - **Parsers**: Skip `plantInfo` entries without `code` to prevent unstable keys (`plants_`) and silent overwrites.
 - **Defensive access**: Use safe dictionary access in sensor properties to avoid rare `KeyError` during concurrent refreshes.
+- **Localization**: Added `config.abort.already_configured` in all locales to localize the duplicate-location abort reason.
 ### Changed
 - Improved wording for `create_forecast_sensors` across all locales:
   - Field label now clarifies it’s the **range** for per-day TYPE sensors.
