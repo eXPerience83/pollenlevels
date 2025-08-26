@@ -3,8 +3,7 @@
 - Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  
   On Python 3.11 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
 - Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
-- **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors) to avoid leaking the API key in logs; explicit handling of `TimeoutError/asyncio.TimeoutError` returns a clean `cannot_connect`.
-- **Reliability**: Coordinator now also catches `asyncio.TimeoutError` in addition to built-in `TimeoutError` for timeout retries.
+- **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors) to avoid leaking the API key in logs; explicit handling of `TimeoutError` returns a clean `cannot_connect`.
 - **Parsers**: Skip `plantInfo` entries without `code` to prevent unstable keys (`plants_`) and silent overwrites.
 - **Defensive access**: Use safe dictionary access in sensor properties to avoid rare `KeyError` during concurrent refreshes.
 - **Localization**: Added `config.abort.already_configured` in all locales to localize the duplicate-location abort reason.
@@ -45,8 +44,9 @@
 ### Added
 - Multi-day forecast for pollen **TYPES** (GRASS/TREE/WEED):  
   - `forecast` attribute with entries (`offset`, `date`, `has_index`, `value`, `category`, `description`, `color_*`).  
-  - Convenience attributes: `tomorrow_*`, `d2_*`, plus `trend` and `expected_peak`.  
-  - Optional per-day TYPE sensors for **(D+1)** and **(D+2)**.  
+  - Convenience: `tomorrow_*` and `d2_*`  
+  - Derived: `trend` and `expected_peak`  
+  - **Optional** per-day TYPE sensors for **(D+1)** and **(D+2)**.  
 
 ### Notes
 - Plant forecasts remain current-day only in 1.6.0. Future expansion planned.  
