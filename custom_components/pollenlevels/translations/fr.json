@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configuration Niveaux de Pollen",
-        "description": "Saisissez votre clé API Google, latitude, longitude, intervalle de mise à jour (heures) et code de langue pour la réponse.",
+        "description": "Saisissez votre clé API Google, latitude, longitude, intervalle de mise à jour (heures) et code langue pour la réponse.",
         "data": {
           "api_key": "Clé API",
           "latitude": "Latitude",
@@ -20,6 +20,9 @@
       "invalid_language": "Code de langue invalide",
       "empty": "Ce champ ne peut pas être vide",
       "invalid_option_combo": "Augmentez « Jours de prévision » pour couvrir les capteurs par jour sélectionnés."
+    },
+    "abort": {
+      "already_configured": "Cet emplacement est déjà configuré."
     }
   },
   "options": {
