@@ -20,6 +20,9 @@
       "invalid_language": "Nieprawidłowy kod języka",
       "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
+    },
+    "abort": {
+      "already_configured": "Ta lokalizacja jest już skonfigurowana."
     }
   },
   "options": {
