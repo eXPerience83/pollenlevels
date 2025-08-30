@@ -18,43 +18,45 @@
       "cannot_connect": "Не вдається підключитися до сервісу",
       "quota_exceeded": "Перевищено ліміт запитів",
       "invalid_language": "Невірний код мови",
-      "empty": "Це поле не може бути порожнім"
+      "empty": "Це поле не може бути порожнім",
+      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики."
+    },
+    "abort": {
+      "already_configured": "Цю локацію вже налаштовано."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Параметри",
-        "description": "Змініть інтервал оновлення та мову відповіді API.",
+        "description": "Змініть інтервал оновлення, мову відповіді API, кількість днів прогнозу та денні датчики для ТИПІВ.\nПараметри денних датчиків (ТИПИ): Лише сьогодні (none), До завтра (D+1), До післязавтра (D+2).",
         "data": {
           "update_interval": "Інтервал оновлення (у годинах)",
-          "language_code": "Код мови відповіді API"
+          "language_code": "Код мови відповіді API",
+          "forecast_days": "Дні прогнозу (1–5)",
+          "create_forecast_sensors": "Діапазон денних датчиків (ТИПИ)"
         }
       }
+    },
+    "error": {
+      "invalid_auth": "Невірний API ключ",
+      "cannot_connect": "Не вдається підключитися до сервісу",
+      "quota_exceeded": "Перевищено ліміт запитів",
+      "invalid_language": "Невірний код мови",
+      "empty": "Це поле не може бути порожнім",
+      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики."
     }
   },
   "device": {
-    "types": {
-      "name": "Типи пилку ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Рослини ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Інформація про пилок ({latitude},{longitude})"
-    }
+    "types": { "name": "Типи пилку ({latitude},{longitude})" },
+    "plants": { "name": "Рослини ({latitude},{longitude})" },
+    "info": { "name": "Інформація про пилок ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Регіон"
-      },
-      "date": {
-        "name": "Дата"
-      },
-      "last_updated": {
-        "name": "Останнє оновлення"
-      }
+      "region": { "name": "Регіон" },
+      "date": { "name": "Дата" },
+      "last_updated": { "name": "Останнє оновлення" }
     }
   }
 }

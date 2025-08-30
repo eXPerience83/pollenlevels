@@ -18,43 +18,45 @@
       "cannot_connect": "Brak połączenia z usługą",
       "quota_exceeded": "Przekroczono limit",
       "invalid_language": "Nieprawidłowy kod języka",
-      "empty": "To pole nie może być puste"
+      "empty": "To pole nie może być puste",
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
+    },
+    "abort": {
+      "already_configured": "Ta lokalizacja jest już skonfigurowana."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Opcje",
-        "description": "Zmień interwał aktualizacji i język odpowiedzi API.",
+        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
         "data": {
           "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API"
+          "language_code": "Kod języka odpowiedzi API",
+          "forecast_days": "Dni prognozy (1–5)",
+          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
         }
       }
+    },
+    "error": {
+      "invalid_auth": "Nieprawidłowy klucz API",
+      "cannot_connect": "Brak połączenia z usługą",
+      "quota_exceeded": "Przekroczono limit",
+      "invalid_language": "Nieprawidłowy kod języka",
+      "empty": "To pole nie może być puste",
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
     }
   },
   "device": {
-    "types": {
-      "name": "Typy pyłków ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Rośliny ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Informacje o pyłkach ({latitude},{longitude})"
-    }
+    "types": { "name": "Typy pyłków ({latitude},{longitude})" },
+    "plants": { "name": "Rośliny ({latitude},{longitude})" },
+    "info": { "name": "Informacje o pyłkach ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Region"
-      },
-      "date": {
-        "name": "Data"
-      },
-      "last_updated": {
-        "name": "Ostatnia aktualizacja"
-      }
+      "region": { "name": "Region" },
+      "date": { "name": "Data" },
+      "last_updated": { "name": "Ostatnia aktualizacja" }
     }
   }
 }

@@ -1,60 +1,87 @@
-"""Handle config & options flow for Pollen Levels integration.
+"""Config & options flow for Pollen Levels.
 
-Changes in 1.5.1:
-- Reorder imports (stdlib first) to keep ruff/isort happy.
-- Remove redundant manual 'interval < 1' check in Options; schema already enforces
-  `min=1`, avoiding the need for a custom translation key.
+Notes:
+- Unified per-day sensors option ('create_forecast_sensors'): "none" | "D+1" | "D+1+2".
+- Allows empty language (omit languageCode). Trims language whitespace on save.
+- Redacts API keys in debug logs.
+- Timeout handling: on Python 3.11, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
+  so catching `TimeoutError` is sufficient and preferred.
 """
+
+from __future__ import annotations
 
 import logging
 import re
 
 import aiohttp
-import voluptuous as vol
-
-from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
+from homeassistant import config_entries
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
-    DOMAIN,
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
+    CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
-    CONF_LANGUAGE_CODE,
+    DOMAIN,
+    FORECAST_SENSORS_CHOICES,
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-# Improved regex to support base and region subtags:
-# - 2-3 character base language codes (e.g., "zh", "cmn")
-# - 2-4 character region suffixes (e.g., "zh-Hant", "zh-Hant-TW")
-# - Case-insensitive matching (supports "en-US", "en-us", etc.)
-LANGUAGE_CODE_REGEX = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$", re.IGNORECASE)
+# BCP-47-ish regex (common patterns, not full grammar).
+LANGUAGE_CODE_REGEX = re.compile(
+    r"^[A-Za-z]{2,3}"
+    r"(?:-[A-Za-z]{4})?"  # optional script
+    r"(?:-(?:[A-Za-z]{2}|\d{3}))?"  # optional region
+    r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
+    re.IGNORECASE,
+)
+
+
+def _redact_api_key(text: object, api_key: str | None) -> str:
+    """Return the input converted to str with the API key redacted.
+
+    Handles bytes/bytearray safely and falls back to str() for other objects.
+    """
+    if text is None:
+        return ""
+    # Use PEP-604 unions in isinstance checks (Python 3.11 target)
+    s = text.decode() if isinstance(text, bytes | bytearray) else str(text)
+    if api_key:
+        return s.replace(api_key, "***")
+    return s
 
 
 def is_valid_language_code(value: str) -> str:
-    """Validate IETF language code, raising a HA-UI friendly error key."""
+    """Validate language code format; return normalized (trimmed) value."""
     if not isinstance(value, str):
         raise vol.Invalid("invalid_language")
-    if not value.strip():
+    norm = value.strip()
+    if not norm:
         raise vol.Invalid("empty")
-    if not LANGUAGE_CODE_REGEX.match(value):
-        _LOGGER.warning("Invalid language code format: %s", value)
+    if not LANGUAGE_CODE_REGEX.match(norm):
+        _LOGGER.warning("Invalid language code format (BCP-47-like): %s", value)
         raise vol.Invalid("invalid_language")
-    return value
+    return norm
 
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Implement config flow for Pollen Levels."""
+    """Config flow for Pollen Levels."""
 
     VERSION = 1
 
     @staticmethod
     def async_get_options_flow(entry: config_entries.ConfigEntry):
-        """Return the options flow handler for this entry."""
+        """Return the options flow handler."""
         return PollenLevelsOptionsFlow(entry)
 
     async def async_step_user(self, user_input=None):
@@ -62,37 +89,51 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input:
-            # ---- Duplicate prevention -------------------------------------------------
-            # Use a stable unique_id per (lat,lon) with 4 decimal precision so that
-            # we avoid duplicate entries for the same location.
+            lat = float(user_input.get(CONF_LATITUDE))
+            lon = float(user_input.get(CONF_LONGITUDE))
+
             try:
-                lat = float(user_input[CONF_LATITUDE])
-                lon = float(user_input[CONF_LONGITUDE])
+                # Unique ID is used to prevent duplicates (not used in entity unique_ids)
                 await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
                 self._abort_if_unique_id_configured()
-            except Exception:  # pragma: no cover - defensive
-                # If something goes off with parsing, proceed; form validators will catch it.
+            except Exception:  # defensive
                 pass
 
-            # ---- Field validation & API reachability ---------------------------------
             try:
-                # Validate language format locally first (UI-friendly errors)
-                is_valid_language_code(user_input[CONF_LANGUAGE_CODE])
+                # Allow blank language; if present, validate & normalize
+                raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
+                lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
+                if lang:
+                    lang = is_valid_language_code(lang)
 
-                # Probe API to verify key/quota/connectivity before creating the entry
                 session = async_get_clientsession(self.hass)
                 params = {
                     "key": user_input[CONF_API_KEY],
                     "location.latitude": f"{lat:.6f}",
                     "location.longitude": f"{lon:.6f}",
                     "days": 1,
-                    "languageCode": user_input[CONF_LANGUAGE_CODE],
                 }
+                if lang:
+                    params["languageCode"] = lang
+
                 url = "https://pollen.googleapis.com/v1/forecast:lookup"
-                _LOGGER.debug("Validating Pollen API URL: %s params %s", url, params)
-                async with session.get(url, params=params) as resp:
-                    text = await resp.text()
-                    _LOGGER.debug("Validation HTTP %s — %s", resp.status, text)
+
+                # Redact API key in logs (for both params and body)
+                safe_params = dict(params)
+                if "key" in safe_params:
+                    safe_params["key"] = "***"
+                _LOGGER.debug("Validating API: %s params %s", url, safe_params)
+
+                # Add explicit timeout to prevent UI hangs on provider issues
+                async with session.get(
+                    url, params=params, timeout=aiohttp.ClientTimeout(total=15)
+                ) as resp:
+                    body = await resp.text()
+                    _LOGGER.debug(
+                        "Validation HTTP %s — %s",
+                        resp.status,
+                        _redact_api_key(body, user_input.get(CONF_API_KEY)),
+                    )
                     if resp.status == 403:
                         errors["base"] = "invalid_auth"
                     elif resp.status == 429:
@@ -112,18 +153,31 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ve,
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
-            except aiohttp.ClientError as err:
-                _LOGGER.error("Connection error: %s", err)
+            except TimeoutError as err:
+                # Catch built-in TimeoutError; on Python 3.11 this also covers asyncio.TimeoutError.
+                _LOGGER.warning(
+                    "Validation timeout: %s",
+                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                )
                 errors["base"] = "cannot_connect"
-            except Exception as err:  # pragma: no cover - defensive
-                _LOGGER.exception("Unexpected error: %s", err)
+            except aiohttp.ClientError as err:
+                _LOGGER.error(
+                    "Connection error: %s",
+                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                )
+                errors["base"] = "cannot_connect"
+            except Exception as err:  # defensive
+                _LOGGER.exception(
+                    "Unexpected error: %s",
+                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                )
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Create the entry with the provided data.
+                # Persist normalized (trimmed) language or empty if cleared
+                user_input[CONF_LANGUAGE_CODE] = lang
                 return self.async_create_entry(title="Pollen Levels", data=user_input)
 
-        # Default values from HA config for the form
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
@@ -158,33 +212,61 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         self.entry = entry
 
     async def async_step_init(self, user_input=None):
-        """Display and process options form."""
+        """Display/process options form."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             try:
-                # Allow empty to "inherit" HA UI language, but if non-empty, validate format.
-                lang = user_input.get(
+                # Language: allow empty; if provided, validate & normalize.
+                raw_lang = user_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
-                        CONF_LANGUAGE_CODE,
-                        self.entry.data.get(CONF_LANGUAGE_CODE, ""),
+                        CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, "")
                     ),
                 )
-                if isinstance(lang, str) and lang.strip():
-                    is_valid_language_code(lang)
+                lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
+                if lang:
+                    lang = is_valid_language_code(lang)
+                user_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
+
+                # forecast_days within 1..5
+                days = int(
+                    user_input.get(
+                        CONF_FORECAST_DAYS,
+                        self.entry.options.get(
+                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
+                        ),
+                    )
+                )
+                if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
+                    errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
+
+                # per-day sensors vs number of days
+                mode = user_input.get(
+                    CONF_CREATE_FORECAST_SENSORS,
+                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                )
+                needed = 1
+                if mode == "D+1":
+                    needed = 2
+                elif mode == "D+1+2":
+                    needed = 3
+                if days < needed:
+                    errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 
             except vol.Invalid as ve:
                 errors[CONF_LANGUAGE_CODE] = str(ve)
-            except Exception as err:  # pragma: no cover - defensive
-                _LOGGER.exception("Options validation error: %s", err)
+            except Exception as err:  # defensive
+                _LOGGER.exception(
+                    "Options validation error: %s",
+                    _redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
+                )
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Store options; the integration will reload (see __init__.py) to apply them.
                 return self.async_create_entry(title="", data=user_input)
 
-        # Defaults: prefer options, fall back to data, then HA language
+        # Defaults: prefer options, fallback to data/HA config
         current_interval = self.entry.options.get(
             CONF_UPDATE_INTERVAL,
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
@@ -193,6 +275,11 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_LANGUAGE_CODE,
             self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
         )
+        current_days = self.entry.options.get(
+            CONF_FORECAST_DAYS,
+            self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+        )
+        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
         return self.async_show_form(
             step_id="init",
@@ -202,6 +289,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                         CONF_UPDATE_INTERVAL, default=current_interval
                     ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                     vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
+                    vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.In(
+                        list(range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1))
+                    ),
+                    vol.Optional(
+                        CONF_CREATE_FORECAST_SENSORS, default=current_mode
+                    ): vol.In(FORECAST_SENSORS_CHOICES),
                 }
             ),
             errors=errors,

@@ -1,10 +1,11 @@
 name: Auto Format (Black + Ruff)
 
 on:
+  # Manual run. Use GitHub's native "Run workflow → Branch" dropdown to pick a REAL branch.
   workflow_dispatch:
     inputs:
       target_branch:
-        description: "Branch to format (defaults to current ref)"
+        description: "Branch to format (leave empty to use current ref)"
         required: false
         default: ""
 
@@ -12,10 +13,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Needed to push a branch and open a PR
+# Needed to push back to the selected branch
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   format:
@@ -25,8 +25,9 @@ jobs:
       - name: Checkout (requested ref or current)
         uses: actions/checkout@v4
         with:
+          # If a branch is provided, use it; otherwise, use the current ref.
           ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.ref }}
-          fetch-depth: 0  # Required to create branches/PRs
+          fetch-depth: 0  # Required to create commits
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -45,21 +46,24 @@ jobs:
       - name: Black (format)
         run: black .
 
-      - name: Create Pull Request if changes
-        id: cpr
-        uses: peter-evans/create-pull-request@v6
-        with:
-          commit-message: "style: apply Ruff fixes and Black formatting"
-          title: "style: auto-format (Ruff + Black)"
-          body: |
-            Automated formatting run:
-            - `ruff check --fix`
-            - `black .`
+      - name: Commit & Push if changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: apply Ruff fixes and Black formatting"
 
-            > This PR was created by the **Auto Format** workflow.
-          branch: chore/auto-format/${{ github.run_id }}
-          labels: |
-            chore
-            ci
-          signoff: false
-          delete-branch: true
+          # Determine target branch: prefer the manual input, otherwise current ref name.
+          BRANCH="${{ inputs.target_branch }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH="${GITHUB_REF_NAME}"
+          fi
+
+          # Push to the target branch explicitly
+          git push origin HEAD:"$BRANCH"

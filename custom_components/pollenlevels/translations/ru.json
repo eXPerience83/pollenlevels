@@ -18,43 +18,45 @@
       "cannot_connect": "Не удаётся подключиться к сервису",
       "quota_exceeded": "Превышен лимит запросов",
       "invalid_language": "Неверный код языка",
-      "empty": "Это поле не может быть пустым"
+      "empty": "Это поле не может быть пустым",
+      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням."
+    },
+    "abort": {
+      "already_configured": "Эта локация уже настроена."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Параметры",
-        "description": "Измените интервал обновления и язык ответа API.",
+        "description": "Измените интервал обновления, язык ответа API, дни прогноза и дневные датчики для ТИПОВ.\nВарианты дневных датчиков (ТИПЫ): Только сегодня (none), До завтра (D+1), До послезавтра (D+2).",
         "data": {
           "update_interval": "Интервал обновления (в часах)",
-          "language_code": "Код языка ответа API"
+          "language_code": "Код языка ответа API",
+          "forecast_days": "Дни прогноза (1–5)",
+          "create_forecast_sensors": "Диапазон дневных датчиков (ТИПЫ)"
         }
       }
+    },
+    "error": {
+      "invalid_auth": "Неверный API ключ",
+      "cannot_connect": "Не удаётся подключиться к сервису",
+      "quota_exceeded": "Превышен лимит запросов",
+      "invalid_language": "Неверный код языка",
+      "empty": "Это поле не может быть пустым",
+      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням."
     }
   },
   "device": {
-    "types": {
-      "name": "Типы пыльцы ({latitude},{longitude})"
-    },
-    "plants": {
-      "name": "Растения ({latitude},{longitude})"
-    },
-    "info": {
-      "name": "Информация о пыльце ({latitude},{longitude})"
-    }
+    "types": { "name": "Типы пыльцы ({latitude},{longitude})" },
+    "plants": { "name": "Растения ({latitude},{longitude})" },
+    "info": { "name": "Информация о пыльце ({latitude},{longitude})" }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Регион"
-      },
-      "date": {
-        "name": "Дата"
-      },
-      "last_updated": {
-        "name": "Последнее обновление"
-      }
+      "region": { "name": "Регион" },
+      "date": { "name": "Дата" },
+      "last_updated": { "name": "Последнее обновление" }
     }
   }
 }

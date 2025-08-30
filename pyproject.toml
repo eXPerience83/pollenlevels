@@ -5,12 +5,24 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+fix = true  # default fix behavior when running 'ruff' without flags
+
+[tool.ruff.lint]
+# pycodestyle/pyflakes/isort/pyupgrade/bugbear
 select = ["E", "F", "W", "I", "UP", "B"]
 ignore = [
-  "E501",  # line length (Black formats)
+  "E501",  # line length (Black handles formatting)
 ]
-fix = true
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
+
+# --- Optional hardening (uncomment if needed) ---
+# [tool.ruff]
+# force-exclude = true
+# exclude = [".git", ".venv", "venv", ".mypy_cache", ".pytest_cache", "build", "dist"]
+
+# If you re-export symbols in __init__.py and want to ignore F401 there:
+# [tool.ruff.per-file-ignores]
+# "custom_components/pollenlevels/__init__.py" = ["F401"]
