@@ -1,3 +1,11 @@
+# Changelog
+
+## [1.7.0] – 2025-08-31
+### Added
+- **Plant forecast (attributes only):** plant sensors now include `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`, mirroring TYPE sensors.
+### Notes
+- No new plant entities are created; forecast is available via attributes to keep entity count low.
+
 ## [1.6.5] – 2025-08-26
 ### Fixed
 - Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  
