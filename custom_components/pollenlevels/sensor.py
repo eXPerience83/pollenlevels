@@ -533,7 +533,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Trend
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
+            if isinstance(now_val, int | float) and isinstance(
+                tomorrow_val, int | float
+            ):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
                 elif tomorrow_val < now_val:
@@ -668,7 +670,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Trend (today vs tomorrow)
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
+            if isinstance(now_val, int | float) and isinstance(
+                tomorrow_val, int | float
+            ):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
                 elif tomorrow_val < now_val:

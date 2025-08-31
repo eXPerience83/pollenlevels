@@ -52,7 +52,9 @@ async def async_get_config_entry_diagnostics(
     data = dict(entry.data or {})
 
     # Build a safe params example (no network I/O)
-    days_effective = int(options.get(CONF_FORECAST_DAYS, data.get(CONF_FORECAST_DAYS, 2)))
+    days_effective = int(
+        options.get(CONF_FORECAST_DAYS, data.get(CONF_FORECAST_DAYS, 2))
+    )
     params_example = {
         "key": "***",
         "location.latitude": data.get(CONF_LATITUDE),
@@ -83,10 +85,18 @@ async def async_get_config_entry_diagnostics(
 
         # TYPES
         type_main_keys = [
-            k for k, v in data_map.items() if isinstance(v, dict) and v.get("source") == "type" and not k.endswith(("_d1", "_d2"))
+            k
+            for k, v in data_map.items()
+            if isinstance(v, dict)
+            and v.get("source") == "type"
+            and not k.endswith(("_d1", "_d2"))
         ]
         type_perday_keys = [
-            k for k, v in data_map.items() if isinstance(v, dict) and v.get("source") == "type" and k.endswith(("_d1", "_d2"))
+            k
+            for k, v in data_map.items()
+            if isinstance(v, dict)
+            and v.get("source") == "type"
+            and k.endswith(("_d1", "_d2"))
         ]
         type_codes = sorted(
             {k.split("_", 1)[1].split("_d", 1)[0].upper() for k in type_main_keys}
@@ -101,7 +111,9 @@ async def async_get_config_entry_diagnostics(
 
         # PLANTS (attributes-only)
         plant_items = [
-            v for v in data_map.values() if isinstance(v, dict) and v.get("source") == "plant"
+            v
+            for v in data_map.values()
+            if isinstance(v, dict) and v.get("source") == "plant"
         ]
         plant_codes = sorted([v.get("code") for v in plant_items if v.get("code")])
         plants_with_attr = [v for v in plant_items if "forecast" in v]
