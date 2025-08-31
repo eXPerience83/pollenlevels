@@ -3,6 +3,7 @@
 This exposes non-sensitive runtime details useful for support:
 - Entry data/options (with API key and location redacted)
 - Coordinator snapshot (last_updated, forecast_days, language, flags)
+- Forecast summaries for TYPES & PLANTS (attributes-only for plants)
 - A sample of the request params with the API key redacted
 
 No network I/O is performed.
@@ -27,38 +28,95 @@ from .const import (
     DOMAIN,
 )
 
+# Redact potentially sensitive values from diagnostics
 TO_REDACT = {CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE}
+
+
+def _iso_or_none(dt_obj) -> str | None:
+    """Return UTC ISO8601 string for datetimes, else None."""
+    try:
+        return dt_obj.isoformat() if dt_obj is not None else None
+    except Exception:
+        return None
 
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
-    """Return diagnostics for a config entry with secrets redacted."""
+    """Return diagnostics for a config entry with secrets redacted.
+
+    NOTE: This function must not perform any network I/O.
+    """
     coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     options = dict(entry.options or {})
     data = dict(entry.data or {})
 
     # Build a safe params example (no network I/O)
+    days_effective = int(options.get(CONF_FORECAST_DAYS, data.get(CONF_FORECAST_DAYS, 2)))
     params_example = {
         "key": "***",
         "location.latitude": data.get(CONF_LATITUDE),
         "location.longitude": data.get(CONF_LONGITUDE),
-        "days": options.get(CONF_FORECAST_DAYS, data.get(CONF_FORECAST_DAYS, 2)),
+        "days": days_effective,
     }
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
     if lang:
         params_example["languageCode"] = lang
 
+    # Coordinator snapshot
     coord_info: dict[str, Any] = {}
+    forecast_summary: dict[str, Any] = {}
     if coordinator is not None:
+        # Base coordinator info
         coord_info = {
             "entry_id": getattr(coordinator, "entry_id", None),
             "forecast_days": getattr(coordinator, "forecast_days", None),
             "language": getattr(coordinator, "language", None),
             "create_d1": getattr(coordinator, "create_d1", None),
             "create_d2": getattr(coordinator, "create_d2", None),
-            "last_updated": getattr(coordinator, "last_updated", None),
+            "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
             "data_keys": list(getattr(coordinator, "data", {}).keys()),
+        }
+
+        # ---------- Forecast summaries (TYPES & PLANTS) ----------
+        data_map: dict[str, Any] = getattr(coordinator, "data", {}) or {}
+
+        # TYPES
+        type_main_keys = [
+            k for k, v in data_map.items() if isinstance(v, dict) and v.get("source") == "type" and not k.endswith(("_d1", "_d2"))
+        ]
+        type_perday_keys = [
+            k for k, v in data_map.items() if isinstance(v, dict) and v.get("source") == "type" and k.endswith(("_d1", "_d2"))
+        ]
+        type_codes = sorted(
+            {k.split("_", 1)[1].split("_d", 1)[0].upper() for k in type_main_keys}
+        )
+        forecast_summary["type"] = {
+            "total_main": len(type_main_keys),
+            "total_per_day": len(type_perday_keys),
+            "create_d1": getattr(coordinator, "create_d1", None),
+            "create_d2": getattr(coordinator, "create_d2", None),
+            "codes": type_codes,
+        }
+
+        # PLANTS (attributes-only)
+        plant_items = [
+            v for v in data_map.values() if isinstance(v, dict) and v.get("source") == "plant"
+        ]
+        plant_codes = sorted([v.get("code") for v in plant_items if v.get("code")])
+        plants_with_attr = [v for v in plant_items if "forecast" in v]
+        plants_with_nonempty = [v for v in plant_items if v.get("forecast") or []]
+        plants_with_trend = [v for v in plant_items if v.get("trend") is not None]
+
+        forecast_summary["plant"] = {
+            # Enabled if at least tomorrow is requested (2+ days)
+            "enabled": bool(getattr(coordinator, "forecast_days", 1) >= 2),
+            "days": getattr(coordinator, "forecast_days", None),
+            "total": len(plant_items),
+            "with_attr": len(plants_with_attr),
+            "with_nonempty": len(plants_with_nonempty),
+            "with_trend": len(plants_with_trend),
+            "codes": plant_codes,
         }
 
     diag = {
@@ -78,7 +136,9 @@ async def async_get_config_entry_diagnostics(
             },
         },
         "coordinator": coord_info,
+        "forecast_summary": forecast_summary,
         "request_params_example": params_example,
     }
 
+    # Redact secrets and return
     return async_redact_data(diag, TO_REDACT)
