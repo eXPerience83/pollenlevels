@@ -533,7 +533,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Trend
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
+            if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
                 elif tomorrow_val < now_val:
@@ -546,7 +546,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Expected peak (excluding today)
             peak = None
             for f in forecast_list:
-                if f.get("has_index") and isinstance(f.get("value"), (int, float)):
+                if f.get("has_index") and isinstance(f.get("value"), int | float):
                     if peak is None or f["value"] > peak["value"]:
                         peak = f
             base["expected_peak"] = (
@@ -668,7 +668,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Trend (today vs tomorrow)
             now_val = base.get("value")
             tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
+            if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
                 if tomorrow_val > now_val:
                     base["trend"] = "up"
                 elif tomorrow_val < now_val:
@@ -681,7 +681,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             # Expected peak (excluding today)
             peak = None
             for f in forecast_list:
-                if f.get("has_index") and isinstance(f.get("value"), (int, float)):
+                if f.get("has_index") and isinstance(f.get("value"), int | float):
                     if peak is None or f["value"] > peak["value"]:
                         peak = f
             base["expected_peak"] = (
