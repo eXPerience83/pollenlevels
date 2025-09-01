@@ -51,6 +51,7 @@ TYPE_ICONS = {
     "TREE": "mdi:tree",
     "WEED": "mdi:flower-tulip",
 }
+# Plants reuse the same icon mapping by type.
 PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
 
