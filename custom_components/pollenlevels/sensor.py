@@ -586,9 +586,13 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 except (IndexError, TypeError):
                     day_obj = None
                 day_item = _find_type(day_obj, _tcode) if day_obj else None
-                day_in_season = day_item.get("inSeason") if isinstance(day_item, dict) else None
+                day_in_season = (
+                    day_item.get("inSeason") if isinstance(day_item, dict) else None
+                )
                 day_advice = (
-                    day_item.get("healthRecommendations") if isinstance(day_item, dict) else None
+                    day_item.get("healthRecommendations")
+                    if isinstance(day_item, dict)
+                    else None
                 )
 
                 dname = f"{_base.get('displayName', _tcode)} (D+{off})"
