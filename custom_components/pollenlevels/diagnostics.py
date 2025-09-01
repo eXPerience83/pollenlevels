@@ -28,8 +28,16 @@ from .const import (
     DOMAIN,
 )
 
-# Redact potentially sensitive values from diagnostics
-TO_REDACT = {CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE}
+# Redact potentially sensitive values from diagnostics.
+# NOTE: Also redact the "location.*" variants used in the request example to avoid
+# leaking coordinates in exported diagnostics.
+TO_REDACT = {
+    CONF_API_KEY,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    "location.latitude",
+    "location.longitude",
+}
 
 
 def _iso_or_none(dt_obj) -> str | None:
