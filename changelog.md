@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1] – 2025-09-01
+### Changed
+- Internal refactor: centralize forecast attribute building for TYPES & PLANTS into a single helper to reduce duplication and ensure parity.
+- Logging: add a top-level INFO when `pollenlevels.force_update` is invoked.
+
+### Notes
+- No behavior changes; entities, attributes, and options remain identical.
+
 ## [1.7.0] – 2025-08-31
 ### Fixed
 - TYPE per-day sensors (D+1/D+2) now use the **correct day's** `inSeason` and `advice` instead of inheriting today's values.
