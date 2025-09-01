@@ -1,4 +1,10 @@
-"""Initialize Pollen Levels integration."""
+"""Initialize Pollen Levels integration.
+
+Notes:
+- Adds a top-level INFO log when the force_update service is invoked to aid debugging.
+- Registers an options update listener to reload the entry so interval/language changes
+  take effect immediately without reinstalling.
+"""
 
 from __future__ import annotations
 
@@ -12,6 +18,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import DOMAIN
 
+# Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,13 +32,13 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
     async def handle_force_update_service(call: ServiceCall) -> None:
         """Refresh pollen data for all entries."""
-        # Added: top-level log to confirm manual trigger
+        # Added: top-level log to confirm manual trigger for easier debugging.
         _LOGGER.info("Executing force_update service for all Pollen Levels entries")
         for entry in hass.config_entries.async_entries(DOMAIN):
             coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
             if coordinator:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                # Wait until the update completes
+                # Wait until the update completes to surface errors in logs.
                 await coordinator.async_refresh()
 
     hass.services.async_register(
@@ -52,10 +59,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     except Exception as err:
         _LOGGER.error("Error forwarding entry setups: %s", err)
+        # Surfaced as ConfigEntryNotReady so HA can retry later.
         raise ConfigEntryNotReady from err
 
-    # Register an update listener so that options changes trigger a reload.
-    # This ensures the coordinator picks up the new interval/language immediately.
+    # Ensure options updates (interval/language/forecast settings) trigger reload.
     entry.async_on_unload(entry.add_update_listener(_update_listener))
 
     _LOGGER.info("PollenLevels integration loaded successfully")
