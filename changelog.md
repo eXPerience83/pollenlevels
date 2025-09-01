@@ -1,6 +1,8 @@
 # Changelog
 
 ## [1.7.0] – 2025-08-31
+### Fixed
+- TYPE per-day sensors (D+1/D+2) now use the **correct day's** `inSeason` and `advice` instead of inheriting today's values.
 ### Added
 - **Plant forecast (attributes only):** plant sensors now include `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`, mirroring TYPE sensors.
 ### Notes
