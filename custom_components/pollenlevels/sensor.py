@@ -577,6 +577,20 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 f = next((d for d in _forecast_list if d["offset"] == off), None)
                 if not f:
                     return
+
+                # FIX: Use day-specific 'inSeason' and 'advice' from the forecast day
+                # instead of inheriting from today's base. That guarantees the per-day
+                # TYPE sensors reflect the correct day's metadata.
+                try:
+                    day_obj = daily[off]
+                except (IndexError, TypeError):
+                    day_obj = None
+                day_item = _find_type(day_obj, _tcode) if day_obj else None
+                day_in_season = day_item.get("inSeason") if isinstance(day_item, dict) else None
+                day_advice = (
+                    day_item.get("healthRecommendations") if isinstance(day_item, dict) else None
+                )
+
                 dname = f"{_base.get('displayName', _tcode)} (D+{off})"
                 new_data[f"{_type_key}_d{off}"] = {
                     "source": "type",
@@ -584,8 +598,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "value": f.get("value") if f.get("has_index") else None,
                     "category": f.get("category") if f.get("has_index") else None,
                     "description": f.get("description") if f.get("has_index") else None,
-                    "inSeason": _base.get("inSeason"),
-                    "advice": _base.get("advice"),
+                    "inSeason": day_in_season,
+                    "advice": day_advice,
                     "color_hex": f.get("color_hex"),
                     "color_rgb": f.get("color_rgb"),
                     "color_raw": f.get("color_raw"),
