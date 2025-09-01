@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.2] – 2025-09-01
+### Fixed
+- **Diagnostics**: redact `location.latitude`/`location.longitude` inside the request example to avoid leaking coordinates in exports.
+
 ## [1.7.1] – 2025-09-01
 ### Changed
 - Internal refactor: centralize forecast attribute building for TYPES & PLANTS into a single helper to reduce duplication and ensure parity.
