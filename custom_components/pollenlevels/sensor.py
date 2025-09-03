@@ -51,6 +51,7 @@ TYPE_ICONS = {
     "TREE": "mdi:tree",
     "WEED": "mdi:flower-tulip",
 }
+# Plants reuse the same icon mapping by type.
 PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
 
@@ -203,7 +204,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
-    """Coordinate pollen data fetch with forecast support for TYPES."""
+    """Coordinate pollen data fetch with forecast support for TYPES and PLANTS."""
 
     def __init__(
         self,
@@ -244,6 +245,75 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data: dict[str, dict] = {}
         self.last_updated = None
         self._session = async_get_clientsession(hass)
+
+    # ------------------------------
+    # DRY helper for forecast attrs
+    # ------------------------------
+    def _process_forecast_attributes(
+        self, base: dict[str, Any], forecast_list: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Attach common forecast attributes to a base sensor dict.
+
+        This keeps TYPE and PLANT processing consistent without duplicating code.
+
+        Adds:
+          - 'forecast' list
+          - Convenience: tomorrow_* / d2_*
+          - Derived: trend, expected_peak
+
+        Does NOT touch per-day TYPE sensor creation (kept elsewhere).
+        """
+        base["forecast"] = forecast_list
+
+        def _set_convenience(prefix: str, off: int) -> None:
+            f = next((d for d in forecast_list if d["offset"] == off), None)
+            base[f"{prefix}_has_index"] = f.get("has_index") if f else False
+            base[f"{prefix}_value"] = (
+                f.get("value") if f and f.get("has_index") else None
+            )
+            base[f"{prefix}_category"] = (
+                f.get("category") if f and f.get("has_index") else None
+            )
+            base[f"{prefix}_description"] = (
+                f.get("description") if f and f.get("has_index") else None
+            )
+            base[f"{prefix}_color_hex"] = (
+                f.get("color_hex") if f and f.get("has_index") else None
+            )
+
+        _set_convenience("tomorrow", 1)
+        _set_convenience("d2", 2)
+
+        # Trend (today vs tomorrow)
+        now_val = base.get("value")
+        tomorrow_val = base.get("tomorrow_value")
+        if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
+            if tomorrow_val > now_val:
+                base["trend"] = "up"
+            elif tomorrow_val < now_val:
+                base["trend"] = "down"
+            else:
+                base["trend"] = "flat"
+        else:
+            base["trend"] = None
+
+        # Expected peak (excluding today)
+        peak = None
+        for f in forecast_list:
+            if f.get("has_index") and isinstance(f.get("value"), int | float):
+                if peak is None or f["value"] > peak["value"]:
+                    peak = f
+        base["expected_peak"] = (
+            {
+                "offset": peak["offset"],
+                "date": peak["date"],
+                "value": peak["value"],
+                "category": peak["category"],
+            }
+            if peak
+            else None
+        )
+        return base
 
     async def _async_update_data(self):
         """Fetch pollen data and extract sensors for current day and forecast."""
@@ -394,8 +464,16 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     type_codes.add(code)
 
         def _find_type(day: dict, code: str) -> dict | None:
+            """Find a pollen TYPE entry by code inside a day's 'pollenTypeInfo'."""
             for item in day.get("pollenTypeInfo", []) or []:
                 if (item.get("code") or "").upper() == code:
+                    return item
+            return None
+
+        def _find_plant(day: dict, code: str) -> dict | None:
+            """Find a PLANT entry by code inside a day's 'plantInfo'."""
+            for item in day.get("plantInfo", []) or []:
+                if (item.get("code") or "") == code:
                     return item
             return None
 
@@ -454,7 +532,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             }
 
         # Forecast for TYPES
-        def _extract_day_info(day: dict) -> tuple[str | None, str | None]:
+        def _extract_day_info(day: dict) -> tuple[str | None, dict | None]:
             d = day.get("date") or {}
             if not all(k in d for k in ("year", "month", "day")):
                 return None, None
@@ -493,67 +571,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         ),
                     }
                 )
-            base["forecast"] = forecast_list
-
-            # Convenience for tomorrow (1) and d2 (2)
-            def _set_convenience(
-                prefix: str,
-                off: int,
-                *,
-                _forecast_list=forecast_list,
-                _base=base,
-            ) -> None:
-                """Set convenience attributes for a given offset using bound snapshot values."""
-                f = next((d for d in _forecast_list if d["offset"] == off), None)
-                _base[f"{prefix}_has_index"] = f.get("has_index") if f else False
-                _base[f"{prefix}_value"] = (
-                    f.get("value") if f and f.get("has_index") else None
-                )
-                _base[f"{prefix}_category"] = (
-                    f.get("category") if f and f.get("has_index") else None
-                )
-                _base[f"{prefix}_description"] = (
-                    f.get("description") if f and f.get("has_index") else None
-                )
-                _base[f"{prefix}_color_hex"] = (
-                    f.get("color_hex") if f and f.get("has_index") else None
-                )
-
-            _set_convenience("tomorrow", 1)
-            _set_convenience("d2", 2)
-
-            # Trend
-            now_val = base.get("value")
-            tomorrow_val = base.get("tomorrow_value")
-            if isinstance(now_val, int | float) and isinstance(
-                tomorrow_val, int | float
-            ):
-                if tomorrow_val > now_val:
-                    base["trend"] = "up"
-                elif tomorrow_val < now_val:
-                    base["trend"] = "down"
-                else:
-                    base["trend"] = "flat"
-            else:
-                base["trend"] = None
-
-            # Expected peak (excluding today)
-            peak = None
-            for f in forecast_list:
-                if f.get("has_index") and isinstance(f.get("value"), int | float):
-                    if peak is None or f["value"] > peak["value"]:
-                        peak = f
-            base["expected_peak"] = (
-                {
-                    "offset": peak["offset"],
-                    "date": peak["date"],
-                    "value": peak["value"],
-                    "category": peak["category"],
-                }
-                if peak
-                else None
-            )
-
+            # Attach common forecast attributes (convenience, trend, expected_peak)
+            base = self._process_forecast_attributes(base, forecast_list)
             new_data[type_key] = base
 
             # Optional per-day sensors (only if requested and day exists)
@@ -569,6 +588,22 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 f = next((d for d in _forecast_list if d["offset"] == off), None)
                 if not f:
                     return
+
+                # Use day-specific 'inSeason' and 'advice' from the forecast day.
+                try:
+                    day_obj = daily[off]
+                except (IndexError, TypeError):
+                    day_obj = None
+                day_item = _find_type(day_obj, _tcode) if day_obj else None
+                day_in_season = (
+                    day_item.get("inSeason") if isinstance(day_item, dict) else None
+                )
+                day_advice = (
+                    day_item.get("healthRecommendations")
+                    if isinstance(day_item, dict)
+                    else None
+                )
+
                 dname = f"{_base.get('displayName', _tcode)} (D+{off})"
                 new_data[f"{_type_key}_d{off}"] = {
                     "source": "type",
@@ -576,8 +611,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "value": f.get("value") if f.get("has_index") else None,
                     "category": f.get("category") if f.get("has_index") else None,
                     "description": f.get("description") if f.get("has_index") else None,
-                    "inSeason": _base.get("inSeason"),
-                    "advice": _base.get("advice"),
+                    "inSeason": day_in_season,
+                    "advice": day_advice,
                     "color_hex": f.get("color_hex"),
                     "color_rgb": f.get("color_rgb"),
                     "color_raw": f.get("color_raw"),
@@ -589,6 +624,50 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 _add_day_sensor(1)
             if self.create_d2:
                 _add_day_sensor(2)
+
+        # Forecast for PLANTS (attributes only; no per-day plant sensors)
+        for key, base in list(new_data.items()):
+            if base.get("source") != "plant":
+                continue
+            pcode = base.get("code")
+            if not pcode:
+                # Safety: skip if for some reason code is missing
+                continue
+
+            forecast_list: list[dict[str, Any]] = []
+            for offset, day in enumerate(daily[1:], start=1):
+                if offset >= self.forecast_days:
+                    break
+                date_str, _ = _extract_day_info(day)
+                item = _find_plant(day, pcode) or {}
+                idx = item.get("indexInfo") if isinstance(item, dict) else None
+                has_index = isinstance(idx, dict)
+                rgb = _rgb_from_api(idx.get("color")) if has_index else None
+                forecast_list.append(
+                    {
+                        "offset": offset,
+                        "date": date_str,
+                        "has_index": has_index,
+                        "value": idx.get("value") if has_index else None,
+                        "category": idx.get("category") if has_index else None,
+                        "description": (
+                            idx.get("indexDescription") if has_index else None
+                        ),
+                        "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
+                        "color_rgb": (
+                            list(rgb) if (has_index and rgb is not None) else None
+                        ),
+                        "color_raw": (
+                            idx.get("color")
+                            if has_index and isinstance(idx.get("color"), dict)
+                            else None
+                        ),
+                    }
+                )
+
+            # Attach common forecast attributes (convenience, trend, expected_peak)
+            base = self._process_forecast_attributes(base, forecast_list)
+            new_data[key] = base
 
         self.data = new_data
         self.last_updated = dt_util.utcnow()
@@ -657,7 +736,9 @@ class PollenSensor(CoordinatorEntity):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
-        # Forecast-related attributes only on main type sensors (not per-day)
+        # Forecast-related attributes:
+        # - For TYPE sensors: include on main sensors only (not per-day _d1/_d2)
+        # - For PLANT sensors: always include (there are no per-day plant sensors)
         if info.get("source") == "type" and not self.code.endswith(("_d1", "_d2")):
             for k in (
                 "forecast",
@@ -677,8 +758,8 @@ class PollenSensor(CoordinatorEntity):
                 if info.get(k) is not None:
                     attrs[k] = info.get(k)
 
-        # Plant-specific attributes
         if info.get("source") == "plant":
+            # Plant-specific metadata
             plant_attrs = {
                 "code": info.get("code"),
                 "type": info.get("type"),
@@ -691,6 +772,25 @@ class PollenSensor(CoordinatorEntity):
             for k, v in plant_attrs.items():
                 if v is not None:
                     attrs[k] = v
+
+            # Plant forecast attributes (attributes-only, no per-day plant sensors)
+            for k in (
+                "forecast",
+                "tomorrow_has_index",
+                "tomorrow_value",
+                "tomorrow_category",
+                "tomorrow_description",
+                "tomorrow_color_hex",
+                "d2_has_index",
+                "d2_value",
+                "d2_category",
+                "d2_description",
+                "d2_color_hex",
+                "trend",
+                "expected_peak",
+            ):
+                if info.get(k) is not None:
+                    attrs[k] = info.get(k)
 
         return attrs
 

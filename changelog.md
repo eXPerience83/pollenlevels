@@ -1,3 +1,25 @@
+# Changelog
+
+## [1.7.2] – 2025-09-01
+### Fixed
+- **Diagnostics**: redact `location.latitude`/`location.longitude` inside the request example to avoid leaking coordinates in exports.
+
+## [1.7.1] – 2025-09-01
+### Changed
+- Internal refactor: centralize forecast attribute building for TYPES & PLANTS into a single helper to reduce duplication and ensure parity.
+- Logging: add a top-level INFO when `pollenlevels.force_update` is invoked.
+
+### Notes
+- No behavior changes; entities, attributes, and options remain identical.
+
+## [1.7.0] – 2025-08-31
+### Fixed
+- TYPE per-day sensors (D+1/D+2) now use the **correct day's** `inSeason` and `advice` instead of inheriting today's values.
+### Added
+- **Plant forecast (attributes only):** plant sensors now include `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`, mirroring TYPE sensors.
+### Notes
+- No new plant entities are created; forecast is available via attributes to keep entity count low.
+
 ## [1.6.5] – 2025-08-26
 ### Fixed
 - Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  

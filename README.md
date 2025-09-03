@@ -22,11 +22,12 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 - **Multi-language support** — UI in 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK) + API responses in any language.  
 - **Dynamic sensors** — Auto-creates sensors for all pollen types found in your location.  
-- **Multi-day forecast for TYPES** —  
-  - `forecast` list with `{offset, date, has_index, value, category, description, color_*}`  
-  - Convenience: `tomorrow_*` and `d2_*`  
-  - Derived: `trend` and `expected_peak`  
-  - **Optional** per-day sensors via unified option.
+- **Multi-day forecast for TYPES & PLANTS** —
+  - `forecast` list with `{offset, date, has_index, value, category, description, color_*}`
+  - Convenience: `tomorrow_*` and `d2_*`
+  - Derived: `trend` and `expected_peak`
+  - **Per-day sensors:** remain **TYPES-only** (optional `D+1` / `D+2`).  
+    **PLANTS** expose forecast **as attributes only** (no extra entities).
 - **Smart grouping** — Organizes sensors into:
   - **Pollen Types** (Grass / Tree / Weed)
   - **Plants** (Oak, Pine, Birch, etc.)
