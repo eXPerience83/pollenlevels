@@ -29,6 +29,13 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 
+# NEW: modern sensor base + enums
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
@@ -675,8 +682,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         return self.data
 
 
-class PollenSensor(CoordinatorEntity):
+class PollenSensor(CoordinatorEntity, SensorEntity):
     """Represent a pollen sensor for a type, plant, or per-day type."""
+
+    # Enable long-term statistics for numeric pollen index values
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         """Initialize pollen sensor."""
@@ -697,8 +707,8 @@ class PollenSensor(CoordinatorEntity):
         return info.get("displayName", self.code)
 
     @property
-    def state(self):
-        """Return current pollen index value."""
+    def native_value(self):
+        """Return current pollen index value as the sensor's native value."""
         info = self.coordinator.data.get(self.code, {})
         return info.get("value")
 
@@ -820,7 +830,7 @@ class PollenSensor(CoordinatorEntity):
         }
 
 
-class _BaseMetaSensor(CoordinatorEntity):
+class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
     """Provide base for metadata sensors."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
@@ -865,7 +875,7 @@ class RegionSensor(_BaseMetaSensor):
         return f"{self.coordinator.entry_id}_region"
 
     @property
-    def state(self):
+    def native_value(self):
         """Return region code."""
         return self.coordinator.data.get("region", {}).get("value")
 
@@ -887,8 +897,9 @@ class DateSensor(_BaseMetaSensor):
         return f"{self.coordinator.entry_id}_date"
 
     @property
-    def state(self):
-        """Return forecast date."""
+    def native_value(self):
+        """Return forecast date as ISO string 'YYYY-MM-DD' (kept as string)."""
+        # Keeping string to avoid changing device_class/semantics in a minimal change.
         return self.coordinator.data.get("date", {}).get("value")
 
     @property
@@ -903,6 +914,8 @@ class LastUpdatedSensor(_BaseMetaSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
     _attr_translation_key = "last_updated"
+    # NEW: use TIMESTAMP so the frontend formats the datetime automatically
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     @property
     def unique_id(self) -> str:
@@ -910,12 +923,11 @@ class LastUpdatedSensor(_BaseMetaSensor):
         return f"{self.coordinator.entry_id}_last_updated"
 
     @property
-    def state(self):
-        """Return local timestamp of last update in 'YYYY-MM-DD HH:MM:SS'."""
-        if not self.coordinator.last_updated:
-            return None
-        local_ts = dt_util.as_local(self.coordinator.last_updated)
-        return local_ts.strftime("%Y-%m-%d %H:%M:%S")
+    def native_value(self):
+        """Return UTC datetime of last update; frontend will localize/format."""
+        # Coordinator stores an aware UTC datetime; HA expects a datetime object
+        # for TIMESTAMP sensors. The UI will render it as local time.
+        return self.coordinator.last_updated
 
     @property
     def icon(self):
