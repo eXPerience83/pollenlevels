@@ -736,27 +736,32 @@ class PollenSensor(CoordinatorEntity):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
+        # Only include forecast-related attributes if more than 1 day was requested.
+        include_forecast = getattr(self.coordinator, "forecast_days", 1) > 1
+
         # Forecast-related attributes:
         # - For TYPE sensors: include on main sensors only (not per-day _d1/_d2)
-        # - For PLANT sensors: always include (there are no per-day plant sensors)
+        # - For PLANT sensors: include as attributes (no per-day plant sensors)
         if info.get("source") == "type" and not self.code.endswith(("_d1", "_d2")):
-            for k in (
-                "forecast",
-                "tomorrow_has_index",
-                "tomorrow_value",
-                "tomorrow_category",
-                "tomorrow_description",
-                "tomorrow_color_hex",
-                "d2_has_index",
-                "d2_value",
-                "d2_category",
-                "d2_description",
-                "d2_color_hex",
-                "trend",
-                "expected_peak",
-            ):
-                if info.get(k) is not None:
-                    attrs[k] = info.get(k)
+            if include_forecast:
+                # Add forecast attributes only when forecast is enabled.
+                for k in (
+                    "forecast",
+                    "tomorrow_has_index",
+                    "tomorrow_value",
+                    "tomorrow_category",
+                    "tomorrow_description",
+                    "tomorrow_color_hex",
+                    "d2_has_index",
+                    "d2_value",
+                    "d2_category",
+                    "d2_description",
+                    "d2_color_hex",
+                    "trend",
+                    "expected_peak",
+                ):
+                    if info.get(k) is not None:
+                        attrs[k] = info.get(k)
 
         if info.get("source") == "plant":
             # Plant-specific metadata
@@ -774,23 +779,24 @@ class PollenSensor(CoordinatorEntity):
                     attrs[k] = v
 
             # Plant forecast attributes (attributes-only, no per-day plant sensors)
-            for k in (
-                "forecast",
-                "tomorrow_has_index",
-                "tomorrow_value",
-                "tomorrow_category",
-                "tomorrow_description",
-                "tomorrow_color_hex",
-                "d2_has_index",
-                "d2_value",
-                "d2_category",
-                "d2_description",
-                "d2_color_hex",
-                "trend",
-                "expected_peak",
-            ):
-                if info.get(k) is not None:
-                    attrs[k] = info.get(k)
+            if include_forecast:
+                for k in (
+                    "forecast",
+                    "tomorrow_has_index",
+                    "tomorrow_value",
+                    "tomorrow_category",
+                    "tomorrow_description",
+                    "tomorrow_color_hex",
+                    "d2_has_index",
+                    "d2_value",
+                    "d2_category",
+                    "d2_description",
+                    "d2_color_hex",
+                    "trend",
+                    "expected_peak",
+                ):
+                    if info.get(k) is not None:
+                        attrs[k] = info.get(k)
 
         return attrs
 
