@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.4] – 2025-09-04
+### Fixed
+- **Config Flow**: avoid double-consuming the HTTP body during API validation (switched to single read + `json.loads`). Prevents sporadic validation failures with `cannot_connect`.
+
 ## [1.7.3] – 2025-09-04
 ### Changed
 - **Sensors**: Hide forecast-related attributes (`forecast`, `tomorrow_*`, `d2_*`, `trend`, `expected_peak`) when **Forecast days = 1** to keep entities clean and concise.
