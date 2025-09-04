@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.3] – 2025-09-04
+### Changed
+- **Sensors**: Hide forecast-related attributes (`forecast`, `tomorrow_*`, `d2_*`, `trend`, `expected_peak`) when **Forecast days = 1** to keep entities clean and concise.
+### Notes
+- If you referenced `tomorrow_has_index` in templates with `forecast_days=1`, the attribute is now absent instead of `false`.
+
 ## [1.7.2] – 2025-09-01
 ### Fixed
 - **Diagnostics**: redact `location.latitude`/`location.longitude` inside the request example to avoid leaking coordinates in exports.
