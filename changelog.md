@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.5] – 2025-09-04
+### Changed
+- **Sensors**: Migrate to `SensorEntity` and use `native_value` across all sensors for better alignment with modern HA patterns.
+- **Statistics**: Set `state_class: measurement` on main pollen sensors to enable long-term statistics.
+- **Last Updated**: Switch to `device_class: timestamp` and return a `datetime` object so the frontend formats it automatically.
+
 ## [1.7.4] – 2025-09-04
 ### Fixed
 - **Config Flow**: avoid double-consuming the HTTP body during API validation (switched to single read + `json.loads`). Prevents sporadic validation failures with `cannot_connect`.
