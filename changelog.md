@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.6] – 2025-09-05
+### Changed
+- **UI polish**: Mark **Region** and **Date** sensors as `diagnostic` to better reflect their metadata nature.
+- **Display**: Add `suggested_display_precision: 0` to pollen sensors so values are shown as integers (this does not affect statistics or storage).
+
 ## [1.7.5] – 2025-09-04
 ### Changed
 - **Sensors**: Migrate to `SensorEntity` and use `native_value` across all sensors for better alignment with modern HA patterns.
