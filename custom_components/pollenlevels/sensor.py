@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from datetime import timedelta
+from datetime import timedelta, date  # Added `date` for DATE device class native_value
 from typing import Any
 
 import aiohttp  # For explicit ClientTimeout and ClientError
@@ -892,7 +892,7 @@ class DateSensor(_BaseMetaSensor):
     _attr_translation_key = "date"
     # Metadata; classify as diagnostic for better UI grouping.
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    # NEW: Mark as a date so the frontend applies date semantics/formatting
+    # Use DATE so the frontend applies date semantics/formatting.
     _attr_device_class = SensorDeviceClass.DATE
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
@@ -902,10 +902,20 @@ class DateSensor(_BaseMetaSensor):
         self._attr_icon = "mdi:calendar"
 
     @property
-    def native_value(self):
-        """Return forecast date as ISO string 'YYYY-MM-DD' (kept as string)."""
-        # Keeping string to avoid changing device_class/semantics in a minimal change.
-        return self.coordinator.data.get("date", {}).get("value")
+    def native_value(self) -> date | None:
+        """Return forecast date as a `datetime.date` object (required for DATE).
+
+        The coordinator stores an ISO 'YYYY-MM-DD' string; we parse it here.
+        """
+        date_str = self.coordinator.data.get("date", {}).get("value")
+        if not date_str:
+            return None
+        try:
+            y, m, d = map(int, date_str.split("-"))
+            return date(y, m, d)
+        except Exception:
+            _LOGGER.error("Invalid date format received: %s", date_str)
+            return None
 
 
 class LastUpdatedSensor(_BaseMetaSensor):
