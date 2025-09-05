@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import voluptuous as vol  # Service schema validation
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -41,8 +42,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 # Wait until the update completes to surface errors in logs.
                 await coordinator.async_refresh()
 
+    # Enforce empty payload for the service; reject unknown fields for clearer errors.
     hass.services.async_register(
-        DOMAIN, "force_update", handle_force_update_service, schema=None
+        DOMAIN, "force_update", handle_force_update_service, schema=vol.Schema({})
     )
     return True
 
