@@ -687,6 +687,8 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
 
     # Enable long-term statistics for numeric pollen index values
     _attr_state_class = SensorStateClass.MEASUREMENT
+    # NEW: Hint the UI to show integers (does not affect recorder/statistics)
+    _attr_suggested_display_precision = 0  # type: ignore[assignment]
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         """Initialize pollen sensor."""
@@ -868,6 +870,8 @@ class RegionSensor(_BaseMetaSensor):
 
     _attr_has_entity_name = True
     _attr_translation_key = "region"
+    # NEW: This is metadata; classify as diagnostic for better UI grouping.
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def unique_id(self) -> str:
@@ -890,6 +894,8 @@ class DateSensor(_BaseMetaSensor):
 
     _attr_has_entity_name = True
     _attr_translation_key = "date"
+    # NEW: This is metadata; classify as diagnostic for better UI grouping.
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def unique_id(self) -> str:
