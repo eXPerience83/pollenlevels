@@ -1,8 +1,13 @@
 # Changelog
 
+## [1.7.9] – 2025-09-06
+### Fixed
+- **Date sensor**: Return a `datetime.date` object for `device_class: date` (was a string). Ensures correct UI formatting and automation compatibility.
+
 ## [1.7.8] – 2025-09-05
 ### Changed
 - **Date sensor**: Set `device_class: date` so Home Assistant treats the value as a calendar date (UI semantics/formatting). No functional impact.
+- > Note: 1.7.8 set `device_class: date` but still returned a string. This was corrected in 1.7.9 to return a proper `date` object.
 
 ## [1.7.7] – 2025-09-05
 ### Changed
