@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.7] – 2025-09-05
+### Changed
+- **Performance/cleanup**: Precompute static attributes for metadata sensors:
+  - Set `_attr_unique_id` and `_attr_icon` in `RegionSensor`, `DateSensor`, and `LastUpdatedSensor`.
+  - Set `_attr_device_info` once in `_BaseMetaSensor`.
+  - Also set `_attr_unique_id` in `PollenSensor` for consistency.
+  These changes avoid repeated property calls and align with modern HA entity patterns. No functional impact.
+
 ## [1.7.6] – 2025-09-05
 ### Changed
 - **UI polish**: Mark **Region** and **Date** sensors as `diagnostic` to better reflect their metadata nature.
