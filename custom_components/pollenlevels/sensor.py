@@ -19,7 +19,7 @@ from typing import Any
 
 import aiohttp  # For explicit ClientTimeout and ClientError
 
-# NEW: modern sensor base + enums
+# Modern sensor base + enums
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -687,7 +687,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
 
     # Enable long-term statistics for numeric pollen index values
     _attr_state_class = SensorStateClass.MEASUREMENT
-    # NEW: Hint the UI to show integers (does not affect recorder/statistics)
+    # Hint the UI to show integers (does not affect recorder/statistics)
     _attr_suggested_display_precision = 0  # type: ignore[assignment]
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
@@ -695,12 +695,8 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.coordinator = coordinator
         self.code = code
-
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for sensor."""
-        # Uses the internal config entry_id (UUID-like, no dots) plus the code
-        return f"{self.coordinator.entry_id}_{self.code}"
+        # Pre-compute a stable unique_id; this never changes for the entity.
+        self._attr_unique_id = f"{self.coordinator.entry_id}_{self.code}"
 
     @property
     def name(self) -> str:
@@ -716,7 +712,10 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def icon(self) -> str:
-        """Return icon for sensor."""
+        """Return icon for sensor.
+
+        Kept as a property: the icon depends on the sensor's sub-type.
+        """
         info = self.coordinator.data.get(self.code, {})
         if info.get("source") == "type":
             base_key = self.code.split("_", 1)[1].split("_d", 1)[0].upper()
@@ -836,15 +835,16 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
     """Provide base for metadata sensors."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
-        """Initialize metadata sensor."""
+        """Initialize metadata sensor.
+
+        Static attributes are precomputed as `_attr_*` to avoid repeated property calls.
+        """
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-    @property
-    def device_info(self):
-        """Return device info with translation for metadata sensors."""
         device_id = f"{self.coordinator.entry_id}_meta"
-        return {
+        # Precompute device_info; location and identifiers are stable for the entry.
+        self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
             "manufacturer": "Google",
             "model": "Pollen API",
@@ -870,23 +870,19 @@ class RegionSensor(_BaseMetaSensor):
 
     _attr_has_entity_name = True
     _attr_translation_key = "region"
-    # NEW: This is metadata; classify as diagnostic for better UI grouping.
+    # Metadata; classify as diagnostic for better UI grouping.
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for region sensor."""
-        return f"{self.coordinator.entry_id}_region"
+    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+        """Initialize region sensor with static attributes."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self.coordinator.entry_id}_region"
+        self._attr_icon = "mdi:earth"
 
     @property
     def native_value(self):
         """Return region code."""
         return self.coordinator.data.get("region", {}).get("value")
-
-    @property
-    def icon(self):
-        """Return icon for region sensor."""
-        return "mdi:earth"
 
 
 class DateSensor(_BaseMetaSensor):
@@ -894,24 +890,20 @@ class DateSensor(_BaseMetaSensor):
 
     _attr_has_entity_name = True
     _attr_translation_key = "date"
-    # NEW: This is metadata; classify as diagnostic for better UI grouping.
+    # Metadata; classify as diagnostic for better UI grouping.
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for date sensor."""
-        return f"{self.coordinator.entry_id}_date"
+    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+        """Initialize date sensor with static attributes."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self.coordinator.entry_id}_date"
+        self._attr_icon = "mdi:calendar"
 
     @property
     def native_value(self):
         """Return forecast date as ISO string 'YYYY-MM-DD' (kept as string)."""
         # Keeping string to avoid changing device_class/semantics in a minimal change.
         return self.coordinator.data.get("date", {}).get("value")
-
-    @property
-    def icon(self):
-        """Return icon for date sensor."""
-        return "mdi:calendar"
 
 
 class LastUpdatedSensor(_BaseMetaSensor):
@@ -920,13 +912,14 @@ class LastUpdatedSensor(_BaseMetaSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
     _attr_translation_key = "last_updated"
-    # NEW: use TIMESTAMP so the frontend formats the datetime automatically
+    # Use TIMESTAMP so the frontend formats the datetime automatically
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for last updated sensor."""
-        return f"{self.coordinator.entry_id}_last_updated"
+    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+        """Initialize last updated sensor with static attributes."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self.coordinator.entry_id}_last_updated"
+        self._attr_icon = "mdi:clock-check"
 
     @property
     def native_value(self):
@@ -934,8 +927,3 @@ class LastUpdatedSensor(_BaseMetaSensor):
         # Coordinator stores an aware UTC datetime; HA expects a datetime object
         # for TIMESTAMP sensors. The UI will render it as local time.
         return self.coordinator.last_updated
-
-    @property
-    def icon(self):
-        """Return icon for last updated sensor."""
-        return "mdi:clock-check"
