@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.8] – 2025-09-05
+### Changed
+- **Date sensor**: Set `device_class: date` so Home Assistant treats the value as a calendar date (UI semantics/formatting). No functional impact.
+
 ## [1.7.7] – 2025-09-05
 ### Changed
 - **Performance/cleanup**: Precompute static attributes for metadata sensors:
