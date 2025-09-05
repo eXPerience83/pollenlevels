@@ -892,6 +892,8 @@ class DateSensor(_BaseMetaSensor):
     _attr_translation_key = "date"
     # Metadata; classify as diagnostic for better UI grouping.
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # NEW: Mark as a date so the frontend applies date semantics/formatting
+    _attr_device_class = SensorDeviceClass.DATE
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
         """Initialize date sensor with static attributes."""
