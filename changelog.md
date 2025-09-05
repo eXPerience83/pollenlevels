@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.10] – 2025-09-06
+### Changed
+- Service `pollenlevels.force_update`: added `vol.Schema({})` to enforce an empty payload and provide clearer validation errors. No functional impact for valid calls.
+
 ## [1.7.9] – 2025-09-06
 ### Fixed
 - **Date sensor**: Return a `datetime.date` object for `device_class: date` (was a string). Ensures correct UI formatting and automation compatibility.
