@@ -18,6 +18,13 @@ from datetime import timedelta
 from typing import Any
 
 import aiohttp  # For explicit ClientTimeout and ClientError
+
+# NEW: modern sensor base + enums
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -28,13 +35,6 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 from homeassistant.util import dt as dt_util
-
-# NEW: modern sensor base + enums
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorStateClass,
-)
 
 from .const import (
     CONF_API_KEY,
