@@ -7,11 +7,18 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
+# Least privilege for the default GITHUB_TOKEN
+permissions:
+  contents: read
+
 jobs:
-  hassfest:
+  validate:
     runs-on: ubuntu-latest
     steps:
+      # Checkout so hassfest can read manifests and structure
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      # Official hassfest action (Home Assistant recommends @master)
       - name: Run hassfest
         uses: home-assistant/actions/hassfest@master
