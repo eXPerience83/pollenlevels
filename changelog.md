@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.11] – 2025-09-06
+### Added
+- Translations: **Dutch (nl)** and **Chinese (Simplified, zh-Hans)**.
+
 ## [1.7.10] – 2025-09-06
 ### Changed
 - Service `pollenlevels.force_update`: added `vol.Schema({})` to enforce an empty payload and provide clearer validation errors. No functional impact for valid calls.
