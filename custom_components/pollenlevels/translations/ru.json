@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Настройка уровней пыльцы",
-        "description": "Введите ваш Google API Key, широту, долготу, интервал обновления (в часах) и код языка для ответа API.",
+        "description": "Введите ваш ключ Google API, широту, долготу, интервал обновления (в часах) и код языка для ответа API.",
         "data": {
           "api_key": "Ключ API",
           "latitude": "Широта",
@@ -14,7 +14,7 @@
       }
     },
     "error": {
-      "invalid_auth": "Неверный API ключ",
+      "invalid_auth": "Неверный ключ API",
       "cannot_connect": "Не удаётся подключиться к сервису",
       "quota_exceeded": "Превышен лимит запросов",
       "invalid_language": "Неверный код языка",
@@ -22,7 +22,7 @@
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням."
     },
     "abort": {
-      "already_configured": "Эта локация уже настроена."
+      "already_configured": "Этот адрес уже настроен."
     }
   },
   "options": {
@@ -39,7 +39,7 @@
       }
     },
     "error": {
-      "invalid_auth": "Неверный API ключ",
+      "invalid_auth": "Неверный ключ API",
       "cannot_connect": "Не удаётся подключиться к сервису",
       "quota_exceeded": "Превышен лимит запросов",
       "invalid_language": "Неверный код языка",
