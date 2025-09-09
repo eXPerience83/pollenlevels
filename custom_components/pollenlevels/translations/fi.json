@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Siitepölytason asetukset",
+        "description": "Anna Google API -avain, leveysaste, pituusaste, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
+        "data": {
+          "api_key": "API-avain",
+          "latitude": "Leveysaste",
+          "longitude": "Pituusaste",
+          "update_interval": "Päivitysväli (tunnit)",
+          "language_code": "API-vastauksen kielikoodi"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Virheellinen API-avain",
+      "cannot_connect": "Palveluun ei saada yhteyttä",
+      "quota_exceeded": "Kiintiö ylitetty",
+      "invalid_language": "Virheellinen kielikoodi",
+      "empty": "Tämä kenttä ei voi olla tyhjä",
+      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan."
+    },
+    "abort": {
+      "already_configured": "Tämä sijainti on jo määritetty."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Asetukset",
+        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2).",
+        "data": {
+          "update_interval": "Päivitysväli (tunnit)",
+          "language_code": "API-vastauksen kielikoodi",
+          "forecast_days": "Ennustepäivät (1–5)",
+          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Virheellinen API-avain",
+      "cannot_connect": "Palveluun ei saada yhteyttä",
+      "quota_exceeded": "Kiintiö ylitetty",
+      "invalid_language": "Virheellinen kielikoodi",
+      "empty": "Tämä kenttä ei voi olla tyhjä",
+      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan."
+    }
+  },
+  "device": {
+    "types": { "name": "Siitepölytyypit ({latitude},{longitude})" },
+    "plants": { "name": "Kasvit ({latitude},{longitude})" },
+    "info": { "name": "Siitepölytiedot ({latitude},{longitude})" }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Alue" },
+      "date": { "name": "Päivämäärä" },
+      "last_updated": { "name": "Viimeksi päivitetty" }
+    }
+  }
+}
