@@ -3,9 +3,9 @@
     "step": {
       "user": {
         "title": "Configuração dos Níveis de Pólen",
-        "description": "Introduza a sua chave de API do Google, latitude, longitude, intervalo de atualização (horas) e o código de idioma para a resposta da API.",
+        "description": "Introduza a sua chave da API do Google, latitude, longitude, intervalo de atualização (horas) e o código de idioma para a resposta da API.",
         "data": {
-          "api_key": "Chave API",
+          "api_key": "Chave da API",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Intervalo de atualização (horas)",
@@ -14,7 +14,7 @@
       }
     },
     "error": {
-      "invalid_auth": "Chave API inválida",
+      "invalid_auth": "Chave da API inválida",
       "cannot_connect": "Não é possível ligar ao serviço",
       "quota_exceeded": "Quota excedida",
       "invalid_language": "Código de idioma inválido",
@@ -39,7 +39,7 @@
       }
     },
     "error": {
-      "invalid_auth": "Chave API inválida",
+      "invalid_auth": "Chave da API inválida",
       "cannot_connect": "Não é possível ligar ao serviço",
       "quota_exceeded": "Quota excedida",
       "invalid_language": "Código de idioma inválido",
