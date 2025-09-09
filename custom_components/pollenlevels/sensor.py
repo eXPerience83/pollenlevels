@@ -689,6 +689,8 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     # Hint the UI to show integers (does not affect recorder/statistics)
     _attr_suggested_display_precision = 0  # type: ignore[assignment]
+    # Modern friendly name composition: Device name + Entity short name
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         """Initialize pollen sensor."""
