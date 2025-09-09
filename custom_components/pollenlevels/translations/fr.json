@@ -2,14 +2,14 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configuration Niveaux de Pollen",
-        "description": "Saisissez votre clé API Google, latitude, longitude, intervalle de mise à jour (heures) et code langue pour la réponse.",
+        "title": "Pollen Levels – Configuration",
+        "description": "Saisissez votre clé API Google, latitude, longitude, intervalle de mise à jour (heures) et le code de langue pour la réponse de l’API.",
         "data": {
           "api_key": "Clé API",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Code langue pour la réponse API"
+          "language_code": "Code de langue pour la réponse de l’API"
         }
       }
     },
@@ -19,7 +19,7 @@
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
       "empty": "Ce champ ne peut pas être vide",
-      "invalid_option_combo": "Augmentez « Jours de prévision » pour couvrir les capteurs par jour sélectionnés."
+      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés."
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré."
@@ -29,10 +29,10 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Modifiez l’intervalle de mise à jour, la langue de réponse de l’API, les jours de prévision et les capteurs par jour pour les TYPES.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+2).",
+        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour les TYPES.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+2).",
         "data": {
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Code langue pour la réponse API",
+          "language_code": "Code de langue pour la réponse de l’API",
           "forecast_days": "Jours de prévision (1–5)",
           "create_forecast_sensors": "Portée des capteurs par jour (TYPES)"
         }
@@ -44,7 +44,7 @@
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
       "empty": "Ce champ ne peut pas être vide",
-      "invalid_option_combo": "Augmentez « Jours de prévision » pour couvrir les capteurs par jour sélectionnés."
+      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés."
     }
   },
   "device": {
