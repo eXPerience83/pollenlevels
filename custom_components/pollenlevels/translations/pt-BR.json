@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configuração dos Níveis de Pólen",
-        "description": "Informe sua chave da Google API, latitude, longitude, intervalo de atualização (horas) e o código de idioma para a resposta da API.",
+        "description": "Informe sua chave da API do Google, latitude, longitude, intervalo de atualização (horas) e o código de idioma para a resposta da API.",
         "data": {
           "api_key": "Chave da API",
           "latitude": "Latitude",
