@@ -2,14 +2,14 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configuració Nivells de pol·len",
-        "description": "Introdueix la teva clau d’API de Google, latitud, longitud, interval d’actualització (hores) i codi d’idioma per a la resposta.",
+        "title": "Configuració de Nivells de pol·len",
+        "description": "Introdueix la teva clau d’API de Google, latitud, longitud, interval d’actualització (hores) i codi d’idioma de la resposta de l’API.",
         "data": {
           "api_key": "Clau API",
           "latitude": "Latitud",
           "longitude": "Longitud",
           "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta API"
+          "language_code": "Codi d’idioma de la resposta de l’API"
         }
       }
     },
@@ -32,7 +32,7 @@
         "description": "Canvia l'interval d’actualització, l'idioma de resposta de l’API, els dies de previsió i els sensors per dia per a TIPUS.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2).",
         "data": {
           "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta API",
+          "language_code": "Codi d’idioma de la resposta de l’API",
           "forecast_days": "Dies de previsió (1–5)",
           "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)"
         }
