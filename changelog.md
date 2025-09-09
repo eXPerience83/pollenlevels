@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.7.14] – 2025-09-09
+### Fixed
+- i18n wording consistency: CA, PT-BR, PL, RU, IT, NB.
+  - Catalan: typographic apostrophes in “l’interval / l’idioma”.
+  - pt-BR: “chave da API do Google”.
+  - Polish: “odpowiedzi API” + natural title.
+  - Russian: “Это местоположение...” for “location”.
+  - Italian: “Opzioni dei sensori...” and “Informazioni sul polline”.
+  - Norwegian Bokmål: “Dette stedet...”.
+
 ## [1.7.13] – 2025-09-09
 ### Fixed
 - i18n wording/consistency: CA, ES, DE, FR, NL, RU, UK, PT-PT.
