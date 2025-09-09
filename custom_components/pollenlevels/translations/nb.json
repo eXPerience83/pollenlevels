@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurasjon av pollennivåer",
+        "description": "Angi Google API-nøkkel, breddegrad, lengdegrad, oppdateringsintervall (timer) og språkkode for API-svar.",
+        "data": {
+          "api_key": "API-nøkkel",
+          "latitude": "Breddegrad",
+          "longitude": "Lengdegrad",
+          "update_interval": "Oppdateringsintervall (timer)",
+          "language_code": "Språkkode for API-svar"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ugyldig API-nøkkel",
+      "cannot_connect": "Kan ikke koble til tjenesten",
+      "quota_exceeded": "Kvote overskredet",
+      "invalid_language": "Ugyldig språkkode",
+      "empty": "Dette feltet kan ikke være tomt",
+      "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag."
+    },
+    "abort": {
+      "already_configured": "Denne lokasjonen er allerede konfigurert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Innstillinger",
+        "description": "Endre oppdateringsintervall, API-språk, prognosedager og sensorer per dag for TYPER.\nAlternativer for sensorer per dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med i overmorgen (D+2).",
+        "data": {
+          "update_interval": "Oppdateringsintervall (timer)",
+          "language_code": "Språkkode for API-svar",
+          "forecast_days": "Prognosedager (1–5)",
+          "create_forecast_sensors": "Omfang av sensorer per dag (TYPER)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ugyldig API-nøkkel",
+      "cannot_connect": "Kan ikke koble til tjenesten",
+      "quota_exceeded": "Kvote overskredet",
+      "invalid_language": "Ugyldig språkkode",
+      "empty": "Dette feltet kan ikke være tomt",
+      "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag."
+    }
+  },
+  "device": {
+    "types": { "name": "Pollentyper ({latitude},{longitude})" },
+    "plants": { "name": "Planter ({latitude},{longitude})" },
+    "info": { "name": "Polleninfo ({latitude},{longitude})" }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Region" },
+      "date": { "name": "Dato" },
+      "last_updated": { "name": "Sist oppdatert" }
+    }
+  }
+}
