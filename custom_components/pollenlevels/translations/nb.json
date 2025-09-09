@@ -22,7 +22,7 @@
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag."
     },
     "abort": {
-      "already_configured": "Denne lokasjonen er allerede konfigurert."
+      "already_configured": "Dette stedet er allerede konfigurert."
     }
   },
   "options": {
