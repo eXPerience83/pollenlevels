@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.12] – 2025-09-07
+### Added
+- Translations: **sv**, **cs**, **pt-BR**, **da**, **nb**, **pt-PT**, **ro**, **fi**, **hu**, **zh-Hant**.
+### Notes
+- No functional changes; translation keys match `en.json`.
+
 ## [1.7.11] – 2025-09-06
 ### Added
 - Translations: **Dutch (nl)** and **Chinese (Simplified, zh-Hans)**.
