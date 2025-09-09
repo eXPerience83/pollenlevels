@@ -2,14 +2,14 @@
   "config": {
     "step": {
       "user": {
-        "title": "Konfiguration Pollenniveaus",
-        "description": "Gib deinen Google API-Schlüssel, Breiten- und Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
+        "title": "Pollen Levels – Konfiguration",
+        "description": "Gib deinen Google API-Schlüssel, Breitengrad, Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
         "data": {
           "api_key": "API-Schlüssel",
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für Antwort"
+          "language_code": "Sprachcode für die API-Antwort"
         }
       }
     },
@@ -32,7 +32,7 @@
         "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für TYPEN.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2).",
         "data": {
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für Antwort",
+          "language_code": "Sprachcode für die API-Antwort",
           "forecast_days": "Vorhersagetage (1–5)",
           "create_forecast_sensors": "Bereich der Tagessensoren (TYPEN)"
         }
