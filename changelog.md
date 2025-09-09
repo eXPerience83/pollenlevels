@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.15] – 2025-09-09
+### Changed
+- Sensors: Enabled `_attr_has_entity_name = True` for `PollenSensor` so Home Assistant composes names as “Device • Entity” (modern UI pattern). No impact on `entity_id`/`unique_id` or device grouping.
+
 ## [1.7.14] – 2025-09-09
 ### Fixed
 - i18n wording consistency: CA, PT-BR, PL, RU, IT, NB.
