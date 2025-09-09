@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.13] – 2025-09-09
+### Fixed
+- i18n wording/consistency: CA, ES, DE, FR, NL, RU, UK, PT-PT.
+  - Natural titles and API phrasing (e.g., “response of the API”).
+  - Removed hidden soft hyphen in Dutch device name (“Pollentypen”).
+
 ## [1.7.12] – 2025-09-07
 ### Added
 - Translations: **sv**, **cs**, **pt-BR**, **da**, **nb**, **pt-PT**, **ro**, **fi**, **hu**, **zh-Hant**.
