@@ -6,5 +6,6 @@
   "documentation": "https://github.com/eXPerience83/pollenlevels",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/eXPerience83/pollenlevels/issues",
+  "integration_type": "service",
   "version": "1.7.15"
 }
