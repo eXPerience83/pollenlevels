@@ -1,8 +1,12 @@
 # Changelog
 
 ## [1.7.15] – 2025-09-09
+### Fixed
+- **Diagnostics**: Use `DEFAULT_FORECAST_DAYS` instead of a hard-coded fallback to avoid drift when defaults change.
 ### Changed
-- Sensors: Enabled `_attr_has_entity_name = True` for `PollenSensor` so Home Assistant composes names as “Device • Entity” (modern UI pattern). No impact on `entity_id`/`unique_id` or device grouping.
+- **Diagnostics**: Added `days` to `forecast_summary.type` (already present for `plant`) for structural symmetry and easier troubleshooting.
+- **Sensors**: Enabled `_attr_has_entity_name = True` for `PollenSensor` so Home Assistant composes names as “Device • Entity” (modern UI pattern). No impact on `entity_id`/`unique_id` or device grouping.
+- **Manifest**: Bump version to `1.7.15` and add `integration_type: "service"` for clearer classification in Home Assistant.
 
 ## [1.7.14] – 2025-09-09
 ### Fixed
