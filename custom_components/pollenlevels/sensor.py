@@ -64,7 +64,10 @@ DEFAULT_ICON = "mdi:flower-pollen"
 
 
 def _normalize_channel(v: Any) -> int | None:
-    """Normalize a single channel to 0..255 (accept 0..1 or 0..255 inputs)."""
+    """Normalize a single channel to 0..255 (accept 0..1 or 0..255 inputs).
+
+    Returns None if the value cannot be interpreted as a number.
+    """
     try:
         f = float(v)
     except (TypeError, ValueError):
@@ -75,14 +78,34 @@ def _normalize_channel(v: Any) -> int | None:
 
 
 def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
-    """Build an (R, G, B) tuple from API color dict, tolerating missing channels."""
-    if not isinstance(color, dict):
+    """Build an (R, G, B) tuple from API color dict.
+
+    Rules:
+    - If color is not a dict, or an empty dict, or has no numeric channels at all,
+      return None (meaning "no color provided by API").
+    - If only some channels are present, missing ones are treated as 0 (black baseline)
+      but ONLY when at least one channel exists. This preserves partial colors like
+      {green, blue} without inventing a color for {}.
+    """
+    if not isinstance(color, dict) or not color:
         return None
-    r = _normalize_channel(color.get("red", 0))
-    g = _normalize_channel(color.get("green", 0))
-    b = _normalize_channel(color.get("blue", 0))
+
+    # Check if any of the channels is actually provided as numeric
+    has_any_channel = any(
+        isinstance(color.get(k), (int, float)) for k in ("red", "green", "blue")
+    )
+    if not has_any_channel:
+        return None
+
+    r = _normalize_channel(color.get("red"))
+    g = _normalize_channel(color.get("green"))
+    b = _normalize_channel(color.get("blue"))
+
+    # If all channels are None, treat as no color
     if r is None and g is None and b is None:
         return None
+
+    # Replace missing channels with 0 (only when at least one exists)
     return (r or 0, g or 0, b or 0)
 
 
