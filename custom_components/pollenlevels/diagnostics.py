@@ -141,8 +141,8 @@ async def async_get_config_entry_diagnostics(
         ]
         plant_codes = sorted([v.get("code") for v in plant_items if v.get("code")])
         plants_with_attr = [v for v in plant_items if "forecast" in v]
-        # Truthy when 'forecast' is present and non-empty
-        plants_with_nonempty = [v for v in plant_items if v.get("forecast") or []]
+        # Readability: include items only when forecast is present and non-empty
+        plants_with_nonempty = [v for v in plant_items if v.get("forecast")]
         plants_with_trend = [v for v in plant_items if v.get("trend") is not None]
 
         forecast_summary["plant"] = {
