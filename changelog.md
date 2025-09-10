@@ -3,6 +3,8 @@
 ## [1.7.17] – 2025-09-10
 ### Changed
 - **Code Refinement**: Improved readability of a filter in the diagnostics module. No functional change.
+### Improved
+- **Services**: Added a `name` to the `force_update` service for a clearer presentation in the Developer Tools UI.
 
 ## [1.7.16] – 2025-09-09
 ### Fixed
