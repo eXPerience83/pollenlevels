@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.17] – 2025-09-10
+### Changed
+- **Code Refinement**: Improved readability of a filter in the diagnostics module. No functional change.
+
 ## [1.7.16] – 2025-09-09
 ### Fixed
 - Color parsing: treat empty or channel-less `indexInfo.color` as **absent** instead of `#000000`. Prevents misleading black when the API omits color.
