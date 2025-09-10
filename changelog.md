@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.16] – 2025-09-09
+### Fixed
+- Color parsing: treat empty or channel-less `indexInfo.color` as **absent** instead of `#000000`. Prevents misleading black when the API omits color.
+
 ## [1.7.15] – 2025-09-09
 ### Fixed
 - **Diagnostics**: Use `DEFAULT_FORECAST_DAYS` instead of a hard-coded fallback to avoid drift when defaults change.
