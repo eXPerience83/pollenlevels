@@ -92,7 +92,8 @@ def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
 
     # Check if any of the channels is actually provided as numeric
     has_any_channel = any(
-        isinstance(color.get(k), int | float) for k in ("red", "green", "blue")  # Ruff UP038: use PEP 604 unions
+        isinstance(color.get(k), int | float)
+        for k in ("red", "green", "blue")  # Ruff UP038: use PEP 604 unions
     )
     if not has_any_channel:
         return None
