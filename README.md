@@ -10,9 +10,9 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 [![GitHub Release](https://img.shields.io/github/v/release/eXPerience83/pollenlevels)](https://github.com/eXPerience83/pollenlevels/releases)
 [![hassfest validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml)
 [![HACS validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
-[![License](https://img.shields.io/github/license/eXPerience83/pollenlevels)](LICENSE)
+[![License](https://img.shields.io/github/license/eXPerience83/pollenlevels?logo=github)](LICENSE)
 [![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/integration)
-[![FAQ](https://img.shields.io/badge/FAQ-Read%20Here-blue)](FAQ.md)
+[![FAQ](https://img.shields.io/badge/FAQ-Read%20Here-blue?logo=readthedocs&logoColor=white)](FAQ.md)
 [![Ko-fi](https://img.shields.io/badge/Ko%E2%80%91fi-Support%20this%20project-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/experience83)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-blue?logo=paypal)](https://paypal.me/eXPerience83)
 
@@ -37,15 +37,16 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Configurable updates** — Change update interval, language, forecast days, and per-day sensors without reinstalling.  
 - **Manual refresh** — Call `pollenlevels.force_update` to trigger an immediate update and reset the timer.  
 - **Last Updated sensor** — Shows timestamp of last successful update.  
-- **Rich attributes** — Includes `inSeason`, UPI `description`, health `advice`, `color_hex`, `color_rgb`, `color_raw`, and plant details.  
+- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`, `color_hex`, `color_rgb`, `color_raw`, and plant details.  
 
 ---
 
 ## 🔒 Security & Privacy
 
-- Your **API key** is stored securely by Home Assistant.  
-- **We never log your API key**. Debug messages redact it (shown as `***`).  
-- Avoid sharing full debug logs publicly; review them for sensitive data before posting.
+- Your **API key** is stored by Home Assistant’s secure config entries.  
+- **We never log your API key.** As a safety net, if it ever appears in an error message, it is **redacted** as `***`.  
+- **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
+- Avoid sharing full debug logs publicly; review them for sensitive information before posting.
 
 ---
 
@@ -111,7 +112,7 @@ entities:
   - type: attribute
     entity: sensor.type_grass
     attribute: description
-    name: UPI description
+    name: Index description
 ````
 
 > Simple and robust. It shows attributes clearly but **doesn’t color** the icon.
