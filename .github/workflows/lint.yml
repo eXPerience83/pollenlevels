@@ -15,6 +15,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege for the default GITHUB_TOKEN to satisfy CodeQL
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
