@@ -11,7 +11,9 @@ fix = true  # default fix behavior when running 'ruff' without flags
 # pycodestyle/pyflakes/isort/pyupgrade/bugbear
 select = ["E", "F", "W", "I", "UP", "B"]
 ignore = [
-  "E501",  # line length (Black handles formatting)
+  "E203", # whitespace before ':' (conflicts with Black on slicing)
+  "W503", # line break before binary operator (Black prefers it)
+  "E501", # line length (Black handles wrapping)
 ]
 
 [tool.ruff.lint.isort]
