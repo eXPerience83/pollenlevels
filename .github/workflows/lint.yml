@@ -9,30 +9,28 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Least privilege for the default GITHUB_TOKEN (read-only is enough here)
-permissions:
-  contents: read
-
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip  # Speed up subsequent installs
+          cache: "pip"  # Speed up subsequent installs
 
       - name: Install linters
         run: |
           python -m pip install --upgrade pip
           python -m pip install "ruff==0.6.*" "black==24.*"
 
-      - name: Ruff check (no fixes)
-        run: ruff check .
+      - name: Ruff check (no writes)
+        run: |
+          # Enforce no modifications in CI (lint-only)
+          ruff check . --no-fix
 
-      - name: Black check (no changes are written)
-        run: black --check .
+      - name: Black check (no writes)
+        run: |
+          black --check .
