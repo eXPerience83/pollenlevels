@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.18] – 2025-09-11
+### Security
+- **GitHub Actions (least privilege):** add explicit `permissions: { contents: read }` to `lint.yml` to satisfy CodeQL’s `actions/missing-workflow-permissions`.
+
 ## [1.7.17] – 2025-09-10
 ### Changed
 - **Code Refinement**: Improved readability of a filter in the diagnostics module. No functional change.
