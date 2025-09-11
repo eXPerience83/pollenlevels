@@ -119,11 +119,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 url = "https://pollen.googleapis.com/v1/forecast:lookup"
 
-                # Redact API key in logs (for both params and body)
-                safe_params = dict(params)
-                if "key" in safe_params:
-                    safe_params["key"] = "***"
-                _LOGGER.debug("Validating API: %s params %s", url, safe_params)
+                # SECURITY: Avoid logging URL+params (contains coordinates/key)
+                _LOGGER.debug(
+                    "Validating Pollen API (days=%s, lang_set=%s)", 1, bool(lang)
+                )
 
                 # Add explicit timeout to prevent UI hangs on provider issues
                 async with session.get(
