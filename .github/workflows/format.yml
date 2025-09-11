@@ -13,21 +13,47 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Needed to push back to the selected branch
+# We need write permission to push formatting changes back
 permissions:
   contents: write
 
 jobs:
   format:
+    # Prevent pushing from forks where GITHUB_TOKEN does not have write permissions
+    if: github.repository_owner == 'eXPerience83'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (requested ref or current)
-        uses: actions/checkout@v4
+      - name: Determine branch to format
+        id: resolve_branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="${{ inputs.target_branch }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH="${GITHUB_REF_NAME}"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout target branch
+        uses: actions/checkout@v5
         with:
-          # If a branch is provided, use it; otherwise, use the current ref.
-          ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.ref }}
-          fetch-depth: 0  # Required to create commits
+          # Checkout the branch we intend to format and push back to.
+          ref: ${{ steps.resolve_branch.outputs.branch }}
+          # Fetch full history to avoid push issues (fast-forward, etc.)
+          fetch-depth: 0
+
+      - name: Ensure branch exists remotely
+        shell: bash
+        run: |
+          # Some older recipes rely only on exit codes; we explicitly check empty output.
+          set -euo pipefail
+          BRANCH="${{ steps.resolve_branch.outputs.branch }}"
+          if [ -z "$(git ls-remote --heads origin "$BRANCH")" ]; then
+            echo "::error::Target branch '$BRANCH' does not exist on origin."
+            exit 1
+          fi
+          echo "Formatting branch: $BRANCH"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,32 +64,30 @@ jobs:
       - name: Install formatters
         run: |
           python -m pip install --upgrade pip
-          pip install "ruff==0.5.7" "black==24.8.0"
+          # Pin by minor to allow patch updates while avoiding major breaking changes
+          python -m pip install "ruff==0.6.*" "black==24.*"
 
       - name: Ruff (safe fixes)
-        run: ruff check . --fix
+        run: |
+          # Ruff reads config from pyproject.toml
+          ruff --version
+          ruff check . --fix
 
       - name: Black (format)
-        run: black .
+        run: |
+          black --version
+          black .
 
-      - name: Commit & Push if changes
+      - name: Commit & push if changes
         shell: bash
         run: |
           set -euo pipefail
           if git diff --quiet; then
-            echo "No changes to commit."
+            echo "No formatting changes to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "style: apply Ruff fixes and Black formatting"
-
-          # Determine target branch: prefer the manual input, otherwise current ref name.
-          BRANCH="${{ inputs.target_branch }}"
-          if [ -z "$BRANCH" ]; then
-            BRANCH="${GITHUB_REF_NAME}"
-          fi
-
-          # Push to the target branch explicitly
-          git push origin HEAD:"$BRANCH"
+          git push origin HEAD:${{ steps.resolve_branch.outputs.branch }}

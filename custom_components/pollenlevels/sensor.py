@@ -14,10 +14,17 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from datetime import timedelta
+from datetime import date, timedelta  # Added `date` for DATE device class native_value
 from typing import Any
 
 import aiohttp  # For explicit ClientTimeout and ClientError
+
+# Modern sensor base + enums
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -57,7 +64,10 @@ DEFAULT_ICON = "mdi:flower-pollen"
 
 
 def _normalize_channel(v: Any) -> int | None:
-    """Normalize a single channel to 0..255 (accept 0..1 or 0..255 inputs)."""
+    """Normalize a single channel to 0..255 (accept 0..1 or 0..255 inputs).
+
+    Returns None if the value cannot be interpreted as a number.
+    """
     try:
         f = float(v)
     except (TypeError, ValueError):
@@ -68,14 +78,35 @@ def _normalize_channel(v: Any) -> int | None:
 
 
 def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
-    """Build an (R, G, B) tuple from API color dict, tolerating missing channels."""
-    if not isinstance(color, dict):
+    """Build an (R, G, B) tuple from API color dict.
+
+    Rules:
+    - If color is not a dict, or an empty dict, or has no numeric channels at all,
+      return None (meaning "no color provided by API").
+    - If only some channels are present, missing ones are treated as 0 (black baseline)
+      but ONLY when at least one channel exists. This preserves partial colors like
+      {green, blue} without inventing a color for {}.
+    """
+    if not isinstance(color, dict) or not color:
         return None
-    r = _normalize_channel(color.get("red", 0))
-    g = _normalize_channel(color.get("green", 0))
-    b = _normalize_channel(color.get("blue", 0))
+
+    # Check if any of the channels is actually provided as numeric
+    has_any_channel = any(
+        isinstance(color.get(k), int | float)
+        for k in ("red", "green", "blue")  # Ruff UP038: use PEP 604 unions
+    )
+    if not has_any_channel:
+        return None
+
+    r = _normalize_channel(color.get("red"))
+    g = _normalize_channel(color.get("green"))
+    b = _normalize_channel(color.get("blue"))
+
+    # If all channels are None, treat as no color
     if r is None and g is None and b is None:
         return None
+
+    # Replace missing channels with 0 (only when at least one exists)
     return (r or 0, g or 0, b or 0)
 
 
@@ -675,20 +706,23 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         return self.data
 
 
-class PollenSensor(CoordinatorEntity):
+class PollenSensor(CoordinatorEntity, SensorEntity):
     """Represent a pollen sensor for a type, plant, or per-day type."""
+
+    # Enable long-term statistics for numeric pollen index values
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    # Hint the UI to show integers (does not affect recorder/statistics)
+    _attr_suggested_display_precision = 0  # type: ignore[assignment]
+    # Modern friendly name composition: Device name + Entity short name
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
         """Initialize pollen sensor."""
         super().__init__(coordinator)
         self.coordinator = coordinator
         self.code = code
-
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for sensor."""
-        # Uses the internal config entry_id (UUID-like, no dots) plus the code
-        return f"{self.coordinator.entry_id}_{self.code}"
+        # Pre-compute a stable unique_id; this never changes for the entity.
+        self._attr_unique_id = f"{self.coordinator.entry_id}_{self.code}"
 
     @property
     def name(self) -> str:
@@ -697,14 +731,17 @@ class PollenSensor(CoordinatorEntity):
         return info.get("displayName", self.code)
 
     @property
-    def state(self):
-        """Return current pollen index value."""
+    def native_value(self):
+        """Return current pollen index value as the sensor's native value."""
         info = self.coordinator.data.get(self.code, {})
         return info.get("value")
 
     @property
     def icon(self) -> str:
-        """Return icon for sensor."""
+        """Return icon for sensor.
+
+        Kept as a property: the icon depends on the sensor's sub-type.
+        """
         info = self.coordinator.data.get(self.code, {})
         if info.get("source") == "type":
             base_key = self.code.split("_", 1)[1].split("_d", 1)[0].upper()
@@ -736,27 +773,32 @@ class PollenSensor(CoordinatorEntity):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
+        # Only include forecast-related attributes if more than 1 day was requested.
+        include_forecast = getattr(self.coordinator, "forecast_days", 1) > 1
+
         # Forecast-related attributes:
         # - For TYPE sensors: include on main sensors only (not per-day _d1/_d2)
-        # - For PLANT sensors: always include (there are no per-day plant sensors)
+        # - For PLANT sensors: include as attributes (no per-day plant sensors)
         if info.get("source") == "type" and not self.code.endswith(("_d1", "_d2")):
-            for k in (
-                "forecast",
-                "tomorrow_has_index",
-                "tomorrow_value",
-                "tomorrow_category",
-                "tomorrow_description",
-                "tomorrow_color_hex",
-                "d2_has_index",
-                "d2_value",
-                "d2_category",
-                "d2_description",
-                "d2_color_hex",
-                "trend",
-                "expected_peak",
-            ):
-                if info.get(k) is not None:
-                    attrs[k] = info.get(k)
+            if include_forecast:
+                # Add forecast attributes only when forecast is enabled.
+                for k in (
+                    "forecast",
+                    "tomorrow_has_index",
+                    "tomorrow_value",
+                    "tomorrow_category",
+                    "tomorrow_description",
+                    "tomorrow_color_hex",
+                    "d2_has_index",
+                    "d2_value",
+                    "d2_category",
+                    "d2_description",
+                    "d2_color_hex",
+                    "trend",
+                    "expected_peak",
+                ):
+                    if info.get(k) is not None:
+                        attrs[k] = info.get(k)
 
         if info.get("source") == "plant":
             # Plant-specific metadata
@@ -774,23 +816,24 @@ class PollenSensor(CoordinatorEntity):
                     attrs[k] = v
 
             # Plant forecast attributes (attributes-only, no per-day plant sensors)
-            for k in (
-                "forecast",
-                "tomorrow_has_index",
-                "tomorrow_value",
-                "tomorrow_category",
-                "tomorrow_description",
-                "tomorrow_color_hex",
-                "d2_has_index",
-                "d2_value",
-                "d2_category",
-                "d2_description",
-                "d2_color_hex",
-                "trend",
-                "expected_peak",
-            ):
-                if info.get(k) is not None:
-                    attrs[k] = info.get(k)
+            if include_forecast:
+                for k in (
+                    "forecast",
+                    "tomorrow_has_index",
+                    "tomorrow_value",
+                    "tomorrow_category",
+                    "tomorrow_description",
+                    "tomorrow_color_hex",
+                    "d2_has_index",
+                    "d2_value",
+                    "d2_category",
+                    "d2_description",
+                    "d2_color_hex",
+                    "trend",
+                    "expected_peak",
+                ):
+                    if info.get(k) is not None:
+                        attrs[k] = info.get(k)
 
         return attrs
 
@@ -814,19 +857,20 @@ class PollenSensor(CoordinatorEntity):
         }
 
 
-class _BaseMetaSensor(CoordinatorEntity):
+class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
     """Provide base for metadata sensors."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
-        """Initialize metadata sensor."""
+        """Initialize metadata sensor.
+
+        Static attributes are precomputed as `_attr_*` to avoid repeated property calls.
+        """
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-    @property
-    def device_info(self):
-        """Return device info with translation for metadata sensors."""
         device_id = f"{self.coordinator.entry_id}_meta"
-        return {
+        # Precompute device_info; location and identifiers are stable for the entry.
+        self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
             "manufacturer": "Google",
             "model": "Pollen API",
@@ -852,21 +896,19 @@ class RegionSensor(_BaseMetaSensor):
 
     _attr_has_entity_name = True
     _attr_translation_key = "region"
+    # Metadata; classify as diagnostic for better UI grouping.
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+        """Initialize region sensor with static attributes."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self.coordinator.entry_id}_region"
+        self._attr_icon = "mdi:earth"
 
     @property
-    def unique_id(self) -> str:
-        """Return unique ID for region sensor."""
-        return f"{self.coordinator.entry_id}_region"
-
-    @property
-    def state(self):
+    def native_value(self):
         """Return region code."""
         return self.coordinator.data.get("region", {}).get("value")
-
-    @property
-    def icon(self):
-        """Return icon for region sensor."""
-        return "mdi:earth"
 
 
 class DateSensor(_BaseMetaSensor):
@@ -874,21 +916,32 @@ class DateSensor(_BaseMetaSensor):
 
     _attr_has_entity_name = True
     _attr_translation_key = "date"
+    # Metadata; classify as diagnostic for better UI grouping.
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # Use DATE so the frontend applies date semantics/formatting.
+    _attr_device_class = SensorDeviceClass.DATE
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+        """Initialize date sensor with static attributes."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self.coordinator.entry_id}_date"
+        self._attr_icon = "mdi:calendar"
 
     @property
-    def unique_id(self) -> str:
-        """Return unique ID for date sensor."""
-        return f"{self.coordinator.entry_id}_date"
+    def native_value(self) -> date | None:
+        """Return forecast date as a `datetime.date` object (required for DATE).
 
-    @property
-    def state(self):
-        """Return forecast date."""
-        return self.coordinator.data.get("date", {}).get("value")
-
-    @property
-    def icon(self):
-        """Return icon for date sensor."""
-        return "mdi:calendar"
+        The coordinator stores an ISO 'YYYY-MM-DD' string; we parse it here.
+        """
+        date_str = self.coordinator.data.get("date", {}).get("value")
+        if not date_str:
+            return None
+        try:
+            y, m, d = map(int, date_str.split("-"))
+            return date(y, m, d)
+        except Exception:
+            _LOGGER.error("Invalid date format received: %s", date_str)
+            return None
 
 
 class LastUpdatedSensor(_BaseMetaSensor):
@@ -897,21 +950,18 @@ class LastUpdatedSensor(_BaseMetaSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
     _attr_translation_key = "last_updated"
+    # Use TIMESTAMP so the frontend formats the datetime automatically
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+        """Initialize last updated sensor with static attributes."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self.coordinator.entry_id}_last_updated"
+        self._attr_icon = "mdi:clock-check"
 
     @property
-    def unique_id(self) -> str:
-        """Return unique ID for last updated sensor."""
-        return f"{self.coordinator.entry_id}_last_updated"
-
-    @property
-    def state(self):
-        """Return local timestamp of last update in 'YYYY-MM-DD HH:MM:SS'."""
-        if not self.coordinator.last_updated:
-            return None
-        local_ts = dt_util.as_local(self.coordinator.last_updated)
-        return local_ts.strftime("%Y-%m-%d %H:%M:%S")
-
-    @property
-    def icon(self):
-        """Return icon for last updated sensor."""
-        return "mdi:clock-check"
+    def native_value(self):
+        """Return UTC datetime of last update; frontend will localize/format."""
+        # Coordinator stores an aware UTC datetime; HA expects a datetime object
+        # for TIMESTAMP sensors. The UI will render it as local time.
+        return self.coordinator.last_updated

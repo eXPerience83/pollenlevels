@@ -1,5 +1,91 @@
 # Changelog
 
+## [1.7.17] – 2025-09-10
+### Changed
+- **Code Refinement**: Improved readability of a filter in the diagnostics module. No functional change.
+### Improved
+- **Services**: Added a `name` to the `force_update` service for a clearer presentation in the Developer Tools UI.
+
+## [1.7.16] – 2025-09-09
+### Fixed
+- Color parsing: treat empty or channel-less `indexInfo.color` as **absent** instead of `#000000`. Prevents misleading black when the API omits color.
+
+## [1.7.15] – 2025-09-09
+### Fixed
+- **Diagnostics**: Use `DEFAULT_FORECAST_DAYS` instead of a hard-coded fallback to avoid drift when defaults change.
+### Changed
+- **Diagnostics**: Added `days` to `forecast_summary.type` (already present for `plant`) for structural symmetry and easier troubleshooting.
+- **Sensors**: Enabled `_attr_has_entity_name = True` for `PollenSensor` so Home Assistant composes names as “Device • Entity” (modern UI pattern). No impact on `entity_id`/`unique_id` or device grouping.
+- **Manifest**: Bump version to `1.7.15` and add `integration_type: "service"` for clearer classification in Home Assistant.
+
+## [1.7.14] – 2025-09-09
+### Fixed
+- i18n wording consistency: CA, PT-BR, PL, RU, IT, NB.
+  - Catalan: typographic apostrophes in “l’interval / l’idioma”.
+  - pt-BR: “chave da API do Google”.
+  - Polish: “odpowiedzi API” + natural title.
+  - Russian: “Это местоположение...” for “location”.
+  - Italian: “Opzioni dei sensori...” and “Informazioni sul polline”.
+  - Norwegian Bokmål: “Dette stedet...”.
+
+## [1.7.13] – 2025-09-09
+### Fixed
+- i18n wording/consistency: CA, ES, DE, FR, NL, RU, UK, PT-PT.
+  - Natural titles and API phrasing (e.g., “response of the API”).
+  - Removed hidden soft hyphen in Dutch device name (“Pollentypen”).
+
+## [1.7.12] – 2025-09-07
+### Added
+- Translations: **sv**, **cs**, **pt-BR**, **da**, **nb**, **pt-PT**, **ro**, **fi**, **hu**, **zh-Hant**.
+### Notes
+- No functional changes; translation keys match `en.json`.
+
+## [1.7.11] – 2025-09-06
+### Added
+- Translations: **Dutch (nl)** and **Chinese (Simplified, zh-Hans)**.
+
+## [1.7.10] – 2025-09-06
+### Changed
+- Service `pollenlevels.force_update`: added `vol.Schema({})` to enforce an empty payload and provide clearer validation errors. No functional impact for valid calls.
+
+## [1.7.9] – 2025-09-06
+### Fixed
+- **Date sensor**: Return a `datetime.date` object for `device_class: date` (was a string). Ensures correct UI formatting and automation compatibility.
+
+## [1.7.8] – 2025-09-05
+### Changed
+- **Date sensor**: Set `device_class: date` so Home Assistant treats the value as a calendar date (UI semantics/formatting). No functional impact.
+- > Note: 1.7.8 set `device_class: date` but still returned a string. This was corrected in 1.7.9 to return a proper `date` object.
+
+## [1.7.7] – 2025-09-05
+### Changed
+- **Performance/cleanup**: Precompute static attributes for metadata sensors:
+  - Set `_attr_unique_id` and `_attr_icon` in `RegionSensor`, `DateSensor`, and `LastUpdatedSensor`.
+  - Set `_attr_device_info` once in `_BaseMetaSensor`.
+  - Also set `_attr_unique_id` in `PollenSensor` for consistency.
+  These changes avoid repeated property calls and align with modern HA entity patterns. No functional impact.
+
+## [1.7.6] – 2025-09-05
+### Changed
+- **UI polish**: Mark **Region** and **Date** sensors as `diagnostic` to better reflect their metadata nature.
+- **Display**: Add `suggested_display_precision: 0` to pollen sensors so values are shown as integers (this does not affect statistics or storage).
+
+## [1.7.5] – 2025-09-04
+### Changed
+- **Sensors**: Migrate to `SensorEntity` and use `native_value` across all sensors for better alignment with modern HA patterns.
+- **Statistics**: Set `state_class: measurement` on main pollen sensors to enable long-term statistics.
+- **Last Updated**: Switch to `device_class: timestamp` and return a `datetime` object so the frontend formats it automatically.
+
+## [1.7.4] – 2025-09-04
+### Fixed
+- **Config Flow**: avoid double-consuming the HTTP body during API validation (switched to single read + `json.loads`). Prevents sporadic validation failures with `cannot_connect`.
+
+## [1.7.3] – 2025-09-04
+### Changed
+- **Sensors**: Hide forecast-related attributes (`forecast`, `tomorrow_*`, `d2_*`, `trend`, `expected_peak`) when **Forecast days = 1** to keep entities clean and concise.
+### Notes
+- If you referenced `tomorrow_has_index` in templates with `forecast_days=1`, the attribute is now absent instead of `false`.
+
 ## [1.7.2] – 2025-09-01
 ### Fixed
 - **Diagnostics**: redact `location.latitude`/`location.longitude` inside the request example to avoid leaking coordinates in exports.

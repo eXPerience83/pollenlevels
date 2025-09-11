@@ -25,6 +25,7 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
     DOMAIN,
 )
 
@@ -56,14 +57,28 @@ async def async_get_config_entry_diagnostics(
     NOTE: This function must not perform any network I/O.
     """
     coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    options = dict(entry.options or {})
-    data = dict(entry.data or {})
+    options: dict[str, Any] = dict(entry.options or {})
+    data: dict[str, Any] = dict(entry.data or {})
 
-    # Build a safe params example (no network I/O)
-    days_effective = int(
-        options.get(CONF_FORECAST_DAYS, data.get(CONF_FORECAST_DAYS, 2))
-    )
-    params_example = {
+    # --- Build a safe params example (no network I/O) ----------------------
+    # Use DEFAULT_FORECAST_DAYS from const.py to avoid config drift.
+    try:
+        days_effective = int(
+            options.get(
+                CONF_FORECAST_DAYS,
+                data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+            )
+        )
+    except Exception:
+        # Defensive fallback
+        days_effective = DEFAULT_FORECAST_DAYS
+
+    # Clamp days to a sensible minimum (avoid 0 or negative in diagnostics)
+    if days_effective < 1:
+        days_effective = 1
+
+    params_example: dict[str, Any] = {
+        # Explicitly mask the API key example
         "key": "***",
         "location.latitude": data.get(CONF_LATITUDE),
         "location.longitude": data.get(CONF_LONGITUDE),
@@ -73,7 +88,7 @@ async def async_get_config_entry_diagnostics(
     if lang:
         params_example["languageCode"] = lang
 
-    # Coordinator snapshot
+    # --- Coordinator snapshot ------------------------------------------------
     coord_info: dict[str, Any] = {}
     forecast_summary: dict[str, Any] = {}
     if coordinator is not None:
@@ -85,13 +100,13 @@ async def async_get_config_entry_diagnostics(
             "create_d1": getattr(coordinator, "create_d1", None),
             "create_d2": getattr(coordinator, "create_d2", None),
             "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
-            "data_keys": list(getattr(coordinator, "data", {}).keys()),
+            "data_keys": list((getattr(coordinator, "data", {}) or {}).keys()),
         }
 
         # ---------- Forecast summaries (TYPES & PLANTS) ----------
         data_map: dict[str, Any] = getattr(coordinator, "data", {}) or {}
 
-        # TYPES
+        # TYPES (main vs per-day)
         type_main_keys = [
             k
             for k, v in data_map.items()
@@ -114,6 +129,7 @@ async def async_get_config_entry_diagnostics(
             "total_per_day": len(type_perday_keys),
             "create_d1": getattr(coordinator, "create_d1", None),
             "create_d2": getattr(coordinator, "create_d2", None),
+            "days": getattr(coordinator, "forecast_days", None),  # symmetry with plant
             "codes": type_codes,
         }
 
@@ -125,7 +141,8 @@ async def async_get_config_entry_diagnostics(
         ]
         plant_codes = sorted([v.get("code") for v in plant_items if v.get("code")])
         plants_with_attr = [v for v in plant_items if "forecast" in v]
-        plants_with_nonempty = [v for v in plant_items if v.get("forecast") or []]
+        # Readability: include items only when forecast is present and non-empty
+        plants_with_nonempty = [v for v in plant_items if v.get("forecast")]
         plants_with_trend = [v for v in plant_items if v.get("trend") is not None]
 
         forecast_summary["plant"] = {
@@ -139,7 +156,8 @@ async def async_get_config_entry_diagnostics(
             "codes": plant_codes,
         }
 
-    diag = {
+    # Final diagnostics payload (with secrets redacted)
+    diag: dict[str, Any] = {
         "entry": {
             "entry_id": entry.entry_id,
             "title": entry.title,

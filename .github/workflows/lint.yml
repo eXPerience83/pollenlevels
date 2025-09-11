@@ -1,15 +1,25 @@
 name: Lint
 
 on:
-  push:            # Run on push to any branch
-  pull_request:    # Run on PRs from/to any branch
+  push:             # Run on push to any branch
+  pull_request:     # Run on PRs from/to any branch
   workflow_dispatch:  # Allow manual runs from the Actions tab
+  # Optional path filters (uncomment to skip lint on docs-only changes)
+  # pull_request:
+  #   paths:
+  #     - "**.py"
+  #     - "pyproject.toml"
+  #     - ".github/workflows/lint.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -17,11 +27,18 @@ jobs:
           python-version: "3.11"
           cache: "pip"  # Speed up subsequent installs
 
-      - name: Install dependencies
-        run: pip install black ruff
+      - name: Install linters
+        run: |
+          python -m pip install --upgrade pip
+          # Pin by minor to avoid breaking changes on major bumps
+          python -m pip install "ruff==0.6.*" "black==24.*"
 
-      - name: Ruff check
-        run: ruff check .
+      - name: Ruff check (no writes, with GitHub annotations)
+        run: |
+          # Use GitHub-compatible output for inline annotations in PRs
+          ruff check . --no-fix --output-format=github
 
-      - name: Black check
-        run: black --check .
+      - name: Black check (no writes)
+        run: |
+          # Fail if formatting differs from Black's style
+          black --check .

@@ -8,6 +8,8 @@
 Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants like **OAK**, **PINE**, **OLIVE**, and many more!
 
 [![GitHub Release](https://img.shields.io/github/v/release/eXPerience83/pollenlevels)](https://github.com/eXPerience83/pollenlevels/releases)
+[![hassfest validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml)
+[![HACS validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/eXPerience83/pollenlevels)](LICENSE)
 [![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/integration)
 [![FAQ](https://img.shields.io/badge/FAQ-Read%20Here-blue)](FAQ.md)
@@ -20,7 +22,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 ## 🌟 Features
 
-- **Multi-language support** — UI in 9 languages (EN, ES, CA, DE, FR, IT, PL, RU, UK) + API responses in any language.  
+- **Multi-language support** — UI in 21 languages (**EN, ES, CA, DE, FR, IT, PL, RU, UK, NL, ZH-Hans, SV, CS, PT-BR, DA, NB, PT-PT, RO, FI, HU, ZH-Hant**) + API responses in any language.
 - **Dynamic sensors** — Auto-creates sensors for all pollen types found in your location.  
 - **Multi-day forecast for TYPES & PLANTS** —
   - `forecast` list with `{offset, date, has_index, value, category, description, color_*}`

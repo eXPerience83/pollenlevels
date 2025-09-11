@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "花粉水平設定",
+        "description": "請輸入 Google API 金鑰、緯度、經度、更新間隔（小時）以及 API 回應語言代碼。",
+        "data": {
+          "api_key": "API 金鑰",
+          "latitude": "緯度",
+          "longitude": "經度",
+          "update_interval": "更新間隔（小時）",
+          "language_code": "API 回應語言代碼"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "無效的 API 金鑰",
+      "cannot_connect": "無法連線到服務",
+      "quota_exceeded": "超出配額",
+      "invalid_language": "無效的語言代碼",
+      "empty": "此欄位不得為空",
+      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。"
+    },
+    "abort": {
+      "already_configured": "此位置已設定。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – 選項",
+        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
+        "data": {
+          "update_interval": "更新間隔（小時）",
+          "language_code": "API 回應語言代碼",
+          "forecast_days": "預測天數（1–5）",
+          "create_forecast_sensors": "逐日類型感測器範圍"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "無效的 API 金鑰",
+      "cannot_connect": "無法連線到服務",
+      "quota_exceeded": "超出配額",
+      "invalid_language": "無效的語言代碼",
+      "empty": "此欄位不得為空",
+      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。"
+    }
+  },
+  "device": {
+    "types": { "name": "花粉類型 ({latitude},{longitude})" },
+    "plants": { "name": "植物 ({latitude},{longitude})" },
+    "info": { "name": "花粉資訊 ({latitude},{longitude})" }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "地區" },
+      "date": { "name": "日期" },
+      "last_updated": { "name": "上次更新時間" }
+    }
+  }
+}

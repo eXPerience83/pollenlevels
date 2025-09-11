@@ -1,3 +1,8 @@
+# Service definitions for the Pollen Levels integration.
+# The 'force_update' service does not take any fields.
+# Exposing a name improves discoverability in Developer Tools.
+
 force_update:
-  description: "Refresh pollen data for all entries"
+  name: Force update
+  description: Manually refresh pollen data for all configured locations.
   fields: {}

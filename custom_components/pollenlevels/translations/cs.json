@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurace úrovní pylu",
+        "description": "Zadejte svůj klíč Google API, zeměpisnou šířku, zeměpisnou délku, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
+        "data": {
+          "api_key": "Klíč API",
+          "latitude": "Zeměpisná šířka",
+          "longitude": "Zeměpisná délka",
+          "update_interval": "Interval aktualizace (hodiny)",
+          "language_code": "Kód jazyka odpovědi API"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Neplatný klíč API",
+      "cannot_connect": "Nelze se připojit ke službě",
+      "quota_exceeded": "Překročena kvóta",
+      "invalid_language": "Neplatný kód jazyka",
+      "empty": "Toto pole nemůže být prázdné",
+      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech."
+    },
+    "abort": {
+      "already_configured": "Toto umístění je již nakonfigurováno."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Možnosti",
+        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro TYPY.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2).",
+        "data": {
+          "update_interval": "Interval aktualizace (hodiny)",
+          "language_code": "Kód jazyka odpovědi API",
+          "forecast_days": "Dny předpovědi (1–5)",
+          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Neplatný klíč API",
+      "cannot_connect": "Nelze se připojit ke službě",
+      "quota_exceeded": "Překročena kvóta",
+      "invalid_language": "Neplatný kód jazyka",
+      "empty": "Toto pole nemůže být prázdné",
+      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech."
+    }
+  },
+  "device": {
+    "types": { "name": "Typy pylu ({latitude},{longitude})" },
+    "plants": { "name": "Rostliny ({latitude},{longitude})" },
+    "info": { "name": "Informace o pylu ({latitude},{longitude})" }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Oblast" },
+      "date": { "name": "Datum" },
+      "last_updated": { "name": "Poslední aktualizace" }
+    }
+  }
+}

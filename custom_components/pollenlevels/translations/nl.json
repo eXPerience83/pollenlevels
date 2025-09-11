@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pollen Levels – Configuratie",
+        "description": "Voer je Google API-sleutel, breedtegraad, lengtegraad, update-interval (uren) en de taalcode voor de API-respons in.",
+        "data": {
+          "api_key": "API-sleutel",
+          "latitude": "Breedtegraad",
+          "longitude": "Lengtegraad",
+          "update_interval": "Update-interval (uren)",
+          "language_code": "Taalcode voor API-respons"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ongeldige API-sleutel",
+      "cannot_connect": "Kan geen verbinding maken met de service",
+      "quota_exceeded": "Limiet overschreden",
+      "invalid_language": "Ongeldige taalcode",
+      "empty": "Dit veld mag niet leeg zijn",
+      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
+    },
+    "abort": {
+      "already_configured": "Deze locatie is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opties",
+        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2).",
+        "data": {
+          "update_interval": "Update-interval (uren)",
+          "language_code": "Taalcode voor API-respons",
+          "forecast_days": "Voorspellingsdagen (1–5)",
+          "create_forecast_sensors": "Bereik van per-dag TYPE-sensoren"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ongeldige API-sleutel",
+      "cannot_connect": "Kan geen verbinding maken met de service",
+      "quota_exceeded": "Limiet overschreden",
+      "invalid_language": "Ongeldige taalcode",
+      "empty": "Dit veld mag niet leeg zijn",
+      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
+    }
+  },
+  "device": {
+    "types": { "name": "Pollentypen ({latitude},{longitude})" },
+    "plants": { "name": "Planten ({latitude},{longitude})" },
+    "info": { "name": "Polleninfo ({latitude},{longitude})" }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Regio" },
+      "date": { "name": "Datum" },
+      "last_updated": { "name": "Laatst bijgewerkt" }
+    }
+  }
+}

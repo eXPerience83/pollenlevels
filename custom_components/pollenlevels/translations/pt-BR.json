@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuração dos Níveis de Pólen",
+        "description": "Informe sua chave da API do Google, latitude, longitude, intervalo de atualização (horas) e o código de idioma para a resposta da API.",
+        "data": {
+          "api_key": "Chave da API",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "update_interval": "Intervalo de atualização (horas)",
+          "language_code": "Código de idioma da resposta da API"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Chave de API inválida",
+      "cannot_connect": "Não foi possível conectar ao serviço",
+      "quota_exceeded": "Cota excedida",
+      "invalid_language": "Código de idioma inválido",
+      "empty": "Este campo não pode ficar vazio",
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
+    },
+    "abort": {
+      "already_configured": "Este local já está configurado."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Opções",
+        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para TIPOS.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2).",
+        "data": {
+          "update_interval": "Intervalo de atualização (horas)",
+          "language_code": "Código de idioma da resposta da API",
+          "forecast_days": "Dias de previsão (1–5)",
+          "create_forecast_sensors": "Escopo dos sensores por dia (TIPOS)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Chave de API inválida",
+      "cannot_connect": "Não foi possível conectar ao serviço",
+      "quota_exceeded": "Cota excedida",
+      "invalid_language": "Código de idioma inválido",
+      "empty": "Este campo não pode ficar vazio",
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
+    }
+  },
+  "device": {
+    "types": { "name": "Tipos de pólen ({latitude},{longitude})" },
+    "plants": { "name": "Plantas ({latitude},{longitude})" },
+    "info": { "name": "Informações de pólen ({latitude},{longitude})" }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Região" },
+      "date": { "name": "Data" },
+      "last_updated": { "name": "Última atualização" }
+    }
+  }
+}

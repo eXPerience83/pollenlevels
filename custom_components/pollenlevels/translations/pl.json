@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Konfiguracja Poziomów Pyłków",
-        "description": "Wprowadź swój klucz Google API, szerokość, długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi.",
+        "title": "Konfiguracja poziomów pyłku",
+        "description": "Wprowadź swój klucz Google API, szerokość i długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "data": {
           "api_key": "Klucz API",
           "latitude": "Szerokość geograficzna",

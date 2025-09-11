@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pollen szintek – beállítás",
+        "description": "Adja meg a Google API-kulcsot, szélességi és hosszúsági fokot, frissítési időközt (órák) és az API-válasz nyelvi kódját.",
+        "data": {
+          "api_key": "API-kulcs",
+          "latitude": "Szélesség",
+          "longitude": "Hosszúság",
+          "update_interval": "Frissítési időköz (óra)",
+          "language_code": "API-válasz nyelvi kódja"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Érvénytelen API-kulcs",
+      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
+      "quota_exceeded": "Kvóta túllépve",
+      "invalid_language": "Érvénytelen nyelvi kód",
+      "empty": "A mező nem lehet üres",
+      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez."
+    },
+    "abort": {
+      "already_configured": "Ez a hely már konfigurálva van."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pollen Levels – Beállítások",
+        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2).",
+        "data": {
+          "update_interval": "Frissítési időköz (óra)",
+          "language_code": "API-válasz nyelvi kódja",
+          "forecast_days": "Előrejelzési napok (1–5)",
+          "create_forecast_sensors": "Napi TÍPUS szenzorok tartománya"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Érvénytelen API-kulcs",
+      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
+      "quota_exceeded": "Kvóta túllépve",
+      "invalid_language": "Érvénytelen nyelvi kód",
+      "empty": "A mező nem lehet üres",
+      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez."
+    }
+  },
+  "device": {
+    "types": { "name": "Pollentípusok ({latitude},{longitude})" },
+    "plants": { "name": "Növények ({latitude},{longitude})" },
+    "info": { "name": "Polleninformáció ({latitude},{longitude})" }
+  },
+  "entity": {
+    "sensor": {
+      "region": { "name": "Régió" },
+      "date": { "name": "Dátum" },
+      "last_updated": { "name": "Utoljára frissítve" }
+    }
+  }
+}

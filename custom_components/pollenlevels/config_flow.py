@@ -10,6 +10,7 @@ Notes:
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 
@@ -128,12 +129,19 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 async with session.get(
                     url, params=params, timeout=aiohttp.ClientTimeout(total=15)
                 ) as resp:
-                    body = await resp.text()
+                    # Read the body ONCE to avoid double-consume issues in aiohttp.
+                    raw = await resp.read()
+                    # Log a redacted textual representation (best-effort decode)
+                    try:
+                        body_str = raw.decode()
+                    except Exception:
+                        body_str = str(raw)
                     _LOGGER.debug(
                         "Validation HTTP %s — %s",
                         resp.status,
-                        _redact_api_key(body, user_input.get(CONF_API_KEY)),
+                        _redact_api_key(body_str, user_input.get(CONF_API_KEY)),
                     )
+
                     if resp.status == 403:
                         errors["base"] = "invalid_auth"
                     elif resp.status == 429:
@@ -141,7 +149,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     elif resp.status != 200:
                         errors["base"] = "cannot_connect"
                     else:
-                        data = await resp.json()
+                        # Parse JSON from the already-read body
+                        try:
+                            data = json.loads(body_str) if body_str else {}
+                        except Exception:
+                            data = {}
                         if not data.get("dailyInfo"):
                             _LOGGER.warning("Validation: 'dailyInfo' missing")
                             errors["base"] = "cannot_connect"
