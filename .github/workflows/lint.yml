@@ -1,9 +1,15 @@
 name: Lint
 
 on:
-  push            # Run on push to any branch
-  pull_request    # Run on PRs from/to any branch
-  workflow_dispatch:  # Allow manual runs from the Actions tab
+  push
+  pull_request
+  workflow_dispatch
+  # Optional path filters (uncomment to skip lint on docs-only changes)
+  # pull_request:
+  #   paths:
+  #     - "**.py"
+  #     - "pyproject.toml"
+  #     - ".github/workflows/lint.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,11 +32,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install "ruff==0.6.*" "black==24.*"
 
-      - name: Ruff check (no writes)
+      - name: Ruff check (no writes, with GitHub annotations)
         run: |
-          # Enforce no modifications in CI (lint-only)
-          ruff check . --no-fix
+          # Use GitHub-compatible output for inline annotations in PRs
+          ruff check . --no-fix --output-format=github
 
       - name: Black check (no writes)
         run: |
+          # Fail if formatting differs from Black's style
           black --check .
