@@ -46,9 +46,10 @@ jobs:
       - name: Ensure branch exists remotely
         shell: bash
         run: |
+          # Some older recipes rely only on exit codes; we explicitly check empty output.
           set -euo pipefail
           BRANCH="${{ steps.resolve_branch.outputs.branch }}"
-          if ! git ls-remote --heads origin "$BRANCH" >/dev/null; then
+          if [ -z "$(git ls-remote --heads origin "$BRANCH")" ]; then
             echo "::error::Target branch '$BRANCH' does not exist on origin."
             exit 1
           fi
