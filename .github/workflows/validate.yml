@@ -7,6 +7,7 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
+# No checkout needed; HACS action validates repo metadata remotely
 permissions: {}
 
 jobs:
