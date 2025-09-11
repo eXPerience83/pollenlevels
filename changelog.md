@@ -3,6 +3,8 @@
 ## [1.7.18] – 2025-09-11
 ### Security
 - **GitHub Actions (least privilege):** add explicit `permissions: { contents: read }` to `lint.yml` to satisfy CodeQL’s `actions/missing-workflow-permissions`.
+- Stop logging raw request parameters (coordinates/key) in `sensor.py` and `config_flow.py`. Debug logs now include only non-sensitive metadata (`days`, `lang_set`). Fixes CodeQL “clear-text logging of sensitive information”.
+
 
 ## [1.7.17] – 2025-09-10
 ### Changed
