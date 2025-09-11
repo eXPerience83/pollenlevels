@@ -12,7 +12,6 @@ fix = true  # default fix behavior when running 'ruff' without flags
 select = ["E", "F", "W", "I", "UP", "B"]
 ignore = [
   "E203", # whitespace before ':' (conflicts with Black on slicing)
-  "W503", # line break before binary operator (Black prefers it)
   "E501", # line length (Black handles wrapping)
 ]
 
