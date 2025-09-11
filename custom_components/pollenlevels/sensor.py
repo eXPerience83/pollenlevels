@@ -358,11 +358,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         if self.language:
             params["languageCode"] = self.language
 
-        # Redact API key in logs
-        safe_params = dict(params)
-        if "key" in safe_params:
-            safe_params["key"] = "***"
-        _LOGGER.debug("Fetching with params: %s", safe_params)
+        # SECURITY: Do not log request parameters (avoid coords/key leakage)
+        _LOGGER.debug(
+            "Fetching forecast (days=%s, lang_set=%s)",
+            self.forecast_days,
+            bool(self.language),
+        )
 
         # --- Minimal, safe retry policy (single retry) -----------------------
         max_retries = 1  # Keep it minimal to reduce cost/latency
