@@ -22,19 +22,26 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
+
+    strategy:
+      # Run lint on both Python 3.11 and 3.12 to catch version-specific issues early.
+      matrix:
+        python-version: ["3.11", "3.12"]
+
     steps:
       - uses: actions/checkout@v5
 
       - name: Set up Python
+        # Use matrix to exercise both interpreters; cache pip for speed.
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: "pip"  # Speed up subsequent installs
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
       - name: Install linters
         run: |
           python -m pip install --upgrade pip
-          # Pin by minor to avoid breaking changes on major bumps
+          # Pin by minor to avoid major breaking changes
           python -m pip install "ruff==0.6.*" "black==24.*"
 
       - name: Ruff check (no writes, with GitHub annotations)
