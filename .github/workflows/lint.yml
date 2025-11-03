@@ -1,55 +1,47 @@
 name: Lint
 
 on:
-  push:             # Run on push to any branch
-  pull_request:     # Run on PRs from/to any branch
-  workflow_dispatch:  # Allow manual runs from the Actions tab
-  # Optional path filters (uncomment to skip lint on docs-only changes)
-  # pull_request:
-  #   paths:
-  #     - "**.py"
-  #     - "pyproject.toml"
-  #     - ".github/workflows/lint.yml"
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch/commit to lint (optional)"
+        required: false
+        default: ""
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-# Least privilege for the default GITHUB_TOKEN to satisfy CodeQL
 permissions:
   contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
     runs-on: ubuntu-latest
-
-    strategy:
-      # Run lint on both Python 3.11 and 3.12 to catch version-specific issues early.
-      matrix:
-        python-version: ["3.11", "3.12"]
-
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.ref || github.ref }}
 
-      - name: Set up Python
-        # Use matrix to exercise both interpreters; cache pip for speed.
+      - name: Setup Python 3.14 (latest patch)
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.14"
           cache: "pip"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install linters
         run: |
-          python -m pip install --upgrade pip
-          # Pin by minor to avoid major breaking changes
-          python -m pip install "ruff==0.6.*" "black==24.*"
+          python -m pip install "ruff==0.14.*" "black==25.*"
 
-      - name: Ruff check (no writes, with GitHub annotations)
-        run: |
-          # Use GitHub-compatible output for inline annotations in PRs
-          ruff check . --no-fix --output-format=github
+      - name: Ruff (check only)
+        run: ruff check .
 
-      - name: Black check (no writes)
-        run: |
-          # Fail if formatting differs from Black's style
-          black --check .
+      - name: Black (check only)
+        run: black --check .

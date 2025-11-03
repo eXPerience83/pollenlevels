@@ -1,21 +1,35 @@
+# Tooling aligned to Home Assistant Python floor (>=3.14.0).
+# NOTE: We purposely DO NOT set [tool.black].required-version to avoid CI mismatch.
+# CI pins Black to 25.*; if you ever want an exact lock, set both:
+#   - pyproject: required-version = "25.9.0"
+#   - CI: pip install "black==25.9.0"
+
+[project]
+# Enforce the runtime floor aligned with upcoming HA Python 3.14 images.
+requires-python = ">=3.14.0"
+
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+# Black supports py314; keep a single target since the project requires 3.14+.
+target-version = ["py314"]
+# Do NOT set required-version here to keep compatibility with CI's "black==25.*".
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
-fix = true  # default fix behavior when running 'ruff' without flags
+# Match runtime: Python 3.14
+target-version = "py314"
+# Do not set a default global 'fix' here; workflows control fixing with CLI flags.
 
 [tool.ruff.lint]
-# pycodestyle/pyflakes/isort/pyupgrade/bugbear
+# Core rule sets: pycodestyle/pyflakes/isort/pyupgrade/bugbear
 select = ["E", "F", "W", "I", "UP", "B"]
 ignore = [
-  "E203", # whitespace before ':' (conflicts with Black on slicing)
-  "E501", # line length (Black handles wrapping)
+  "E203", # Whitespace before ':' (conflicts with Black on slicing)
+  "E501", # Line length (Black handles wrapping)
 ]
 
 [tool.ruff.lint.isort]
+# IMPORTANT: first-party must match this integration's package
 known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
 
