@@ -59,6 +59,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    except ConfigEntryNotReady:
+        raise
     except Exception as err:
         _LOGGER.exception("Error forwarding entry setups: %s", err)
         # Surfaced as ConfigEntryNotReady so HA can retry later.

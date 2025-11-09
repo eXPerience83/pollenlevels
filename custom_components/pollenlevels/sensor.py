@@ -26,7 +26,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import ATTR_ATTRIBUTION
-from homeassistant.exceptions import PlatformNotReady
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
@@ -217,7 +217,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     if not has_daily:
         message = "No pollen data found during initial setup"
         _LOGGER.warning(message)
-        raise PlatformNotReady(message)
+        raise ConfigEntryNotReady(message)
 
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
 
