@@ -4,7 +4,7 @@ Notes:
 - Unified per-day sensors option ('create_forecast_sensors'): "none" | "D+1" | "D+1+2".
 - Allows empty language (omit languageCode). Trims language whitespace on save.
 - Redacts API keys in debug logs.
-- Timeout handling: on Python 3.11, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
+- Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
   so catching `TimeoutError` is sufficient and preferred.
 """
 
@@ -55,7 +55,7 @@ def _redact_api_key(text: object, api_key: str | None) -> str:
     """
     if text is None:
         return ""
-    # Use PEP-604 unions in isinstance checks (Python 3.11 target)
+    # Use PEP-604 unions in isinstance checks (Python 3.14 target)
     s = text.decode() if isinstance(text, bytes | bytearray) else str(text)
     if api_key:
         return s.replace(api_key, "***")
@@ -165,7 +165,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 errors[CONF_LANGUAGE_CODE] = str(ve)
             except TimeoutError as err:
-                # Catch built-in TimeoutError; on Python 3.11 this also covers asyncio.TimeoutError.
+                # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
                 _LOGGER.warning(
                     "Validation timeout: %s",
                     _redact_api_key(err, user_input.get(CONF_API_KEY)),

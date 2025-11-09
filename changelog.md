@@ -119,7 +119,7 @@
 ## [1.6.5] – 2025-08-26
 ### Fixed
 - Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  
-  On Python 3.11 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
+  On Python 3.14 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
 - Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
 - **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors) to avoid leaking the API key in logs; explicit handling of `TimeoutError` returns a clean `cannot_connect`.
 - **Parsers**: Skip `plantInfo` entries without `code` to prevent unstable keys (`plants_`) and silent overwrites.

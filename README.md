@@ -38,7 +38,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Manual refresh** — Call `pollenlevels.force_update` to trigger an immediate update and reset the timer.
 - **Last Updated sensor** — Shows timestamp of last successful update.
 - **Rich attributes** — Includes `inSeason`, index `description`, health `advice`, `color_hex`, `color_rgb`, `color_raw`, and plant details.
-- **Resilient startup** — Retries setup automatically when the first API response lacks daily pollen data, ensuring entities appear once data is ready.
+- **Resilient startup** — Retries setup automatically when the first API response lacks daily pollen info (`dailyInfo` types/plants), ensuring entities appear once data is ready.
 
 ---
 
