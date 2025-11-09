@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.8.0-alpha1] – 2025-09-12
+## [1.8.0-alpha1] – 2025-11-09
 ### Fixed
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.
 
