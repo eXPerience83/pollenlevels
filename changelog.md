@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.0-alpha1] – 2025-09-12
+### Fixed
+- Prevent completing setup with empty pollen data by raising `PlatformNotReady` until the API includes daily information, ensuring entities populate correctly.
+
 ## [1.7.18] – 2025-09-11
 ### Security
 - **GitHub Actions (least privilege):** add explicit `permissions: { contents: read }` to `lint.yml` to satisfy CodeQL’s `actions/missing-workflow-permissions`.

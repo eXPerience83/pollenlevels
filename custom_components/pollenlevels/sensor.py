@@ -26,6 +26,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
@@ -167,18 +168,18 @@ async def _cleanup_per_day_entities(
     return removed
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(hass, config_entry, async_add_entities):
     """Create coordinator and build sensors."""
-    api_key = entry.data[CONF_API_KEY]
-    lat = entry.data[CONF_LATITUDE]
-    lon = entry.data[CONF_LONGITUDE]
+    api_key = config_entry.data[CONF_API_KEY]
+    lat = config_entry.data[CONF_LATITUDE]
+    lon = config_entry.data[CONF_LONGITUDE]
 
-    opts = entry.options or {}
+    opts = config_entry.options or {}
     interval = opts.get(
         CONF_UPDATE_INTERVAL,
-        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+        config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
     )
-    lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
+    lang = opts.get(CONF_LANGUAGE_CODE, config_entry.data.get(CONF_LANGUAGE_CODE))
     forecast_days = int(opts.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
 
     # Map unified selector to internal flags
@@ -192,7 +193,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Proactively remove stale D+ entities from the Entity Registry
     await _cleanup_per_day_entities(
-        hass, entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
+        hass, config_entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
     )
 
     coordinator = PollenDataUpdateCoordinator(
@@ -202,17 +203,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lon=lon,
         hours=interval,
         language=lang,  # normalized in the coordinator
-        entry_id=entry.entry_id,
+        entry_id=config_entry.entry_id,
         forecast_days=forecast_days,
         create_d1=allow_d1,  # pass effective flags
         create_d2=allow_d2,
     )
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    if not coordinator.data:
-        _LOGGER.warning("No pollen data found during initial setup")
-        return
+    data = coordinator.data or {}
+    has_daily = ("date" in data) or any(
+        key.startswith(("type_", "plants_")) for key in data
+    )
+    if not has_daily:
+        message = "No pollen data found during initial setup"
+        _LOGGER.warning(message)
+        raise PlatformNotReady(message)
+
+    hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
 
     sensors: list[CoordinatorEntity] = []
     for code in coordinator.data:
