@@ -1,8 +1,8 @@
 # Tooling aligned to Home Assistant Python floor (>=3.14.0).
 # NOTE: We purposely DO NOT set [tool.black].required-version to avoid CI mismatch.
 # CI pins Black to 25.*; if you ever want an exact lock, set both:
-#   - pyproject: required-version = "25.9.0"
-#   - CI: pip install "black==25.9.0"
+#   - pyproject: required-version = "25.11.0"
+#   - CI: pip install "black==25.11.0"
 
 [project]
 # Enforce the runtime floor aligned with upcoming HA Python 3.14 images.

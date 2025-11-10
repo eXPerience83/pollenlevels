@@ -2,7 +2,7 @@
 
 ## Tooling
 - Target **Python 3.14** for all runtime and type-related considerations.
-- Format code with **Black 25.9** (line length 88, target-version `py314`).
+- Format code with **Black 25.11** (line length 88, target-version `py314`).
 - Lint and sort imports with **Ruff** targeting `py314`, matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.
