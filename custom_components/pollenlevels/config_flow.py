@@ -109,8 +109,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
             except Exception as err:  # defensive
                 _LOGGER.exception(
-                    "Unique ID setup failed for %s: %s",
-                    uid,
+                    "Unique ID setup failed for %s_%s: %s",
+                    f"{lat:.4f}",
+                    f"{lon:.4f}",
                     redact_api_key(err, user_input.get(CONF_API_KEY)),
                 )
                 raise
