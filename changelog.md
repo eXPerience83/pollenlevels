@@ -8,6 +8,9 @@
 ### Added
 - Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.
 
+### Improved
+- Config flow now logs redacted unique ID assignment issues so duplicate locations remain visible in diagnostics without blocking setup.
+
 ## [1.7.18] – 2025-09-11
 ### Security
 - **GitHub Actions (least privilege):** add explicit `permissions: { contents: read }` to `lint.yml` to satisfy CodeQL’s `actions/missing-workflow-permissions`.
