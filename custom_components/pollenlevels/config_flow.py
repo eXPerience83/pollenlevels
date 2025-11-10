@@ -256,7 +256,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.hass.config_entries.async_update_entry(
                     self._reauth_entry, data=normalized
                 )
-                await self.hass.config_entries.async_update_reload(self._reauth_entry)
+                await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
                 return self.async_abort(reason="reauth_successful")
 
         schema = vol.Schema(
