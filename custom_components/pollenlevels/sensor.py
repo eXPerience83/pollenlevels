@@ -579,7 +579,42 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         for tcode in type_codes:
             type_key = f"type_{tcode.lower()}"
-            base = new_data.get(type_key, {})
+            existing = new_data.get(type_key)
+            needs_skeleton = not existing or (
+                existing.get("source") == "type"
+                and existing.get("value") is None
+                and existing.get("category") is None
+                and existing.get("description") is None
+            )
+            base = existing or {}
+            if needs_skeleton:
+                base = {
+                    "source": "type",
+                    "displayName": tcode,
+                    "inSeason": None,
+                    "advice": None,
+                    "value": None,
+                    "category": None,
+                    "description": None,
+                    "color_hex": None,
+                    "color_rgb": None,
+                    "color_raw": None,
+                }
+
+                def _copy_type_metadata(
+                    candidate: dict | None, *, target=base, code=tcode
+                ) -> bool:
+                    if not isinstance(candidate, dict):
+                        return False
+                    target["displayName"] = candidate.get("displayName", code)
+                    target["inSeason"] = candidate.get("inSeason")
+                    target["advice"] = candidate.get("healthRecommendations")
+                    return True
+
+                if not _copy_type_metadata(_find_type(first_day, tcode)):
+                    for future_day in daily[1:]:
+                        if _copy_type_metadata(_find_type(future_day, tcode)):
+                            break
             forecast_list: list[dict[str, Any]] = []
             for offset, day in enumerate(daily[1:], start=1):
                 if offset >= self.forecast_days:

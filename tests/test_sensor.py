@@ -1,0 +1,366 @@
+"""Unit tests for Pollen Levels sensor data shaping."""
+
+from __future__ import annotations
+
+import asyncio
+import importlib.util
+import sys
+import types
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+# Ensure the custom_components namespace exists for relative imports.
+custom_components_pkg = types.ModuleType("custom_components")
+custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
+sys.modules.setdefault("custom_components", custom_components_pkg)
+
+pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
+pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
+sys.modules.setdefault("custom_components.pollenlevels", pollenlevels_pkg)
+
+# ---------------------------------------------------------------------------
+# Minimal Home Assistant stubs to import the integration module under test.
+# ---------------------------------------------------------------------------
+ha = types.ModuleType("homeassistant")
+sys.modules.setdefault("homeassistant", ha)
+
+ha.components = types.ModuleType("homeassistant.components")
+sys.modules.setdefault("homeassistant.components", ha.components)
+
+sensor_mod = types.ModuleType("homeassistant.components.sensor")
+
+
+class _StubSensorEntity:  # pragma: no cover - no runtime behavior needed
+    pass
+
+
+class _StubSensorDeviceClass:
+    DATE = "date"
+    TIMESTAMP = "timestamp"
+
+
+class _StubSensorStateClass:
+    MEASUREMENT = "measurement"
+
+
+sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
+sensor_mod.SensorEntity = _StubSensorEntity
+sensor_mod.SensorStateClass = _StubSensorStateClass
+sys.modules.setdefault("homeassistant.components.sensor", sensor_mod)
+
+const_mod = types.ModuleType("homeassistant.const")
+const_mod.ATTR_ATTRIBUTION = "Attribution"
+sys.modules.setdefault("homeassistant.const", const_mod)
+
+exceptions_mod = types.ModuleType("homeassistant.exceptions")
+
+
+class _StubConfigEntryNotReady(Exception):
+    pass
+
+
+exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
+sys.modules.setdefault("homeassistant.exceptions", exceptions_mod)
+
+helpers_mod = types.ModuleType("homeassistant.helpers")
+sys.modules.setdefault("homeassistant.helpers", helpers_mod)
+
+entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
+
+
+def _stub_async_get(_hass):  # pragma: no cover - not exercised in tests
+    class _Registry:
+        @staticmethod
+        def async_entries_for_config_entry(_registry, _entry_id):
+            return []
+
+    return _Registry()
+
+
+entity_registry_mod.async_get = _stub_async_get
+entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
+sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry_mod)
+
+aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
+aiohttp_client_mod.async_get_clientsession = lambda hass: None
+sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+
+entity_mod = types.ModuleType("homeassistant.helpers.entity")
+
+
+class _StubEntityCategory:
+    DIAGNOSTIC = "diagnostic"
+
+
+entity_mod.EntityCategory = _StubEntityCategory
+sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
+
+update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
+
+
+class _StubUpdateFailed(Exception):
+    pass
+
+
+class _StubDataUpdateCoordinator:
+    def __init__(self, hass, logger, *, name: str, update_interval):
+        self.hass = hass
+        self.logger = logger
+        self.name = name
+        self.update_interval = update_interval
+        self.data = None
+        self.last_updated = None
+
+
+class _StubCoordinatorEntity:
+    def __init__(self, coordinator):
+        self.coordinator = coordinator
+
+
+update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
+update_coordinator_mod.UpdateFailed = _StubUpdateFailed
+update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
+sys.modules.setdefault(
+    "homeassistant.helpers.update_coordinator", update_coordinator_mod
+)
+
+dt_mod = types.ModuleType("homeassistant.util.dt")
+
+
+def _stub_utcnow():
+    from datetime import datetime
+
+    return datetime.utcnow()
+
+
+dt_mod.utcnow = _stub_utcnow
+sys.modules.setdefault("homeassistant.util.dt", dt_mod)
+
+util_mod = types.ModuleType("homeassistant.util")
+util_mod.dt = dt_mod
+sys.modules.setdefault("homeassistant.util", util_mod)
+
+aiohttp_mod = types.ModuleType("aiohttp")
+
+
+class _StubClientError(Exception):
+    pass
+
+
+class _StubClientTimeout:
+    def __init__(self, total: float | None = None):
+        self.total = total
+
+
+aiohttp_mod.ClientError = _StubClientError
+aiohttp_mod.ClientTimeout = _StubClientTimeout
+sys.modules.setdefault("aiohttp", aiohttp_mod)
+
+
+def _load_module(module_name: str, relative_path: str):
+    spec = importlib.util.spec_from_file_location(
+        module_name, ROOT / "custom_components" / "pollenlevels" / relative_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    sys.modules[module_name] = module
+    return module
+
+
+_load_module("custom_components.pollenlevels.const", "const.py")
+sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
+
+
+class DummyHass:
+    """Minimal Home Assistant stub for the coordinator."""
+
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+        self.loop = loop
+        self.data: dict[str, Any] = {}
+
+
+class FakeResponse:
+    """Async context manager returning a static payload."""
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self._payload = payload
+        self.status = 200
+        self.headers: dict[str, str] = {}
+
+    async def json(self) -> dict[str, Any]:
+        return self._payload
+
+    async def __aenter__(self) -> FakeResponse:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type,
+        exc: BaseException | None,
+        tb,
+    ) -> None:
+        return None
+
+
+class FakeSession:
+    """Return a fake aiohttp-like session that yields the provided payload."""
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self._payload = payload
+
+    def get(self, *_args, **_kwargs) -> FakeResponse:
+        return FakeResponse(self._payload)
+
+
+def test_type_sensor_preserves_source_with_single_day(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A single-day payload keeps the type sensor source and exposes no forecast."""
+
+    payload = {
+        "regionCode": "us_ca_san_francisco",
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 5, "day": 9},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "inSeason": True,
+                        "healthRecommendations": ["Limit outdoor activity"],
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                            "color": {"red": 30, "green": 160, "blue": 40},
+                        },
+                    }
+                ],
+            }
+        ],
+    }
+
+    fake_session = FakeSession(payload)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    entry = data["type_grass"]
+
+    assert entry["source"] == "type"
+    assert entry["displayName"] == "Grass"
+    assert entry["forecast"] == []
+    assert entry["tomorrow_has_index"] is False
+    assert entry["tomorrow_value"] is None
+
+
+def test_type_sensor_uses_forecast_metadata_when_today_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When today lacks a type entry, use forecast metadata and keep type source."""
+
+    payload = {
+        "regionCode": "us_tx_austin",
+        "dailyInfo": [
+            {  # Today has no type index
+                "date": {"year": 2025, "month": 5, "day": 9},
+                "pollenTypeInfo": [],
+            },
+            {
+                "date": {"year": 2025, "month": 5, "day": 10},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass Pollen",
+                        "inSeason": True,
+                        "healthRecommendations": ["Carry medication"],
+                        "indexInfo": {
+                            "value": 3,
+                            "category": "MODERATE",
+                            "indexDescription": "Moderate",
+                            "color": {"red": 120, "green": 200, "blue": 90},
+                        },
+                    }
+                ],
+            },
+            {
+                "date": {"year": 2025, "month": 5, "day": 11},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass Pollen",
+                        "inSeason": True,
+                        "healthRecommendations": ["Expect improvement"],
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                            "color": {"red": 40, "green": 180, "blue": 60},
+                        },
+                    }
+                ],
+            },
+        ],
+    }
+
+    fake_session = FakeSession(payload)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=5,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    entry = data["type_grass"]
+
+    assert entry["source"] == "type"
+    assert entry["displayName"] == "Grass Pollen"
+    assert entry["value"] is None
+    assert entry["category"] is None
+    assert entry["description"] is None
+    assert entry["advice"] == ["Carry medication"]
+    assert entry["forecast"][0]["offset"] == 1
+    assert entry["forecast"][0]["has_index"] is True
+    assert entry["tomorrow_value"] == 3
+    assert entry["tomorrow_category"] == "MODERATE"
+    assert entry["trend"] is None
+    assert entry["expected_peak"]["offset"] == 1
