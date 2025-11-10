@@ -36,6 +36,7 @@ from .const import (
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
 )
+from .util import redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,20 +48,6 @@ LANGUAGE_CODE_REGEX = re.compile(
     r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
     re.IGNORECASE,
 )
-
-
-def _redact_api_key(text: object, api_key: str | None) -> str:
-    """Return the input converted to str with the API key redacted.
-
-    Handles bytes/bytearray safely and falls back to str() for other objects.
-    """
-    if text is None:
-        return ""
-    # Use PEP-604 unions in isinstance checks (Python 3.14 target)
-    s = text.decode() if isinstance(text, bytes | bytearray) else str(text)
-    if api_key:
-        return s.replace(api_key, "***")
-    return s
 
 
 def is_valid_language_code(value: str) -> str:
@@ -111,7 +98,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception as err:  # defensive
                 _LOGGER.debug(
                     "Unique ID setup skipped: %s",
-                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                    redact_api_key(err, user_input.get(CONF_API_KEY)),
                 )
 
         try:
@@ -150,7 +137,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug(
                     "Validation HTTP %s — %s",
                     resp.status,
-                    _redact_api_key(body_str, user_input.get(CONF_API_KEY)),
+                    redact_api_key(body_str, user_input.get(CONF_API_KEY)),
                 )
 
                 if resp.status == 403:
@@ -188,19 +175,19 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
             _LOGGER.warning(
                 "Validation timeout (10s): %s",
-                _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
-                _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error: %s",
-                _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
 
@@ -348,7 +335,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             except Exception as err:  # defensive
                 _LOGGER.exception(
                     "Options validation error: %s",
-                    _redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
+                    redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
                 )
                 errors["base"] = "cannot_connect"
 

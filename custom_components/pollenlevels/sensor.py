@@ -49,6 +49,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
+from .util import redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -445,9 +446,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     )
                     await asyncio.sleep(delay)
                     continue
-                msg = str(err)
-                if self.api_key:
-                    msg = msg.replace(self.api_key, "***")
+                msg = redact_api_key(err, self.api_key)
                 raise UpdateFailed(f"Timeout: {msg}") from err
 
             except aiohttp.ClientError as err:
@@ -462,15 +461,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     )
                     await asyncio.sleep(delay)
                     continue
-                msg = str(err)
-                if self.api_key:
-                    msg = msg.replace(self.api_key, "***")
+                msg = redact_api_key(err, self.api_key)
                 raise UpdateFailed(msg) from err
 
             except Exception as err:  # Keep previous behavior for unexpected errors
-                msg = str(err)
-                if self.api_key:
-                    msg = msg.replace(self.api_key, "***")
+                msg = redact_api_key(err, self.api_key)
                 _LOGGER.error("Pollen API error: %s", msg)
                 raise UpdateFailed(msg) from err
         # --------------------------------------------------------------------
