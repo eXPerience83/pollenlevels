@@ -11,6 +11,13 @@
           "update_interval": "Interval de actualizare (ore)",
           "language_code": "Codul limbii pentru răspunsul API"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile."
     },
     "abort": {
-      "already_configured": "Această locație este deja configurată."
+      "already_configured": "Această locație este deja configurată.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "Tipuri de polen ({latitude},{longitude})" },
-    "plants": { "name": "Plante ({latitude},{longitude})" },
-    "info": { "name": "Informații polen ({latitude},{longitude})" }
+    "types": {
+      "name": "Tipuri de polen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plante ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informații polen ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regiune" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Ultima actualizare" }
+      "region": {
+        "name": "Regiune"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Ultima actualizare"
+      }
     }
   }
 }

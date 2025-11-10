@@ -4,6 +4,7 @@
 ### Fixed
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.
 - Rebuild pollen type metadata from future forecast days when today lacks `dailyInfo`, keeping sensors classified as `source="type"` with their forecast attributes.
+- Treat 403 authentication failures from the Google Pollen API as `ConfigEntryAuthFailed` so Home Assistant immediately prompts for re-authentication instead of leaving the entry broken.
 
 ### Added
 - Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.
@@ -11,6 +12,7 @@
 ### Improved
 - Config flow now logs redacted unique ID assignment issues so duplicate locations remain visible in diagnostics without blocking setup.
 - Validation timeout aligns with the coordinator ceiling (`ClientTimeout(total=10)`) so probing the API cannot hang longer than runtime refreshes.
+- Added a dedicated re-authentication step that reuses validation logic, only requests the API key, and reloads the entry automatically once credentials are refreshed.
 
 ## [1.7.18] – 2025-09-11
 ### Security

@@ -11,6 +11,13 @@
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan."
     },
     "abort": {
-      "already_configured": "Tämä sijainti on jo määritetty."
+      "already_configured": "Tämä sijainti on jo määritetty.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "Siitepölytyypit ({latitude},{longitude})" },
-    "plants": { "name": "Kasvit ({latitude},{longitude})" },
-    "info": { "name": "Siitepölytiedot ({latitude},{longitude})" }
+    "types": {
+      "name": "Siitepölytyypit ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Kasvit ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Siitepölytiedot ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Alue" },
-      "date": { "name": "Päivämäärä" },
-      "last_updated": { "name": "Viimeksi päivitetty" }
+      "region": {
+        "name": "Alue"
+      },
+      "date": {
+        "name": "Päivämäärä"
+      },
+      "last_updated": {
+        "name": "Viimeksi päivitetty"
+      }
     }
   }
 }

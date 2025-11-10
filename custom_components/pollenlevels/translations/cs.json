@@ -11,6 +11,13 @@
           "update_interval": "Interval aktualizace (hodiny)",
           "language_code": "Kód jazyka odpovědi API"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech."
     },
     "abort": {
-      "already_configured": "Toto umístění je již nakonfigurováno."
+      "already_configured": "Toto umístění je již nakonfigurováno.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "Typy pylu ({latitude},{longitude})" },
-    "plants": { "name": "Rostliny ({latitude},{longitude})" },
-    "info": { "name": "Informace o pylu ({latitude},{longitude})" }
+    "types": {
+      "name": "Typy pylu ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Rostliny ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informace o pylu ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Oblast" },
-      "date": { "name": "Datum" },
-      "last_updated": { "name": "Poslední aktualizace" }
+      "region": {
+        "name": "Oblast"
+      },
+      "date": {
+        "name": "Datum"
+      },
+      "last_updated": {
+        "name": "Poslední aktualizace"
+      }
     }
   }
 }

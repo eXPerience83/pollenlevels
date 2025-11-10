@@ -11,6 +11,13 @@
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
     },
     "abort": {
-      "already_configured": "Deze locatie is al geconfigureerd."
+      "already_configured": "Deze locatie is al geconfigureerd.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "Pollentypen ({latitude},{longitude})" },
-    "plants": { "name": "Planten ({latitude},{longitude})" },
-    "info": { "name": "Polleninfo ({latitude},{longitude})" }
+    "types": {
+      "name": "Pollentypen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Planten ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Polleninfo ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regio" },
-      "date": { "name": "Datum" },
-      "last_updated": { "name": "Laatst bijgewerkt" }
+      "region": {
+        "name": "Regio"
+      },
+      "date": {
+        "name": "Datum"
+      },
+      "last_updated": {
+        "name": "Laatst bijgewerkt"
+      }
     }
   }
 }

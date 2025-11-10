@@ -11,6 +11,13 @@
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez."
     },
     "abort": {
-      "already_configured": "Ez a hely már konfigurálva van."
+      "already_configured": "Ez a hely már konfigurálva van.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "Pollentípusok ({latitude},{longitude})" },
-    "plants": { "name": "Növények ({latitude},{longitude})" },
-    "info": { "name": "Polleninformáció ({latitude},{longitude})" }
+    "types": {
+      "name": "Pollentípusok ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Növények ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Polleninformáció ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Régió" },
-      "date": { "name": "Dátum" },
-      "last_updated": { "name": "Utoljára frissítve" }
+      "region": {
+        "name": "Régió"
+      },
+      "date": {
+        "name": "Dátum"
+      },
+      "last_updated": {
+        "name": "Utoljára frissítve"
+      }
     }
   }
 }

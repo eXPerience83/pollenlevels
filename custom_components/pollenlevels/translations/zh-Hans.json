@@ -11,6 +11,13 @@
           "update_interval": "更新间隔（小时）",
           "language_code": "API 响应语言代码"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。"
     },
     "abort": {
-      "already_configured": "该位置已配置。"
+      "already_configured": "该位置已配置。",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "花粉类型 ({latitude},{longitude})" },
-    "plants": { "name": "植物 ({latitude},{longitude})" },
-    "info": { "name": "花粉信息 ({latitude},{longitude})" }
+    "types": {
+      "name": "花粉类型 ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "植物 ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "花粉信息 ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "地区" },
-      "date": { "name": "日期" },
-      "last_updated": { "name": "上次更新时间" }
+      "region": {
+        "name": "地区"
+      },
+      "date": {
+        "name": "日期"
+      },
+      "last_updated": {
+        "name": "上次更新时间"
+      }
     }
   }
 }

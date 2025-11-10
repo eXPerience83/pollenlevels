@@ -11,6 +11,13 @@
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats."
     },
     "abort": {
-      "already_configured": "Aquesta ubicació ja està configurada."
+      "already_configured": "Aquesta ubicació ja està configurada.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "Tipus de pol·len ({latitude},{longitude})" },
-    "plants": { "name": "Plantes ({latitude},{longitude})" },
-    "info": { "name": "Informació del pol·len ({latitude},{longitude})" }
+    "types": {
+      "name": "Tipus de pol·len ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plantes ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informació del pol·len ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regió" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Última actualització" }
+      "region": {
+        "name": "Regió"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Última actualització"
+      }
     }
   }
 }

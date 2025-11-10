@@ -64,7 +64,12 @@ class _StubConfigEntryNotReady(Exception):
     pass
 
 
+class _StubConfigEntryAuthFailed(Exception):
+    pass
+
+
 exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
+exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
 sys.modules.setdefault("homeassistant.exceptions", exceptions_mod)
 
 helpers_mod = types.ModuleType("homeassistant.helpers")
@@ -188,9 +193,9 @@ class DummyHass:
 class FakeResponse:
     """Async context manager returning a static payload."""
 
-    def __init__(self, payload: dict[str, Any]) -> None:
+    def __init__(self, payload: dict[str, Any], *, status: int = 200) -> None:
         self._payload = payload
-        self.status = 200
+        self.status = status
         self.headers: dict[str, str] = {}
 
     async def json(self) -> dict[str, Any]:
@@ -211,11 +216,12 @@ class FakeResponse:
 class FakeSession:
     """Return a fake aiohttp-like session that yields the provided payload."""
 
-    def __init__(self, payload: dict[str, Any]) -> None:
+    def __init__(self, payload: dict[str, Any], *, status: int = 200) -> None:
         self._payload = payload
+        self._status = status
 
     def get(self, *_args, **_kwargs) -> FakeResponse:
-        return FakeResponse(self._payload)
+        return FakeResponse(self._payload, status=self._status)
 
 
 def test_type_sensor_preserves_source_with_single_day(
@@ -364,3 +370,31 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
     assert entry["tomorrow_category"] == "MODERATE"
     assert entry["trend"] is None
     assert entry["expected_peak"]["offset"] == 1
+
+
+def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 403 response triggers ConfigEntryAuthFailed for re-auth flows."""
+
+    fake_session = FakeSession({}, status=403)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="bad",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        with pytest.raises(sensor.ConfigEntryAuthFailed):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()

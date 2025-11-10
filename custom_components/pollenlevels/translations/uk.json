@@ -11,6 +11,13 @@
           "update_interval": "Інтервал оновлення (у годинах)",
           "language_code": "Код мови відповіді API"
         }
+      },
+      "reauth": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -22,7 +29,9 @@
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики."
     },
     "abort": {
-      "already_configured": "Це розташування вже налаштовано."
+      "already_configured": "Це розташування вже налаштовано.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -48,15 +57,27 @@
     }
   },
   "device": {
-    "types": { "name": "Типи пилку ({latitude},{longitude})" },
-    "plants": { "name": "Рослини ({latitude},{longitude})" },
-    "info": { "name": "Інформація про пилок ({latitude},{longitude})" }
+    "types": {
+      "name": "Типи пилку ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Рослини ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Інформація про пилок ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Регіон" },
-      "date": { "name": "Дата" },
-      "last_updated": { "name": "Останнє оновлення" }
+      "region": {
+        "name": "Регіон"
+      },
+      "date": {
+        "name": "Дата"
+      },
+      "last_updated": {
+        "name": "Останнє оновлення"
+      }
     }
   }
 }

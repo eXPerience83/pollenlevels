@@ -26,7 +26,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import ATTR_ATTRIBUTION
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
@@ -382,7 +382,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 ) as resp:
                     # Non-retryable auth logic first
                     if resp.status == 403:
-                        raise UpdateFailed("Invalid API key")
+                        raise ConfigEntryAuthFailed("Invalid API key")
 
                     # 429: may be transient — respect Retry-After if present
                     if resp.status == 429:
@@ -431,6 +431,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     payload = await resp.json()
                     break  # exit retry loop on success
 
+            except ConfigEntryAuthFailed:
+                raise
             except TimeoutError as err:
                 # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
                 if attempt < max_retries:
