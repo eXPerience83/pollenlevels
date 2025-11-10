@@ -25,6 +25,7 @@
       "cannot_connect": "Kan geen verbinding maken met de service",
       "quota_exceeded": "Limiet overschreden",
       "invalid_language": "Ongeldige taalcode",
+      "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "Kan geen verbinding maken met de service",
       "quota_exceeded": "Limiet overschreden",
       "invalid_language": "Ongeldige taalcode",
+      "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
     }

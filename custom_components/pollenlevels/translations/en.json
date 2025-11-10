@@ -25,6 +25,7 @@
       "cannot_connect": "Cannot connect to service",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
+      "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "Cannot connect to service",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
+      "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
     }

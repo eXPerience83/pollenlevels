@@ -25,6 +25,7 @@
       "cannot_connect": "Brak połączenia z usługą",
       "quota_exceeded": "Przekroczono limit",
       "invalid_language": "Nieprawidłowy kod języka",
+      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "Brak połączenia z usługą",
       "quota_exceeded": "Przekroczono limit",
       "invalid_language": "Nieprawidłowy kod języka",
+      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
     }

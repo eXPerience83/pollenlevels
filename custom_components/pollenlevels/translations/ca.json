@@ -25,6 +25,7 @@
       "cannot_connect": "No es pot connectar al servei",
       "quota_exceeded": "Quota excedida",
       "invalid_language": "Codi d’idioma no vàlid",
+      "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "No es pot connectar al servei",
       "quota_exceeded": "Quota excedida",
       "invalid_language": "Codi d’idioma no vàlid",
+      "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats."
     }

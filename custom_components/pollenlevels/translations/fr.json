@@ -25,6 +25,7 @@
       "cannot_connect": "Impossible de se connecter au service",
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
+      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "empty": "Ce champ ne peut pas être vide",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "Impossible de se connecter au service",
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
+      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "empty": "Ce champ ne peut pas être vide",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés."
     }

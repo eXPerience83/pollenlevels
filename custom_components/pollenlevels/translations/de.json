@@ -25,6 +25,7 @@
       "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
       "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
+      "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
       "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
+      "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
     }

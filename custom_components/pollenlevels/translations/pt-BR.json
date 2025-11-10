@@ -25,6 +25,7 @@
       "cannot_connect": "Não foi possível conectar ao serviço",
       "quota_exceeded": "Cota excedida",
       "invalid_language": "Código de idioma inválido",
+      "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode ficar vazio",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "Não foi possível conectar ao serviço",
       "quota_exceeded": "Cota excedida",
       "invalid_language": "Código de idioma inválido",
+      "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode ficar vazio",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
     }

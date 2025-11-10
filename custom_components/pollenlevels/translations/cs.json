@@ -25,6 +25,7 @@
       "cannot_connect": "Nelze se připojit ke službě",
       "quota_exceeded": "Překročena kvóta",
       "invalid_language": "Neplatný kód jazyka",
+      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech."
     },
@@ -52,6 +53,7 @@
       "cannot_connect": "Nelze se připojit ke službě",
       "quota_exceeded": "Překročena kvóta",
       "invalid_language": "Neplatný kód jazyka",
+      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech."
     }

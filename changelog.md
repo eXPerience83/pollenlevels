@@ -7,6 +7,7 @@
 - Treat 403 authentication failures from the Google Pollen API as `ConfigEntryAuthFailed` so Home Assistant immediately prompts for re-authentication instead of leaving the entry broken.
 - Prevent crashes while redacting API keys when providers return non-UTF-8 payloads by decoding bytes with replacement before sanitizing logs.
 - Restore the re-authentication reload path by updating entries and reloading them separately, avoiding AttributeError from the previous helper call.
+- Surface canonical BCP-47 validation errors with localized messaging instead of raw exception text, covering every translation file.
 
 ### Added
 - Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.

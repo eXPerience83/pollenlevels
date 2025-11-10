@@ -63,6 +63,17 @@ def is_valid_language_code(value: str) -> str:
     return norm
 
 
+def _language_error_to_form_key(error: vol.Invalid) -> str:
+    """Convert voluptuous validation errors into form error keys."""
+
+    message = getattr(error, "error_message", "")
+    if message == "empty":
+        return "empty"
+    if message == "invalid_language":
+        return "invalid_language_format"
+    return "invalid_language_format"
+
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
@@ -173,7 +184,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input.get(CONF_LANGUAGE_CODE),
                 ve,
             )
-            errors[CONF_LANGUAGE_CODE] = str(ve)
+            errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
         except TimeoutError as err:
             # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
             _LOGGER.warning(
@@ -334,7 +345,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 
             except vol.Invalid as ve:
-                errors[CONF_LANGUAGE_CODE] = str(ve)
+                _LOGGER.warning(
+                    "Options language validation failed for '%s': %s",
+                    user_input.get(CONF_LANGUAGE_CODE),
+                    ve,
+                )
+                errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
             except Exception as err:  # defensive
                 _LOGGER.exception(
                     "Options validation error: %s",
