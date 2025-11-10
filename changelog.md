@@ -10,6 +10,7 @@
 
 ### Improved
 - Config flow now logs redacted unique ID assignment issues so duplicate locations remain visible in diagnostics without blocking setup.
+- Validation timeout aligns with the coordinator ceiling (`ClientTimeout(total=10)`) so probing the API cannot hang longer than runtime refreshes.
 
 ## [1.7.18] – 2025-09-11
 ### Security

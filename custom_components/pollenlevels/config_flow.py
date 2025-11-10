@@ -129,7 +129,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 # Add explicit timeout to prevent UI hangs on provider issues
                 async with session.get(
-                    url, params=params, timeout=aiohttp.ClientTimeout(total=15)
+                    url, params=params, timeout=aiohttp.ClientTimeout(total=10)
                 ) as resp:
                     # Read the body ONCE to avoid double-consume issues in aiohttp.
                     raw = await resp.read()
@@ -170,7 +170,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except TimeoutError as err:
                 # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
                 _LOGGER.warning(
-                    "Validation timeout: %s",
+                    "Validation timeout (10s): %s",
                     _redact_api_key(err, user_input.get(CONF_API_KEY)),
                 )
                 errors["base"] = "cannot_connect"
