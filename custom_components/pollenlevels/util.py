@@ -10,12 +10,15 @@ def redact_api_key(text: object, api_key: str | None) -> str:
         return ""
 
     if isinstance(text, bytes | bytearray):
-        s = text.decode()
+        try:
+            s = text.decode()
+        except UnicodeDecodeError:
+            s = text.decode(errors="replace")
     else:
         s = str(text)
 
     if api_key:
-        return s.replace(api_key, "***")
+        s = s.replace(api_key, "***")
     return s
 
 

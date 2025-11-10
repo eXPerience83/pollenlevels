@@ -5,6 +5,7 @@
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.
 - Rebuild pollen type metadata from future forecast days when today lacks `dailyInfo`, keeping sensors classified as `source="type"` with their forecast attributes.
 - Treat 403 authentication failures from the Google Pollen API as `ConfigEntryAuthFailed` so Home Assistant immediately prompts for re-authentication instead of leaving the entry broken.
+- Prevent crashes while redacting API keys when providers return non-UTF-8 payloads by decoding bytes with replacement before sanitizing logs.
 
 ### Added
 - Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.
