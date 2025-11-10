@@ -3,6 +3,10 @@
 ## [1.8.0-alpha1] – 2025-11-09
 ### Fixed
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.
+- Rebuild pollen type metadata from future forecast days when today lacks `dailyInfo`, keeping sensors classified as `source="type"` with their forecast attributes.
+
+### Added
+- Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.
 
 ## [1.7.18] – 2025-09-11
 ### Security
