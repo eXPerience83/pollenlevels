@@ -40,6 +40,9 @@ class _StubConfigFlow:
     def _abort_if_unique_id_configured(self):
         return None
 
+    def async_abort(self, *, reason=None):
+        return {"type": "abort", "reason": reason}
+
     def async_show_form(self, *args, **kwargs):  # pragma: no cover - not used
         return {"step_id": kwargs.get("step_id") or (args[0] if args else None)}
 
@@ -52,9 +55,10 @@ class _StubOptionsFlow:
 
 
 class _StubConfigEntry:
-    def __init__(self, data=None, options=None):
+    def __init__(self, data=None, options=None, entry_id="stub-entry"):
         self.data = data or {}
         self.options = options or {}
+        self.entry_id = entry_id
 
 
 config_entries_mod.ConfigFlow = _StubConfigFlow
@@ -181,3 +185,59 @@ def test_translations_define_invalid_language_format() -> None:
             ].strip(), (
                 f"empty invalid_language_format message in {path.name} ({section})"
             )
+
+
+def test_reauth_confirm_updates_and_reloads_entry() -> None:
+    """Re-auth confirmation should update stored credentials and reload the entry."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+            CONF_LANGUAGE_CODE: "en",
+        },
+        entry_id="entry-id",
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+            self.reloaded = None
+
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+
+        async def async_reload(self, entry_id: str):
+            self.reloaded = entry_id
+
+    recorder = _Recorder()
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    flow.context = {"entry_id": "entry-id"}
+
+    normalized = {
+        CONF_API_KEY: "new-key",
+        CONF_LATITUDE: 1.0,
+        CONF_LONGITUDE: 2.0,
+        CONF_LANGUAGE_CODE: "en",
+    }
+
+    async def fake_validate(user_input, *, check_unique_id):
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    async def run_flow():
+        await flow.async_step_reauth(entry.data)
+        return await flow.async_step_reauth_confirm({CONF_API_KEY: "new-key"})
+
+    result = asyncio.run(run_flow())
+
+    assert result == {"type": "abort", "reason": "reauth_successful"}
+    assert recorder.updated == (entry, normalized)
+    assert recorder.reloaded == "entry-id"
