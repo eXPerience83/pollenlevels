@@ -92,14 +92,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         lon = float(user_input.get(CONF_LONGITUDE))
 
         if check_unique_id:
+            uid = f"{lat:.4f}_{lon:.4f}"
             try:
-                await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
+                await self.async_set_unique_id(uid, raise_on_progress=False)
                 self._abort_if_unique_id_configured()
             except Exception as err:  # defensive
-                _LOGGER.debug(
-                    "Unique ID setup skipped: %s",
+                _LOGGER.exception(
+                    "Unique ID setup failed for %s: %s",
+                    uid,
                     redact_api_key(err, user_input.get(CONF_API_KEY)),
                 )
+                raise
 
         try:
             # Allow blank language; if present, validate & normalize
