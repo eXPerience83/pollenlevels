@@ -97,8 +97,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # Unique ID is used to prevent duplicates (not used in entity unique_ids)
                 await self.async_set_unique_id(f"{lat:.4f}_{lon:.4f}")
                 self._abort_if_unique_id_configured()
-            except Exception:  # defensive
-                pass
+            except Exception as err:  # defensive
+                _LOGGER.debug(
+                    "Unique ID setup skipped: %s",
+                    _redact_api_key(err, user_input.get(CONF_API_KEY)),
+                )
 
             try:
                 # Allow blank language; if present, validate & normalize
