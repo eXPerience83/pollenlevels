@@ -287,6 +287,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
         }
 
+        # Ensure the form posts back to this handler.
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=schema,
