@@ -13,10 +13,10 @@
         }
       },
       "reauth": {
-        "title": "Reauthenticate Pollen Levels",
-        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "title": "Godkend Pollen Levels igen",
+        "description": "API-nøglen for {latitude},{longitude} er ikke længere gyldig. Indtast en ny nøgle for at genoptage opdateringerne.",
         "data": {
-          "api_key": "API Key"
+          "api_key": "API-nøgle"
         }
       }
     },
@@ -30,8 +30,8 @@
     },
     "abort": {
       "already_configured": "Denne placering er allerede konfigureret.",
-      "reauth_successful": "Re-authentication completed successfully.",
-      "reauth_failed": "Re-authentication failed. Please try again."
+      "reauth_successful": "Genautentificering fuldført.",
+      "reauth_failed": "Genautentificering mislykkedes. Prøv igen."
     }
   },
   "options": {

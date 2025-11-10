@@ -13,10 +13,10 @@
         }
       },
       "reauth": {
-        "title": "Reauthenticate Pollen Levels",
-        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "title": "重新验证 Pollen Levels",
+        "description": "{latitude},{longitude} 的 API 密钥已失效。请输入新的密钥以恢复更新。",
         "data": {
-          "api_key": "API Key"
+          "api_key": "API 密钥"
         }
       }
     },
@@ -30,8 +30,8 @@
     },
     "abort": {
       "already_configured": "该位置已配置。",
-      "reauth_successful": "Re-authentication completed successfully.",
-      "reauth_failed": "Re-authentication failed. Please try again."
+      "reauth_successful": "重新验证已成功完成。",
+      "reauth_failed": "重新验证失败。请重试。"
     }
   },
   "options": {

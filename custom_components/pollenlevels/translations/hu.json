@@ -13,10 +13,10 @@
         }
       },
       "reauth": {
-        "title": "Reauthenticate Pollen Levels",
-        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "title": "Hitelesítsd újra a Pollen Levels-t",
+        "description": "A(z) {latitude},{longitude} API-kulcsa már nem érvényes. Adj meg új kulcsot a frissítések folytatásához.",
         "data": {
-          "api_key": "API Key"
+          "api_key": "API-kulcs"
         }
       }
     },
@@ -30,8 +30,8 @@
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",
-      "reauth_successful": "Re-authentication completed successfully.",
-      "reauth_failed": "Re-authentication failed. Please try again."
+      "reauth_successful": "Az újrahitelesítés sikerült.",
+      "reauth_failed": "Az újrahitelesítés nem sikerült. Próbáld meg újra."
     }
   },
   "options": {
