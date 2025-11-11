@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from collections.abc import Awaitable
 from datetime import date, timedelta  # Added `date` for DATE device class native_value
 from typing import Any
 
@@ -139,6 +140,8 @@ async def _cleanup_per_day_entities(
             return False
         return uid.endswith(suffix)
 
+    removals: list[Awaitable[Any]] = []
+
     for ent in entries:
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
@@ -148,7 +151,9 @@ async def _cleanup_per_day_entities(
                 ent.entity_id,
                 ent.unique_id,
             )
-            registry.async_remove(ent.entity_id)
+            removal = registry.async_remove(ent.entity_id)
+            if asyncio.iscoroutine(removal):
+                removals.append(removal)
             removed += 1
             continue
         if not allow_d2 and _matches(ent.unique_id, "_d2"):
@@ -157,8 +162,13 @@ async def _cleanup_per_day_entities(
                 ent.entity_id,
                 ent.unique_id,
             )
-            registry.async_remove(ent.entity_id)
+            removal = registry.async_remove(ent.entity_id)
+            if asyncio.iscoroutine(removal):
+                removals.append(removal)
             removed += 1
+
+    if removals:
+        await asyncio.gather(*removals)
 
     if removed:
         _LOGGER.info(

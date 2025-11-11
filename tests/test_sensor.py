@@ -224,6 +224,45 @@ class FakeSession:
         return FakeResponse(self._payload, status=self._status)
 
 
+class RegistryEntry:
+    """Simple stub representing an Entity Registry entry."""
+
+    def __init__(self, unique_id: str, entity_id: str) -> None:
+        self.unique_id = unique_id
+        self.entity_id = entity_id
+        self.domain = "sensor"
+        self.platform = sensor.DOMAIN
+
+
+class RegistryStub:
+    """Minimal async Entity Registry stub capturing removals."""
+
+    def __init__(self, entries: list[RegistryEntry]) -> None:
+        self.entries = entries
+        self.removals: list[str] = []
+
+    async def async_remove(self, entity_id: str) -> None:
+        self.removals.append(entity_id)
+
+
+def _setup_registry_stub(
+    monkeypatch: pytest.MonkeyPatch,
+    entries: list[RegistryEntry],
+    *,
+    entry_id: str,
+) -> RegistryStub:
+    registry = RegistryStub(entries)
+
+    monkeypatch.setattr(sensor.er, "async_get", lambda _hass: registry)
+    monkeypatch.setattr(
+        sensor.er,
+        "async_entries_for_config_entry",
+        lambda reg, eid: entries if reg is registry and eid == entry_id else [],
+    )
+
+    return registry
+
+
 def test_type_sensor_preserves_source_with_single_day(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -370,6 +409,60 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
     assert entry["tomorrow_category"] == "MODERATE"
     assert entry["trend"] is None
     assert entry["expected_peak"]["offset"] == 1
+
+
+def test_cleanup_per_day_entities_removes_disabled_d1(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """D+1 entries are awaited and removed when the option is disabled."""
+
+    entries = [
+        RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
+        RegistryEntry("entry_type_grass_d1", "sensor.pollen_type_grass_d1"),
+        RegistryEntry("entry_type_grass_d2", "sensor.pollen_type_grass_d2"),
+    ]
+    registry = _setup_registry_stub(monkeypatch, entries, entry_id="entry")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    try:
+        removed = loop.run_until_complete(
+            sensor._cleanup_per_day_entities(
+                hass, "entry", allow_d1=False, allow_d2=True
+            )
+        )
+    finally:
+        loop.close()
+
+    assert removed == 1
+    assert registry.removals == ["sensor.pollen_type_grass_d1"]
+
+
+def test_cleanup_per_day_entities_removes_disabled_d2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """D+2 entries are awaited and removed when the option is disabled."""
+
+    entries = [
+        RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
+        RegistryEntry("entry_type_grass_d1", "sensor.pollen_type_grass_d1"),
+        RegistryEntry("entry_type_grass_d2", "sensor.pollen_type_grass_d2"),
+    ]
+    registry = _setup_registry_stub(monkeypatch, entries, entry_id="entry")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    try:
+        removed = loop.run_until_complete(
+            sensor._cleanup_per_day_entities(
+                hass, "entry", allow_d1=True, allow_d2=False
+            )
+        )
+    finally:
+        loop.close()
+
+    assert removed == 1
+    assert registry.removals == ["sensor.pollen_type_grass_d2"]
 
 
 def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None:
