@@ -9,6 +9,7 @@
 - Restore the re-authentication reload path by updating entries and reloading them separately, avoiding AttributeError from the previous helper call.
 - Surface canonical BCP-47 validation errors with localized messaging instead of raw exception text, covering every translation file.
 - Ensure stale D+1/D+2 entities are actually removed by awaiting entity-registry cleanup before finishing setup adjustments.
+- Localize the reauthentication confirmation form so translated titles and descriptions appear when refreshing credentials.
 
 ### Added
 - Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.

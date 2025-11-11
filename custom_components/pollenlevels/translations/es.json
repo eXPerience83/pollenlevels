@@ -18,6 +18,13 @@
         "data": {
           "api_key": "Clave API"
         }
+      },
+      "reauth_confirm": {
+        "title": "Vuelve a autenticar Niveles de Polen",
+        "description": "La clave API para {latitude},{longitude} ya no es válida. Introduce una nueva clave para reanudar las actualizaciones.",
+        "data": {
+          "api_key": "Clave API"
+        }
       }
     },
     "error": {

@@ -18,6 +18,13 @@
         "data": {
           "api_key": "Cheie API"
         }
+      },
+      "reauth_confirm": {
+        "title": "Reautentificați Pollen Levels",
+        "description": "Cheia API pentru {latitude},{longitude} nu mai este valabilă. Introduceți o cheie nouă pentru a relua actualizările.",
+        "data": {
+          "api_key": "Cheie API"
+        }
       }
     },
     "error": {

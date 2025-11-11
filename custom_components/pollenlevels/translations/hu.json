@@ -18,6 +18,13 @@
         "data": {
           "api_key": "API-kulcs"
         }
+      },
+      "reauth_confirm": {
+        "title": "Hitelesítsd újra a Pollen Levels-t",
+        "description": "A(z) {latitude},{longitude} API-kulcsa már nem érvényes. Adj meg új kulcsot a frissítések folytatásához.",
+        "data": {
+          "api_key": "API-kulcs"
+        }
       }
     },
     "error": {

@@ -18,6 +18,13 @@
         "data": {
           "api_key": "API 金鑰"
         }
+      },
+      "reauth_confirm": {
+        "title": "重新驗證 Pollen Levels",
+        "description": "{latitude},{longitude} 的 API 金鑰已失效。請輸入新的金鑰以恢復更新。",
+        "data": {
+          "api_key": "API 金鑰"
+        }
       }
     },
     "error": {

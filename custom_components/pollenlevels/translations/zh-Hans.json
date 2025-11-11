@@ -18,6 +18,13 @@
         "data": {
           "api_key": "API 密钥"
         }
+      },
+      "reauth_confirm": {
+        "title": "重新验证 Pollen Levels",
+        "description": "{latitude},{longitude} 的 API 密钥已失效。请输入新的密钥以恢复更新。",
+        "data": {
+          "api_key": "API 密钥"
+        }
       }
     },
     "error": {

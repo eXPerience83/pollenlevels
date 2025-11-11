@@ -18,6 +18,13 @@
         "data": {
           "api_key": "API-sleutel"
         }
+      },
+      "reauth_confirm": {
+        "title": "Autoriseer Pollen Levels opnieuw",
+        "description": "De API-sleutel voor {latitude},{longitude} is niet meer geldig. Voer een nieuwe sleutel in om de updates te hervatten.",
+        "data": {
+          "api_key": "API-sleutel"
+        }
       }
     },
     "error": {

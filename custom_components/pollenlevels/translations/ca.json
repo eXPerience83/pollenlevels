@@ -18,6 +18,13 @@
         "data": {
           "api_key": "Clau API"
         }
+      },
+      "reauth_confirm": {
+        "title": "Torna a autenticar Nivells de pol·len",
+        "description": "La clau API per {latitude},{longitude} ja no és vàlida. Introdueix una clau nova per reprendre les actualitzacions.",
+        "data": {
+          "api_key": "Clau API"
+        }
       }
     },
     "error": {
