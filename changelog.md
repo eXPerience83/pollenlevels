@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.8.0-alpha1] – 2025-11-09
+## [1.8.0-alpha1] – 2025-11-11
 ### Fixed
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.
 - Rebuild pollen type metadata from future forecast days when today lacks `dailyInfo`, keeping sensors classified as `source="type"` with their forecast attributes.
@@ -8,15 +8,18 @@
 - Prevent crashes while redacting API keys when providers return non-UTF-8 payloads by decoding bytes with replacement before sanitizing logs.
 - Restore the re-authentication reload path by updating entries and reloading them separately, avoiding AttributeError from the previous helper call.
 - Surface canonical BCP-47 validation errors with localized messaging instead of raw exception text, covering every translation file.
+- Ensure stale D+1/D+2 entities are actually removed by awaiting entity-registry cleanup before finishing setup adjustments.
 
 ### Added
 - Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.
+- Regression coverage for plant forecast attributes so plant sensors continue to expose trend, peak, and per-day values.
 
 ### Improved
 - Unique ID assignment now logs a redacted stack trace and aborts setup on unexpected failures while still handling normal duplicate locations gracefully.
 - Validation timeout aligns with the coordinator ceiling (`ClientTimeout(total=10)`) so probing the API cannot hang longer than runtime refreshes.
 - Added a dedicated re-authentication step that reuses validation logic, only requests the API key, and reloads the entry automatically once credentials are refreshed.
 - Centralized API-key redaction into a shared helper reused by the config flow, coordinator, and diagnostics for consistent logging hygiene.
+- Continuous-integration workflows now install the latest Black and Ruff releases to inherit upstream bug fixes without manual updates.
 
 ## [1.7.18] – 2025-09-11
 ### Security
