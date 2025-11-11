@@ -411,6 +411,119 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
     assert entry["expected_peak"]["offset"] == 1
 
 
+def test_plant_sensor_includes_forecast_attributes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Plant sensors expose forecast attributes and derived convenience fields."""
+
+    payload = {
+        "regionCode": "us_co_denver",
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 6, "day": 1},
+                "plantInfo": [
+                    {
+                        "code": "ragweed",
+                        "displayName": "Ragweed",
+                        "inSeason": True,
+                        "healthRecommendations": ["Limit outdoor exposure"],
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                            "color": {"red": 80, "green": 170, "blue": 60},
+                        },
+                        "plantDescription": {
+                            "type": "weed",
+                            "family": "Asteraceae",
+                            "season": "Fall",
+                            "crossReaction": ["Sunflower"],
+                            "picture": "https://example.com/ragweed.jpg",
+                            "pictureCloseup": "https://example.com/ragweed-close.jpg",
+                        },
+                    }
+                ],
+            },
+            {
+                "date": {"year": 2025, "month": 6, "day": 2},
+                "plantInfo": [
+                    {
+                        "code": "ragweed",
+                        "displayName": "Ragweed",
+                        "inSeason": True,
+                        "healthRecommendations": ["Carry medication"],
+                        "indexInfo": {
+                            "value": 4,
+                            "category": "HIGH",
+                            "indexDescription": "High",
+                            "color": {"red": 200, "green": 120, "blue": 40},
+                        },
+                    }
+                ],
+            },
+            {
+                "date": {"year": 2025, "month": 6, "day": 3},
+                "plantInfo": [
+                    {
+                        "code": "ragweed",
+                        "displayName": "Ragweed",
+                        "inSeason": False,
+                        "healthRecommendations": ["Expect relief"],
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                            "color": {"red": 40, "green": 150, "blue": 80},
+                        },
+                    }
+                ],
+            },
+        ],
+    }
+
+    fake_session = FakeSession(payload)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=5,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    entry = data["plants_ragweed"]
+
+    assert entry["source"] == "plant"
+    assert entry["value"] == 2
+    assert len(entry["forecast"]) == 2
+    assert entry["forecast"][0]["offset"] == 1
+    assert entry["forecast"][0]["value"] == 4
+    assert entry["forecast"][0]["has_index"] is True
+    assert entry["tomorrow_has_index"] is True
+    assert entry["tomorrow_value"] == 4
+    assert entry["tomorrow_category"] == "HIGH"
+    assert entry["tomorrow_description"] == "High"
+    assert entry["tomorrow_color_hex"] == entry["forecast"][0]["color_hex"]
+    assert entry["d2_has_index"] is True
+    assert entry["d2_value"] == 1
+    assert entry["trend"] == "up"
+    assert entry["expected_peak"]["offset"] == 1
+    assert entry["expected_peak"]["value"] == 4
+
+
 def test_cleanup_per_day_entities_removes_disabled_d1(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
