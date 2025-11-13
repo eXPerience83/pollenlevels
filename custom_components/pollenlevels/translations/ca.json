@@ -6,6 +6,7 @@
         "description": "Introdueix la teva clau d’API de Google, latitud, longitud, interval d’actualització (hores) i codi d’idioma de la resposta de l’API.",
         "data": {
           "api_key": "Clau API",
+          "entry_name": "Nom de l'entrada",
           "latitude": "Latitud",
           "longitude": "Longitud",
           "update_interval": "Interval d’actualització (hores)",

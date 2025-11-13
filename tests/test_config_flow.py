@@ -130,9 +130,12 @@ from custom_components.pollenlevels.config_flow import (
 )
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
+    CONF_ENTRY_NAME,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_ENTRY_TITLE,
 )
 
 
@@ -241,3 +244,76 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
     assert result == {"type": "abort", "reason": "reauth_successful"}
     assert recorder.updated == (entry, normalized)
     assert recorder.reloaded == "entry-id"
+
+
+def test_async_step_user_uses_custom_entry_name() -> None:
+    """Config flow should honor a custom entry title provided by the user."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+
+    normalized = {
+        CONF_API_KEY: "test-key",
+        CONF_LATITUDE: 1.0,
+        CONF_LONGITUDE: 2.0,
+        CONF_LANGUAGE_CODE: "en",
+    }
+
+    async def fake_validate(user_input, *, check_unique_id):
+        assert check_unique_id is True
+        assert user_input[CONF_ENTRY_NAME].strip() == "Custom Name"
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    user_input = {
+        CONF_API_KEY: "test-key",
+        CONF_ENTRY_NAME: " Custom Name ",
+        CONF_LATITUDE: "1",
+        CONF_LONGITUDE: "2",
+        CONF_UPDATE_INTERVAL: 6,
+        CONF_LANGUAGE_CODE: "en",
+    }
+
+    result = asyncio.run(flow.async_step_user(user_input))
+
+    assert result["title"] == "Custom Name"
+    assert result["data"] == normalized
+
+
+def test_async_step_user_defaults_entry_name() -> None:
+    """Blank entry names should fall back to the default integration title."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+
+    normalized = {
+        CONF_API_KEY: "test-key",
+        CONF_LATITUDE: 1.0,
+        CONF_LONGITUDE: 2.0,
+        CONF_LANGUAGE_CODE: "en",
+    }
+
+    async def fake_validate(user_input, *, check_unique_id):
+        assert user_input[CONF_ENTRY_NAME] == "   "
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    user_input = {
+        CONF_API_KEY: "test-key",
+        CONF_ENTRY_NAME: "   ",
+        CONF_LATITUDE: "1",
+        CONF_LONGITUDE: "2",
+        CONF_UPDATE_INTERVAL: 6,
+        CONF_LANGUAGE_CODE: "en",
+    }
+
+    result = asyncio.run(flow.async_step_user(user_input))
+
+    assert result["title"] == DEFAULT_ENTRY_TITLE
+    assert result["data"] == normalized

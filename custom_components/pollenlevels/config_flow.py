@@ -24,11 +24,13 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
+    CONF_ENTRY_NAME,
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
@@ -98,6 +100,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         errors: dict[str, str] = {}
         normalized: dict[str, Any] = dict(user_input)
+        normalized.pop(CONF_ENTRY_NAME, None)
 
         lat = float(user_input.get(CONF_LATITUDE))
         lon = float(user_input.get(CONF_LONGITUDE))
@@ -217,17 +220,21 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input, check_unique_id=True
             )
             if not errors and normalized is not None:
-                return self.async_create_entry(title="Pollen Levels", data=normalized)
+                entry_name = str(user_input.get(CONF_ENTRY_NAME, "")).strip()
+                title = entry_name or DEFAULT_ENTRY_TITLE
+                return self.async_create_entry(title=title, data=normalized)
 
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
             CONF_LANGUAGE_CODE: self.hass.config.language,
+            CONF_ENTRY_NAME: DEFAULT_ENTRY_TITLE,
         }
 
         schema = vol.Schema(
             {
                 vol.Required(CONF_API_KEY): str,
+                vol.Optional(CONF_ENTRY_NAME, default=defaults[CONF_ENTRY_NAME]): str,
                 vol.Optional(
                     CONF_LATITUDE, default=defaults[CONF_LATITUDE]
                 ): cv.latitude,

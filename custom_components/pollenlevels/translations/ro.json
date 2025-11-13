@@ -6,6 +6,7 @@
         "description": "Introduceți cheia Google API, latitudine, longitudine, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
         "data": {
           "api_key": "Cheie API",
+          "entry_name": "Numele intrării",
           "latitude": "Latitudine",
           "longitude": "Longitudine",
           "update_interval": "Interval de actualizare (ore)",

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1-alpha1] – 2025-11-12
+### Added
+- Allow configuring a friendly entry name during setup so new installations appear with personalized titles out of the box.
+
+### Improved
+- Localized the entry-name field across every supported language to keep the setup form consistent worldwide.
+
 ## [1.8.0-alpha1] – 2025-11-11
 ### Fixed
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.

@@ -6,6 +6,7 @@
         "description": "Informe sua chave da API do Google, latitude, longitude, intervalo de atualização (horas) e o código de idioma para a resposta da API.",
         "data": {
           "api_key": "Chave da API",
+          "entry_name": "Nome da entrada",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Intervalo de atualização (horas)",

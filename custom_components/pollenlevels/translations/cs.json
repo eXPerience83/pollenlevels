@@ -6,6 +6,7 @@
         "description": "Zadejte svůj klíč Google API, zeměpisnou šířku, zeměpisnou délku, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
         "data": {
           "api_key": "Klíč API",
+          "entry_name": "Název položky",
           "latitude": "Zeměpisná šířka",
           "longitude": "Zeměpisná délka",
           "update_interval": "Interval aktualizace (hodiny)",

@@ -6,6 +6,7 @@
         "description": "Introduce tu clave de API de Google, latitud, longitud, intervalo de actualización (horas) y código de idioma de la respuesta de la API.",
         "data": {
           "api_key": "Clave API",
+          "entry_name": "Nombre de la entrada",
           "latitude": "Latitud",
           "longitude": "Longitud",
           "update_interval": "Intervalo de actualización (horas)",

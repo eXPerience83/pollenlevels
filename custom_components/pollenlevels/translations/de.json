@@ -6,6 +6,7 @@
         "description": "Gib deinen Google API-Schlüssel, Breitengrad, Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
         "data": {
           "api_key": "API-Schlüssel",
+          "entry_name": "Eintragsname",
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
           "update_interval": "Aktualisierungsintervall (Stunden)",

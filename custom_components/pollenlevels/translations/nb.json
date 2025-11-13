@@ -6,6 +6,7 @@
         "description": "Angi Google API-nøkkel, breddegrad, lengdegrad, oppdateringsintervall (timer) og språkkode for API-svar.",
         "data": {
           "api_key": "API-nøkkel",
+          "entry_name": "Navn på oppføringen",
           "latitude": "Breddegrad",
           "longitude": "Lengdegrad",
           "update_interval": "Oppdateringsintervall (timer)",
