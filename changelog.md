@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.2-alpha1] – 2025-11-13
+### Fixed
+- Let `ConfigEntryAuthFailed` escape the setup wrapper so Home Assistant immediately
+  prompts for reauthentication when the forwarded sensor platform reports invalid
+  credentials.
+
+### Added
+- Regression tests validating the setup wrapper propagates authentication failures
+  while still wrapping unexpected exceptions in `ConfigEntryNotReady`.
+
 ## [1.8.1-alpha1] – 2025-11-12
 ### Added
 - Allow configuring a friendly entry name during setup so new installations appear with personalized titles out of the box.
