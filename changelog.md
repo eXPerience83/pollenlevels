@@ -2,23 +2,15 @@
 
 ## [1.8.2-alpha1] – 2025-11-15
 ### Fixed
-- Let `ConfigEntryAuthFailed` escape the setup wrapper so Home Assistant immediately
-  prompts for reauthentication when the forwarded sensor platform reports invalid
-  credentials.
-- Validate latitude/longitude inside the config-flow error handling so invalid
-  coordinates surface a localized `invalid_coordinates` error instead of crashing
-  the form.
+- Let `ConfigEntryAuthFailed` escape the setup wrapper so Home Assistant immediately prompts for reauthentication when the forwarded sensor platform reports invalid credentials.
+- Validate latitude/longitude inside the config-flow error handling so invalid coordinates surface a localized `invalid_coordinates` error instead of crashing the form.
 
 ### Added
-- Regression tests validating the setup wrapper propagates authentication failures
-  while still wrapping unexpected exceptions in `ConfigEntryNotReady`.
-- Config-flow regression coverage ensuring non-numeric coordinates are rejected
-  with the new translation-aware error key, which is localized across every
-  language file.
+- Regression tests validating the setup wrapper propagates authentication failures while still wrapping unexpected exceptions in `ConfigEntryNotReady`.
+- Config-flow regression coverage ensuring non-numeric coordinates are rejected with the new translation-aware error key, which is localized across every language file.
 
 ### Improved
-- Removed unused reauthentication step strings so locales only maintain the
-  confirmation form that users interact with during credential refreshes.
+- Removed unused reauthentication step strings so locales only maintain the confirmation form that users interact with during credential refreshes.
 
 ## [1.8.1-alpha1] – 2025-11-12
 ### Added
