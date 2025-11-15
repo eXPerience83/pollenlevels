@@ -35,7 +35,8 @@
       "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
-      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
+      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
+      "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn."
     },
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
@@ -63,7 +64,8 @@
       "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
-      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
+      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
+      "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn."
     }
   },
   "device": {

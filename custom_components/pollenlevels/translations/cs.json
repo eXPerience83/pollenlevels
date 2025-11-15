@@ -35,7 +35,8 @@
       "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
-      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech."
+      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
+      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné."
     },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
@@ -63,7 +64,8 @@
       "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
-      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech."
+      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
+      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné."
     }
   },
   "device": {

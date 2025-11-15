@@ -102,8 +102,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized: dict[str, Any] = dict(user_input)
         normalized.pop(CONF_ENTRY_NAME, None)
 
-        lat = float(user_input.get(CONF_LATITUDE))
-        lon = float(user_input.get(CONF_LONGITUDE))
+        try:
+            lat = float(user_input.get(CONF_LATITUDE))
+            lon = float(user_input.get(CONF_LONGITUDE))
+        except (TypeError, ValueError) as err:
+            _LOGGER.warning(
+                "Invalid coordinates provided (lat=%s, lon=%s): %s",
+                user_input.get(CONF_LATITUDE),
+                user_input.get(CONF_LONGITUDE),
+                redact_api_key(err, user_input.get(CONF_API_KEY)),
+            )
+            errors["base"] = "invalid_coordinates"
+            return errors, None
 
         if check_unique_id:
             uid = f"{lat:.4f}_{lon:.4f}"

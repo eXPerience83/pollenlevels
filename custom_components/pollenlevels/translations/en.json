@@ -35,7 +35,8 @@
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
-      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
+      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
+      "invalid_coordinates": "Latitude and longitude must be numeric."
     },
     "abort": {
       "already_configured": "This location is already configured.",
@@ -63,7 +64,8 @@
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
-      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
+      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
+      "invalid_coordinates": "Latitude and longitude must be numeric."
     }
   },
   "device": {

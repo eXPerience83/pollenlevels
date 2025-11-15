@@ -35,7 +35,8 @@
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan."
+      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
+      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
@@ -63,7 +64,8 @@
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan."
+      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
+      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
     }
   },
   "device": {

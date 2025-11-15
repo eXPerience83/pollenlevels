@@ -35,7 +35,8 @@
       "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
-      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats."
+      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
+      "invalid_coordinates": "La latitud i la longitud han de ser numèriques."
     },
     "abort": {
       "already_configured": "Aquesta ubicació ja està configurada.",
@@ -63,7 +64,8 @@
       "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
-      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats."
+      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
+      "invalid_coordinates": "La latitud i la longitud han de ser numèriques."
     }
   },
   "device": {

@@ -171,23 +171,42 @@ def test_language_error_to_form_key_mapping() -> None:
     )
 
 
-def test_translations_define_invalid_language_format() -> None:
-    """Every translation must expose the invalid language format message."""
+def test_validate_input_invalid_coordinates() -> None:
+    """Non-numeric coordinates should surface a dedicated error."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                CONF_API_KEY: "test-key",
+                CONF_LATITUDE: "north",
+                CONF_LONGITUDE: "west",
+            },
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {"base": "invalid_coordinates"}
+    assert normalized is None
+
+
+def test_translations_define_required_error_keys() -> None:
+    """Every translation must expose the custom error messages."""
 
     translations_dir = ROOT / "custom_components" / "pollenlevels" / "translations"
+    required_errors = {"invalid_language_format", "invalid_coordinates"}
 
     for path in translations_dir.glob("*.json"):
         content = json.loads(path.read_text(encoding="utf-8"))
         for section in ("config", "options"):
             errors = content.get(section, {}).get("error", {})
-            assert (
-                "invalid_language_format" in errors
-            ), f"missing invalid_language_format in {path.name} ({section})"
-            assert errors[
-                "invalid_language_format"
-            ].strip(), (
-                f"empty invalid_language_format message in {path.name} ({section})"
-            )
+            for key in required_errors:
+                assert key in errors, f"missing {key} in {path.name} ({section})"
+                assert errors[
+                    key
+                ].strip(), f"empty {key} message in {path.name} ({section})"
 
 
 def test_reauth_confirm_updates_and_reloads_entry() -> None:

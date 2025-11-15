@@ -35,7 +35,8 @@
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
+      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
+      "invalid_coordinates": "Breitengrad und Längengrad müssen numerisch sein."
     },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
@@ -63,7 +64,8 @@
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
+      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
+      "invalid_coordinates": "Breitengrad und Längengrad müssen numerisch sein."
     }
   },
   "device": {

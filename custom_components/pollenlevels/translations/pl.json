@@ -35,7 +35,8 @@
       "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami."
     },
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
@@ -63,7 +64,8 @@
       "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami."
     }
   },
   "device": {

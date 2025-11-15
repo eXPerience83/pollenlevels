@@ -35,7 +35,8 @@
       "invalid_language": "Código de idioma inválido",
       "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode estar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
+      "invalid_coordinates": "A latitude e a longitude devem ser numéricas."
     },
     "abort": {
       "already_configured": "Esta localização já está configurada.",
@@ -63,7 +64,8 @@
       "invalid_language": "Código de idioma inválido",
       "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode estar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
+      "invalid_coordinates": "A latitude e a longitude devem ser numéricas."
     }
   },
   "device": {
