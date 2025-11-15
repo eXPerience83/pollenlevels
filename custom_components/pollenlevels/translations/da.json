@@ -6,10 +6,18 @@
         "description": "Angiv din Google API-nøgle, breddegrad, længdegrad, opdateringsinterval (timer) og sprogkode for API-svar.",
         "data": {
           "api_key": "API-nøgle",
+          "entry_name": "Integrationsnavn",
           "latitude": "Breddegrad",
           "longitude": "Længdegrad",
           "update_interval": "Opdateringsinterval (timer)",
           "language_code": "Sprogkode for API-svar"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Godkend Pollen Levels igen",
+        "description": "API-nøglen for {latitude},{longitude} er ikke længere gyldig. Indtast en ny nøgle for at genoptage opdateringerne.",
+        "data": {
+          "api_key": "API-nøgle"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Kan ikke oprette forbindelse til tjenesten",
       "quota_exceeded": "Kvote overskredet",
       "invalid_language": "Ugyldig sprogkode",
+      "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette felt må ikke være tomt",
-      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag."
+      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
+      "invalid_coordinates": "Breddegrad og længdegrad skal være numeriske."
     },
     "abort": {
-      "already_configured": "Denne placering er allerede konfigureret."
+      "already_configured": "Denne placering er allerede konfigureret.",
+      "reauth_successful": "Genautentificering fuldført.",
+      "reauth_failed": "Genautentificering mislykkedes. Prøv igen."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Kan ikke oprette forbindelse til tjenesten",
       "quota_exceeded": "Kvote overskredet",
       "invalid_language": "Ugyldig sprogkode",
+      "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette felt må ikke være tomt",
-      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag."
+      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
+      "invalid_coordinates": "Breddegrad og længdegrad skal være numeriske."
     }
   },
   "device": {
-    "types": { "name": "Pollentyper ({latitude},{longitude})" },
-    "plants": { "name": "Planter ({latitude},{longitude})" },
-    "info": { "name": "Polleninfo ({latitude},{longitude})" }
+    "types": {
+      "name": "Pollentyper ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Planter ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Polleninfo ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Region" },
-      "date": { "name": "Dato" },
-      "last_updated": { "name": "Sidst opdateret" }
+      "region": {
+        "name": "Region"
+      },
+      "date": {
+        "name": "Dato"
+      },
+      "last_updated": {
+        "name": "Sidst opdateret"
+      }
     }
   }
 }

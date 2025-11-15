@@ -6,10 +6,18 @@
         "description": "Anna Google API -avain, leveysaste, pituusaste, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
         "data": {
           "api_key": "API-avain",
+          "entry_name": "Integraation nimi",
           "latitude": "Leveysaste",
           "longitude": "Pituusaste",
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Todenna Pollen Levels uudelleen",
+        "description": "API-avain sijainnille {latitude},{longitude} ei ole enää voimassa. Anna uusi avain, jotta päivitykset jatkuvat.",
+        "data": {
+          "api_key": "API-avain"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Palveluun ei saada yhteyttä",
       "quota_exceeded": "Kiintiö ylitetty",
       "invalid_language": "Virheellinen kielikoodi",
+      "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan."
+      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
+      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
     },
     "abort": {
-      "already_configured": "Tämä sijainti on jo määritetty."
+      "already_configured": "Tämä sijainti on jo määritetty.",
+      "reauth_successful": "Uudelleentodennus onnistui.",
+      "reauth_failed": "Uudelleentodennus epäonnistui. Yritä uudelleen."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Palveluun ei saada yhteyttä",
       "quota_exceeded": "Kiintiö ylitetty",
       "invalid_language": "Virheellinen kielikoodi",
+      "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan."
+      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
+      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
     }
   },
   "device": {
-    "types": { "name": "Siitepölytyypit ({latitude},{longitude})" },
-    "plants": { "name": "Kasvit ({latitude},{longitude})" },
-    "info": { "name": "Siitepölytiedot ({latitude},{longitude})" }
+    "types": {
+      "name": "Siitepölytyypit ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Kasvit ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Siitepölytiedot ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Alue" },
-      "date": { "name": "Päivämäärä" },
-      "last_updated": { "name": "Viimeksi päivitetty" }
+      "region": {
+        "name": "Alue"
+      },
+      "date": {
+        "name": "Päivämäärä"
+      },
+      "last_updated": {
+        "name": "Viimeksi päivitetty"
+      }
     }
   }
 }

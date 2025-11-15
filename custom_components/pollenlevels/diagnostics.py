@@ -28,6 +28,7 @@ from .const import (
     DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
     DOMAIN,
 )
+from .util import redact_api_key
 
 # Redact potentially sensitive values from diagnostics.
 # NOTE: Also redact the "location.*" variants used in the request example to avoid
@@ -79,7 +80,7 @@ async def async_get_config_entry_diagnostics(
 
     params_example: dict[str, Any] = {
         # Explicitly mask the API key example
-        "key": "***",
+        "key": redact_api_key(data.get(CONF_API_KEY), data.get(CONF_API_KEY)) or "***",
         "location.latitude": data.get(CONF_LATITUDE),
         "location.longitude": data.get(CONF_LONGITUDE),
         "days": days_effective,

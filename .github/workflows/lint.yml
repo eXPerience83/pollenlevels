@@ -38,7 +38,7 @@ jobs:
 
       - name: Install linters
         run: |
-          python -m pip install "ruff==0.14.*" "black==25.*"
+          python -m pip install --upgrade black ruff
 
       - name: Ruff (check only)
         run: ruff check .

@@ -6,10 +6,18 @@
         "description": "Введіть ваш ключ Google API, широту, довготу, інтервал оновлення (у годинах) та код мови для відповіді API.",
         "data": {
           "api_key": "Ключ API",
+          "entry_name": "Назва запису",
           "latitude": "Широта",
           "longitude": "Довгота",
           "update_interval": "Інтервал оновлення (у годинах)",
           "language_code": "Код мови відповіді API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Повторно автентифікуйте Pollen Levels",
+        "description": "Ключ API для {latitude},{longitude} більше не дійсний. Введіть новий ключ, щоб відновити оновлення.",
+        "data": {
+          "api_key": "Ключ API"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Не вдається підключитися до сервісу",
       "quota_exceeded": "Перевищено ліміт запитів",
       "invalid_language": "Невірний код мови",
+      "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
       "empty": "Це поле не може бути порожнім",
-      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики."
+      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
+      "invalid_coordinates": "Широта та довгота мають бути числовими значеннями."
     },
     "abort": {
-      "already_configured": "Це розташування вже налаштовано."
+      "already_configured": "Це розташування вже налаштовано.",
+      "reauth_successful": "Повторна автентифікація виконана успішно.",
+      "reauth_failed": "Повторна автентифікація не вдалася. Спробуйте ще раз."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Не вдається підключитися до сервісу",
       "quota_exceeded": "Перевищено ліміт запитів",
       "invalid_language": "Невірний код мови",
+      "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
       "empty": "Це поле не може бути порожнім",
-      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики."
+      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
+      "invalid_coordinates": "Широта та довгота мають бути числовими значеннями."
     }
   },
   "device": {
-    "types": { "name": "Типи пилку ({latitude},{longitude})" },
-    "plants": { "name": "Рослини ({latitude},{longitude})" },
-    "info": { "name": "Інформація про пилок ({latitude},{longitude})" }
+    "types": {
+      "name": "Типи пилку ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Рослини ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Інформація про пилок ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Регіон" },
-      "date": { "name": "Дата" },
-      "last_updated": { "name": "Останнє оновлення" }
+      "region": {
+        "name": "Регіон"
+      },
+      "date": {
+        "name": "Дата"
+      },
+      "last_updated": {
+        "name": "Останнє оновлення"
+      }
     }
   }
 }

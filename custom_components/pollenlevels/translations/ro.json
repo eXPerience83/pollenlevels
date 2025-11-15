@@ -6,10 +6,18 @@
         "description": "Introduceți cheia Google API, latitudine, longitudine, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
         "data": {
           "api_key": "Cheie API",
+          "entry_name": "Numele intrării",
           "latitude": "Latitudine",
           "longitude": "Longitudine",
           "update_interval": "Interval de actualizare (ore)",
           "language_code": "Codul limbii pentru răspunsul API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reautentificați Pollen Levels",
+        "description": "Cheia API pentru {latitude},{longitude} nu mai este valabilă. Introduceți o cheie nouă pentru a relua actualizările.",
+        "data": {
+          "api_key": "Cheie API"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Nu se poate conecta la serviciu",
       "quota_exceeded": "Cota depășită",
       "invalid_language": "Cod de limbă nevalid",
+      "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "empty": "Acest câmp nu poate fi gol",
-      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile."
+      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
+      "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice."
     },
     "abort": {
-      "already_configured": "Această locație este deja configurată."
+      "already_configured": "Această locație este deja configurată.",
+      "reauth_successful": "Reautentificarea s-a încheiat cu succes.",
+      "reauth_failed": "Reautentificarea a eșuat. Încercați din nou."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Nu se poate conecta la serviciu",
       "quota_exceeded": "Cota depășită",
       "invalid_language": "Cod de limbă nevalid",
+      "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "empty": "Acest câmp nu poate fi gol",
-      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile."
+      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
+      "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice."
     }
   },
   "device": {
-    "types": { "name": "Tipuri de polen ({latitude},{longitude})" },
-    "plants": { "name": "Plante ({latitude},{longitude})" },
-    "info": { "name": "Informații polen ({latitude},{longitude})" }
+    "types": {
+      "name": "Tipuri de polen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plante ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informații polen ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regiune" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Ultima actualizare" }
+      "region": {
+        "name": "Regiune"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Ultima actualizare"
+      }
     }
   }
 }

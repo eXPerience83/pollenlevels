@@ -6,10 +6,18 @@
         "description": "Gib deinen Google API-Schlüssel, Breitengrad, Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
         "data": {
           "api_key": "API-Schlüssel",
+          "entry_name": "Eintragsname",
           "latitude": "Breitengrad",
           "longitude": "Längengrad",
           "update_interval": "Aktualisierungsintervall (Stunden)",
           "language_code": "Sprachcode für die API-Antwort"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Pollen Levels erneut authentifizieren",
+        "description": "Der API-Schlüssel für {latitude},{longitude} ist nicht mehr gültig. Gib einen neuen Schlüssel ein, um die Aktualisierungen fortzusetzen.",
+        "data": {
+          "api_key": "API-Schlüssel"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
       "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
+      "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
+      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
+      "invalid_coordinates": "Breitengrad und Längengrad müssen numerisch sein."
     },
     "abort": {
-      "already_configured": "Dieser Standort ist bereits konfiguriert."
+      "already_configured": "Dieser Standort ist bereits konfiguriert.",
+      "reauth_successful": "Die erneute Authentifizierung war erfolgreich.",
+      "reauth_failed": "Die erneute Authentifizierung ist fehlgeschlagen. Bitte versuche es erneut."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
       "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
+      "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken."
+      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
+      "invalid_coordinates": "Breitengrad und Längengrad müssen numerisch sein."
     }
   },
   "device": {
-    "types": { "name": "Pollenarten ({latitude},{longitude})" },
-    "plants": { "name": "Pflanzen ({latitude},{longitude})" },
-    "info": { "name": "Polleninformationen ({latitude},{longitude})" }
+    "types": {
+      "name": "Pollenarten ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Pflanzen ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Polleninformationen ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Region" },
-      "date": { "name": "Datum" },
-      "last_updated": { "name": "Letzte Aktualisierung" }
+      "region": {
+        "name": "Region"
+      },
+      "date": {
+        "name": "Datum"
+      },
+      "last_updated": {
+        "name": "Letzte Aktualisierung"
+      }
     }
   }
 }

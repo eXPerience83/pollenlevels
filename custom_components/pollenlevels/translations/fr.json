@@ -6,10 +6,18 @@
         "description": "Saisissez votre clé API Google, latitude, longitude, intervalle de mise à jour (heures) et le code de langue pour la réponse de l’API.",
         "data": {
           "api_key": "Clé API",
+          "entry_name": "Nom de l'entrée",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Intervalle de mise à jour (heures)",
           "language_code": "Code de langue pour la réponse de l’API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Réauthentifier Pollen Levels",
+        "description": "La clé API pour {latitude},{longitude} n’est plus valide. Saisissez une nouvelle clé pour reprendre les mises à jour.",
+        "data": {
+          "api_key": "Clé API"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Impossible de se connecter au service",
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
+      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "empty": "Ce champ ne peut pas être vide",
-      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés."
+      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
+      "invalid_coordinates": "La latitude et la longitude doivent être numériques."
     },
     "abort": {
-      "already_configured": "Cet emplacement est déjà configuré."
+      "already_configured": "Cet emplacement est déjà configuré.",
+      "reauth_successful": "La réauthentification a réussi.",
+      "reauth_failed": "La réauthentification a échoué. Veuillez réessayer."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Impossible de se connecter au service",
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
+      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "empty": "Ce champ ne peut pas être vide",
-      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés."
+      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
+      "invalid_coordinates": "La latitude et la longitude doivent être numériques."
     }
   },
   "device": {
-    "types": { "name": "Types de pollen ({latitude},{longitude})" },
-    "plants": { "name": "Plantes ({latitude},{longitude})" },
-    "info": { "name": "Info pollen ({latitude},{longitude})" }
+    "types": {
+      "name": "Types de pollen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plantes ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Info pollen ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Région" },
-      "date": { "name": "Date" },
-      "last_updated": { "name": "Dernière mise à jour" }
+      "region": {
+        "name": "Région"
+      },
+      "date": {
+        "name": "Date"
+      },
+      "last_updated": {
+        "name": "Dernière mise à jour"
+      }
     }
   }
 }
