@@ -13,13 +13,6 @@
           "language_code": "Código de idioma da resposta da API"
         }
       },
-      "reauth": {
-        "title": "Reautenticar Pollen Levels",
-        "description": "A chave da API para {latitude},{longitude} não é mais válida. Insira uma nova chave para retomar as atualizações.",
-        "data": {
-          "api_key": "Chave da API"
-        }
-      },
       "reauth_confirm": {
         "title": "Reautenticar Pollen Levels",
         "description": "A chave da API para {latitude},{longitude} não é mais válida. Insira uma nova chave para retomar as atualizações.",

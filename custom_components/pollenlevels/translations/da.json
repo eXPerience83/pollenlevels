@@ -13,13 +13,6 @@
           "language_code": "Sprogkode for API-svar"
         }
       },
-      "reauth": {
-        "title": "Godkend Pollen Levels igen",
-        "description": "API-nøglen for {latitude},{longitude} er ikke længere gyldig. Indtast en ny nøgle for at genoptage opdateringerne.",
-        "data": {
-          "api_key": "API-nøgle"
-        }
-      },
       "reauth_confirm": {
         "title": "Godkend Pollen Levels igen",
         "description": "API-nøglen for {latitude},{longitude} er ikke længere gyldig. Indtast en ny nøgle for at genoptage opdateringerne.",

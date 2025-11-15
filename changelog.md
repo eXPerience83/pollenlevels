@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.8.2-alpha1] – 2025-11-13
+## [1.8.2-alpha1] – 2025-11-15
 ### Fixed
 - Let `ConfigEntryAuthFailed` escape the setup wrapper so Home Assistant immediately
   prompts for reauthentication when the forwarded sensor platform reports invalid
@@ -15,6 +15,10 @@
 - Config-flow regression coverage ensuring non-numeric coordinates are rejected
   with the new translation-aware error key, which is localized across every
   language file.
+
+### Improved
+- Removed unused reauthentication step strings so locales only maintain the
+  confirmation form that users interact with during credential refreshes.
 
 ## [1.8.1-alpha1] – 2025-11-12
 ### Added

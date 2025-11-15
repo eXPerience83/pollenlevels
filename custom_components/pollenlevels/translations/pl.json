@@ -13,13 +13,6 @@
           "language_code": "Kod języka odpowiedzi API"
         }
       },
-      "reauth": {
-        "title": "Ponownie uwierzytelnij Pollen Levels",
-        "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",
-        "data": {
-          "api_key": "Klucz API"
-        }
-      },
       "reauth_confirm": {
         "title": "Ponownie uwierzytelnij Pollen Levels",
         "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",

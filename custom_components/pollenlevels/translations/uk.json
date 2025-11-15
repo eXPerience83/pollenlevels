@@ -13,13 +13,6 @@
           "language_code": "Код мови відповіді API"
         }
       },
-      "reauth": {
-        "title": "Повторно автентифікуйте Pollen Levels",
-        "description": "Ключ API для {latitude},{longitude} більше не дійсний. Введіть новий ключ, щоб відновити оновлення.",
-        "data": {
-          "api_key": "Ключ API"
-        }
-      },
       "reauth_confirm": {
         "title": "Повторно автентифікуйте Pollen Levels",
         "description": "Ключ API для {latitude},{longitude} більше не дійсний. Введіть новий ключ, щоб відновити оновлення.",

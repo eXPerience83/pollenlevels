@@ -13,13 +13,6 @@
           "language_code": "API response language code"
         }
       },
-      "reauth": {
-        "title": "Reauthenticate Pollen Levels",
-        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
-        "data": {
-          "api_key": "API Key"
-        }
-      },
       "reauth_confirm": {
         "title": "Reauthenticate Pollen Levels",
         "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",

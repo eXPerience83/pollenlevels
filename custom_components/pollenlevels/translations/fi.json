@@ -13,13 +13,6 @@
           "language_code": "API-vastauksen kielikoodi"
         }
       },
-      "reauth": {
-        "title": "Todenna Pollen Levels uudelleen",
-        "description": "API-avain sijainnille {latitude},{longitude} ei ole enää voimassa. Anna uusi avain, jotta päivitykset jatkuvat.",
-        "data": {
-          "api_key": "API-avain"
-        }
-      },
       "reauth_confirm": {
         "title": "Todenna Pollen Levels uudelleen",
         "description": "API-avain sijainnille {latitude},{longitude} ei ole enää voimassa. Anna uusi avain, jotta päivitykset jatkuvat.",

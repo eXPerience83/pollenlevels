@@ -13,13 +13,6 @@
           "language_code": "Kód jazyka odpovědi API"
         }
       },
-      "reauth": {
-        "title": "Znovu ověřte Pollen Levels",
-        "description": "Klíč API pro {latitude},{longitude} již není platný. Zadejte nový klíč, aby se obnovily aktualizace.",
-        "data": {
-          "api_key": "Klíč API"
-        }
-      },
       "reauth_confirm": {
         "title": "Znovu ověřte Pollen Levels",
         "description": "Klíč API pro {latitude},{longitude} již není platný. Zadejte nový klíč, aby se obnovily aktualizace.",

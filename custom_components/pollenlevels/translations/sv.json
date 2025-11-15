@@ -13,13 +13,6 @@
           "language_code": "Språkkod för API-svar"
         }
       },
-      "reauth": {
-        "title": "Autentisera Pollen Levels igen",
-        "description": "API-nyckeln för {latitude},{longitude} är inte längre giltig. Ange en ny nyckel för att återuppta uppdateringarna.",
-        "data": {
-          "api_key": "API-nyckel"
-        }
-      },
       "reauth_confirm": {
         "title": "Autentisera Pollen Levels igen",
         "description": "API-nyckeln för {latitude},{longitude} är inte längre giltig. Ange en ny nyckel för att återuppta uppdateringarna.",
