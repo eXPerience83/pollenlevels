@@ -608,16 +608,14 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "color_raw": None,
                 }
 
-                candidate = _find_type(first_day, tcode)
-                if not isinstance(candidate, dict):
-                    for future_day in daily[1:]:
-                        candidate = _find_type(future_day, tcode)
-                        if isinstance(candidate, dict):
-                            break
-                if isinstance(candidate, dict):
-                    base["displayName"] = candidate.get("displayName", tcode)
-                    base["inSeason"] = candidate.get("inSeason")
-                    base["advice"] = candidate.get("healthRecommendations")
+                candidate = None
+                for day_data in daily:
+                    candidate = _find_type(day_data, tcode)
+                    if isinstance(candidate, dict):
+                        base["displayName"] = candidate.get("displayName", tcode)
+                        base["inSeason"] = candidate.get("inSeason")
+                        base["advice"] = candidate.get("healthRecommendations")
+                        break
             forecast_list: list[dict[str, Any]] = []
             for offset, day in enumerate(daily[1:], start=1):
                 if offset >= self.forecast_days:
