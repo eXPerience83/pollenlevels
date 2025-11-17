@@ -115,6 +115,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "invalid_coordinates"
             return errors, None
 
+        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+            _LOGGER.warning(
+                "Coordinates out of range (lat=%s, lon=%s)",
+                user_input.get(CONF_LATITUDE),
+                user_input.get(CONF_LONGITUDE),
+            )
+            errors["base"] = "invalid_coordinates"
+            return errors, None
+
         if check_unique_id:
             uid = f"{lat:.4f}_{lon:.4f}"
             try:

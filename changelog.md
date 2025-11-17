@@ -7,12 +7,14 @@
   reauthentication instead of crashing with `KeyError`.
 - Let `ConfigEntryAuthFailed` escape the setup wrapper so Home Assistant immediately prompts for reauthentication when the forwarded sensor platform reports invalid credentials.
 - Validate latitude/longitude inside the config-flow error handling so invalid coordinates surface a localized `invalid_coordinates` error instead of crashing the form.
+- Enforce geographic range limits (±90°, ±180°) on latitude/longitude during validation so impossible coordinates are rejected before hitting the API.
 - Restrict the Date sensor's ISO parsing handler to `ValueError`/`TypeError` so unexpected issues propagate while malformed payloads still log a clear error.
 - Config-flow credential validation now evaluates the HTTP status before decoding the body, avoiding large/binary logging on failures and ensuring missing `dailyInfo` is handled as a clean `cannot_connect` error.
 
 ### Added
 - Regression tests validating the setup wrapper propagates authentication failures while still wrapping unexpected exceptions in `ConfigEntryNotReady`.
 - Config-flow regression coverage ensuring non-numeric coordinates are rejected with the new translation-aware error key, which is localized across every language file.
+- Added regression coverage for out-of-range coordinates to keep the validation logic honest when latitude/longitude exceed physical limits.
 
 ### Improved
 - Removed unused reauthentication step strings so locales only maintain the confirmation form that users interact with during credential refreshes.

@@ -192,6 +192,27 @@ def test_validate_input_invalid_coordinates() -> None:
     assert normalized is None
 
 
+def test_validate_input_out_of_range_coordinates() -> None:
+    """Coordinates outside valid ranges should be rejected."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                CONF_API_KEY: "test-key",
+                CONF_LATITUDE: "200",  # invalid
+                CONF_LONGITUDE: "-300",  # invalid
+            },
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {"base": "invalid_coordinates"}
+    assert normalized is None
+
+
 def test_translations_define_required_error_keys() -> None:
     """Every translation must expose the custom error messages."""
 
