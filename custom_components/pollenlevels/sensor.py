@@ -608,20 +608,16 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "color_raw": None,
                 }
 
-                def _copy_type_metadata(
-                    candidate: dict | None, *, target=base, code=tcode
-                ) -> bool:
-                    if not isinstance(candidate, dict):
-                        return False
-                    target["displayName"] = candidate.get("displayName", code)
-                    target["inSeason"] = candidate.get("inSeason")
-                    target["advice"] = candidate.get("healthRecommendations")
-                    return True
-
-                if not _copy_type_metadata(_find_type(first_day, tcode)):
+                candidate = _find_type(first_day, tcode)
+                if not isinstance(candidate, dict):
                     for future_day in daily[1:]:
-                        if _copy_type_metadata(_find_type(future_day, tcode)):
+                        candidate = _find_type(future_day, tcode)
+                        if isinstance(candidate, dict):
                             break
+                if isinstance(candidate, dict):
+                    base["displayName"] = candidate.get("displayName", tcode)
+                    base["inSeason"] = candidate.get("inSeason")
+                    base["advice"] = candidate.get("healthRecommendations")
             forecast_list: list[dict[str, Any]] = []
             for offset, day in enumerate(daily[1:], start=1):
                 if offset >= self.forecast_days:

@@ -12,6 +12,7 @@
 
 ### Improved
 - Removed unused reauthentication step strings so locales only maintain the confirmation form that users interact with during credential refreshes.
+- Simplified the pollen-type metadata fallback helper by relying on closure variables, improving readability without changing behavior.
 
 ## [1.8.1-alpha1] – 2025-11-12
 ### Added
