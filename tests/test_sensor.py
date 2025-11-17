@@ -190,6 +190,21 @@ class DummyHass:
         self.data: dict[str, Any] = {}
 
 
+class FakeConfigEntry:
+    """ConfigEntry stub exposing data/options/entry_id."""
+
+    def __init__(
+        self,
+        *,
+        data: dict[str, Any],
+        options: dict[str, Any] | None = None,
+        entry_id: str = "entry",
+    ) -> None:
+        self.data = data
+        self.options = options or {}
+        self.entry_id = entry_id
+
+
 class FakeResponse:
     """Async context manager returning a static payload."""
 
@@ -602,5 +617,31 @@ def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None
     try:
         with pytest.raises(sensor.ConfigEntryAuthFailed):
             loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+
+def test_async_setup_entry_missing_api_key_triggers_reauth() -> None:
+    """A missing API key results in ConfigEntryAuthFailed during setup."""
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        }
+    )
+
+    async def _noop_add_entities(_entities, _update_before_add=False):
+        return None
+
+    try:
+        with pytest.raises(sensor.ConfigEntryAuthFailed):
+            loop.run_until_complete(
+                sensor.async_setup_entry(hass, config_entry, _noop_add_entities)
+            )
     finally:
         loop.close()

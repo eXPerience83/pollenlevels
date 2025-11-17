@@ -181,7 +181,13 @@ async def _cleanup_per_day_entities(
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Create coordinator and build sensors."""
-    api_key = config_entry.data[CONF_API_KEY]
+    api_key = config_entry.data.get(CONF_API_KEY)
+    if not api_key:
+        _LOGGER.warning(
+            "Config entry %s is missing the API key; prompting reauthentication",
+            config_entry.entry_id,
+        )
+        raise ConfigEntryAuthFailed("Missing API key in config entry")
     lat = config_entry.data[CONF_LATITUDE]
     lon = config_entry.data[CONF_LONGITUDE]
 
