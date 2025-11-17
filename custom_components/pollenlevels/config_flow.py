@@ -155,27 +155,27 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             async with session.get(
                 url, params=params, timeout=aiohttp.ClientTimeout(total=10)
             ) as resp:
-                # Read the body ONCE to avoid double-consume issues in aiohttp.
-                raw = await resp.read()
-                # Log a redacted textual representation (best-effort decode)
-                try:
-                    body_str = raw.decode()
-                except Exception:
-                    body_str = str(raw)
-                _LOGGER.debug(
-                    "Validation HTTP %s — %s",
-                    resp.status,
-                    redact_api_key(body_str, user_input.get(CONF_API_KEY)),
-                )
-
-                if resp.status == 403:
+                status = resp.status
+                if status == 403:
+                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
                     errors["base"] = "invalid_auth"
-                elif resp.status == 429:
+                elif status == 429:
+                    _LOGGER.debug("Validation HTTP 429 (body omitted)")
                     errors["base"] = "quota_exceeded"
-                elif resp.status != 200:
+                elif status != 200:
+                    _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
                 else:
-                    # Parse JSON from the already-read body
+                    raw = await resp.read()
+                    try:
+                        body_str = raw.decode()
+                    except Exception:
+                        body_str = str(raw)
+                    _LOGGER.debug(
+                        "Validation HTTP %s — %s",
+                        status,
+                        redact_api_key(body_str, user_input.get(CONF_API_KEY)),
+                    )
                     try:
                         data = json.loads(body_str) if body_str else {}
                     except Exception:
