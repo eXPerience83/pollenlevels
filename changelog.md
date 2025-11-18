@@ -10,6 +10,7 @@
 - Enforce geographic range limits (±90°, ±180°) on latitude/longitude during validation so impossible coordinates are rejected before hitting the API.
 - Restrict the Date sensor's ISO parsing handler to `ValueError`/`TypeError` so unexpected issues propagate while malformed payloads still log a clear error.
 - Config-flow credential validation now evaluates the HTTP status before decoding the body, avoiding large/binary logging on failures and ensuring missing `dailyInfo` is handled as a clean `cannot_connect` error.
+- Configure `pytest-asyncio` for auto mode so Home Assistant's async fixtures provided by `pytest-homeassistant-custom-component` continue working under the official test harness.
 
 ### Added
 - Regression tests validating the setup wrapper propagates authentication failures while still wrapping unexpected exceptions in `ConfigEntryNotReady`.

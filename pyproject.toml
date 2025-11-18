@@ -50,6 +50,12 @@ ignore = [
 known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
 
+# pytest-homeassistant-custom-component still provides async fixtures decorated with
+# @pytest.fixture, so force pytest-asyncio into auto mode to keep those fixtures
+# usable until upstream migrates fully to strict fixtures.
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 # --- Optional hardening (uncomment if needed) ---
 # [tool.ruff]
 # force-exclude = true
