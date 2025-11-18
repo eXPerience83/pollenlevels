@@ -15,11 +15,13 @@
 - Regression tests validating the setup wrapper propagates authentication failures while still wrapping unexpected exceptions in `ConfigEntryNotReady`.
 - Config-flow regression coverage ensuring non-numeric coordinates are rejected with the new translation-aware error key, which is localized across every language file.
 - Added regression coverage for out-of-range coordinates to keep the validation logic honest when latitude/longitude exceed physical limits.
+- Migrated the sensor and config-flow suites to `pytest-homeassistant-custom-component`, providing real Home Assistant fixtures instead of ad-hoc stubs.
 
 ### Improved
 - Removed unused reauthentication step strings so locales only maintain the confirmation form that users interact with during credential refreshes.
 - Simplified the pollen-type metadata fallback helper by relying on closure variables, improving readability without changing behavior.
 - Streamlined the pollen-type metadata lookup to scan each forecast day once, reducing branching and keeping the fallback path easier to follow.
+- Documented the new test workflow (`pip install -e .[tests]` + `pytest`) in the contributor guide and README so future patches rely on the supported HA harness.
 
 ## [1.8.1-alpha1] – 2025-11-12
 ### Added

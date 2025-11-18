@@ -205,6 +205,13 @@ color: '[[[
 
 ---
 
+## 🧪 Development & Testing
+
+- Install the optional tooling with `pip install -e .[tests]` to pull in `pytest-homeassistant-custom-component` and the Home Assistant fixtures.
+- Run `pytest` to exercise the integration end-to-end in a realistic HA harness before opening a pull request.
+
+---
+
 ## 🌐 Example API request
 
 ```bash

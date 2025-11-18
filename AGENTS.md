@@ -6,6 +6,7 @@
 - Lint and sort imports with **Ruff** targeting `py314`, matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.
+- Run the automated suite with `pytest` (install via `pip install -e .[tests]`) to leverage the official `pytest-homeassistant-custom-component` harness.
 
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
