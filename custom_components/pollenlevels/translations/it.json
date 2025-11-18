@@ -6,10 +6,18 @@
         "description": "Inserisci la tua chiave API Google, latitudine, longitudine, intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
         "data": {
           "api_key": "Chiave API",
+          "entry_name": "Nome della voce",
           "latitude": "Latitudine",
           "longitude": "Longitudine",
           "update_interval": "Intervallo di aggiornamento (ore)",
           "language_code": "Codice lingua per la risposta dell'API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ri-autentica Pollen Levels",
+        "description": "La chiave API per {latitude},{longitude} non è più valida. Inserisci una nuova chiave per riprendere gli aggiornamenti.",
+        "data": {
+          "api_key": "Chiave API"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Impossibile connettersi al servizio",
       "quota_exceeded": "Quota superata",
       "invalid_language": "Codice lingua non valido",
+      "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "empty": "Questo campo non può essere vuoto",
-      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati."
+      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
+      "invalid_coordinates": "Latitudine e longitudine devono essere numeriche."
     },
     "abort": {
-      "already_configured": "Questa posizione è già configurata."
+      "already_configured": "Questa posizione è già configurata.",
+      "reauth_successful": "La ri-autenticazione è stata completata con successo.",
+      "reauth_failed": "La ri-autenticazione non è riuscita. Riprova."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Impossibile connettersi al servizio",
       "quota_exceeded": "Quota superata",
       "invalid_language": "Codice lingua non valido",
+      "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "empty": "Questo campo non può essere vuoto",
-      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati."
+      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
+      "invalid_coordinates": "Latitudine e longitudine devono essere numeriche."
     }
   },
   "device": {
-    "types": { "name": "Tipi di polline ({latitude},{longitude})" },
-    "plants": { "name": "Piante ({latitude},{longitude})" },
-    "info": { "name": "Informazioni sul polline ({latitude},{longitude})" }
+    "types": {
+      "name": "Tipi di polline ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Piante ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informazioni sul polline ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regione" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Ultimo aggiornamento" }
+      "region": {
+        "name": "Regione"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Ultimo aggiornamento"
+      }
     }
   }
 }

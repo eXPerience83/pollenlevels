@@ -6,10 +6,18 @@
         "description": "Voer je Google API-sleutel, breedtegraad, lengtegraad, update-interval (uren) en de taalcode voor de API-respons in.",
         "data": {
           "api_key": "API-sleutel",
+          "entry_name": "Naam van de integratie",
           "latitude": "Breedtegraad",
           "longitude": "Lengtegraad",
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Autoriseer Pollen Levels opnieuw",
+        "description": "De API-sleutel voor {latitude},{longitude} is niet meer geldig. Voer een nieuwe sleutel in om de updates te hervatten.",
+        "data": {
+          "api_key": "API-sleutel"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Kan geen verbinding maken met de service",
       "quota_exceeded": "Limiet overschreden",
       "invalid_language": "Ongeldige taalcode",
+      "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
-      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
+      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
+      "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn."
     },
     "abort": {
-      "already_configured": "Deze locatie is al geconfigureerd."
+      "already_configured": "Deze locatie is al geconfigureerd.",
+      "reauth_successful": "Opnieuw autoriseren voltooid.",
+      "reauth_failed": "Opnieuw autoriseren is mislukt. Probeer het opnieuw."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Kan geen verbinding maken met de service",
       "quota_exceeded": "Limiet overschreden",
       "invalid_language": "Ongeldige taalcode",
+      "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
-      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken."
+      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
+      "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn."
     }
   },
   "device": {
-    "types": { "name": "Pollentypen ({latitude},{longitude})" },
-    "plants": { "name": "Planten ({latitude},{longitude})" },
-    "info": { "name": "Polleninfo ({latitude},{longitude})" }
+    "types": {
+      "name": "Pollentypen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Planten ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Polleninfo ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Regio" },
-      "date": { "name": "Datum" },
-      "last_updated": { "name": "Laatst bijgewerkt" }
+      "region": {
+        "name": "Regio"
+      },
+      "date": {
+        "name": "Datum"
+      },
+      "last_updated": {
+        "name": "Laatst bijgewerkt"
+      }
     }
   }
 }

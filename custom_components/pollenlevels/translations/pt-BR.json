@@ -6,10 +6,18 @@
         "description": "Informe sua chave da API do Google, latitude, longitude, intervalo de atualização (horas) e o código de idioma para a resposta da API.",
         "data": {
           "api_key": "Chave da API",
+          "entry_name": "Nome da entrada",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Intervalo de atualização (horas)",
           "language_code": "Código de idioma da resposta da API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reautenticar Pollen Levels",
+        "description": "A chave da API para {latitude},{longitude} não é mais válida. Insira uma nova chave para retomar as atualizações.",
+        "data": {
+          "api_key": "Chave da API"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Não foi possível conectar ao serviço",
       "quota_exceeded": "Cota excedida",
       "invalid_language": "Código de idioma inválido",
+      "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode ficar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
+      "invalid_coordinates": "Latitude e longitude devem ser numéricas."
     },
     "abort": {
-      "already_configured": "Este local já está configurado."
+      "already_configured": "Este local já está configurado.",
+      "reauth_successful": "Reautenticação concluída com sucesso.",
+      "reauth_failed": "A reautenticação falhou. Tente novamente."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Não foi possível conectar ao serviço",
       "quota_exceeded": "Cota excedida",
       "invalid_language": "Código de idioma inválido",
+      "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode ficar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados."
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
+      "invalid_coordinates": "Latitude e longitude devem ser numéricas."
     }
   },
   "device": {
-    "types": { "name": "Tipos de pólen ({latitude},{longitude})" },
-    "plants": { "name": "Plantas ({latitude},{longitude})" },
-    "info": { "name": "Informações de pólen ({latitude},{longitude})" }
+    "types": {
+      "name": "Tipos de pólen ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plantas ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informações de pólen ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Região" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Última atualização" }
+      "region": {
+        "name": "Região"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Última atualização"
+      }
     }
   }
 }

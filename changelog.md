@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.8.2] – 2025-11-15
+### Fixed
+- Detect config entries missing the API key during sensor setup and raise
+  `ConfigEntryAuthFailed` immediately so Home Assistant prompts for
+  reauthentication instead of crashing with `KeyError`.
+- Let `ConfigEntryAuthFailed` escape the setup wrapper so Home Assistant immediately prompts for reauthentication when the forwarded sensor platform reports invalid credentials.
+- Validate latitude/longitude inside the config-flow error handling so invalid coordinates surface a localized `invalid_coordinates` error instead of crashing the form.
+- Enforce geographic range limits (±90°, ±180°) on latitude/longitude during validation so impossible coordinates are rejected before hitting the API.
+- Restrict the Date sensor's ISO parsing handler to `ValueError`/`TypeError` so unexpected issues propagate while malformed payloads still log a clear error.
+- Config-flow credential validation now evaluates the HTTP status before decoding the body, avoiding large/binary logging on failures and ensuring missing `dailyInfo` is handled as a clean `cannot_connect` error.
+
+### Added
+- Regression tests validating the setup wrapper propagates authentication failures while still wrapping unexpected exceptions in `ConfigEntryNotReady`.
+- Config-flow regression coverage ensuring non-numeric coordinates are rejected with the new translation-aware error key, which is localized across every language file.
+- Added regression coverage for out-of-range coordinates to keep the validation logic honest when latitude/longitude exceed physical limits.
+
+### Improved
+- Removed unused reauthentication step strings so locales only maintain the confirmation form that users interact with during credential refreshes.
+- Simplified the pollen-type metadata fallback helper by relying on closure variables, improving readability without changing behavior.
+- Streamlined the pollen-type metadata lookup to scan each forecast day once, reducing branching and keeping the fallback path easier to follow.
+
+## [1.8.1-alpha1] – 2025-11-12
+### Added
+- Allow configuring a friendly entry name during setup so new installations appear with personalized titles out of the box.
+
+### Improved
+- Localized the entry-name field across every supported language to keep the setup form consistent worldwide.
+
+## [1.8.0-alpha1] – 2025-11-11
+### Fixed
+- Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.
+- Rebuild pollen type metadata from future forecast days when today lacks `dailyInfo`, keeping sensors classified as `source="type"` with their forecast attributes.
+- Treat 403 authentication failures from the Google Pollen API as `ConfigEntryAuthFailed` so Home Assistant immediately prompts for re-authentication instead of leaving the entry broken.
+- Prevent crashes while redacting API keys when providers return non-UTF-8 payloads by decoding bytes with replacement before sanitizing logs.
+- Restore the re-authentication reload path by updating entries and reloading them separately, avoiding AttributeError from the previous helper call.
+- Surface canonical BCP-47 validation errors with localized messaging instead of raw exception text, covering every translation file.
+- Ensure stale D+1/D+2 entities are actually removed by awaiting entity-registry cleanup before finishing setup adjustments.
+- Localize the reauthentication confirmation form so translated titles and descriptions appear when refreshing credentials.
+
+### Added
+- Regression tests covering single-day and multi-day API payload shaping to ensure pollen type sensors retain forecast metadata when only future indices are available.
+- Regression coverage for plant forecast attributes so plant sensors continue to expose trend, peak, and per-day values.
+
+### Improved
+- Unique ID assignment now logs a redacted stack trace and aborts setup on unexpected failures while still handling normal duplicate locations gracefully.
+- Validation timeout aligns with the coordinator ceiling (`ClientTimeout(total=10)`) so probing the API cannot hang longer than runtime refreshes.
+- Added a dedicated re-authentication step that reuses validation logic, only requests the API key, and reloads the entry automatically once credentials are refreshed.
+- Centralized API-key redaction into a shared helper reused by the config flow, coordinator, and diagnostics for consistent logging hygiene.
+- Continuous-integration workflows now install the latest Black and Ruff releases to inherit upstream bug fixes without manual updates.
+
 ## [1.7.18] – 2025-09-11
 ### Security
 - **GitHub Actions (least privilege):** add explicit `permissions: { contents: read }` to `lint.yml` to satisfy CodeQL’s `actions/missing-workflow-permissions`.
@@ -115,7 +165,7 @@
 ## [1.6.5] – 2025-08-26
 ### Fixed
 - Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  
-  On Python 3.11 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
+  On Python 3.14 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
 - Added missing `options.error` translations across all locales so **Options Flow** errors display localized.
 - **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors) to avoid leaking the API key in logs; explicit handling of `TimeoutError` returns a clean `cannot_connect`.
 - **Parsers**: Skip `plantInfo` entries without `code` to prevent unstable keys (`plants_`) and silent overwrites.

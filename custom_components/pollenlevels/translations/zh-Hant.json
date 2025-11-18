@@ -6,10 +6,18 @@
         "description": "請輸入 Google API 金鑰、緯度、經度、更新間隔（小時）以及 API 回應語言代碼。",
         "data": {
           "api_key": "API 金鑰",
+          "entry_name": "條目名稱",
           "latitude": "緯度",
           "longitude": "經度",
           "update_interval": "更新間隔（小時）",
           "language_code": "API 回應語言代碼"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新驗證 Pollen Levels",
+        "description": "{latitude},{longitude} 的 API 金鑰已失效。請輸入新的金鑰以恢復更新。",
+        "data": {
+          "api_key": "API 金鑰"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "無法連線到服務",
       "quota_exceeded": "超出配額",
       "invalid_language": "無效的語言代碼",
+      "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此欄位不得為空",
-      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。"
+      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
+      "invalid_coordinates": "緯度和經度必須為數字。"
     },
     "abort": {
-      "already_configured": "此位置已設定。"
+      "already_configured": "此位置已設定。",
+      "reauth_successful": "重新驗證已成功完成。",
+      "reauth_failed": "重新驗證失敗。請再試一次。"
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "無法連線到服務",
       "quota_exceeded": "超出配額",
       "invalid_language": "無效的語言代碼",
+      "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此欄位不得為空",
-      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。"
+      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
+      "invalid_coordinates": "緯度和經度必須為數字。"
     }
   },
   "device": {
-    "types": { "name": "花粉類型 ({latitude},{longitude})" },
-    "plants": { "name": "植物 ({latitude},{longitude})" },
-    "info": { "name": "花粉資訊 ({latitude},{longitude})" }
+    "types": {
+      "name": "花粉類型 ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "植物 ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "花粉資訊 ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "地區" },
-      "date": { "name": "日期" },
-      "last_updated": { "name": "上次更新時間" }
+      "region": {
+        "name": "地區"
+      },
+      "date": {
+        "name": "日期"
+      },
+      "last_updated": {
+        "name": "上次更新時間"
+      }
     }
   }
 }

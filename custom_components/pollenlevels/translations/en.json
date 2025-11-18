@@ -6,10 +6,18 @@
         "description": "Enter your Google API Key, latitude, longitude, update interval (hours) and API response language code.",
         "data": {
           "api_key": "API Key",
+          "entry_name": "Entry name",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Pollen Levels",
+        "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
+        "data": {
+          "api_key": "API Key"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Cannot connect to service",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
+      "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
-      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
+      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
+      "invalid_coordinates": "Latitude and longitude must be numeric."
     },
     "abort": {
-      "already_configured": "This location is already configured."
+      "already_configured": "This location is already configured.",
+      "reauth_successful": "Re-authentication completed successfully.",
+      "reauth_failed": "Re-authentication failed. Please try again."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Cannot connect to service",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
+      "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
-      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors."
+      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
+      "invalid_coordinates": "Latitude and longitude must be numeric."
     }
   },
   "device": {
-    "types": { "name": "Pollen Types ({latitude},{longitude})" },
-    "plants": { "name": "Plants ({latitude},{longitude})" },
-    "info": { "name": "Pollen Info ({latitude},{longitude})" }
+    "types": {
+      "name": "Pollen Types ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Plants ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Pollen Info ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Region" },
-      "date": { "name": "Date" },
-      "last_updated": { "name": "Last Updated" }
+      "region": {
+        "name": "Region"
+      },
+      "date": {
+        "name": "Date"
+      },
+      "last_updated": {
+        "name": "Last Updated"
+      }
     }
   }
 }

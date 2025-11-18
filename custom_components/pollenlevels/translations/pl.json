@@ -6,10 +6,18 @@
         "description": "Wprowadź swój klucz Google API, szerokość i długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "data": {
           "api_key": "Klucz API",
+          "entry_name": "Nazwa wpisu",
           "latitude": "Szerokość geograficzna",
           "longitude": "Długość geograficzna",
           "update_interval": "Interwał aktualizacji (godziny)",
           "language_code": "Kod języka odpowiedzi API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponownie uwierzytelnij Pollen Levels",
+        "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",
+        "data": {
+          "api_key": "Klucz API"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Brak połączenia z usługą",
       "quota_exceeded": "Przekroczono limit",
       "invalid_language": "Nieprawidłowy kod języka",
+      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami."
     },
     "abort": {
-      "already_configured": "Ta lokalizacja jest już skonfigurowana."
+      "already_configured": "Ta lokalizacja jest już skonfigurowana.",
+      "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie.",
+      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Brak połączenia z usługą",
       "quota_exceeded": "Przekroczono limit",
       "invalid_language": "Nieprawidłowy kod języka",
+      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne."
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami."
     }
   },
   "device": {
-    "types": { "name": "Typy pyłków ({latitude},{longitude})" },
-    "plants": { "name": "Rośliny ({latitude},{longitude})" },
-    "info": { "name": "Informacje o pyłkach ({latitude},{longitude})" }
+    "types": {
+      "name": "Typy pyłków ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Rośliny ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Informacje o pyłkach ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Region" },
-      "date": { "name": "Data" },
-      "last_updated": { "name": "Ostatnia aktualizacja" }
+      "region": {
+        "name": "Region"
+      },
+      "date": {
+        "name": "Data"
+      },
+      "last_updated": {
+        "name": "Ostatnia aktualizacja"
+      }
     }
   }
 }

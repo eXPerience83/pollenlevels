@@ -5,7 +5,7 @@ Key points:
 - Normalizes language (trim/omit when empty) before calling the API.
 - Redacts API keys in debug logs.
 - Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
-- Timeout handling: on Python 3.11, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
+- Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
   so catching `TimeoutError` is sufficient and preferred.
 """
 
@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from collections.abc import Awaitable
 from datetime import date, timedelta  # Added `date` for DATE device class native_value
 from typing import Any
 
@@ -26,6 +27,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
@@ -48,6 +50,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
+from .util import redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -137,6 +140,8 @@ async def _cleanup_per_day_entities(
             return False
         return uid.endswith(suffix)
 
+    removals: list[Awaitable[Any]] = []
+
     for ent in entries:
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
@@ -146,7 +151,9 @@ async def _cleanup_per_day_entities(
                 ent.entity_id,
                 ent.unique_id,
             )
-            registry.async_remove(ent.entity_id)
+            removal = registry.async_remove(ent.entity_id)
+            if asyncio.iscoroutine(removal):
+                removals.append(removal)
             removed += 1
             continue
         if not allow_d2 and _matches(ent.unique_id, "_d2"):
@@ -155,8 +162,13 @@ async def _cleanup_per_day_entities(
                 ent.entity_id,
                 ent.unique_id,
             )
-            registry.async_remove(ent.entity_id)
+            removal = registry.async_remove(ent.entity_id)
+            if asyncio.iscoroutine(removal):
+                removals.append(removal)
             removed += 1
+
+    if removals:
+        await asyncio.gather(*removals)
 
     if removed:
         _LOGGER.info(
@@ -167,18 +179,24 @@ async def _cleanup_per_day_entities(
     return removed
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(hass, config_entry, async_add_entities):
     """Create coordinator and build sensors."""
-    api_key = entry.data[CONF_API_KEY]
-    lat = entry.data[CONF_LATITUDE]
-    lon = entry.data[CONF_LONGITUDE]
+    api_key = config_entry.data.get(CONF_API_KEY)
+    if not api_key:
+        _LOGGER.warning(
+            "Config entry %s is missing the API key; prompting reauthentication",
+            config_entry.entry_id,
+        )
+        raise ConfigEntryAuthFailed("Missing API key in config entry")
+    lat = config_entry.data[CONF_LATITUDE]
+    lon = config_entry.data[CONF_LONGITUDE]
 
-    opts = entry.options or {}
+    opts = config_entry.options or {}
     interval = opts.get(
         CONF_UPDATE_INTERVAL,
-        entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+        config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
     )
-    lang = opts.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
+    lang = opts.get(CONF_LANGUAGE_CODE, config_entry.data.get(CONF_LANGUAGE_CODE))
     forecast_days = int(opts.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
 
     # Map unified selector to internal flags
@@ -192,7 +210,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Proactively remove stale D+ entities from the Entity Registry
     await _cleanup_per_day_entities(
-        hass, entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
+        hass, config_entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
     )
 
     coordinator = PollenDataUpdateCoordinator(
@@ -202,17 +220,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
         lon=lon,
         hours=interval,
         language=lang,  # normalized in the coordinator
-        entry_id=entry.entry_id,
+        entry_id=config_entry.entry_id,
         forecast_days=forecast_days,
         create_d1=allow_d1,  # pass effective flags
         create_d2=allow_d2,
     )
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    if not coordinator.data:
-        _LOGGER.warning("No pollen data found during initial setup")
-        return
+    data = coordinator.data or {}
+    has_daily = ("date" in data) or any(
+        key.startswith(("type_", "plants_")) for key in data
+    )
+    if not has_daily:
+        message = "No pollen data found during initial setup"
+        _LOGGER.warning(message)
+        raise ConfigEntryNotReady(message)
+
+    hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
 
     sensors: list[CoordinatorEntity] = []
     for code in coordinator.data:
@@ -375,7 +399,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 ) as resp:
                     # Non-retryable auth logic first
                     if resp.status == 403:
-                        raise UpdateFailed("Invalid API key")
+                        raise ConfigEntryAuthFailed("Invalid API key")
 
                     # 429: may be transient — respect Retry-After if present
                     if resp.status == 429:
@@ -424,8 +448,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     payload = await resp.json()
                     break  # exit retry loop on success
 
+            except ConfigEntryAuthFailed:
+                raise
             except TimeoutError as err:
-                # Catch built-in TimeoutError; on Python 3.11 this also covers asyncio.TimeoutError.
+                # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
                 if attempt < max_retries:
                     delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
                     _LOGGER.warning(
@@ -436,9 +462,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     )
                     await asyncio.sleep(delay)
                     continue
-                msg = str(err)
-                if self.api_key:
-                    msg = msg.replace(self.api_key, "***")
+                msg = redact_api_key(err, self.api_key)
                 raise UpdateFailed(f"Timeout: {msg}") from err
 
             except aiohttp.ClientError as err:
@@ -453,15 +477,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     )
                     await asyncio.sleep(delay)
                     continue
-                msg = str(err)
-                if self.api_key:
-                    msg = msg.replace(self.api_key, "***")
+                msg = redact_api_key(err, self.api_key)
                 raise UpdateFailed(msg) from err
 
             except Exception as err:  # Keep previous behavior for unexpected errors
-                msg = str(err)
-                if self.api_key:
-                    msg = msg.replace(self.api_key, "***")
+                msg = redact_api_key(err, self.api_key)
                 _LOGGER.error("Pollen API error: %s", msg)
                 raise UpdateFailed(msg) from err
         # --------------------------------------------------------------------
@@ -572,7 +592,36 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         for tcode in type_codes:
             type_key = f"type_{tcode.lower()}"
-            base = new_data.get(type_key, {})
+            existing = new_data.get(type_key)
+            needs_skeleton = not existing or (
+                existing.get("source") == "type"
+                and existing.get("value") is None
+                and existing.get("category") is None
+                and existing.get("description") is None
+            )
+            base = existing or {}
+            if needs_skeleton:
+                base = {
+                    "source": "type",
+                    "displayName": tcode,
+                    "inSeason": None,
+                    "advice": None,
+                    "value": None,
+                    "category": None,
+                    "description": None,
+                    "color_hex": None,
+                    "color_rgb": None,
+                    "color_raw": None,
+                }
+
+                candidate = None
+                for day_data in daily:
+                    candidate = _find_type(day_data, tcode)
+                    if isinstance(candidate, dict):
+                        base["displayName"] = candidate.get("displayName", tcode)
+                        base["inSeason"] = candidate.get("inSeason")
+                        base["advice"] = candidate.get("healthRecommendations")
+                        break
             forecast_list: list[dict[str, Any]] = []
             for offset, day in enumerate(daily[1:], start=1):
                 if offset >= self.forecast_days:
@@ -940,7 +989,7 @@ class DateSensor(_BaseMetaSensor):
         try:
             y, m, d = map(int, date_str.split("-"))
             return date(y, m, d)
-        except Exception:
+        except (ValueError, TypeError):
             _LOGGER.error("Invalid date format received: %s", date_str)
             return None
 

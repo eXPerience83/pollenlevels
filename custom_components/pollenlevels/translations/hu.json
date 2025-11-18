@@ -6,10 +6,18 @@
         "description": "Adja meg a Google API-kulcsot, szélességi és hosszúsági fokot, frissítési időközt (órák) és az API-válasz nyelvi kódját.",
         "data": {
           "api_key": "API-kulcs",
+          "entry_name": "Bejegyzés neve",
           "latitude": "Szélesség",
           "longitude": "Hosszúság",
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Hitelesítsd újra a Pollen Levels-t",
+        "description": "A(z) {latitude},{longitude} API-kulcsa már nem érvényes. Adj meg új kulcsot a frissítések folytatásához.",
+        "data": {
+          "api_key": "API-kulcs"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
       "quota_exceeded": "Kvóta túllépve",
       "invalid_language": "Érvénytelen nyelvi kód",
+      "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "empty": "A mező nem lehet üres",
-      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez."
+      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
+      "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük."
     },
     "abort": {
-      "already_configured": "Ez a hely már konfigurálva van."
+      "already_configured": "Ez a hely már konfigurálva van.",
+      "reauth_successful": "Az újrahitelesítés sikerült.",
+      "reauth_failed": "Az újrahitelesítés nem sikerült. Próbáld meg újra."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
       "quota_exceeded": "Kvóta túllépve",
       "invalid_language": "Érvénytelen nyelvi kód",
+      "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "empty": "A mező nem lehet üres",
-      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez."
+      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
+      "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük."
     }
   },
   "device": {
-    "types": { "name": "Pollentípusok ({latitude},{longitude})" },
-    "plants": { "name": "Növények ({latitude},{longitude})" },
-    "info": { "name": "Polleninformáció ({latitude},{longitude})" }
+    "types": {
+      "name": "Pollentípusok ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Növények ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Polleninformáció ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Régió" },
-      "date": { "name": "Dátum" },
-      "last_updated": { "name": "Utoljára frissítve" }
+      "region": {
+        "name": "Régió"
+      },
+      "date": {
+        "name": "Dátum"
+      },
+      "last_updated": {
+        "name": "Utoljára frissítve"
+      }
     }
   }
 }

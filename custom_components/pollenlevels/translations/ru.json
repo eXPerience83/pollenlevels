@@ -6,10 +6,18 @@
         "description": "Введите ваш ключ Google API, широту, долготу, интервал обновления (в часах) и код языка для ответа API.",
         "data": {
           "api_key": "Ключ API",
+          "entry_name": "Название записи",
           "latitude": "Широта",
           "longitude": "Долгота",
           "update_interval": "Интервал обновления (в часах)",
           "language_code": "Код языка ответа API"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Повторная аутентификация Pollen Levels",
+        "description": "Ключ API для {latitude},{longitude} больше не действителен. Введите новый ключ, чтобы возобновить обновления.",
+        "data": {
+          "api_key": "Ключ API"
         }
       }
     },
@@ -18,11 +26,15 @@
       "cannot_connect": "Не удаётся подключиться к сервису",
       "quota_exceeded": "Превышен лимит запросов",
       "invalid_language": "Неверный код языка",
+      "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "empty": "Это поле не может быть пустым",
-      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням."
+      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
+      "invalid_coordinates": "Широта и долгота должны быть числовыми значениями."
     },
     "abort": {
-      "already_configured": "Это местоположение уже настроено."
+      "already_configured": "Это местоположение уже настроено.",
+      "reauth_successful": "Повторная аутентификация выполнена успешно.",
+      "reauth_failed": "Повторная аутентификация не удалась. Повторите попытку."
     }
   },
   "options": {
@@ -43,20 +55,34 @@
       "cannot_connect": "Не удаётся подключиться к сервису",
       "quota_exceeded": "Превышен лимит запросов",
       "invalid_language": "Неверный код языка",
+      "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "empty": "Это поле не может быть пустым",
-      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням."
+      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
+      "invalid_coordinates": "Широта и долгота должны быть числовыми значениями."
     }
   },
   "device": {
-    "types": { "name": "Типы пыльцы ({latitude},{longitude})" },
-    "plants": { "name": "Растения ({latitude},{longitude})" },
-    "info": { "name": "Информация о пыльце ({latitude},{longitude})" }
+    "types": {
+      "name": "Типы пыльцы ({latitude},{longitude})"
+    },
+    "plants": {
+      "name": "Растения ({latitude},{longitude})"
+    },
+    "info": {
+      "name": "Информация о пыльце ({latitude},{longitude})"
+    }
   },
   "entity": {
     "sensor": {
-      "region": { "name": "Регион" },
-      "date": { "name": "Дата" },
-      "last_updated": { "name": "Последнее обновление" }
+      "region": {
+        "name": "Регион"
+      },
+      "date": {
+        "name": "Дата"
+      },
+      "last_updated": {
+        "name": "Последнее обновление"
+      }
     }
   }
 }

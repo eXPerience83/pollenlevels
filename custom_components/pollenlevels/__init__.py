@@ -15,7 +15,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol  # Service schema validation
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 
 from .const import DOMAIN
 
@@ -59,8 +59,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    except ConfigEntryAuthFailed:
+        raise
+    except ConfigEntryNotReady:
+        raise
     except Exception as err:
-        _LOGGER.error("Error forwarding entry setups: %s", err)
+        _LOGGER.exception("Error forwarding entry setups: %s", err)
         # Surfaced as ConfigEntryNotReady so HA can retry later.
         raise ConfigEntryNotReady from err
 
