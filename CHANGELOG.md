@@ -64,7 +64,6 @@ All notable changes to this project will be documented in this file. The format 
 ## [1.7.17] - 2025-09-10
 ### Changed
 - **Code Refinement**: Improved readability of a filter in the diagnostics module. No functional change.
-### Changed
 - **Services**: Added a `name` to the `force_update` service for a clearer presentation in the Developer Tools UI.
 
 ## [1.7.16] - 2025-09-09
@@ -222,11 +221,9 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [1.5.5] - 2025-08-11
 ### Changed
-- **button-card example**: fixed JavaScript snippets to access entity state correctly and use proper `color` property.  
-- Clarified native vs. custom color handling in README.  
-
-### Changed
-- No code changes; documentation-only release.  
+- **button-card example**: fixed JavaScript snippets to access entity state correctly and use proper `color` property.
+- Clarified native vs. custom color handling in README.
+- No code changes; documentation-only release.
 
 ## [1.5.4] - 2025-08-10
 ### Fixed
