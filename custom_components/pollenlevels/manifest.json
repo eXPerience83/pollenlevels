@@ -7,6 +7,5 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/eXPerience83/pollenlevels/issues",
-  "homeassistant": "2025.2.0",
   "version": "1.8.2"
 }
