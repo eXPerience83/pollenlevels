@@ -143,7 +143,6 @@ All notable changes to this project will be documented in this file. The format 
 ## [1.7.3] - 2025-09-04
 ### Changed
 - **Sensors**: Hide forecast-related attributes (`forecast`, `tomorrow_*`, `d2_*`, `trend`, `expected_peak`) when **Forecast days = 1** to keep entities clean and concise.
-### Changed
 - If you referenced `tomorrow_has_index` in templates with `forecast_days=1`, the attribute is now absent instead of `false`.
 
 ## [1.7.2] - 2025-09-01
@@ -154,8 +153,6 @@ All notable changes to this project will be documented in this file. The format 
 ### Changed
 - Internal refactor: centralize forecast attribute building for TYPES & PLANTS into a single helper to reduce duplication and ensure parity.
 - Logging: add a top-level INFO when `pollenlevels.force_update` is invoked.
-
-### Changed
 - No behavior changes; entities, attributes, and options remain identical.
 
 ## [1.7.0] - 2025-08-31
