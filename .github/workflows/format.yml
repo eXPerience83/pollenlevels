@@ -44,7 +44,7 @@ jobs:
 
       - name: Install formatters
         run: |
-          python -m pip install --upgrade black ruff
+          python -m pip install --upgrade "black==25.*" "ruff==0.14.*"
 
       - name: Ruff --fix
         run: ruff check --fix .

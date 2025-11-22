@@ -1,11 +1,16 @@
 # Repository Guidelines
 
 ## Tooling
-- Target **Python 3.14** for all runtime and type-related considerations.
-- Format code with the **latest Black release** (line length 88, target-version `py314`).
-- Lint and sort imports with **Ruff** targeting `py314`, matching the configuration in `pyproject.toml`.
+- Tooling (CI, lint, format) runs on **Python 3.14**; keep runtime compatibility with Home Assistant's floor (Python 3.13), so avoid 3.14-only syntax.
+- Format code with Black (line length 88, target-version `py314`) pinned at `black==25.*`.
+- Lint and sort imports with Ruff targeting `py314`, pinned at `ruff==0.14.*`, matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.
+
+## Release & API boundaries
+- Do not change the integration version or changelog entries unless explicitly requested.
+- Do not rename entities, alter `unique_id` patterns, or modify translation keys unless explicitly requested.
+- Prefer minimal, focused diffs; avoid cosmetic refactors or large code moves.
 
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
