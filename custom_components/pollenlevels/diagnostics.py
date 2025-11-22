@@ -61,6 +61,20 @@ async def async_get_config_entry_diagnostics(
     options: dict[str, Any] = dict(entry.options or {})
     data: dict[str, Any] = dict(entry.data or {})
 
+    # Provide an obfuscated (rounded) location for support without exposing precise
+    # coordinates. This should not be redacted.
+    def _rounded(value: Any) -> float | None:
+        try:
+            return round(float(value), 1)
+        except (TypeError, ValueError):
+            return None
+
+    approx_location = {
+        "label": "approximate_location (rounded)",
+        "latitude_rounded": _rounded(data.get(CONF_LATITUDE)),
+        "longitude_rounded": _rounded(data.get(CONF_LONGITUDE)),
+    }
+
     # --- Build a safe params example (no network I/O) ----------------------
     # Use DEFAULT_FORECAST_DAYS from const.py to avoid config drift.
     try:
@@ -174,6 +188,7 @@ async def async_get_config_entry_diagnostics(
                 CONF_LANGUAGE_CODE: data.get(CONF_LANGUAGE_CODE),
             },
         },
+        "approximate_location": approx_location,
         "coordinator": coord_info,
         "forecast_summary": forecast_summary,
         "request_params_example": params_example,
