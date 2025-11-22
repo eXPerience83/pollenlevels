@@ -1,4 +1,9 @@
 # Changelog
+## [1.8.3-rc1] - 2025-11-16
+### Changed
+- Documented the release candidate bump and synced the manifest version with the changelog to
+  prepare the next stable release.
+
 ## [1.8.2] - 2025-11-15
 ### Fixed
 - Detect config entries missing the API key during sensor setup and raise
