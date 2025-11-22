@@ -12,11 +12,12 @@
 - Do not rename entities, alter `unique_id` patterns, or modify translation keys unless explicitly requested.
 - Prefer minimal, focused diffs; avoid cosmetic refactors or large code moves.
 
-## Changelog
-- `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html); keep the header/preamble intact and always include an `[Unreleased]` section at the top.
-- When updates are requested, add new entries under `## [Unreleased]` using standard category headings (e.g., Added, Changed, Fixed) and retain reverse-chronological ordering.
-- Release headings should use the format `## [version] - YYYY-MM-DD` (plain hyphen) to keep dates consistent across entries.
-- Do not remove historical entries or alter past release notes unless explicitly instructed.
+## Changelog / `CHANGELOG.md`
+- Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Keep the required preamble (`# Changelog`, notable changes sentence, KAC + SemVer sentence) and always include `## [Unreleased]` at the top.
+- Version headings must use `## [version] - YYYY-MM-DD` (ASCII hyphen). List newer releases first in reverse chronological order; pre-releases (e.g., `1.8.2-rc1`) are allowed but should be merged into the final release section when that version ships.
+- Allowed category headings: `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`. Prefer `Changed` for documentation-only updates. Avoid introducing other headings.
+- Changelog bullets must start with `- `; wrap long bullets manually around 80–100 characters with indented continuation lines. Do not reflow or rewrite unrelated bullets or headings—keep diffs minimal and avoid cosmetic churn.
+- If comparison links are present at the bottom, keep the `[Unreleased]`/`[version]` reference style consistent with GitHub compare links for this repository.
 
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
