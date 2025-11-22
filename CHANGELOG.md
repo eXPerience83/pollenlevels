@@ -1,4 +1,9 @@
 # Changelog
+## [1.8.3-rc2] - 2025-11-22
+### Changed
+- Added an approximate, rounded location to diagnostics so support can review rough geography
+  without exposing precise coordinates while keeping exact values redacted.
+
 ## [1.8.3-rc1] - 2025-11-16
 ### Changed
 - Documented the release candidate bump and synced the manifest version with the changelog to
