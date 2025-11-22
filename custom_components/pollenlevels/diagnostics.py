@@ -65,14 +65,14 @@ async def async_get_config_entry_diagnostics(
     # coordinates. This should not be redacted.
     def _rounded(value: Any) -> float | None:
         try:
-            return round(float(value), 2)
+            return round(float(value), 1)
         except (TypeError, ValueError):
             return None
 
     approx_location = {
         "label": "approximate_location (rounded)",
-        "latitude": _rounded(data.get(CONF_LATITUDE)),
-        "longitude": _rounded(data.get(CONF_LONGITUDE)),
+        "latitude_rounded": _rounded(data.get(CONF_LATITUDE)),
+        "longitude_rounded": _rounded(data.get(CONF_LONGITUDE)),
     }
 
     # --- Build a safe params example (no network I/O) ----------------------

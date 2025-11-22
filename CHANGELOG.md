@@ -1,4 +1,9 @@
 # Changelog
+## [1.8.3-rc3] - 2025-11-23
+### Fixed
+- Keep the approximate diagnostics location visible by renaming rounded coordinates to dedicated
+  keys and reducing precision to a single decimal place for better privacy.
+
 ## [1.8.3-rc2] - 2025-11-22
 ### Changed
 - Added an approximate, rounded location to diagnostics so support can review rough geography
