@@ -50,6 +50,17 @@ def _iso_or_none(dt_obj) -> str | None:
         return None
 
 
+def _rounded_coord(value: Any, decimals: int = 2) -> float | None:
+    """Return a rounded coordinate for diagnostics, else None."""
+
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    return round(numeric, decimals)
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -92,6 +103,11 @@ async def async_get_config_entry_diagnostics(
     # --- Coordinator snapshot ------------------------------------------------
     coord_info: dict[str, Any] = {}
     forecast_summary: dict[str, Any] = {}
+    approximate_location = {
+        "latitude": _rounded_coord(data.get(CONF_LATITUDE)),
+        "longitude": _rounded_coord(data.get(CONF_LONGITUDE)),
+        "note": "Approximate location (rounded to 2 decimals); exact coordinates are redacted.",
+    }
     if coordinator is not None:
         # Base coordinator info
         coord_info = {
@@ -177,6 +193,7 @@ async def async_get_config_entry_diagnostics(
         "coordinator": coord_info,
         "forecast_summary": forecast_summary,
         "request_params_example": params_example,
+        "approximate_location": approximate_location,
     }
 
     # Redact secrets and return
