@@ -1,13 +1,12 @@
 # Tooling aligned to Home Assistant Python floor (>=3.14.0).
-# NOTE: We purposely DO NOT set [tool.black].required-version so CI's rolling
-# formatter installs stay compatible.
-# CI installs the latest Black/Ruff releases; if you ever need an exact lock, set both:
+# NOTE: We purposely DO NOT set [tool.black].required-version; CI pins Black/Ruff
+# to the current minor series. If you ever need an exact lock, set both:
 #   - pyproject: required-version = "<desired black version>"
 #   - CI: pip install "black==<desired black version>" "ruff==<desired ruff version>"
 
 [project]
 # Enforce the runtime floor aligned with upcoming HA Python 3.14 images.
-requires-python = ">=3.14.0"
+requires-python = ">=3.14"
 
 [tool.black]
 line-length = 88
