@@ -12,6 +12,11 @@
 - Do not rename entities, alter `unique_id` patterns, or modify translation keys unless explicitly requested.
 - Prefer minimal, focused diffs; avoid cosmetic refactors or large code moves.
 
+## Changelog
+- `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html); keep the header/preamble intact and always include an `[Unreleased]` section at the top.
+- When updates are requested, add new entries under `## [Unreleased]` using standard category headings (e.g., Added, Changed, Fixed) and retain reverse-chronological ordering.
+- Do not remove historical entries or alter past release notes unless explicitly instructed.
+
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
 - Keep imports tidy—remove unused symbols and respect the Ruff isort grouping so the Home Assistant package stays first-party under `custom_components/pollenlevels`.
