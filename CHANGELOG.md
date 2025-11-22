@@ -316,7 +316,9 @@ All notable changes to this project will be documented in this file. The format 
 - **Reinstall required**: entities must be removed and integration re-added due to device regrouping.  
 
 ## [1.2.0] - 2025-05-20
-- Integration now appears in HA Config → Integrations.  
+### Added
+- Integration now appears in HA Config → Integrations.
 
 ## [1.0.0] - 2025-05-19
+### Added
 - Initial release with dynamic sensors from `plantInfo`.

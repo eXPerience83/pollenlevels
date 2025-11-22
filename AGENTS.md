@@ -13,11 +13,11 @@
 - Prefer minimal, focused diffs; avoid cosmetic refactors or large code moves.
 
 ## Changelog / `CHANGELOG.md`
-- Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Keep the required preamble (`# Changelog`, notable changes sentence, KAC + SemVer sentence) and always include `## [Unreleased]` at the top.
-- Version headings must use `## [version] - YYYY-MM-DD` (ASCII hyphen). List newer releases first in reverse chronological order; pre-releases (e.g., `1.8.2-rc1`) are allowed but should be merged into the final release section when that version ships.
-- Allowed category headings: `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`. Prefer `Changed` for documentation-only updates. Avoid introducing other headings.
-- Changelog bullets must start with `- `; wrap long bullets manually around 80–100 characters with indented continuation lines. Do not reflow or rewrite unrelated bullets or headings—keep diffs minimal and avoid cosmetic churn.
-- If comparison links are present at the bottom, keep the `[Unreleased]`/`[version]` reference style consistent with GitHub compare links for this repository.
+- Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Do not add new boilerplate or `## [Unreleased]` sections that are not already present.
+- Version headings must use `## [version] - YYYY-MM-DD` (ASCII hyphen). Keep releases in reverse chronological order; pre-releases such as `1.8.2-rc1` may appear if that pattern already exists and can be merged into the final release when it ships.
+- Allowed category headings: `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`. Prefer `Changed` for documentation-only updates and avoid inventing other headings.
+- Changelog bullets must start with `- `; wrap long bullets manually around 80–100 characters with indented continuation lines. Avoid reflowing unrelated text and keep diffs minimal.
+- If comparison links are present at the bottom, preserve the existing `[Unreleased]`/`[version]` reference style consistent with GitHub compare links for this repository.
 
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
