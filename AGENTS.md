@@ -13,11 +13,13 @@
 - Prefer minimal, focused diffs; avoid cosmetic refactors or large code moves.
 
 ## Changelog / `CHANGELOG.md`
-- Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Do not add new boilerplate or `## [Unreleased]` sections that are not already present.
-- Version headings must use `## [version] - YYYY-MM-DD` (ASCII hyphen). Keep releases in reverse chronological order; pre-releases such as `1.8.2-rc1` may appear if that pattern already exists and can be merged into the final release when it ships.
-- Allowed category headings: `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`. Prefer `Changed` for documentation-only updates and avoid inventing other headings.
-- Changelog bullets must start with `- `; wrap long bullets manually around 80–100 characters with indented continuation lines. Avoid reflowing unrelated text and keep diffs minimal.
-- If comparison links are present at the bottom, preserve the existing `[Unreleased]`/`[version]` reference style consistent with GitHub compare links for this repository.
+- This section is the single source of truth for the changelog style. Ignore external style guides when they conflict with these rules.
+- Do NOT add any new boilerplate, intro text or `## [Unreleased]` section automatically. If such sections already exist, leave them and only edit their content when explicitly requested.
+- Version headings must use the pattern `## [version] - YYYY-MM-DD` (ASCII hyphen) and releases must stay in reverse chronological order. Use SemVer identifiers such as `1.8.2`, `1.8.2-rc1`, `1.8.1-alpha1`.
+- Inside each version, use only these headings: `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`. Prefer `Changed` for documentation-only updates.
+- Each change must be a `- ` bullet. Wrap long bullets around 80–100 characters with indented continuation lines; do NOT insert blank lines inside a bullet and avoid `<br>` or trailing double spaces.
+- Keep diffs minimal: never reflow or rewrap unrelated text, and never rename existing headings unless they clearly violate these rules.
+- If comparison links exist at the bottom of the changelog, keep the existing style and only extend it for new versions of this repository.
 
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
