@@ -104,8 +104,8 @@ async def async_get_config_entry_diagnostics(
     coord_info: dict[str, Any] = {}
     forecast_summary: dict[str, Any] = {}
     approximate_location = {
-        "latitude": _rounded_coord(data.get(CONF_LATITUDE)),
-        "longitude": _rounded_coord(data.get(CONF_LONGITUDE)),
+        "approx_latitude": _rounded_coord(data.get(CONF_LATITUDE)),
+        "approx_longitude": _rounded_coord(data.get(CONF_LONGITUDE)),
         "note": "Approximate location (rounded to 2 decimals); exact coordinates are redacted.",
     }
     if coordinator is not None:
