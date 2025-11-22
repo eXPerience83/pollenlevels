@@ -1,11 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.8.2] – 2025-11-15
+## [1.8.2] - 2025-11-15
 ### Fixed
 - Detect config entries missing the API key during sensor setup and raise
   `ConfigEntryAuthFailed` immediately so Home Assistant prompts for
@@ -26,14 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified the pollen-type metadata fallback helper by relying on closure variables, improving readability without changing behavior.
 - Streamlined the pollen-type metadata lookup to scan each forecast day once, reducing branching and keeping the fallback path easier to follow.
 
-## [1.8.1-alpha1] – 2025-11-12
+## [1.8.1-alpha1] - 2025-11-12
 ### Added
 - Allow configuring a friendly entry name during setup so new installations appear with personalized titles out of the box.
 
 ### Improved
 - Localized the entry-name field across every supported language to keep the setup form consistent worldwide.
 
-## [1.8.0-alpha1] – 2025-11-11
+## [1.8.0-alpha1] - 2025-11-11
 ### Fixed
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API includes daily information, ensuring entities populate correctly.
 - Rebuild pollen type metadata from future forecast days when today lacks `dailyInfo`, keeping sensors classified as `source="type"` with their forecast attributes.
@@ -55,23 +56,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized API-key redaction into a shared helper reused by the config flow, coordinator, and diagnostics for consistent logging hygiene.
 - Continuous-integration workflows now install the latest Black and Ruff releases to inherit upstream bug fixes without manual updates.
 
-## [1.7.18] – 2025-09-11
+## [1.7.18] - 2025-09-11
 ### Security
 - **GitHub Actions (least privilege):** add explicit `permissions: { contents: read }` to `lint.yml` to satisfy CodeQL’s `actions/missing-workflow-permissions`.
 - Stop logging raw request parameters (coordinates/key) in `sensor.py` and `config_flow.py`. Debug logs now include only non-sensitive metadata (`days`, `lang_set`). Fixes CodeQL “clear-text logging of sensitive information”.
 
 
-## [1.7.17] – 2025-09-10
+## [1.7.17] - 2025-09-10
 ### Changed
 - **Code Refinement**: Improved readability of a filter in the diagnostics module. No functional change.
 ### Improved
 - **Services**: Added a `name` to the `force_update` service for a clearer presentation in the Developer Tools UI.
 
-## [1.7.16] – 2025-09-09
+## [1.7.16] - 2025-09-09
 ### Fixed
 - Color parsing: treat empty or channel-less `indexInfo.color` as **absent** instead of `#000000`. Prevents misleading black when the API omits color.
 
-## [1.7.15] – 2025-09-09
+## [1.7.15] - 2025-09-09
 ### Fixed
 - **Diagnostics**: Use `DEFAULT_FORECAST_DAYS` instead of a hard-coded fallback to avoid drift when defaults change.
 ### Changed
