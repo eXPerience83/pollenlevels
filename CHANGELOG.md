@@ -1,4 +1,9 @@
 # Changelog
+## [1.8.3-rc4] - 2025-11-23
+### Fixed
+- Stop logging raw latitude/longitude in config-flow coordinate warnings; values are now redacted
+  to better align with the integration's privacy guarantees.
+
 ## [1.8.3-rc3] - 2025-11-23
 ### Fixed
 - Keep the approximate diagnostics location visible by renaming rounded coordinates to dedicated

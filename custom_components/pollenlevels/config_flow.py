@@ -107,20 +107,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             lon = float(user_input.get(CONF_LONGITUDE))
         except (TypeError, ValueError) as err:
             _LOGGER.warning(
-                "Invalid coordinates provided (lat=%s, lon=%s): %s",
-                user_input.get(CONF_LATITUDE),
-                user_input.get(CONF_LONGITUDE),
+                "Invalid coordinates provided (values redacted): %s",
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "invalid_coordinates"
             return errors, None
 
         if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
-            _LOGGER.warning(
-                "Coordinates out of range (lat=%s, lon=%s)",
-                user_input.get(CONF_LATITUDE),
-                user_input.get(CONF_LONGITUDE),
-            )
+            _LOGGER.warning("Coordinates out of range (values redacted)")
             errors["base"] = "invalid_coordinates"
             return errors, None
 
