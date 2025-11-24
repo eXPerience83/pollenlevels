@@ -72,6 +72,12 @@
       "name": "花粉資訊 ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "強制更新",
+      "description": "為所有已設定的位置手動重新整理花粉資料。"
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

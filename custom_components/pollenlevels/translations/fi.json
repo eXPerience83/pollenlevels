@@ -72,6 +72,12 @@
       "name": "Siitepölytiedot ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Pakota päivitys",
+      "description": "Päivitä siitepölytiedot manuaalisesti kaikille määritetyille sijainneille."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

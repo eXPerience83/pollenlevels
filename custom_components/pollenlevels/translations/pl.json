@@ -72,6 +72,12 @@
       "name": "Informacje o pyłkach ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Wymuś aktualizację",
+      "description": "Ręcznie odśwież dane o pyłkach dla wszystkich skonfigurowanych lokalizacji."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

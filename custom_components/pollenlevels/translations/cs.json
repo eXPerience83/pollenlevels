@@ -72,6 +72,12 @@
       "name": "Informace o pylu ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Vynutit aktualizaci",
+      "description": "Ručně obnoví údaje o pylu pro všechna nastavená místa."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

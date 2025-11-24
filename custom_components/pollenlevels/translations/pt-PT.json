@@ -72,6 +72,12 @@
       "name": "Informações de pólen ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Forçar atualização",
+      "description": "Atualiza manualmente os dados de pólen para todas as localizações configuradas."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

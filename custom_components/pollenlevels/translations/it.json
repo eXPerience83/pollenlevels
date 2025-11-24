@@ -72,6 +72,12 @@
       "name": "Informazioni sul polline ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Forza aggiornamento",
+      "description": "Aggiorna manualmente i dati dei pollini per tutte le località configurate."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

@@ -72,6 +72,12 @@
       "name": "Informació del pol·len ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Actualització forçada",
+      "description": "Actualitza manualment les dades de pol·len per a totes les ubicacions configurades."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

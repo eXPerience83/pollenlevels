@@ -72,6 +72,12 @@
       "name": "Інформація про пилок ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Примусове оновлення",
+      "description": "Вручну оновити дані про пилок для всіх налаштованих місць."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

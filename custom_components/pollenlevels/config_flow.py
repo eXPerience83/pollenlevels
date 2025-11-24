@@ -105,22 +105,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             lat = float(user_input.get(CONF_LATITUDE))
             lon = float(user_input.get(CONF_LONGITUDE))
-        except (TypeError, ValueError) as err:
-            _LOGGER.warning(
-                "Invalid coordinates provided (lat=%s, lon=%s): %s",
-                user_input.get(CONF_LATITUDE),
-                user_input.get(CONF_LONGITUDE),
-                redact_api_key(err, user_input.get(CONF_API_KEY)),
+        except (TypeError, ValueError):
+            _LOGGER.debug(
+                "Invalid coordinates provided (values redacted): parsing failed"
             )
             errors["base"] = "invalid_coordinates"
             return errors, None
 
         if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
-            _LOGGER.warning(
-                "Coordinates out of range (lat=%s, lon=%s)",
-                user_input.get(CONF_LATITUDE),
-                user_input.get(CONF_LONGITUDE),
-            )
+            _LOGGER.debug("Coordinates out of range (values redacted)")
             errors["base"] = "invalid_coordinates"
             return errors, None
 
@@ -131,9 +124,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
             except Exception as err:  # defensive
                 _LOGGER.exception(
-                    "Unique ID setup failed for %s_%s: %s",
-                    f"{lat:.4f}",
-                    f"{lon:.4f}",
+                    "Unique ID setup failed for coordinates (values redacted): %s",
                     redact_api_key(err, user_input.get(CONF_API_KEY)),
                 )
                 raise

@@ -1,18 +1,21 @@
 # Changelog
-## [1.8.3-rc3] - 2025-11-23
+## [1.8.3] - 2025-11-24
 ### Fixed
+- Stop logging coordinate values through the invalid-coordinate exception message in the config
+  flow; messages are now static and fully redacted.
+- Redacted raw coordinates from the "Unique ID setup failed" error log in the config flow to
+  strictly align with the integration's privacy standards.
+- Stop logging raw latitude/longitude in config-flow coordinate warnings; values are now redacted
+  to better align with the integration's privacy guarantees.
 - Keep the approximate diagnostics location visible by renaming rounded coordinates to dedicated
   keys and reducing precision to a single decimal place for better privacy.
 
-## [1.8.3-rc2] - 2025-11-22
 ### Changed
 - Added an approximate, rounded location to diagnostics so support can review rough geography
   without exposing precise coordinates while keeping exact values redacted.
-
-## [1.8.3-rc1] - 2025-11-16
-### Changed
-- Documented the release candidate bump and synced the manifest version with the changelog to
-  prepare the next stable release.
+- Moved the `force_update` service name and description into translation files and added English and
+  Spanish entries to improve internationalization.
+- Synced the manifest version with the release notes to prepare the stable 1.8.3 release.
 
 ## [1.8.2] - 2025-11-15
 ### Fixed
@@ -47,7 +50,7 @@
 - Streamlined the pollen-type metadata lookup to scan each forecast day once, reducing branching and
   keeping the fallback path easier to follow.
 
-## [1.8.1-alpha1] - 2025-11-12
+## [1.8.1] - 2025-11-12
 ### Added
 - Allow configuring a friendly entry name during setup so new installations appear with personalized
   titles out of the box.
@@ -56,7 +59,7 @@
 - Localized the entry-name field across every supported language to keep the setup form consistent
   worldwide.
 
-## [1.8.0-alpha1] - 2025-11-11
+## [1.8.0] - 2025-11-11
 ### Fixed
 - Prevent completing setup with empty pollen data by raising `ConfigEntryNotReady` until the API
   includes daily information, ensuring entities populate correctly.

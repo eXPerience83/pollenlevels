@@ -72,6 +72,12 @@
       "name": "Polleninformáció ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Frissítés kényszerítése",
+      "description": "Kézi frissítés a pollenadatokhoz minden beállított helyhez."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

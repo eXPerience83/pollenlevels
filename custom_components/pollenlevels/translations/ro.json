@@ -72,6 +72,12 @@
       "name": "Informații polen ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Forțează actualizarea",
+      "description": "Actualizează manual datele despre polen pentru toate locațiile configurate."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

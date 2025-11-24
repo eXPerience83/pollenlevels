@@ -72,6 +72,12 @@
       "name": "Polleninfo ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Tvinga uppdatering",
+      "description": "Uppdatera pollendata manuellt för alla konfigurerade platser."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

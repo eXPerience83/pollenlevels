@@ -72,6 +72,12 @@
       "name": "Polleninfo ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Tving oppdatering",
+      "description": "Oppdater pollendata manuelt for alle konfigurerte steder."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {

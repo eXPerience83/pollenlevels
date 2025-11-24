@@ -72,6 +72,12 @@
       "name": "Info pollen ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Forcer la mise à jour",
+      "description": "Actualise manuellement les données de pollen pour tous les emplacements configurés."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {
