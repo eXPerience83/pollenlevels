@@ -7,7 +7,7 @@ import importlib.util
 import sys
 import types
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import pytest
 
@@ -208,10 +208,16 @@ class FakeConfigEntry:
 class FakeResponse:
     """Async context manager returning a static payload."""
 
-    def __init__(self, payload: dict[str, Any], *, status: int = 200) -> None:
+    def __init__(
+        self,
+        payload: dict[str, Any],
+        *,
+        status: int = 200,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         self._payload = payload
         self.status = status
-        self.headers: dict[str, str] = {}
+        self.headers: dict[str, str] = headers or {}
 
     async def json(self) -> dict[str, Any]:
         return self._payload
@@ -237,6 +243,33 @@ class FakeSession:
 
     def get(self, *_args, **_kwargs) -> FakeResponse:
         return FakeResponse(self._payload, status=self._status)
+
+
+class ResponseSpec(NamedTuple):
+    """Describe a fake HTTP response to return from the coordinator session."""
+
+    status: int
+    payload: dict[str, Any]
+    headers: dict[str, str] | None = None
+
+
+class SequenceSession:
+    """Session that returns a sequence of responses or raises exceptions."""
+
+    def __init__(self, sequence: list[ResponseSpec | Exception]):
+        self.sequence = sequence
+        self.calls = 0
+
+    def get(self, *_args, **_kwargs):
+        item = self.sequence[self.calls]
+        self.calls += 1
+
+        if isinstance(item, Exception):
+            raise item
+
+        return FakeResponse(
+            item.payload, status=item.status, headers=item.headers or {}
+        )
 
 
 class RegistryEntry:
@@ -619,6 +652,175 @@ def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
+
+
+def test_coordinator_retries_then_raises_on_rate_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """429 responses are retried once then raise UpdateFailed with quota message."""
+
+    session = SequenceSession(
+        [
+            ResponseSpec(status=429, payload={}, headers={"Retry-After": "3"}),
+            ResponseSpec(status=429, payload={}, headers={"Retry-After": "3"}),
+        ]
+    )
+    delays: list[float] = []
+
+    async def _fast_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        with pytest.raises(sensor.UpdateFailed, match="Quota exceeded"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert session.calls == 2
+    assert delays == [3.0]
+
+
+def test_coordinator_retries_then_raises_on_server_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """5xx responses retry once before raising UpdateFailed with status."""
+
+    session = SequenceSession(
+        [ResponseSpec(status=500, payload={}), ResponseSpec(status=502, payload={})]
+    )
+    delays: list[float] = []
+
+    async def _fast_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        with pytest.raises(sensor.UpdateFailed, match="HTTP 502"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert session.calls == 2
+    assert delays == [0.8]
+
+
+def test_coordinator_retries_then_wraps_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeout errors retry once then surface as UpdateFailed with context."""
+
+    session = SequenceSession([TimeoutError("boom"), TimeoutError("boom")])
+    delays: list[float] = []
+
+    async def _fast_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        with pytest.raises(sensor.UpdateFailed, match="Timeout"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert session.calls == 2
+    assert delays == [0.8]
+
+
+def test_coordinator_retries_then_wraps_client_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Client errors retry once then raise UpdateFailed with redacted message."""
+
+    session = SequenceSession(
+        [sensor.aiohttp.ClientError("net down"), sensor.aiohttp.ClientError("net down")]
+    )
+    delays: list[float] = []
+
+    async def _fast_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="secret",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+    )
+
+    try:
+        with pytest.raises(sensor.UpdateFailed, match="net down"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert session.calls == 2
+    assert delays == [0.8]
 
 
 def test_async_setup_entry_missing_api_key_triggers_reauth() -> None:
