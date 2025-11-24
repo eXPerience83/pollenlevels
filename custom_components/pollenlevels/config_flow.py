@@ -106,7 +106,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             lat = float(user_input.get(CONF_LATITUDE))
             lon = float(user_input.get(CONF_LONGITUDE))
         except (TypeError, ValueError):
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Invalid coordinates provided (values redacted): parsing failed"
             )
             errors["base"] = "invalid_coordinates"
