@@ -1,5 +1,5 @@
 # Changelog
-## [1.8.3] - 2025-11-25
+## [1.8.3] - 2025-11-24
 ### Fixed
 - Stop logging coordinate values through the invalid-coordinate exception message in the config
   flow; messages are now static and fully redacted.
