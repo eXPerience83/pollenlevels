@@ -74,8 +74,8 @@
   },
   "services": {
     "force_update": {
-      "name": "Force update",
-      "description": "Manually refresh pollen data for all configured locations."
+      "name": "Примусове оновлення",
+      "description": "Вручну оновити дані про пилок для всіх налаштованих місць."
     }
   },
   "entity": {

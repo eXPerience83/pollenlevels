@@ -74,8 +74,8 @@
   },
   "services": {
     "force_update": {
-      "name": "Force update",
-      "description": "Manually refresh pollen data for all configured locations."
+      "name": "强制更新",
+      "description": "为所有已配置的位置手动刷新花粉数据。"
     }
   },
   "entity": {

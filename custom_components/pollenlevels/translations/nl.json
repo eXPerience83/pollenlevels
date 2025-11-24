@@ -74,8 +74,8 @@
   },
   "services": {
     "force_update": {
-      "name": "Force update",
-      "description": "Manually refresh pollen data for all configured locations."
+      "name": "Update forceren",
+      "description": "Ververs handmatig pollengegevens voor alle geconfigureerde locaties."
     }
   },
   "entity": {

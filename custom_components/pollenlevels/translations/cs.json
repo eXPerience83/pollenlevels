@@ -74,8 +74,8 @@
   },
   "services": {
     "force_update": {
-      "name": "Force update",
-      "description": "Manually refresh pollen data for all configured locations."
+      "name": "Vynutit aktualizaci",
+      "description": "Ručně obnoví údaje o pylu pro všechna nastavená místa."
     }
   },
   "entity": {
