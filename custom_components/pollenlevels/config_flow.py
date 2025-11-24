@@ -113,7 +113,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return errors, None
 
         if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
-            _LOGGER.warning("Coordinates out of range (values redacted)")
+            _LOGGER.debug("Coordinates out of range (values redacted)")
             errors["base"] = "invalid_coordinates"
             return errors, None
 
