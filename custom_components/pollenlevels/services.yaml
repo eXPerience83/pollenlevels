@@ -3,6 +3,4 @@
 # Exposing a name improves discoverability in Developer Tools.
 
 force_update:
-  name: Force update
-  description: Manually refresh pollen data for all configured locations.
   fields: {}

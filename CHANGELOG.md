@@ -1,4 +1,15 @@
 # Changelog
+## [1.8.3-rc5] - 2025-11-24
+### Fixed
+- Stop logging coordinate values through the invalid-coordinate exception message in the config
+  flow; messages are now static and fully redacted.
+- Redacted raw coordinates from the "Unique ID setup failed" error log in the config flow to
+  strictly align with the integration's privacy standards.
+
+### Changed
+- Moved the `force_update` service name and description into translation files and added English and
+  Spanish entries to improve internationalization.
+
 ## [1.8.3-rc4] - 2025-11-23
 ### Fixed
 - Stop logging raw latitude/longitude in config-flow coordinate warnings; values are now redacted

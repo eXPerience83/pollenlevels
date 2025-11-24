@@ -72,6 +72,12 @@
       "name": "Polleninformáció ({latitude},{longitude})"
     }
   },
+  "services": {
+    "force_update": {
+      "name": "Force update",
+      "description": "Manually refresh pollen data for all configured locations."
+    }
+  },
   "entity": {
     "sensor": {
       "region": {
