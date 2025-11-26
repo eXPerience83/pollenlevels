@@ -63,14 +63,28 @@ integration = importlib.import_module(
 
 
 class _FakeConfigEntries:
-    def __init__(self, forward_exception: Exception | None = None):
+    def __init__(
+        self,
+        forward_exception: Exception | None = None,
+        unload_result: bool = True,
+    ):
         self._forward_exception = forward_exception
+        self._unload_result = unload_result
         self.forward_calls: list[tuple[object, list[str]]] = []
+        self.unload_calls: list[tuple[object, list[str]]] = []
+        self.reload_calls: list[str] = []
 
     async def async_forward_entry_setups(self, entry, platforms):
         self.forward_calls.append((entry, platforms))
         if self._forward_exception is not None:
             raise self._forward_exception
+
+    async def async_unload_platforms(self, entry, platforms):
+        self.unload_calls.append((entry, platforms))
+        return self._unload_result
+
+    async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
+        self.reload_calls.append(entry_id)
 
 
 class _FakeEntry:
@@ -116,3 +130,24 @@ def test_setup_entry_wraps_generic_error() -> None:
 
     with pytest.raises(integration.ConfigEntryNotReady):
         asyncio.run(integration.async_setup_entry(hass, entry))
+
+
+def test_setup_entry_success_and_unload() -> None:
+    """Happy path should forward setup, register listener, and unload cleanly."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry()
+    hass.data[integration.DOMAIN] = {entry.entry_id: "coordinator"}
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    assert hass.config_entries.forward_calls == [(entry, ["sensor"])]
+    assert entry._update_listener is integration._update_listener  # noqa: SLF001
+    assert entry._on_unload is entry._update_listener  # noqa: SLF001
+
+    asyncio.run(entry._update_listener(hass, entry))  # noqa: SLF001
+    assert hass.config_entries.reload_calls == [entry.entry_id]
+
+    assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
+    assert hass.config_entries.unload_calls == [(entry, ["sensor"])]
+    assert hass.data[integration.DOMAIN] == {}
