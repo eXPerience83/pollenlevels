@@ -78,24 +78,24 @@ def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:
 
     constants: dict[str, str] = {}
     for node in ast.walk(tree):
-        if isinstance(node, (ast.Assign, ast.AnnAssign)):
-            target_name: str | None = None
-            if isinstance(node, ast.Assign):
-                if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
-                    continue
-                target_name = node.targets[0].id
-                value = node.value
-            else:
-                if not isinstance(node.target, ast.Name):
-                    continue
-                target_name = node.target.id
-                value = node.value
-            if (
-                target_name
-                and isinstance(value, ast.Constant)
-                and isinstance(value.value, str)
-            ):
-                constants[target_name] = value.value
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+
+        target = None
+        if isinstance(node, ast.Assign):
+            if len(node.targets) == 1:
+                target = node.targets[0]
+        else:  # AnnAssign
+            target = node.target
+
+        value = node.value
+        if (
+            isinstance(target, ast.Name)
+            and value is not None
+            and isinstance(value, ast.Constant)
+            and isinstance(value.value, str)
+        ):
+            constants[target.id] = value.value
     return constants
 
 
@@ -225,6 +225,58 @@ def _extract_config_flow_keys() -> set[str]:
     mapping.update(_extract_constant_assignments(config_tree))
 
     schema_fields = _extract_schema_fields(config_tree, mapping)
+
+    language_error_returns: set[str] = set()
+
+    class _LanguageErrorVisitor(ast.NodeVisitor):
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
+            if node.name != "_language_error_to_form_key":
+                return
+            for child in ast.walk(node):
+                if (
+                    isinstance(child, ast.Return)
+                    and isinstance(child.value, ast.Constant)
+                    and isinstance(child.value.value, str)
+                ):
+                    language_error_returns.add(child.value.value)
+
+    _LanguageErrorVisitor().visit(config_tree)
+
+    def _extract_error_values(value: ast.AST) -> set[str]:
+        values: set[str] = set()
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            values.add(value.value)
+        elif (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "_language_error_to_form_key"
+        ):
+            values.update(language_error_returns)
+        return values
+
+    error_keys_from_assignments: set[str] = set()
+
+    class _ErrorsVisitor(ast.NodeVisitor):
+        def visit_Assign(self, node: ast.Assign) -> None:  # noqa: N802
+            for target in node.targets:
+                self._record_errors(target, node.value)
+            self.generic_visit(node)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:  # noqa: N802
+            self._record_errors(node.target, node.value)
+            self.generic_visit(node)
+
+        def _record_errors(self, target: ast.AST, value: ast.AST | None) -> None:
+            if (
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "errors"
+                and value is not None
+            ):
+                error_keys_from_assignments.update(_extract_error_values(value))
+
+    _ErrorsVisitor().visit(config_tree)
+
     keys: set[str] = set()
 
     class FlowVisitor(ast.NodeVisitor):
@@ -285,12 +337,26 @@ def _extract_config_flow_keys() -> set[str]:
                             inline_schema_fields.update(
                                 _fields_from_schema_call(kw.value, mapping)
                             )
-                if kw.arg == "errors" and isinstance(kw.value, ast.Dict):
-                    for err_value in kw.value.values:
-                        if isinstance(err_value, ast.Constant) and isinstance(
-                            err_value.value, str
-                        ):
-                            keys.add(f"{prefix}.error.{err_value.value}")
+                if kw.arg == "errors":
+                    if isinstance(kw.value, ast.Dict):
+                        for err_value in kw.value.values:
+                            err_key: str | None = None
+                            if isinstance(err_value, ast.Constant) and isinstance(
+                                err_value.value, str
+                            ):
+                                err_key = err_value.value
+                            elif isinstance(err_value, ast.Name):
+                                err_key = _resolve_name(err_value.id, mapping)
+                            if err_key:
+                                keys.add(f"{prefix}.error.{err_key}")
+                    elif isinstance(kw.value, ast.Name):
+                        if kw.value.id == "errors":
+                            for err_key in error_keys_from_assignments:
+                                keys.add(f"{prefix}.error.{err_key}")
+                        else:
+                            resolved = _resolve_name(kw.value.id, mapping)
+                            if resolved:
+                                keys.add(f"{prefix}.error.{resolved}")
 
             if not step_id:
                 return
