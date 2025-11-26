@@ -7,9 +7,9 @@
 [project]
 name = "pollenlevels"
 version = "1.8.3"
-# Enforce the runtime floor aligned with Home Assistant (Python 3.13+), while CI
+# Enforce the runtime floor aligned with Home Assistant (Python 3.14+), while CI
 # tooling runs on Python 3.14.
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 
 [tool.black]
 line-length = 88
