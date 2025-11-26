@@ -78,14 +78,45 @@ config_validation_mod.string = lambda value=None: value
 sys.modules.setdefault("homeassistant.helpers.config_validation", config_validation_mod)
 
 aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
-aiohttp_client_mod.async_get_clientsession = lambda hass: SimpleNamespace(
-    get=lambda *args, **kwargs: SimpleNamespace(
-        __aenter__=lambda self: self,
-        __aexit__=lambda self, exc_type, exc, tb: None,
-        read=lambda: b"{}",
-        status=200,
-    )
-)
+
+
+class _StubResponse:
+    """Async response stub matching aiohttp.ClientResponse for tests."""
+
+    def __init__(self, *, status: int = 200, body: bytes = b"{}") -> None:
+        self.status = status
+        self._body = body
+
+    async def read(self) -> bytes:
+        """Return the fake response body."""
+
+        return self._body
+
+    async def __aenter__(self) -> _StubResponse:
+        """Support the async context manager protocol."""
+
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        """Support the async context manager protocol."""
+
+        return None
+
+
+class _StubSession:
+    """Async session stub exposing a get() method."""
+
+    def __init__(self, *, status: int = 200, body: bytes = b"{}") -> None:
+        self._status = status
+        self._body = body
+
+    def get(self, *args, **kwargs) -> _StubResponse:
+        """Return an async context manager response stub."""
+
+        return _StubResponse(status=self._status, body=self._body)
+
+
+aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
 sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 ha_mod.helpers = helpers_mod

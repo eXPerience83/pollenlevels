@@ -138,9 +138,11 @@ dt_mod = types.ModuleType("homeassistant.util.dt")
 
 
 def _stub_utcnow():
-    from datetime import datetime
+    """Return a timezone-aware UTC datetime, similar to Home Assistant."""
 
-    return datetime.utcnow()
+    from datetime import UTC, datetime
+
+    return datetime.now(UTC)
 
 
 dt_mod.utcnow = _stub_utcnow
