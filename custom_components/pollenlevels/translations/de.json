@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Konfiguration",
-        "description": "Gib deinen Google API-Schlüssel, Breitengrad, Längengrad, Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort ein.",
+        "description": "Gib deinen Google API-Schlüssel an, wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort.",
         "data": {
           "api_key": "API-Schlüssel",
           "name": "[%key:common::config_flow::data::name%]",

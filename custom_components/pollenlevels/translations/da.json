@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Konfiguration af pollenniveauer",
-        "description": "Angiv din Google API-nøgle, breddegrad, længdegrad, opdateringsinterval (timer) og sprogkode for API-svar.",
+        "description": "Angiv din Google API-nøgle, vælg din placering på kortet, opdateringsinterval (timer) og sprogkode for API-svar.",
         "data": {
           "api_key": "API-nøgle",
           "name": "[%key:common::config_flow::data::name%]",

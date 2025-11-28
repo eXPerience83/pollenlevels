@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configurare Niveluri de Polen",
-        "description": "Introduceți cheia Google API, latitudine, longitudine, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
+        "description": "Introduceți cheia Google API, selectați locația pe hartă, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
         "data": {
           "api_key": "Cheie API",
           "name": "[%key:common::config_flow::data::name%]",

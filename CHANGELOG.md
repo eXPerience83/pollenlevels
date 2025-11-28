@@ -8,6 +8,8 @@
 - Added sanitized `error_message` placeholders to `cannot_connect` responses in the config and
   reauthentication flows so users see short reasons for HTTP, timeout, and malformed response
   failures without exposing secrets.
+- Updated the remaining locale setup descriptions to reference selecting a location on the map
+  instead of entering latitude and longitude manually.
 
 ### Added
 - Expanded config flow tests to cover map selector input, coordinate edge cases, and connectivity

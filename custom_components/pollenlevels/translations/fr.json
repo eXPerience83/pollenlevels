@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuration",
-        "description": "Saisissez votre clé API Google, latitude, longitude, intervalle de mise à jour (heures) et le code de langue pour la réponse de l’API.",
+        "description": "Saisissez votre clé API Google, sélectionnez votre position sur la carte, l’intervalle de mise à jour (heures) et le code de langue pour la réponse de l’API.",
         "data": {
           "api_key": "Clé API",
           "name": "[%key:common::config_flow::data::name%]",

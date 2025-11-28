@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Konfiguration av pollennivåer",
-        "description": "Ange din Google API-nyckel, latitud, longitud, uppdateringsintervall (timmar) och språkkod för API-svar.",
+        "description": "Ange din Google API-nyckel, välj din plats på kartan, uppdateringsintervall (timmar) och språkkod för API-svar.",
         "data": {
           "api_key": "API-nyckel",
           "name": "[%key:common::config_flow::data::name%]",

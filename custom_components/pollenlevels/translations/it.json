@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configurazione Livelli di polline",
-        "description": "Inserisci la tua chiave API Google, latitudine, longitudine, intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
+        "description": "Inserisci la tua chiave API Google, seleziona la tua posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
         "data": {
           "api_key": "Chiave API",
           "name": "[%key:common::config_flow::data::name%]",
