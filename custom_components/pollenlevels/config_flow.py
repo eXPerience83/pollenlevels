@@ -214,7 +214,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "cannot_connect"
         except Exception as err:  # defensive
             _LOGGER.exception(
-                "Unexpected error: %s",
+                "Unexpected error in Pollen Levels config flow while validating input: %s",
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
