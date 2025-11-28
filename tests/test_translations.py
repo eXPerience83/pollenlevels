@@ -1,4 +1,10 @@
-"""Translation coverage tests for the Pollen Levels integration."""
+"""Translation coverage tests for the Pollen Levels integration.
+
+These tests parse ``config_flow.py`` with a simple AST walker to ensure every
+translation key used in the config/options flows exists in each locale file.
+If the flow code changes structure, update the helper below rather than
+changing the assertions to keep the guarantees intact.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +12,8 @@ import ast
 import json
 from pathlib import Path
 from typing import Any
+
+import pytest
 
 # 🔧 Adjust this per repository
 INTEGRATION_DOMAIN = "pollenlevels"
@@ -15,6 +23,15 @@ COMPONENT_DIR = PROJECT_ROOT / "custom_components" / INTEGRATION_DOMAIN
 TRANSLATIONS_DIR = COMPONENT_DIR / "translations"
 CONFIG_FLOW_PATH = COMPONENT_DIR / "config_flow.py"
 CONST_PATH = COMPONENT_DIR / "const.py"
+
+
+def _fail_unexpected_ast(context: str) -> None:
+    """Fail with a consistent, actionable message for unsupported AST shapes."""
+
+    pytest.fail(
+        "Unexpected AST layout while extracting translation keys from "
+        f"config_flow.py ({context}); please update the helper in test_translations.py",
+    )
 
 
 def _flatten_keys(data: dict[str, Any], prefix: str = "") -> set[str]:
@@ -112,22 +129,18 @@ def _fields_from_schema_call(call: ast.Call, mapping: dict[str, str]) -> set[str
         vol.Schema({vol.Required(CONF_USERNAME): str, ...})
     """
 
-    if not call.args:
-        return set()
+    if not call.args or not isinstance(call.args[0], ast.Dict):
+        _fail_unexpected_ast("schema call arguments")
     arg = call.args[0]
-    if not isinstance(arg, ast.Dict):
-        return set()
 
     fields: set[str] = set()
     for key in arg.keys:
-        if not isinstance(key, ast.Call):
-            continue
-        if not isinstance(key.func, ast.Attribute):
-            continue
+        if not isinstance(key, ast.Call) or not isinstance(key.func, ast.Attribute):
+            _fail_unexpected_ast("schema key wrapper")
         if key.func.attr not in {"Required", "Optional"}:
-            continue
+            _fail_unexpected_ast(f"unexpected schema call {key.func.attr}")
         if not key.args:
-            continue
+            _fail_unexpected_ast("schema key args")
         selector = key.args[0]
         if isinstance(selector, ast.Constant) and isinstance(selector.value, str):
             fields.add(selector.value)
@@ -135,6 +148,10 @@ def _fields_from_schema_call(call: ast.Call, mapping: dict[str, str]) -> set[str
             resolved = _resolve_name(selector.id, mapping)
             if resolved:
                 fields.add(resolved)
+            else:
+                _fail_unexpected_ast(f"unmapped selector {selector.id}")
+        else:
+            _fail_unexpected_ast("selector type")
     return fields
 
 
