@@ -1,11 +1,11 @@
 {
-  "domain": "pollenlevels",
-  "name": "Pollen Levels",
-  "codeowners": ["@eXPerience83"],
-  "config_flow": true,
-  "documentation": "https://github.com/eXPerience83/pollenlevels",
-  "integration_type": "service",
-  "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/eXPerience83/pollenlevels/issues",
-  "version": "1.8.3"
+    "domain": "pollenlevels",
+    "name": "Pollen Levels",
+    "codeowners": ["@eXPerience83"],
+    "config_flow": true,
+    "documentation": "https://github.com/eXPerience83/pollenlevels",
+    "integration_type": "service",
+    "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/eXPerience83/pollenlevels/issues",
+    "version": "1.8.4"
 }

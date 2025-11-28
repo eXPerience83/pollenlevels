@@ -208,11 +208,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     allow_d1 = create_d1 and forecast_days >= 2
     allow_d2 = create_d2 and forecast_days >= 3
 
-    # Proactively remove stale D+ entities from the Entity Registry
-    await _cleanup_per_day_entities(
-        hass, config_entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
-    )
-
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
         api_key=api_key,
@@ -235,6 +230,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         message = "No pollen data found during initial setup"
         _LOGGER.warning(message)
         raise ConfigEntryNotReady(message)
+
+    # Proactively remove stale D+ entities from the Entity Registry
+    await _cleanup_per_day_entities(
+        hass, config_entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
+    )
 
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
 
