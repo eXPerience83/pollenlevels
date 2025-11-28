@@ -46,6 +46,7 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
@@ -216,6 +217,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         hours=interval,
         language=lang,  # normalized in the coordinator
         entry_id=config_entry.entry_id,
+        entry_title=config_entry.title or DEFAULT_ENTRY_TITLE,
         forecast_days=forecast_days,
         create_d1=allow_d1,  # pass effective flags
         create_d2=allow_d2,
@@ -273,6 +275,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         forecast_days: int,
         create_d1: bool,
         create_d2: bool,
+        entry_title: str = DEFAULT_ENTRY_TITLE,
     ):
         """Initialize coordinator with configuration and interval."""
         super().__init__(
@@ -293,6 +296,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.language = language if language else None
 
         self.entry_id = entry_id
+        self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
         self.forecast_days = max(1, min(5, int(forecast_days)))
         self.create_d1 = create_d1
         self.create_d2 = create_d2
@@ -905,6 +909,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "model": "Pollen API",
             "translation_key": translation_key,
             "translation_placeholders": {
+                "title": self.coordinator.entry_title,
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
             },
@@ -930,6 +935,7 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
             "model": "Pollen API",
             "translation_key": "info",
             "translation_placeholders": {
+                "title": self.coordinator.entry_title,
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
             },

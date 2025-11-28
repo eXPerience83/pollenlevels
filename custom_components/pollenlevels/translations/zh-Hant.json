@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "花粉類型 ({latitude},{longitude})"
+      "name": "{title} - 花粉類型 ({latitude},{longitude})"
     },
     "plants": {
-      "name": "植物 ({latitude},{longitude})"
+      "name": "{title} - 植物 ({latitude},{longitude})"
     },
     "info": {
-      "name": "花粉資訊 ({latitude},{longitude})"
+      "name": "{title} - 花粉資訊 ({latitude},{longitude})"
     }
   },
   "services": {

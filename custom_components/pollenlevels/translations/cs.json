@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Typy pylu ({latitude},{longitude})"
+      "name": "{title} - Typy pylu ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Rostliny ({latitude},{longitude})"
+      "name": "{title} - Rostliny ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informace o pylu ({latitude},{longitude})"
+      "name": "{title} - Informace o pylu ({latitude},{longitude})"
     }
   },
   "services": {

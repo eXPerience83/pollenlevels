@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Tipuri de polen ({latitude},{longitude})"
+      "name": "{title} - Tipuri de polen ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Plante ({latitude},{longitude})"
+      "name": "{title} - Plante ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informații polen ({latitude},{longitude})"
+      "name": "{title} - Informații polen ({latitude},{longitude})"
     }
   },
   "services": {

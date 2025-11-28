@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Pollen Types ({latitude},{longitude})"
+      "name": "{title} - Pollen Types ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Plants ({latitude},{longitude})"
+      "name": "{title} - Plants ({latitude},{longitude})"
     },
     "info": {
-      "name": "Pollen Info ({latitude},{longitude})"
+      "name": "{title} - Pollen Info ({latitude},{longitude})"
     }
   },
   "services": {

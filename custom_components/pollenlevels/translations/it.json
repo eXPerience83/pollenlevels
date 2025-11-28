@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Tipi di polline ({latitude},{longitude})"
+      "name": "{title} - Tipi di polline ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Piante ({latitude},{longitude})"
+      "name": "{title} - Piante ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informazioni sul polline ({latitude},{longitude})"
+      "name": "{title} - Informazioni sul polline ({latitude},{longitude})"
     }
   },
   "services": {

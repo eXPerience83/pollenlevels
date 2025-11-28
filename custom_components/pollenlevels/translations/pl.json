@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Typy pyłków ({latitude},{longitude})"
+      "name": "{title} - Typy pyłków ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Rośliny ({latitude},{longitude})"
+      "name": "{title} - Rośliny ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informacje o pyłkach ({latitude},{longitude})"
+      "name": "{title} - Informacje o pyłkach ({latitude},{longitude})"
     }
   },
   "services": {

@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Tipos de pólen ({latitude},{longitude})"
+      "name": "{title} - Tipos de pólen ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Plantas ({latitude},{longitude})"
+      "name": "{title} - Plantas ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informações de pólen ({latitude},{longitude})"
+      "name": "{title} - Informações de pólen ({latitude},{longitude})"
     }
   },
   "services": {

@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Pollentípusok ({latitude},{longitude})"
+      "name": "{title} - Pollentípusok ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Növények ({latitude},{longitude})"
+      "name": "{title} - Növények ({latitude},{longitude})"
     },
     "info": {
-      "name": "Polleninformáció ({latitude},{longitude})"
+      "name": "{title} - Polleninformáció ({latitude},{longitude})"
     }
   },
   "services": {

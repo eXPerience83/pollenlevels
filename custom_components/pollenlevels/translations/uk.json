@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Типи пилку ({latitude},{longitude})"
+      "name": "{title} - Типи пилку ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Рослини ({latitude},{longitude})"
+      "name": "{title} - Рослини ({latitude},{longitude})"
     },
     "info": {
-      "name": "Інформація про пилок ({latitude},{longitude})"
+      "name": "{title} - Інформація про пилок ({latitude},{longitude})"
     }
   },
   "services": {

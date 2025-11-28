@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Siitepölytyypit ({latitude},{longitude})"
+      "name": "{title} - Siitepölytyypit ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Kasvit ({latitude},{longitude})"
+      "name": "{title} - Kasvit ({latitude},{longitude})"
     },
     "info": {
-      "name": "Siitepölytiedot ({latitude},{longitude})"
+      "name": "{title} - Siitepölytiedot ({latitude},{longitude})"
     }
   },
   "services": {

@@ -64,13 +64,13 @@
   },
   "device": {
     "types": {
-      "name": "Типы пыльцы ({latitude},{longitude})"
+      "name": "{title} - Типы пыльцы ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Растения ({latitude},{longitude})"
+      "name": "{title} - Растения ({latitude},{longitude})"
     },
     "info": {
-      "name": "Информация о пыльце ({latitude},{longitude})"
+      "name": "{title} - Информация о пыльце ({latitude},{longitude})"
     }
   },
   "services": {
