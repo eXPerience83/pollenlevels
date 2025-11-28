@@ -111,9 +111,15 @@ def _validate_location_dict(
     if not isinstance(location, dict):
         return None
 
+    lat_val = location.get(CONF_LATITUDE)
+    lon_val = location.get(CONF_LONGITUDE)
+
+    if lat_val is None or lon_val is None:
+        return None
+
     try:
-        lat = cv.latitude(location.get(CONF_LATITUDE))
-        lon = cv.longitude(location.get(CONF_LONGITUDE))
+        lat = cv.latitude(lat_val)
+        lon = cv.longitude(lon_val)
     except (vol.Invalid, TypeError, ValueError):
         return None
 
@@ -147,18 +153,26 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized.pop(CONF_NAME, None)
         normalized.pop(CONF_LOCATION, None)
 
-        latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
-        if latlon is None:
+        latlon = None
+        if CONF_LOCATION in user_input:
+            latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
+            if latlon is None:
+                _LOGGER.debug(
+                    "Invalid coordinates provided (values redacted): parsing failed"
+                )
+                errors[CONF_LOCATION] = "invalid_coordinates"
+                return errors, None
+        else:
             try:
                 lat = cv.latitude(user_input.get(CONF_LATITUDE))
                 lon = cv.longitude(user_input.get(CONF_LONGITUDE))
+                latlon = (lat, lon)
             except (vol.Invalid, TypeError):
                 _LOGGER.debug(
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
                 errors[CONF_LOCATION] = "invalid_coordinates"
                 return errors, None
-            latlon = (lat, lon)
 
         lat, lon = latlon
         normalized[CONF_LATITUDE] = lat
