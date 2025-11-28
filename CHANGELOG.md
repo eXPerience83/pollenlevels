@@ -12,6 +12,8 @@
   instead of entering latitude and longitude manually.
 - Replaced Home Assistant common translation placeholders with explicit labels across all locales
   so the custom integration strings render correctly in setup and options.
+- Device names now include the config entry title (for example, "Casa – Pollen Types") while
+  keeping identifiers unchanged for existing entities.
 
 ### Added
 - Expanded config flow tests to cover map selector input, coordinate edge cases, and connectivity
