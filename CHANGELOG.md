@@ -1,24 +1,19 @@
 # Changelog
-## [1.8.5-alpha1] - 2025-11-28
-### Changed
-- Added sanitized `error_message` placeholders to `cannot_connect` responses in the config and
-  reauthentication flows so users see short reasons for HTTP, timeout, and malformed response
-  failures without exposing secrets.
-
-### Added
-- Regression coverage ensuring `error_message` is set when validation maps to `cannot_connect`,
-  keeping the new placeholder behavior guarded.
-
-## [1.8.5] - 2025-12-01
+## [1.8.5-alpha1] - 2025-12-01
 ### Changed
 - Switched the setup form to a map-based location selector that defaults to the Home Assistant
   location name and coordinates while validating latitude/longitude with Home Assistant helpers.
 - Updated config-flow messaging and translations to reflect the new map selector and include richer
   connection and location validation errors.
+- Added sanitized `error_message` placeholders to `cannot_connect` responses in the config and
+  reauthentication flows so users see short reasons for HTTP, timeout, and malformed response
+  failures without exposing secrets.
 
 ### Added
 - Expanded config flow tests to cover map selector input, coordinate edge cases, and connectivity
   failures while ensuring normalized coordinates are stored in entries.
+- Regression coverage ensuring `error_message` is set when validation maps to `cannot_connect`,
+  keeping the new placeholder behavior guarded.
 
 ## [1.8.4] - 2025-11-27
 ### Fixed
