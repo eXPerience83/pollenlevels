@@ -28,7 +28,8 @@
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
+      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
@@ -57,7 +58,8 @@
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
+      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "device": {

@@ -28,7 +28,8 @@
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné."
+      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
@@ -57,7 +58,8 @@
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné."
+      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "device": {

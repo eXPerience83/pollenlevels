@@ -28,7 +28,8 @@
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
-      "invalid_coordinates": "Latitud och longitud måste vara numeriska."
+      "invalid_coordinates": "Latitud och longitud måste vara numeriska.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
@@ -57,7 +58,8 @@
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
-      "invalid_coordinates": "Latitud och longitud måste vara numeriska."
+      "invalid_coordinates": "Latitud och longitud måste vara numeriska.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "device": {

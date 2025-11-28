@@ -28,7 +28,8 @@
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此字段不能为空",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
-      "invalid_coordinates": "纬度和经度必须为数字。"
+      "invalid_coordinates": "纬度和经度必须为数字。",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
       "already_configured": "该位置已配置。",
@@ -57,7 +58,8 @@
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此字段不能为空",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
-      "invalid_coordinates": "纬度和经度必须为数字。"
+      "invalid_coordinates": "纬度和经度必须为数字。",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "device": {

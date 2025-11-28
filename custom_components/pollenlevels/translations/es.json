@@ -28,7 +28,8 @@
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "invalid_coordinates": "Selecciona una ubicación válida en el mapa."
+      "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
       "already_configured": "Esta ubicación ya está configurada.",
@@ -57,7 +58,8 @@
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "invalid_coordinates": "Selecciona una ubicación válida en el mapa."
+      "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "device": {

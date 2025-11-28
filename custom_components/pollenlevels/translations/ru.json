@@ -28,7 +28,8 @@
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "empty": "Это поле не может быть пустым",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
-      "invalid_coordinates": "Широта и долгота должны быть числовыми значениями."
+      "invalid_coordinates": "Широта и долгота должны быть числовыми значениями.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
       "already_configured": "Это местоположение уже настроено.",
@@ -57,7 +58,8 @@
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "empty": "Это поле не может быть пустым",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
-      "invalid_coordinates": "Широта и долгота должны быть числовыми значениями."
+      "invalid_coordinates": "Широта и долгота должны быть числовыми значениями.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "device": {

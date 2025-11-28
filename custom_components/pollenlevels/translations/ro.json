@@ -28,7 +28,8 @@
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "empty": "Acest câmp nu poate fi gol",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice."
+      "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
       "already_configured": "Această locație este deja configurată.",
@@ -57,7 +58,8 @@
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "empty": "Acest câmp nu poate fi gol",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice."
+      "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "device": {
