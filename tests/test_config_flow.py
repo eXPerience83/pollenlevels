@@ -478,6 +478,31 @@ def test_validate_input_http_500_sets_cannot_connect(
     assert normalized is None
 
 
+def test_validate_input_http_500_sets_error_message_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 500 should populate the cannot_connect error_message placeholder."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(500))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message")
+
+
 def test_validate_input_unexpected_exception_sets_unknown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -585,7 +610,9 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
         CONF_LANGUAGE_CODE: "en",
     }
 
-    async def fake_validate(user_input, *, check_unique_id):
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
@@ -616,7 +643,9 @@ def test_async_step_user_uses_custom_entry_name() -> None:
         CONF_LANGUAGE_CODE: "en",
     }
 
-    async def fake_validate(user_input, *, check_unique_id):
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
         assert check_unique_id is True
         assert user_input[CONF_NAME].strip() == "Custom Name"
         return {}, normalized
@@ -652,7 +681,9 @@ def test_async_step_user_defaults_entry_name() -> None:
         CONF_LANGUAGE_CODE: "en",
     }
 
-    async def fake_validate(user_input, *, check_unique_id):
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
         assert user_input[CONF_NAME] == "   "
         return {}, normalized
 

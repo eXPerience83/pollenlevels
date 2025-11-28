@@ -145,9 +145,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input: dict[str, Any],
         *,
         check_unique_id: bool,
+        description_placeholders: dict[str, Any] | None = None,
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
 
+        placeholders = description_placeholders
         errors: dict[str, str] = {}
         normalized: dict[str, Any] = dict(user_input)
         normalized.pop(CONF_NAME, None)
@@ -226,6 +228,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 elif status != 200:
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
+                    if placeholders is not None:
+                        placeholders["error_message"] = (
+                            f"HTTP {status} while validating the API key."
+                        )
                 else:
                     raw = await resp.read()
                     try:
@@ -244,6 +250,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if not data.get("dailyInfo"):
                         _LOGGER.warning("Validation: 'dailyInfo' missing")
                         errors["base"] = "cannot_connect"
+                        if placeholders is not None:
+                            placeholders["error_message"] = (
+                                "API response missing expected pollen forecast information."
+                            )
 
             if errors:
                 return errors, None
@@ -265,12 +275,22 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
+            if placeholders is not None:
+                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
+                placeholders["error_message"] = (
+                    redacted or "Validation request timed out (10 seconds)."
+                )
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
+            if placeholders is not None:
+                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
+                placeholders["error_message"] = (
+                    redacted or "Network error while connecting to the pollen service."
+                )
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
@@ -283,10 +303,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle initial step."""
         errors: dict[str, str] = {}
+        description_placeholders: dict[str, Any] = {}
 
         if user_input:
             errors, normalized = await self._async_validate_input(
-                user_input, check_unique_id=True
+                user_input,
+                check_unique_id=True,
+                description_placeholders=description_placeholders,
             )
             if not errors and normalized is not None:
                 entry_name = str(user_input.get(CONF_NAME, "")).strip()
@@ -312,6 +335,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {**suggested_values, **(user_input or {})},
             ),
             errors=errors,
+            description_placeholders=description_placeholders,
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]):
@@ -330,11 +354,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         assert self._reauth_entry is not None
 
         errors: dict[str, str] = {}
+        placeholders = {
+            "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
+            "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
+        }
 
         if user_input:
             combined: dict[str, Any] = {**self._reauth_entry.data, **user_input}
             errors, normalized = await self._async_validate_input(
-                combined, check_unique_id=False
+                combined,
+                check_unique_id=False,
+                description_placeholders=placeholders,
             )
             if not errors and normalized is not None:
                 self.hass.config_entries.async_update_entry(
@@ -351,11 +381,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): str
             }
         )
-
-        placeholders = {
-            "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
-            "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
-        }
 
         # Ensure the form posts back to this handler.
         return self.async_show_form(
