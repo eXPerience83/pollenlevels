@@ -10,6 +10,8 @@
   failures without exposing secrets.
 - Updated the remaining locale setup descriptions to reference selecting a location on the map
   instead of entering latitude and longitude manually.
+- Replaced Home Assistant common translation placeholders with explicit labels across all locales
+  so the custom integration strings render correctly in setup and options.
 
 ### Added
 - Expanded config flow tests to cover map selector input, coordinate edge cases, and connectivity

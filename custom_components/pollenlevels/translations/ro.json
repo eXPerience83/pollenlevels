@@ -6,8 +6,8 @@
         "description": "Introduceți cheia Google API, selectați locația pe hartă, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
         "data": {
           "api_key": "Cheie API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Nume",
+          "location": "Locație",
           "update_interval": "Interval de actualizare (ore)",
           "language_code": "Codul limbii pentru răspunsul API"
         }
@@ -29,7 +29,7 @@
       "empty": "Acest câmp nu poate fi gol",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Eroare necunoscută"
     },
     "abort": {
       "already_configured": "Această locație este deja configurată.",
@@ -59,7 +59,7 @@
       "empty": "Acest câmp nu poate fi gol",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "invalid_coordinates": "Latitudinea și longitudinea trebuie să fie numerice.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Eroare necunoscută"
     }
   },
   "device": {

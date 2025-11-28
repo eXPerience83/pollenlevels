@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Налаштування рівнів пилку",
-        "description": "Введіть ваш ключ Google API, широту, довготу, інтервал оновлення (у годинах) та код мови для відповіді API.",
+        "description": "Введіть свій ключ Google API, виберіть місцезнаходження на карті, інтервал оновлення (у годинах) та код мови для відповіді API.",
         "data": {
           "api_key": "Ключ API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Ім'я",
+          "location": "Місцезнаходження",
           "update_interval": "Інтервал оновлення (у годинах)",
           "language_code": "Код мови відповіді API"
         }
@@ -29,7 +29,7 @@
       "empty": "Це поле не може бути порожнім",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "invalid_coordinates": "Широта та довгота мають бути числовими значеннями.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Невідома помилка"
     },
     "abort": {
       "already_configured": "Це розташування вже налаштовано.",
@@ -59,7 +59,7 @@
       "empty": "Це поле не може бути порожнім",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "invalid_coordinates": "Широта та довгота мають бути числовими значеннями.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Невідома помилка"
     }
   },
   "device": {

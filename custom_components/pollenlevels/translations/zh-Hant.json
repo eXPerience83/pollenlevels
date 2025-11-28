@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "花粉水平設定",
-        "description": "請輸入 Google API 金鑰、緯度、經度、更新間隔（小時）以及 API 回應語言代碼。",
+        "description": "請輸入 Google API 金鑰、在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
         "data": {
           "api_key": "API 金鑰",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "名稱",
+          "location": "位置",
           "update_interval": "更新間隔（小時）",
           "language_code": "API 回應語言代碼"
         }
@@ -29,7 +29,7 @@
       "empty": "此欄位不得為空",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "invalid_coordinates": "緯度和經度必須為數字。",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "未知錯誤"
     },
     "abort": {
       "already_configured": "此位置已設定。",
@@ -59,7 +59,7 @@
       "empty": "此欄位不得為空",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "invalid_coordinates": "緯度和經度必須為數字。",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "未知錯誤"
     }
   },
   "device": {

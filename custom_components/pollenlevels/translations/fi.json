@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Siitepölytason asetukset",
-        "description": "Anna Google API -avain, leveysaste, pituusaste, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
+        "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
         "data": {
           "api_key": "API-avain",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Nimi",
+          "location": "Sijainti",
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi"
         }
@@ -29,7 +29,7 @@
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Tuntematon virhe"
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
@@ -59,7 +59,7 @@
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Tuntematon virhe"
     }
   },
   "device": {

@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Pollen szintek – beállítás",
-        "description": "Adja meg a Google API-kulcsot, szélességi és hosszúsági fokot, frissítési időközt (órák) és az API-válasz nyelvi kódját.",
+        "description": "Adja meg a Google API-kulcsot, válassza ki helyszínét a térképen, a frissítési időközt (órák) és az API-válasz nyelvi kódját.",
         "data": {
           "api_key": "API-kulcs",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Név",
+          "location": "Helyszín",
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja"
         }
@@ -29,7 +29,7 @@
       "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Ismeretlen hiba"
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",
@@ -59,7 +59,7 @@
       "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Ismeretlen hiba"
     }
   },
   "device": {

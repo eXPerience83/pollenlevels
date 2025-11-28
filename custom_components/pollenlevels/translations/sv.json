@@ -6,8 +6,8 @@
         "description": "Ange din Google API-nyckel, välj din plats på kartan, uppdateringsintervall (timmar) och språkkod för API-svar.",
         "data": {
           "api_key": "API-nyckel",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Namn",
+          "location": "Plats",
           "update_interval": "Uppdateringsintervall (timmar)",
           "language_code": "Språkkod för API-svar"
         }
@@ -29,7 +29,7 @@
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "invalid_coordinates": "Latitud och longitud måste vara numeriska.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Okänt fel"
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
@@ -59,7 +59,7 @@
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "invalid_coordinates": "Latitud och longitud måste vara numeriska.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Okänt fel"
     }
   },
   "device": {

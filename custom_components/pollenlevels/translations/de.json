@@ -6,8 +6,8 @@
         "description": "Gib deinen Google API-Schlüssel an, wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort.",
         "data": {
           "api_key": "API-Schlüssel",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Name",
+          "location": "Standort",
           "update_interval": "Aktualisierungsintervall (Stunden)",
           "language_code": "Sprachcode für die API-Antwort"
         }
@@ -29,7 +29,7 @@
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
       "invalid_coordinates": "Breitengrad und Längengrad müssen numerisch sein.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unbekannter Fehler"
     },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
@@ -59,7 +59,7 @@
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
       "invalid_coordinates": "Breitengrad und Längengrad müssen numerisch sein.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unbekannter Fehler"
     }
   },
   "device": {

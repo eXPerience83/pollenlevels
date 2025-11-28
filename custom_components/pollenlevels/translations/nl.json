@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuratie",
-        "description": "Voer je Google API-sleutel, breedtegraad, lengtegraad, update-interval (uren) en de taalcode voor de API-respons in.",
+        "description": "Voer je Google API-sleutel in, selecteer je locatie op de kaart, het update-interval (uren) en de taalcode voor de API-respons.",
         "data": {
           "api_key": "API-sleutel",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Naam",
+          "location": "Locatie",
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons"
         }
@@ -29,7 +29,7 @@
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Onbekende fout"
     },
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
@@ -59,7 +59,7 @@
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Onbekende fout"
     }
   },
   "device": {

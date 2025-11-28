@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Konfiguracja poziomów pyłku",
-        "description": "Wprowadź swój klucz Google API, szerokość i długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
+        "description": "Wprowadź klucz Google API, wybierz swoją lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "data": {
           "api_key": "Klucz API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Nazwa",
+          "location": "Lokalizacja",
           "update_interval": "Interwał aktualizacji (godziny)",
           "language_code": "Kod języka odpowiedzi API"
         }
@@ -29,7 +29,7 @@
       "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Nieznany błąd"
     },
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
@@ -59,7 +59,7 @@
       "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Nieznany błąd"
     }
   },
   "device": {

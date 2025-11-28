@@ -6,8 +6,8 @@
         "description": "Introdueix la teva clau d’API de Google, selecciona la teva ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API.",
         "data": {
           "api_key": "Clau API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Nom",
+          "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API"
         }
@@ -29,7 +29,7 @@
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Error desconegut"
     },
     "abort": {
       "already_configured": "Aquesta ubicació ja està configurada.",
@@ -59,7 +59,7 @@
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Error desconegut"
     }
   },
   "device": {

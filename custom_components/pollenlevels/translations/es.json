@@ -6,8 +6,8 @@
         "description": "Introduce tu clave de API de Google, selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API.",
         "data": {
           "api_key": "Clave API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Nombre",
+          "location": "Ubicación",
           "update_interval": "Intervalo de actualización (horas)",
           "language_code": "Código de idioma de la respuesta de la API"
         }
@@ -29,7 +29,7 @@
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
       "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Error desconocido"
     },
     "abort": {
       "already_configured": "Esta ubicación ya está configurada.",
@@ -59,7 +59,7 @@
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
       "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Error desconocido"
     }
   },
   "device": {

@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Konfigurace úrovní pylu",
-        "description": "Zadejte svůj klíč Google API, zeměpisnou šířku, zeměpisnou délku, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
+        "description": "Zadejte svůj klíč Google API, vyberte svou polohu na mapě, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
         "data": {
           "api_key": "Klíč API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Název",
+          "location": "Poloha",
           "update_interval": "Interval aktualizace (hodiny)",
           "language_code": "Kód jazyka odpovědi API"
         }
@@ -29,7 +29,7 @@
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Neznámá chyba"
     },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
@@ -59,7 +59,7 @@
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Neznámá chyba"
     }
   },
   "device": {

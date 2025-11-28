@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Настройка уровней пыльцы",
-        "description": "Введите ваш ключ Google API, широту, долготу, интервал обновления (в часах) и код языка для ответа API.",
+        "description": "Введите ваш ключ Google API, выберите свое местоположение на карте, интервал обновления (в часах) и код языка ответа API.",
         "data": {
           "api_key": "Ключ API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Имя",
+          "location": "Местоположение",
           "update_interval": "Интервал обновления (в часах)",
           "language_code": "Код языка ответа API"
         }
@@ -29,7 +29,7 @@
       "empty": "Это поле не может быть пустым",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
       "invalid_coordinates": "Широта и долгота должны быть числовыми значениями.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Неизвестная ошибка"
     },
     "abort": {
       "already_configured": "Это местоположение уже настроено.",
@@ -59,7 +59,7 @@
       "empty": "Это поле не может быть пустым",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
       "invalid_coordinates": "Широта и долгота должны быть числовыми значениями.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Неизвестная ошибка"
     }
   },
   "device": {

@@ -6,8 +6,8 @@
         "description": "Saisissez votre clé API Google, sélectionnez votre position sur la carte, l’intervalle de mise à jour (heures) et le code de langue pour la réponse de l’API.",
         "data": {
           "api_key": "Clé API",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Nom",
+          "location": "Emplacement",
           "update_interval": "Intervalle de mise à jour (heures)",
           "language_code": "Code de langue pour la réponse de l’API"
         }
@@ -29,7 +29,7 @@
       "empty": "Ce champ ne peut pas être vide",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "invalid_coordinates": "La latitude et la longitude doivent être numériques.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Erreur inconnue"
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré.",
@@ -59,7 +59,7 @@
       "empty": "Ce champ ne peut pas être vide",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "invalid_coordinates": "La latitude et la longitude doivent être numériques.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Erreur inconnue"
     }
   },
   "device": {

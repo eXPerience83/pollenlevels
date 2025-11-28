@@ -6,8 +6,8 @@
         "description": "Enter your Google API Key, select your location on the map, update interval (hours) and API response language code.",
         "data": {
           "api_key": "API Key",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Name",
+          "location": "Location",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code"
         }
@@ -29,7 +29,7 @@
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unknown error"
     },
     "abort": {
       "already_configured": "This location is already configured.",
@@ -59,7 +59,7 @@
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unknown error"
     }
   },
   "device": {

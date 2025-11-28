@@ -6,8 +6,8 @@
         "description": "Angiv din Google API-nøgle, vælg din placering på kortet, opdateringsinterval (timer) og sprogkode for API-svar.",
         "data": {
           "api_key": "API-nøgle",
-          "name": "[%key:common::config_flow::data::name%]",
-          "location": "[%key:common::config_flow::data::location%]",
+          "name": "Navn",
+          "location": "Placering",
           "update_interval": "Opdateringsinterval (timer)",
           "language_code": "Sprogkode for API-svar"
         }
@@ -29,7 +29,7 @@
       "empty": "Dette felt må ikke være tomt",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
       "invalid_coordinates": "Breddegrad og længdegrad skal være numeriske.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Ukendt fejl"
     },
     "abort": {
       "already_configured": "Denne placering er allerede konfigureret.",
@@ -59,7 +59,7 @@
       "empty": "Dette felt må ikke være tomt",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
       "invalid_coordinates": "Breddegrad og længdegrad skal være numeriske.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Ukendt fejl"
     }
   },
   "device": {
