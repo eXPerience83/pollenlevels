@@ -264,7 +264,10 @@ class SequenceSession:
 
     def get(self, *_args, **_kwargs):
         if self.calls >= len(self.sequence):
-            raise AssertionError("SequenceSession exhausted; no more responses.")
+            raise AssertionError(
+                "SequenceSession exhausted; no more responses "
+                f"(calls={self.calls}, sequence_len={len(self.sequence)})."
+            )
         item = self.sequence[self.calls]
         self.calls += 1
 
