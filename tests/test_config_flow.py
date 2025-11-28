@@ -188,7 +188,7 @@ class _StubResponse:
         return self._body
 
 
-class _StubSession:
+class _SequenceSession:
     def __init__(self, responses: list[_StubResponse]) -> None:
         self.responses = responses
         self.calls: list[tuple[tuple, dict]] = []
@@ -333,7 +333,7 @@ def test_validate_input_out_of_range_coordinates() -> None:
 
 
 def _patch_client_session(monkeypatch: pytest.MonkeyPatch, response: _StubResponse):
-    session = _StubSession([response])
+    session = _SequenceSession([response])
     monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
     return session
 
