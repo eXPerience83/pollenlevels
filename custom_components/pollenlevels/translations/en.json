@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Pollen Levels Configuration",
-        "description": "Enter your Google API Key, latitude, longitude, update interval (hours) and API response language code.",
+        "description": "Enter your Google API Key, select your location on the map, update interval (hours) and API response language code.",
         "data": {
           "api_key": "API Key",
-          "entry_name": "Entry name",
-          "latitude": "Latitude",
-          "longitude": "Longitude",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code"
         }
@@ -23,13 +22,13 @@
     },
     "error": {
       "invalid_auth": "Invalid API key",
-      "cannot_connect": "Cannot connect to service",
+      "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
-      "invalid_coordinates": "Latitude and longitude must be numeric."
+      "invalid_coordinates": "Please select a valid location."
     },
     "abort": {
       "already_configured": "This location is already configured.",
@@ -52,13 +51,13 @@
     },
     "error": {
       "invalid_auth": "Invalid API key",
-      "cannot_connect": "Cannot connect to service",
+      "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
-      "invalid_coordinates": "Latitude and longitude must be numeric."
+      "invalid_coordinates": "Please select a valid location."
     }
   },
   "device": {

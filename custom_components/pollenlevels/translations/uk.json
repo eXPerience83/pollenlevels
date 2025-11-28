@@ -6,9 +6,8 @@
         "description": "Введіть ваш ключ Google API, широту, довготу, інтервал оновлення (у годинах) та код мови для відповіді API.",
         "data": {
           "api_key": "Ключ API",
-          "entry_name": "Назва запису",
-          "latitude": "Широта",
-          "longitude": "Довгота",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Інтервал оновлення (у годинах)",
           "language_code": "Код мови відповіді API"
         }

@@ -6,9 +6,8 @@
         "description": "Anna Google API -avain, leveysaste, pituusaste, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
         "data": {
           "api_key": "API-avain",
-          "entry_name": "Integraation nimi",
-          "latitude": "Leveysaste",
-          "longitude": "Pituusaste",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi"
         }

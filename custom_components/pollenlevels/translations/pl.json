@@ -6,9 +6,8 @@
         "description": "Wprowadź swój klucz Google API, szerokość i długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "data": {
           "api_key": "Klucz API",
-          "entry_name": "Nazwa wpisu",
-          "latitude": "Szerokość geograficzna",
-          "longitude": "Długość geograficzna",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Interwał aktualizacji (godziny)",
           "language_code": "Kod języka odpowiedzi API"
         }

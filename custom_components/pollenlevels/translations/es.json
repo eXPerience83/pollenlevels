@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Configuración de Niveles de Polen",
-        "description": "Introduce tu clave de API de Google, latitud, longitud, intervalo de actualización (horas) y código de idioma de la respuesta de la API.",
+        "description": "Introduce tu clave de API de Google, selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API.",
         "data": {
           "api_key": "Clave API",
-          "entry_name": "Nombre de la entrada",
-          "latitude": "Latitud",
-          "longitude": "Longitud",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Intervalo de actualización (horas)",
           "language_code": "Código de idioma de la respuesta de la API"
         }
@@ -23,13 +22,13 @@
     },
     "error": {
       "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio",
+      "cannot_connect": "No se puede conectar al servicio de polen.\n\n{error_message}",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "invalid_coordinates": "La latitud y la longitud deben ser numéricas."
+      "invalid_coordinates": "Selecciona una ubicación válida en el mapa."
     },
     "abort": {
       "already_configured": "Esta ubicación ya está configurada.",
@@ -52,13 +51,13 @@
     },
     "error": {
       "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio",
+      "cannot_connect": "No se puede conectar al servicio de polen.\n\n{error_message}",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "invalid_coordinates": "La latitud y la longitud deben ser numéricas."
+      "invalid_coordinates": "Selecciona una ubicación válida en el mapa."
     }
   },
   "device": {

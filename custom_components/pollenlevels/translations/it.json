@@ -6,9 +6,8 @@
         "description": "Inserisci la tua chiave API Google, latitudine, longitudine, intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
         "data": {
           "api_key": "Chiave API",
-          "entry_name": "Nome della voce",
-          "latitude": "Latitudine",
-          "longitude": "Longitudine",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Intervallo di aggiornamento (ore)",
           "language_code": "Codice lingua per la risposta dell'API"
         }

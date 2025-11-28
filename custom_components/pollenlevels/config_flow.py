@@ -19,16 +19,15 @@ import aiohttp
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
-    CONF_ENTRY_NAME,
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
@@ -49,6 +48,17 @@ LANGUAGE_CODE_REGEX = re.compile(
     r"(?:-(?:[A-Za-z]{2}|\d{3}))?"  # optional region
     r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
     re.IGNORECASE,
+)
+
+
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_API_KEY): str,
+        vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
+            vol.Coerce(int), vol.Range(min=1)
+        ),
+        vol.Optional(CONF_LANGUAGE_CODE): str,
+    }
 )
 
 
@@ -76,6 +86,40 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
     return "invalid_language_format"
 
 
+def _get_location_schema(hass: Any) -> vol.Schema:
+    """Return schema for name + location with defaults from HA config."""
+
+    return vol.Schema(
+        {
+            vol.Required(CONF_NAME, default=hass.config.location_name): str,
+            vol.Required(
+                CONF_LOCATION,
+                default={
+                    CONF_LATITUDE: hass.config.latitude,
+                    CONF_LONGITUDE: hass.config.longitude,
+                },
+            ): LocationSelector(LocationSelectorConfig(radius=False)),
+        }
+    )
+
+
+def _validate_location_dict(
+    location: dict[str, Any] | None,
+) -> tuple[float, float] | None:
+    """Validate location dict and return (lat, lon) or None on error."""
+
+    if not isinstance(location, dict):
+        return None
+
+    try:
+        lat = cv.latitude(location.get(CONF_LATITUDE))
+        lon = cv.longitude(location.get(CONF_LONGITUDE))
+    except (vol.Invalid, TypeError, ValueError):
+        return None
+
+    return lat, lon
+
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
@@ -100,22 +144,25 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         errors: dict[str, str] = {}
         normalized: dict[str, Any] = dict(user_input)
-        normalized.pop(CONF_ENTRY_NAME, None)
+        normalized.pop(CONF_NAME, None)
+        normalized.pop(CONF_LOCATION, None)
 
-        try:
-            lat = float(user_input.get(CONF_LATITUDE))
-            lon = float(user_input.get(CONF_LONGITUDE))
-        except (TypeError, ValueError):
-            _LOGGER.debug(
-                "Invalid coordinates provided (values redacted): parsing failed"
-            )
-            errors["base"] = "invalid_coordinates"
-            return errors, None
+        latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
+        if latlon is None:
+            try:
+                lat = cv.latitude(user_input.get(CONF_LATITUDE))
+                lon = cv.longitude(user_input.get(CONF_LONGITUDE))
+            except (vol.Invalid, TypeError):
+                _LOGGER.debug(
+                    "Invalid coordinates provided (values redacted): parsing failed"
+                )
+                errors[CONF_LOCATION] = "invalid_coordinates"
+                return errors, None
+            latlon = (lat, lon)
 
-        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
-            _LOGGER.debug("Coordinates out of range (values redacted)")
-            errors["base"] = "invalid_coordinates"
-            return errors, None
+        lat, lon = latlon
+        normalized[CONF_LATITUDE] = lat
+        normalized[CONF_LONGITUDE] = lon
 
         if check_unique_id:
             uid = f"{lat:.4f}_{lon:.4f}"
@@ -187,8 +234,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if errors:
                 return errors, None
 
-            normalized[CONF_LATITUDE] = lat
-            normalized[CONF_LONGITUDE] = lon
             normalized[CONF_LANGUAGE_CODE] = lang
             return errors, normalized
 
@@ -217,7 +262,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
-            errors["base"] = "cannot_connect"
+            errors["base"] = "unknown"
 
         return errors, None
 
@@ -230,37 +275,30 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input, check_unique_id=True
             )
             if not errors and normalized is not None:
-                entry_name = str(user_input.get(CONF_ENTRY_NAME, "")).strip()
+                entry_name = str(user_input.get(CONF_NAME, "")).strip()
                 title = entry_name or DEFAULT_ENTRY_TITLE
                 return self.async_create_entry(title=title, data=normalized)
 
-        defaults = {
-            CONF_LATITUDE: self.hass.config.latitude,
-            CONF_LONGITUDE: self.hass.config.longitude,
+        base_schema = STEP_USER_DATA_SCHEMA.schema.copy()
+        base_schema.update(_get_location_schema(self.hass).schema)
+
+        suggested_values = {
             CONF_LANGUAGE_CODE: self.hass.config.language,
-            CONF_ENTRY_NAME: DEFAULT_ENTRY_TITLE,
+            CONF_NAME: self.hass.config.location_name,
+            CONF_LOCATION: {
+                CONF_LATITUDE: self.hass.config.latitude,
+                CONF_LONGITUDE: self.hass.config.longitude,
+            },
         }
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_ENTRY_NAME, default=defaults[CONF_ENTRY_NAME]): str,
-                vol.Optional(
-                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
-                ): cv.latitude,
-                vol.Optional(
-                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
-                ): cv.longitude,
-                vol.Optional(
-                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                vol.Optional(
-                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
-                ): str,
-            }
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema(base_schema),
+                {**suggested_values, **(user_input or {})},
+            ),
+            errors=errors,
         )
-
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
     async def async_step_reauth(self, entry_data: dict[str, Any]):
         """Handle re-authentication when credentials become invalid."""

@@ -6,9 +6,8 @@
         "description": "Voer je Google API-sleutel, breedtegraad, lengtegraad, update-interval (uren) en de taalcode voor de API-respons in.",
         "data": {
           "api_key": "API-sleutel",
-          "entry_name": "Naam van de integratie",
-          "latitude": "Breedtegraad",
-          "longitude": "Lengtegraad",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons"
         }

@@ -68,12 +68,35 @@ config_entries_mod.OptionsFlow = _StubOptionsFlow
 config_entries_mod.ConfigEntry = _StubConfigEntry
 sys.modules.setdefault("homeassistant.config_entries", config_entries_mod)
 
+const_mod = ModuleType("homeassistant.const")
+const_mod.CONF_LATITUDE = "latitude"
+const_mod.CONF_LOCATION = "location"
+const_mod.CONF_LONGITUDE = "longitude"
+const_mod.CONF_NAME = "name"
+sys.modules.setdefault("homeassistant.const", const_mod)
+
 helpers_mod = ModuleType("homeassistant.helpers")
 sys.modules.setdefault("homeassistant.helpers", helpers_mod)
 
 config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
-config_validation_mod.latitude = lambda value=None: value
-config_validation_mod.longitude = lambda value=None: value
+
+
+def _latitude(value=None):
+    lat = float(value)
+    if lat < -90 or lat > 90:
+        raise cf.vol.Invalid("latitude_range")
+    return lat
+
+
+def _longitude(value=None):
+    lon = float(value)
+    if lon < -180 or lon > 180:
+        raise cf.vol.Invalid("longitude_range")
+    return lon
+
+
+config_validation_mod.latitude = _latitude
+config_validation_mod.longitude = _longitude
 config_validation_mod.string = lambda value=None: value
 sys.modules.setdefault("homeassistant.helpers.config_validation", config_validation_mod)
 
@@ -118,6 +141,23 @@ class _StubSession:
 
 aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
 sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+
+selector_mod = ModuleType("homeassistant.helpers.selector")
+
+
+class _LocationSelectorConfig:
+    def __init__(self, *, radius: bool | None = None):
+        self.radius = radius
+
+
+class _LocationSelector:
+    def __init__(self, config: _LocationSelectorConfig):
+        self.config = config
+
+
+selector_mod.LocationSelector = _LocationSelector
+selector_mod.LocationSelectorConfig = _LocationSelectorConfig
+sys.modules.setdefault("homeassistant.helpers.selector", selector_mod)
 
 ha_mod.helpers = helpers_mod
 ha_mod.config_entries = config_entries_mod
@@ -164,13 +204,11 @@ from custom_components.pollenlevels.config_flow import (
 )
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
-    CONF_ENTRY_NAME,
     CONF_LANGUAGE_CODE,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
 )
+from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
 
 
 class _StubResponse:
@@ -268,8 +306,7 @@ def test_validate_input_invalid_language_key_mapping() -> None:
         flow._async_validate_input(
             {
                 CONF_API_KEY: "test-key",
-                CONF_LATITUDE: "1",
-                CONF_LONGITUDE: "2",
+                CONF_LOCATION: {CONF_LATITUDE: "1", CONF_LONGITUDE: "2"},
                 CONF_LANGUAGE_CODE: "bad code",
             },
             check_unique_id=False,
@@ -300,14 +337,13 @@ def test_validate_input_invalid_coordinates() -> None:
         flow._async_validate_input(
             {
                 CONF_API_KEY: "test-key",
-                CONF_LATITUDE: "north",
-                CONF_LONGITUDE: "west",
+                CONF_LOCATION: {CONF_LATITUDE: "north", CONF_LONGITUDE: "west"},
             },
             check_unique_id=False,
         )
     )
 
-    assert errors == {"base": "invalid_coordinates"}
+    assert errors == {CONF_LOCATION: "invalid_coordinates"}
     assert normalized is None
 
 
@@ -321,14 +357,47 @@ def test_validate_input_out_of_range_coordinates() -> None:
         flow._async_validate_input(
             {
                 CONF_API_KEY: "test-key",
-                CONF_LATITUDE: "200",  # invalid
-                CONF_LONGITUDE: "-300",  # invalid
+                CONF_LOCATION: {CONF_LATITUDE: "200", CONF_LONGITUDE: "-300"},
             },
             check_unique_id=False,
         )
     )
 
-    assert errors == {"base": "invalid_coordinates"}
+    assert errors == {CONF_LOCATION: "invalid_coordinates"}
+    assert normalized is None
+
+
+def test_validate_input_missing_longitude() -> None:
+    """Missing longitude should trigger an invalid_coordinates error."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {CONF_API_KEY: "test-key", CONF_LOCATION: {CONF_LATITUDE: 10.0}},
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {CONF_LOCATION: "invalid_coordinates"}
+    assert normalized is None
+
+
+def test_validate_input_non_dict_location() -> None:
+    """Non-dictionary location payloads are invalid."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {CONF_API_KEY: "test-key", CONF_LOCATION: "not-a-dict"},
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {CONF_LOCATION: "invalid_coordinates"}
     assert normalized is None
 
 
@@ -341,8 +410,8 @@ def _patch_client_session(monkeypatch: pytest.MonkeyPatch, response: _StubRespon
 def _base_user_input() -> dict:
     return {
         CONF_API_KEY: "test-key",
-        CONF_LATITUDE: "1.0",
-        CONF_LONGITUDE: "2.0",
+        CONF_NAME: "Test Location",
+        CONF_LOCATION: {CONF_LATITUDE: "1.0", CONF_LONGITUDE: "2.0"},
     }
 
 
@@ -403,6 +472,27 @@ def test_validate_input_http_500_sets_cannot_connect(
     assert normalized is None
 
 
+def test_validate_input_unexpected_exception_sets_unknown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected exceptions should map to an unknown error."""
+
+    def _raise_session(hass):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(cf, "async_get_clientsession", _raise_session)
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert errors == {"base": "unknown"}
+    assert normalized is None
+
+
 def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -433,7 +523,6 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     user_input = {
         **_base_user_input(),
         CONF_LANGUAGE_CODE: " es ",
-        CONF_ENTRY_NAME: "Name",
     }
 
     errors, normalized = asyncio.run(
@@ -523,16 +612,15 @@ def test_async_step_user_uses_custom_entry_name() -> None:
 
     async def fake_validate(user_input, *, check_unique_id):
         assert check_unique_id is True
-        assert user_input[CONF_ENTRY_NAME].strip() == "Custom Name"
+        assert user_input[CONF_NAME].strip() == "Custom Name"
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
 
     user_input = {
         CONF_API_KEY: "test-key",
-        CONF_ENTRY_NAME: " Custom Name ",
-        CONF_LATITUDE: "1",
-        CONF_LONGITUDE: "2",
+        CONF_NAME: " Custom Name ",
+        CONF_LOCATION: {CONF_LATITUDE: 1.0, CONF_LONGITUDE: 2.0},
         CONF_UPDATE_INTERVAL: 6,
         CONF_LANGUAGE_CODE: "en",
     }
@@ -559,16 +647,15 @@ def test_async_step_user_defaults_entry_name() -> None:
     }
 
     async def fake_validate(user_input, *, check_unique_id):
-        assert user_input[CONF_ENTRY_NAME] == "   "
+        assert user_input[CONF_NAME] == "   "
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
 
     user_input = {
         CONF_API_KEY: "test-key",
-        CONF_ENTRY_NAME: "   ",
-        CONF_LATITUDE: "1",
-        CONF_LONGITUDE: "2",
+        CONF_NAME: "   ",
+        CONF_LOCATION: {CONF_LATITUDE: 1.0, CONF_LONGITUDE: 2.0},
         CONF_UPDATE_INTERVAL: 6,
         CONF_LANGUAGE_CODE: "en",
     }

@@ -6,9 +6,8 @@
         "description": "Adja meg a Google API-kulcsot, szélességi és hosszúsági fokot, frissítési időközt (órák) és az API-válasz nyelvi kódját.",
         "data": {
           "api_key": "API-kulcs",
-          "entry_name": "Bejegyzés neve",
-          "latitude": "Szélesség",
-          "longitude": "Hosszúság",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja"
         }

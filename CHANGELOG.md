@@ -1,4 +1,15 @@
 # Changelog
+## [1.8.5] - 2025-12-01
+### Changed
+- Switched the setup form to a map-based location selector that defaults to the Home Assistant
+  location name and coordinates while validating latitude/longitude with Home Assistant helpers.
+- Updated config-flow messaging and translations to reflect the new map selector and include richer
+  connection and location validation errors.
+
+### Added
+- Expanded config flow tests to cover map selector input, coordinate edge cases, and connectivity
+  failures while ensuring normalized coordinates are stored in entries.
+
 ## [1.8.4] - 2025-11-27
 ### Fixed
 - Added a bounds check to the sensor test SequenceSession helper so exhausting the

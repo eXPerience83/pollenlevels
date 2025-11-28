@@ -6,9 +6,8 @@
         "description": "Ange din Google API-nyckel, latitud, longitud, uppdateringsintervall (timmar) och språkkod för API-svar.",
         "data": {
           "api_key": "API-nyckel",
-          "entry_name": "Namnet på posten",
-          "latitude": "Latitud",
-          "longitude": "Longitud",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Uppdateringsintervall (timmar)",
           "language_code": "Språkkod för API-svar"
         }

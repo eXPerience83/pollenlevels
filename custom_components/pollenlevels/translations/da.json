@@ -6,9 +6,8 @@
         "description": "Angiv din Google API-nøgle, breddegrad, længdegrad, opdateringsinterval (timer) og sprogkode for API-svar.",
         "data": {
           "api_key": "API-nøgle",
-          "entry_name": "Integrationsnavn",
-          "latitude": "Breddegrad",
-          "longitude": "Længdegrad",
+          "name": "[%key:common::config_flow::data::name%]",
+          "location": "[%key:common::config_flow::data::location%]",
           "update_interval": "Opdateringsinterval (timer)",
           "language_code": "Sprogkode for API-svar"
         }
