@@ -18,7 +18,7 @@ jobs:
     steps:
       # Checkout so hassfest can read manifests and structure
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # Official hassfest action (Home Assistant recommends @master)
       - name: Run hassfest
