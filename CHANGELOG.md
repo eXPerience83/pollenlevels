@@ -1,5 +1,5 @@
 # Changelog
-## [1.8.5-alpha1] - 2025-12-01
+## [1.8.5-alpha1] - 2025-11-29
 ### Changed
 - Switched the setup form to a map-based location selector that defaults to the Home Assistant
   location name and coordinates while validating latitude/longitude with Home Assistant helpers.
