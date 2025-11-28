@@ -197,6 +197,13 @@ vol_mod.Range = lambda *args, **kwargs: None
 vol_mod.In = lambda *args, **kwargs: None
 sys.modules.setdefault("voluptuous", vol_mod)
 
+from homeassistant.const import (
+    CONF_LATITUDE,
+    CONF_LOCATION,
+    CONF_LONGITUDE,
+    CONF_NAME,
+)
+
 from custom_components.pollenlevels import config_flow as cf
 from custom_components.pollenlevels.config_flow import (
     PollenLevelsConfigFlow,
@@ -208,7 +215,6 @@ from custom_components.pollenlevels.const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
 )
-from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
 
 
 class _StubResponse:
