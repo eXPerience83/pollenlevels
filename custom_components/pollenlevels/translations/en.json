@@ -28,7 +28,7 @@
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
-      "invalid_coordinates": "Please select a valid location.",
+      "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error"
     },
     "abort": {
@@ -52,13 +52,13 @@
     },
     "error": {
       "invalid_auth": "Invalid API key",
-      "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
+      "cannot_connect": "Unable to connect to the pollen service.",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
-      "invalid_coordinates": "Please select a valid location.",
+      "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error"
     }
   },

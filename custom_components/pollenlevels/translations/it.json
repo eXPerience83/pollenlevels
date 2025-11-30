@@ -28,7 +28,7 @@
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "empty": "Questo campo non può essere vuoto",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
-      "invalid_coordinates": "Latitudine e longitudine devono essere numeriche.",
+      "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
       "unknown": "Errore sconosciuto"
     },
     "abort": {
@@ -58,7 +58,7 @@
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "empty": "Questo campo non può essere vuoto",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
-      "invalid_coordinates": "Latitudine e longitudine devono essere numeriche.",
+      "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
       "unknown": "Errore sconosciuto"
     }
   },

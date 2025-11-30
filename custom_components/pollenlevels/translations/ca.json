@@ -52,7 +52,7 @@
     },
     "error": {
       "invalid_auth": "Clau API no vàlida",
-      "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
+      "cannot_connect": "No es pot connectar al servei de pol·len.",
       "quota_exceeded": "Quota excedida",
       "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",

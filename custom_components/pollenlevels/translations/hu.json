@@ -28,7 +28,7 @@
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük.",
+      "invalid_coordinates": "Válassz érvényes helyet a térképen.",
       "unknown": "Ismeretlen hiba"
     },
     "abort": {
@@ -58,7 +58,7 @@
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük.",
+      "invalid_coordinates": "Válassz érvényes helyet a térképen.",
       "unknown": "Ismeretlen hiba"
     }
   },

@@ -28,7 +28,7 @@
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette feltet kan ikke være tomt",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
-      "invalid_coordinates": "Breddegrad og lengdegrad må være numeriske.",
+      "invalid_coordinates": "Velg en gyldig posisjon på kartet.",
       "unknown": "Ukjent feil"
     },
     "abort": {
@@ -58,7 +58,7 @@
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette feltet kan ikke være tomt",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
-      "invalid_coordinates": "Breddegrad og lengdegrad må være numeriske.",
+      "invalid_coordinates": "Velg en gyldig posisjon på kartet.",
       "unknown": "Ukjent feil"
     }
   },

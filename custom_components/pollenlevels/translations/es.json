@@ -52,7 +52,7 @@
     },
     "error": {
       "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio de polen.\n\n{error_message}",
+      "cannot_connect": "No se puede conectar al servicio de polen.",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",

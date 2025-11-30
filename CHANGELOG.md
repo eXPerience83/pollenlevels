@@ -1,4 +1,12 @@
 # Changelog
+## [1.8.5-alpha2] - 2025-11-30
+### Changed
+- Simplified options-flow connectivity errors to use generic localized messages without the
+  `error_message` placeholder, keeping detailed HTTP context limited to setup and
+  reauthentication flows.
+- Updated `invalid_coordinates` translations across all locales to reference selecting a valid
+  location on the map instead of entering raw latitude/longitude values.
+
 ## [1.8.5-alpha1] - 2025-11-29
 ### Changed
 - Switched the setup form to a map-based location selector that defaults to the Home Assistant
