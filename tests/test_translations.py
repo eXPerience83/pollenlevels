@@ -379,8 +379,12 @@ def _extract_config_flow_keys() -> set[str]:
                                 keys.add(f"{prefix}.error.{err_key}")
                     elif isinstance(kw.value, ast.Name):
                         if kw.value.id == "errors":
-                            class_name = self.class_stack[-1] if self.class_stack else None
-                            for err_key in scoped_errors.by_class.get(class_name, set()):
+                            class_name = (
+                                self.class_stack[-1] if self.class_stack else None
+                            )
+                            for err_key in scoped_errors.by_class.get(
+                                class_name, set()
+                            ):
                                 keys.add(f"{prefix}.error.{err_key}")
                         else:
                             resolved = _resolve_name(kw.value.id, mapping)
