@@ -8,6 +8,8 @@
   location on the map instead of entering raw latitude/longitude values.
 - Removed the unused entry-name constant and cleaned up import declarations to drop dead code
   without altering entity identifiers.
+- Removed the unused `options.error.invalid_coordinates` translation key across all locales to
+  keep translation strings aligned with the current options flow.
 
 ## [1.8.5-alpha1] - 2025-11-29
 ### Changed

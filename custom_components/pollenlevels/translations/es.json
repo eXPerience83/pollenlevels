@@ -58,7 +58,6 @@
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
       "unknown": "Error desconocido"
     }
   },

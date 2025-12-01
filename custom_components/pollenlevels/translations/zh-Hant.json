@@ -58,7 +58,6 @@
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此欄位不得為空",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "invalid_coordinates": "請在地圖上選擇有效的位置。",
       "unknown": "未知錯誤"
     }
   },

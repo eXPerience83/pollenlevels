@@ -58,7 +58,6 @@
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette felt må ikke være tomt",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
-      "invalid_coordinates": "Vælg en gyldig placering på kortet.",
       "unknown": "Ukendt fejl"
     }
   },

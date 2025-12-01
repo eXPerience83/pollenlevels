@@ -58,7 +58,6 @@
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
-      "invalid_coordinates": "Välj en giltig plats på kartan.",
       "unknown": "Okänt fel"
     }
   },

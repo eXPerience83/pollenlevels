@@ -58,7 +58,6 @@
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "empty": "Acest câmp nu poate fi gol",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "invalid_coordinates": "Selectează o locație validă pe hartă.",
       "unknown": "Eroare necunoscută"
     }
   },

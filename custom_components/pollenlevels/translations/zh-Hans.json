@@ -58,7 +58,6 @@
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此字段不能为空",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
-      "invalid_coordinates": "请在地图上选择有效的位置。",
       "unknown": "未知错误"
     }
   },
