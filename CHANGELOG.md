@@ -1,4 +1,12 @@
 # Changelog
+## [1.8.5-rc1] - 2025-12-02
+### Changed
+- Hardened the map selector defaults to validate Home Assistant coordinates and fall back to a
+  safe entry title when core configuration values are missing or invalid, keeping setup usable
+  in edge cases.
+- Expanded the Home Assistant constant test stub with common config keys to improve isolation of
+  sensor tests without altering runtime behavior.
+
 ## [1.8.5-alpha2] - 2025-12-01
 ### Changed
 - Simplified options-flow connectivity errors to use generic localized messages without the
