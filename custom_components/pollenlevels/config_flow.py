@@ -86,17 +86,32 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
     return "invalid_language_format"
 
 
+def _safe_coord(value: float | None, *, lat: bool) -> float:
+    """Return a validated latitude/longitude or 0.0 if unset/invalid."""
+
+    try:
+        if lat:
+            return cv.latitude(value)
+        return cv.longitude(value)
+    except (vol.Invalid, TypeError, ValueError):
+        return 0.0
+
+
 def _get_location_schema(hass: Any) -> vol.Schema:
     """Return schema for name + location with defaults from HA config."""
 
+    default_name = getattr(hass.config, "location_name", "") or DEFAULT_ENTRY_TITLE
+    default_lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
+    default_lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+
     return vol.Schema(
         {
-            vol.Required(CONF_NAME, default=hass.config.location_name): str,
+            vol.Required(CONF_NAME, default=default_name): str,
             vol.Required(
                 CONF_LOCATION,
                 default={
-                    CONF_LATITUDE: hass.config.latitude,
-                    CONF_LONGITUDE: hass.config.longitude,
+                    CONF_LATITUDE: default_lat,
+                    CONF_LONGITUDE: default_lon,
                 },
             ): LocationSelector(LocationSelectorConfig(radius=False)),
         }

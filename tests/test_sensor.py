@@ -57,6 +57,10 @@ const_mod = sys.modules.get("homeassistant.const") or types.ModuleType(
     "homeassistant.const"
 )
 const_mod.ATTR_ATTRIBUTION = "Attribution"
+const_mod.CONF_NAME = "name"
+const_mod.CONF_LOCATION = "location"
+const_mod.CONF_LATITUDE = "latitude"
+const_mod.CONF_LONGITUDE = "longitude"
 sys.modules["homeassistant.const"] = const_mod
 
 exceptions_mod = types.ModuleType("homeassistant.exceptions")
