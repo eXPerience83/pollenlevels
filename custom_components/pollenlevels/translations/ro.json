@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opțiuni",
-        "description": "Modificați intervalul de actualizare, limba API, zilele de prognoză și senzorii pe zile pentru TIPURI.\nOpțiuni pentru senzorii pe zile (TIPURI): Doar azi (none), Până mâine (D+1), Până poimâine (D+2).",
+        "description": "Modificați intervalul de actualizare, limba API, zilele de prognoză și senzorii pe zile pentru {title}.\nOpțiuni pentru senzorii pe zile (TIPURI): Doar azi (none), Până mâine (D+1), Până poimâine (D+2).",
         "data": {
           "update_interval": "Interval de actualizare (ore)",
           "language_code": "Codul limbii pentru răspunsul API",

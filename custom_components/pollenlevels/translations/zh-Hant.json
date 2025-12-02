@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – 選項",
-        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
+        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器，適用於 {title}。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
         "data": {
           "update_interval": "更新間隔（小時）",
           "language_code": "API 回應語言代碼",

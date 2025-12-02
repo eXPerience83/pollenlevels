@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opções",
-        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para TIPOS.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2).",
+        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para {title}.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2).",
         "data": {
           "update_interval": "Intervalo de atualização (horas)",
           "language_code": "Código de idioma da resposta da API",

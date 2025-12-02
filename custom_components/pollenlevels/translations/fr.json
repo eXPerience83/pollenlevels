@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour les TYPES.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+2).",
+        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+2).",
         "data": {
           "update_interval": "Intervalle de mise à jour (heures)",
           "language_code": "Code de langue pour la réponse de l’API",

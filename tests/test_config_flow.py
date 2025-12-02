@@ -61,6 +61,7 @@ class _StubConfigEntry:
         self.data = data or {}
         self.options = options or {}
         self.entry_id = entry_id
+        self.title = self.data.get("name", "Pollen Levels")
 
 
 config_entries_mod.ConfigFlow = _StubConfigFlow

@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opzioni",
-        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
+        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI per {title}.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
         "data": {
           "update_interval": "Intervallo di aggiornamento (ore)",
           "language_code": "Codice lingua per la risposta dell'API",

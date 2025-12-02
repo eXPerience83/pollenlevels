@@ -400,6 +400,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         """Display/process options form."""
         errors: dict[str, str] = {}
+        placeholders = {"title": self.entry.title or DEFAULT_ENTRY_TITLE}
 
         if user_input is not None:
             try:
@@ -452,7 +453,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     "Options validation error: %s",
                     redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
                 )
-                errors["base"] = "cannot_connect"
+                errors["base"] = "unknown"
 
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
@@ -489,4 +490,5 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 }
             ),
             errors=errors,
+            description_placeholders=placeholders,
         )

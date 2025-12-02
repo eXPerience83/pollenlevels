@@ -10,6 +10,8 @@
   without altering entity identifiers.
 - Removed the unused `options.error.invalid_coordinates` translation key across all locales to
   keep translation strings aligned with the current options flow.
+- Options flow descriptions now show the config entry title and unexpected validation errors map
+  to the generic `unknown` message instead of implying connectivity failures.
 
 ## [1.8.5-alpha1] - 2025-11-29
 ### Changed

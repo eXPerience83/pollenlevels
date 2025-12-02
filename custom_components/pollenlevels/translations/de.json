@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Optionen",
-        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für TYPEN.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2).",
+  "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2).",
         "data": {
           "update_interval": "Aktualisierungsintervall (Stunden)",
           "language_code": "Sprachcode für die API-Antwort",
