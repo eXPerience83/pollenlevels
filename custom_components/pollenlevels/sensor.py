@@ -209,6 +209,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     allow_d1 = create_d1 and forecast_days >= 2
     allow_d2 = create_d2 and forecast_days >= 3
 
+    raw_title = config_entry.title or ""
+    clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
+
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
         api_key=api_key,
@@ -217,7 +220,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         hours=interval,
         language=lang,  # normalized in the coordinator
         entry_id=config_entry.entry_id,
-        entry_title=config_entry.title or DEFAULT_ENTRY_TITLE,
+        entry_title=clean_title,
         forecast_days=forecast_days,
         create_d1=allow_d1,  # pass effective flags
         create_d2=allow_d2,
@@ -909,7 +912,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "model": "Pollen API",
             "translation_key": translation_key,
             "translation_placeholders": {
-                "title": self.coordinator.entry_title,
+                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
             },
@@ -935,7 +938,7 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
             "model": "Pollen API",
             "translation_key": "info",
             "translation_placeholders": {
-                "title": self.coordinator.entry_title,
+                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
             },

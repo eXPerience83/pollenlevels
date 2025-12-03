@@ -4,6 +4,11 @@
 - Sanitized map selector defaults and suggested values to drop invalid Home Assistant
   coordinates instead of pre-filling the map at (0,0), keeping setup reliable even when
   core location settings are missing.
+- Normalized config entry titles and device translation placeholders to fall back to the
+  default name when users supply blank or whitespace-only titles, preventing empty device
+  labels in the UI.
+- Cleared stale `error_message` placeholders when unexpected errors surface as `unknown`
+  in the config flow to avoid misleading details in the setup form.
 
 ## [1.8.5-rc1] - 2025-12-02
 ### Changed

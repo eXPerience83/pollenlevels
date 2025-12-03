@@ -315,6 +315,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "unknown"
+            if placeholders is not None:
+                placeholders.pop("error_message", None)
 
         return errors, None
 
