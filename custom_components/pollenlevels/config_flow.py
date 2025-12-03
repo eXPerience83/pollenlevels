@@ -86,15 +86,15 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
     return "invalid_language_format"
 
 
-def _safe_coord(value: float | None, *, lat: bool) -> float:
-    """Return a validated latitude/longitude or 0.0 if unset/invalid."""
+def _safe_coord(value: float | None, *, lat: bool) -> float | None:
+    """Return a validated latitude/longitude or None if unset/invalid."""
 
     try:
         if lat:
             return cv.latitude(value)
         return cv.longitude(value)
     except (vol.Invalid, TypeError, ValueError):
-        return 0.0
+        return None
 
 
 def _get_location_schema(hass: Any) -> vol.Schema:
@@ -104,16 +104,19 @@ def _get_location_schema(hass: Any) -> vol.Schema:
     default_lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
     default_lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
 
+    location_default: dict[str, float] = {}
+    if default_lat is not None and default_lon is not None:
+        location_default = {
+            CONF_LATITUDE: default_lat,
+            CONF_LONGITUDE: default_lon,
+        }
+
     return vol.Schema(
         {
             vol.Required(CONF_NAME, default=default_name): str,
-            vol.Required(
-                CONF_LOCATION,
-                default={
-                    CONF_LATITUDE: default_lat,
-                    CONF_LONGITUDE: default_lon,
-                },
-            ): LocationSelector(LocationSelectorConfig(radius=False)),
+            vol.Required(CONF_LOCATION, default=location_default): LocationSelector(
+                LocationSelectorConfig(radius=False)
+            ),
         }
     )
 
@@ -336,10 +339,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         suggested_values = {
             CONF_LANGUAGE_CODE: self.hass.config.language,
-            CONF_NAME: self.hass.config.location_name,
+            CONF_NAME: getattr(self.hass.config, "location_name", "")
+            or DEFAULT_ENTRY_TITLE,
             CONF_LOCATION: {
-                CONF_LATITUDE: self.hass.config.latitude,
-                CONF_LONGITUDE: self.hass.config.longitude,
+                CONF_LATITUDE: _safe_coord(
+                    getattr(self.hass.config, "latitude", None), lat=True
+                ),
+                CONF_LONGITUDE: _safe_coord(
+                    getattr(self.hass.config, "longitude", None), lat=False
+                ),
             },
         }
 

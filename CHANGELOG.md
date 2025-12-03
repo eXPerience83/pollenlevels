@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.5-rc2] - 2025-12-03
+### Changed
+- Sanitized map selector defaults and suggested values to drop invalid Home Assistant
+  coordinates instead of pre-filling the map at (0,0), keeping setup reliable even when
+  core location settings are missing.
+
 ## [1.8.5-rc1] - 2025-12-02
 ### Changed
 - Hardened the map selector defaults to validate Home Assistant coordinates and fall back to a
