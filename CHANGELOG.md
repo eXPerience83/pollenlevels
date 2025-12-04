@@ -9,6 +9,8 @@
   labels in the UI.
 - Cleared stale `error_message` placeholders when unexpected errors surface as `unknown`
   in the config flow to avoid misleading details in the setup form.
+- Trimmed whitespace-only names in the ConfigEntry test stub to mirror runtime title handling
+  and keep test behavior aligned with production.
 
 ## [1.8.5-rc1] - 2025-12-02
 ### Changed
