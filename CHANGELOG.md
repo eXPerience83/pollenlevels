@@ -11,6 +11,10 @@
   in the config flow to avoid misleading details in the setup form.
 - Trimmed whitespace-only names in the ConfigEntry test stub to mirror runtime title handling
   and keep test behavior aligned with production.
+- Avoided suggesting null map coordinates when Home Assistant has no valid location, keeping
+  the selector empty until the user picks a point.
+- Simplified user-facing connection errors during setup by removing raw HTTP status codes from
+  the `error_message` placeholder while retaining detailed logging for debugging.
 
 ## [1.8.5-rc1] - 2025-12-02
 ### Changed

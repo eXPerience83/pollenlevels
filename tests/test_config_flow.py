@@ -84,7 +84,11 @@ config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
 
 
 def _latitude(value=None):
-    lat = float(value)
+    try:
+        lat = float(value)
+    except (TypeError, ValueError):
+        # Mirror Home Assistant's cv.latitude behavior for invalid types
+        raise cf.vol.Invalid("latitude_type") from None
     if lat < -90 or lat > 90:
         raise cf.vol.Invalid("latitude_range")
     return lat

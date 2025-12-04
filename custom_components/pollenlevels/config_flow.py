@@ -249,8 +249,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
                     if placeholders is not None:
+                        # Keep user-facing message generic; HTTP status is logged above
                         placeholders["error_message"] = (
-                            f"HTTP {status} while validating the API key."
+                            "Unable to validate the API key with the pollen service."
                         )
                 else:
                     raw = await resp.read()
@@ -345,15 +346,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_LANGUAGE_CODE: self.hass.config.language,
             CONF_NAME: getattr(self.hass.config, "location_name", "")
             or DEFAULT_ENTRY_TITLE,
-            CONF_LOCATION: {
-                CONF_LATITUDE: _safe_coord(
-                    getattr(self.hass.config, "latitude", None), lat=True
-                ),
-                CONF_LONGITUDE: _safe_coord(
-                    getattr(self.hass.config, "longitude", None), lat=False
-                ),
-            },
         }
+
+        lat = _safe_coord(getattr(self.hass.config, "latitude", None), lat=True)
+        lon = _safe_coord(getattr(self.hass.config, "longitude", None), lat=False)
+        if lat is not None and lon is not None:
+            suggested_values[CONF_LOCATION] = {
+                CONF_LATITUDE: lat,
+                CONF_LONGITUDE: lon,
+            }
 
         return self.async_show_form(
             step_id="user",
