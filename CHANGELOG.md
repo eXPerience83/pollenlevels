@@ -1,9 +1,9 @@
 # Changelog
-## [1.8.5-rc2] - 2025-12-03
+## [1.8.5-rc2] - 2025-12-04
 ### Changed
 - Sanitized map selector defaults and suggested values to drop invalid Home Assistant
-  coordinates instead of pre-filling the map at (0,0), keeping setup reliable even when
-  core location settings are missing.
+  coordinates instead of pre-filling the map at (0,0) or an empty location, keeping setup
+  reliable even when core location settings are missing.
 - Normalized config entry titles and device translation placeholders to fall back to the
   default name when users supply blank or whitespace-only titles, preventing empty device
   labels in the UI.

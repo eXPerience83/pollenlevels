@@ -104,19 +104,21 @@ def _get_location_schema(hass: Any) -> vol.Schema:
     default_lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
     default_lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
 
-    location_default: dict[str, float] = {}
     if default_lat is not None and default_lon is not None:
-        location_default = {
-            CONF_LATITUDE: default_lat,
-            CONF_LONGITUDE: default_lon,
-        }
+        location_field = vol.Required(
+            CONF_LOCATION,
+            default={
+                CONF_LATITUDE: default_lat,
+                CONF_LONGITUDE: default_lon,
+            },
+        )
+    else:
+        location_field = vol.Required(CONF_LOCATION)
 
     return vol.Schema(
         {
             vol.Required(CONF_NAME, default=default_name): str,
-            vol.Required(CONF_LOCATION, default=location_default): LocationSelector(
-                LocationSelectorConfig(radius=False)
-            ),
+            location_field: LocationSelector(LocationSelectorConfig(radius=False)),
         }
     )
 
