@@ -15,6 +15,8 @@
   the selector empty until the user picks a point.
 - Simplified user-facing connection errors during setup by removing raw HTTP status codes from
   the `error_message` placeholder while retaining detailed logging for debugging.
+- Fixed legacy coordinate validation to show base-level errors during reauthentication and
+  aligned the longitude test stub with Home Assistant's validation behavior for invalid types.
 
 ## [1.8.5-rc1] - 2025-12-02
 ### Changed

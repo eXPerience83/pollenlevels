@@ -95,9 +95,15 @@ def _latitude(value=None):
 
 
 def _longitude(value=None):
-    lon = float(value)
+    try:
+        lon = float(value)
+    except (TypeError, ValueError):
+        # Mirror Home Assistant's cv.longitude behavior for invalid types
+        raise cf.vol.Invalid("longitude_type") from None
+
     if lon < -180 or lon > 180:
         raise cf.vol.Invalid("longitude_range")
+
     return lon
 
 

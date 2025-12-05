@@ -193,7 +193,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug(
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
-                errors[CONF_LOCATION] = "invalid_coordinates"
+                # Legacy lat/lon path (e.g., reauth) has no CONF_LOCATION field on the form
+                errors["base"] = "invalid_coordinates"
                 return errors, None
 
         lat, lon = latlon
