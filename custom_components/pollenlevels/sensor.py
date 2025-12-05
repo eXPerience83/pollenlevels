@@ -96,8 +96,7 @@ def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
 
     # Check if any of the channels is actually provided as numeric
     has_any_channel = any(
-        isinstance(color.get(k), int | float)
-        for k in ("red", "green", "blue")  # Ruff UP038: use PEP 604 unions
+        isinstance(color.get(k), (int, float)) for k in ("red", "green", "blue")
     )
     if not has_any_channel:
         return None
@@ -349,7 +348,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         # Trend (today vs tomorrow)
         now_val = base.get("value")
         tomorrow_val = base.get("tomorrow_value")
-        if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
+        if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
             if tomorrow_val > now_val:
                 base["trend"] = "up"
             elif tomorrow_val < now_val:
@@ -362,7 +361,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         # Expected peak (excluding today)
         peak = None
         for f in forecast_list:
-            if f.get("has_index") and isinstance(f.get("value"), int | float):
+            if f.get("has_index") and isinstance(f.get("value"), (int, float)):
                 if peak is None or f["value"] > peak["value"]:
                     peak = f
         base["expected_peak"] = (
