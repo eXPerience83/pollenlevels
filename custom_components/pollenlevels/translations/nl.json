@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuratie",
-        "description": "Voer je Google API-sleutel, breedtegraad, lengtegraad, update-interval (uren) en de taalcode voor de API-respons in.",
+        "description": "Voer je Google API-sleutel in, selecteer je locatie op de kaart, het update-interval (uren) en de taalcode voor de API-respons.",
         "data": {
           "api_key": "API-sleutel",
-          "entry_name": "Naam van de integratie",
-          "latitude": "Breedtegraad",
-          "longitude": "Lengtegraad",
+          "name": "Naam",
+          "location": "Locatie",
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
-      "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn."
+      "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
+      "unknown": "Onbekende fout"
     },
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opties",
-        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2).",
+        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2).",
         "data": {
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
-      "invalid_coordinates": "Breedtegraad en lengtegraad moeten numeriek zijn."
+      "unknown": "Onbekende fout"
     }
   },
   "device": {
     "types": {
-      "name": "Pollentypen ({latitude},{longitude})"
+      "name": "{title} - Pollentypen ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Planten ({latitude},{longitude})"
+      "name": "{title} - Planten ({latitude},{longitude})"
     },
     "info": {
-      "name": "Polleninfo ({latitude},{longitude})"
+      "name": "{title} - Polleninfo ({latitude},{longitude})"
     }
   },
   "services": {

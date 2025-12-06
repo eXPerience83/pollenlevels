@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Konfigurace úrovní pylu",
-        "description": "Zadejte svůj klíč Google API, zeměpisnou šířku, zeměpisnou délku, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
+        "description": "Zadejte svůj klíč Google API, vyberte svou polohu na mapě, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
         "data": {
           "api_key": "Klíč API",
-          "entry_name": "Název položky",
-          "latitude": "Zeměpisná šířka",
-          "longitude": "Zeměpisná délka",
+          "name": "Název",
+          "location": "Poloha",
           "update_interval": "Interval aktualizace (hodiny)",
           "language_code": "Kód jazyka odpovědi API"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné."
+      "invalid_coordinates": "Vyberte platné umístění na mapě.",
+      "unknown": "Neznámá chyba"
     },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Možnosti",
-        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro TYPY.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2).",
+        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2).",
         "data": {
           "update_interval": "Interval aktualizace (hodiny)",
           "language_code": "Kód jazyka odpovědi API",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "invalid_coordinates": "Zeměpisná šířka i délka musí být číselné."
+      "unknown": "Neznámá chyba"
     }
   },
   "device": {
     "types": {
-      "name": "Typy pylu ({latitude},{longitude})"
+      "name": "{title} - Typy pylu ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Rostliny ({latitude},{longitude})"
+      "name": "{title} - Rostliny ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informace o pylu ({latitude},{longitude})"
+      "name": "{title} - Informace o pylu ({latitude},{longitude})"
     }
   },
   "services": {

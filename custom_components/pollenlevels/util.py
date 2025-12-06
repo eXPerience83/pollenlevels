@@ -9,7 +9,7 @@ def redact_api_key(text: object, api_key: str | None) -> str:
     if text is None:
         return ""
 
-    if isinstance(text, bytes | bytearray):
+    if isinstance(text, (bytes, bytearray)):
         try:
             s = text.decode()
         except UnicodeDecodeError:

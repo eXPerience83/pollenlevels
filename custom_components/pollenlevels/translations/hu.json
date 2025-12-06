@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Pollen szintek – beállítás",
-        "description": "Adja meg a Google API-kulcsot, szélességi és hosszúsági fokot, frissítési időközt (órák) és az API-válasz nyelvi kódját.",
+        "description": "Adja meg a Google API-kulcsot, válassza ki helyszínét a térképen, a frissítési időközt (órák) és az API-válasz nyelvi kódját.",
         "data": {
           "api_key": "API-kulcs",
-          "entry_name": "Bejegyzés neve",
-          "latitude": "Szélesség",
-          "longitude": "Hosszúság",
+          "name": "Név",
+          "location": "Helyszín",
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük."
+      "invalid_coordinates": "Válassz érvényes helyet a térképen.",
+      "unknown": "Ismeretlen hiba"
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Beállítások",
-        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2).",
+        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2).",
         "data": {
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "invalid_coordinates": "A szélességi és hosszúsági adatoknak számoknak kell lenniük."
+      "unknown": "Ismeretlen hiba"
     }
   },
   "device": {
     "types": {
-      "name": "Pollentípusok ({latitude},{longitude})"
+      "name": "{title} - Pollentípusok ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Növények ({latitude},{longitude})"
+      "name": "{title} - Növények ({latitude},{longitude})"
     },
     "info": {
-      "name": "Polleninformáció ({latitude},{longitude})"
+      "name": "{title} - Polleninformáció ({latitude},{longitude})"
     }
   },
   "services": {

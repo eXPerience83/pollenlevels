@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Konfiguration av pollennivåer",
-        "description": "Ange din Google API-nyckel, latitud, longitud, uppdateringsintervall (timmar) och språkkod för API-svar.",
+        "description": "Ange din Google API-nyckel, välj din plats på kartan, uppdateringsintervall (timmar) och språkkod för API-svar.",
         "data": {
           "api_key": "API-nyckel",
-          "entry_name": "Namnet på posten",
-          "latitude": "Latitud",
-          "longitude": "Longitud",
+          "name": "Namn",
+          "location": "Plats",
           "update_interval": "Uppdateringsintervall (timmar)",
           "language_code": "Språkkod för API-svar"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
-      "invalid_coordinates": "Latitud och longitud måste vara numeriska."
+      "invalid_coordinates": "Välj en giltig plats på kartan.",
+      "unknown": "Okänt fel"
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Alternativ",
-        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för TYPER.\nAlternativ för sensorer per dag (TYPER): Endast idag (none), Till och med i morgon (D+1), Till och med i övermorgon (D+2).",
+        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för {title}.\nAlternativ för sensorer per dag (TYPER): Endast idag (none), Till och med i morgon (D+1), Till och med i övermorgon (D+2).",
         "data": {
           "update_interval": "Uppdateringsintervall (timmar)",
           "language_code": "Språkkod för API-svar",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
-      "invalid_coordinates": "Latitud och longitud måste vara numeriska."
+      "unknown": "Okänt fel"
     }
   },
   "device": {
     "types": {
-      "name": "Pollentyper ({latitude},{longitude})"
+      "name": "{title} - Pollentyper ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Växter ({latitude},{longitude})"
+      "name": "{title} - Växter ({latitude},{longitude})"
     },
     "info": {
-      "name": "Polleninfo ({latitude},{longitude})"
+      "name": "{title} - Polleninfo ({latitude},{longitude})"
     }
   },
   "services": {

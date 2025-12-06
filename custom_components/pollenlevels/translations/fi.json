@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Siitepölytason asetukset",
-        "description": "Anna Google API -avain, leveysaste, pituusaste, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
+        "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
         "data": {
           "api_key": "API-avain",
-          "entry_name": "Integraation nimi",
-          "latitude": "Leveysaste",
-          "longitude": "Pituusaste",
+          "name": "Nimi",
+          "location": "Sijainti",
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
+      "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
+      "unknown": "Tuntematon virhe"
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Asetukset",
-        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2).",
+        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2).",
         "data": {
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "invalid_coordinates": "Leveys- ja pituusasteen on oltava numeerisia."
+      "unknown": "Tuntematon virhe"
     }
   },
   "device": {
     "types": {
-      "name": "Siitepölytyypit ({latitude},{longitude})"
+      "name": "{title} - Siitepölytyypit ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Kasvit ({latitude},{longitude})"
+      "name": "{title} - Kasvit ({latitude},{longitude})"
     },
     "info": {
-      "name": "Siitepölytiedot ({latitude},{longitude})"
+      "name": "{title} - Siitepölytiedot ({latitude},{longitude})"
     }
   },
   "services": {

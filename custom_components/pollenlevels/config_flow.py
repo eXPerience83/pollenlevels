@@ -19,16 +19,15 @@ import aiohttp
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
 
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
-    CONF_ENTRY_NAME,
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
@@ -49,6 +48,17 @@ LANGUAGE_CODE_REGEX = re.compile(
     r"(?:-(?:[A-Za-z]{2}|\d{3}))?"  # optional region
     r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
     re.IGNORECASE,
+)
+
+
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_API_KEY): str,
+        vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
+            vol.Coerce(int), vol.Range(min=1)
+        ),
+        vol.Optional(CONF_LANGUAGE_CODE): str,
+    }
 )
 
 
@@ -76,6 +86,66 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
     return "invalid_language_format"
 
 
+def _safe_coord(value: float | None, *, lat: bool) -> float | None:
+    """Return a validated latitude/longitude or None if unset/invalid."""
+
+    try:
+        if lat:
+            return cv.latitude(value)
+        return cv.longitude(value)
+    except (vol.Invalid, TypeError, ValueError):
+        return None
+
+
+def _get_location_schema(hass: Any) -> vol.Schema:
+    """Return schema for name + location with defaults from HA config."""
+
+    default_name = getattr(hass.config, "location_name", "") or DEFAULT_ENTRY_TITLE
+    default_lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
+    default_lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+
+    if default_lat is not None and default_lon is not None:
+        location_field = vol.Required(
+            CONF_LOCATION,
+            default={
+                CONF_LATITUDE: default_lat,
+                CONF_LONGITUDE: default_lon,
+            },
+        )
+    else:
+        location_field = vol.Required(CONF_LOCATION)
+
+    return vol.Schema(
+        {
+            vol.Required(CONF_NAME, default=default_name): str,
+            location_field: LocationSelector(LocationSelectorConfig(radius=False)),
+        }
+    )
+
+
+def _validate_location_dict(
+    location: dict[str, Any] | None,
+) -> tuple[float, float] | None:
+    """Validate location dict and return (lat, lon) or None on error."""
+
+    if not isinstance(location, dict):
+        return None
+
+    lat_val = location.get(CONF_LATITUDE)
+    lon_val = location.get(CONF_LONGITUDE)
+
+    if lat_val is None or lon_val is None:
+        return None
+
+    try:
+        lat = cv.latitude(lat_val)
+        lon = cv.longitude(lon_val)
+    except (vol.Invalid, TypeError, ValueError):
+        return None
+
+    return lat, lon
+
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
@@ -95,27 +165,41 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input: dict[str, Any],
         *,
         check_unique_id: bool,
+        description_placeholders: dict[str, Any] | None = None,
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
 
+        placeholders = description_placeholders
         errors: dict[str, str] = {}
         normalized: dict[str, Any] = dict(user_input)
-        normalized.pop(CONF_ENTRY_NAME, None)
+        normalized.pop(CONF_NAME, None)
+        normalized.pop(CONF_LOCATION, None)
 
-        try:
-            lat = float(user_input.get(CONF_LATITUDE))
-            lon = float(user_input.get(CONF_LONGITUDE))
-        except (TypeError, ValueError):
-            _LOGGER.debug(
-                "Invalid coordinates provided (values redacted): parsing failed"
-            )
-            errors["base"] = "invalid_coordinates"
-            return errors, None
+        latlon = None
+        if CONF_LOCATION in user_input:
+            latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
+            if latlon is None:
+                _LOGGER.debug(
+                    "Invalid coordinates provided (values redacted): parsing failed"
+                )
+                errors[CONF_LOCATION] = "invalid_coordinates"
+                return errors, None
+        else:
+            try:
+                lat = cv.latitude(user_input.get(CONF_LATITUDE))
+                lon = cv.longitude(user_input.get(CONF_LONGITUDE))
+                latlon = (lat, lon)
+            except (vol.Invalid, TypeError):
+                _LOGGER.debug(
+                    "Invalid coordinates provided (values redacted): parsing failed"
+                )
+                # Legacy lat/lon path (e.g., reauth) has no CONF_LOCATION field on the form
+                errors["base"] = "invalid_coordinates"
+                return errors, None
 
-        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
-            _LOGGER.debug("Coordinates out of range (values redacted)")
-            errors["base"] = "invalid_coordinates"
-            return errors, None
+        lat, lon = latlon
+        normalized[CONF_LATITUDE] = lat
+        normalized[CONF_LONGITUDE] = lon
 
         if check_unique_id:
             uid = f"{lat:.4f}_{lon:.4f}"
@@ -165,6 +249,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 elif status != 200:
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
+                    if placeholders is not None:
+                        # Keep user-facing message generic; HTTP status is logged above
+                        placeholders["error_message"] = (
+                            "Unable to validate the API key with the pollen service."
+                        )
                 else:
                     raw = await resp.read()
                     try:
@@ -183,12 +272,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if not data.get("dailyInfo"):
                         _LOGGER.warning("Validation: 'dailyInfo' missing")
                         errors["base"] = "cannot_connect"
+                        if placeholders is not None:
+                            placeholders["error_message"] = (
+                                "API response missing expected pollen forecast information."
+                            )
 
             if errors:
                 return errors, None
 
-            normalized[CONF_LATITUDE] = lat
-            normalized[CONF_LONGITUDE] = lon
             normalized[CONF_LANGUAGE_CODE] = lang
             return errors, normalized
 
@@ -206,61 +297,75 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
+            if placeholders is not None:
+                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
+                placeholders["error_message"] = (
+                    redacted or "Validation request timed out (10 seconds)."
+                )
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
+            if placeholders is not None:
+                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
+                placeholders["error_message"] = (
+                    redacted or "Network error while connecting to the pollen service."
+                )
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
-            errors["base"] = "cannot_connect"
+            errors["base"] = "unknown"
+            if placeholders is not None:
+                placeholders.pop("error_message", None)
 
         return errors, None
 
     async def async_step_user(self, user_input=None):
         """Handle initial step."""
         errors: dict[str, str] = {}
+        description_placeholders: dict[str, Any] = {}
 
         if user_input:
             errors, normalized = await self._async_validate_input(
-                user_input, check_unique_id=True
+                user_input,
+                check_unique_id=True,
+                description_placeholders=description_placeholders,
             )
             if not errors and normalized is not None:
-                entry_name = str(user_input.get(CONF_ENTRY_NAME, "")).strip()
+                entry_name = str(user_input.get(CONF_NAME, "")).strip()
                 title = entry_name or DEFAULT_ENTRY_TITLE
                 return self.async_create_entry(title=title, data=normalized)
 
-        defaults = {
-            CONF_LATITUDE: self.hass.config.latitude,
-            CONF_LONGITUDE: self.hass.config.longitude,
+        base_schema = STEP_USER_DATA_SCHEMA.schema.copy()
+        base_schema.update(_get_location_schema(self.hass).schema)
+
+        suggested_values = {
             CONF_LANGUAGE_CODE: self.hass.config.language,
-            CONF_ENTRY_NAME: DEFAULT_ENTRY_TITLE,
+            CONF_NAME: getattr(self.hass.config, "location_name", "")
+            or DEFAULT_ENTRY_TITLE,
         }
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_API_KEY): str,
-                vol.Optional(CONF_ENTRY_NAME, default=defaults[CONF_ENTRY_NAME]): str,
-                vol.Optional(
-                    CONF_LATITUDE, default=defaults[CONF_LATITUDE]
-                ): cv.latitude,
-                vol.Optional(
-                    CONF_LONGITUDE, default=defaults[CONF_LONGITUDE]
-                ): cv.longitude,
-                vol.Optional(
-                    CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                vol.Optional(
-                    CONF_LANGUAGE_CODE, default=defaults[CONF_LANGUAGE_CODE]
-                ): str,
+        lat = _safe_coord(getattr(self.hass.config, "latitude", None), lat=True)
+        lon = _safe_coord(getattr(self.hass.config, "longitude", None), lat=False)
+        if lat is not None and lon is not None:
+            suggested_values[CONF_LOCATION] = {
+                CONF_LATITUDE: lat,
+                CONF_LONGITUDE: lon,
             }
-        )
 
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema(base_schema),
+                {**suggested_values, **(user_input or {})},
+            ),
+            errors=errors,
+            description_placeholders=description_placeholders,
+        )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]):
         """Handle re-authentication when credentials become invalid."""
@@ -278,11 +383,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         assert self._reauth_entry is not None
 
         errors: dict[str, str] = {}
+        placeholders = {
+            "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
+            "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
+        }
 
         if user_input:
             combined: dict[str, Any] = {**self._reauth_entry.data, **user_input}
             errors, normalized = await self._async_validate_input(
-                combined, check_unique_id=False
+                combined,
+                check_unique_id=False,
+                description_placeholders=placeholders,
             )
             if not errors and normalized is not None:
                 self.hass.config_entries.async_update_entry(
@@ -299,11 +410,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ): str
             }
         )
-
-        placeholders = {
-            "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
-            "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
-        }
 
         # Ensure the form posts back to this handler.
         return self.async_show_form(
@@ -323,6 +429,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         """Display/process options form."""
         errors: dict[str, str] = {}
+        placeholders = {"title": self.entry.title or DEFAULT_ENTRY_TITLE}
 
         if user_input is not None:
             try:
@@ -375,7 +482,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     "Options validation error: %s",
                     redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
                 )
-                errors["base"] = "cannot_connect"
+                errors["base"] = "unknown"
 
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
@@ -412,4 +519,5 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 }
             ),
             errors=errors,
+            description_placeholders=placeholders,
         )

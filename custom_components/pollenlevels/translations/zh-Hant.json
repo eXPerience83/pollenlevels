@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "花粉水平設定",
-        "description": "請輸入 Google API 金鑰、緯度、經度、更新間隔（小時）以及 API 回應語言代碼。",
+        "description": "請輸入 Google API 金鑰、在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
         "data": {
           "api_key": "API 金鑰",
-          "entry_name": "條目名稱",
-          "latitude": "緯度",
-          "longitude": "經度",
+          "name": "名稱",
+          "location": "位置",
           "update_interval": "更新間隔（小時）",
           "language_code": "API 回應語言代碼"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此欄位不得為空",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "invalid_coordinates": "緯度和經度必須為數字。"
+      "invalid_coordinates": "請在地圖上選擇有效的位置。",
+      "unknown": "未知錯誤"
     },
     "abort": {
       "already_configured": "此位置已設定。",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – 選項",
-        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
+        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器，適用於 {title}。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
         "data": {
           "update_interval": "更新間隔（小時）",
           "language_code": "API 回應語言代碼",
@@ -58,18 +58,18 @@
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此欄位不得為空",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "invalid_coordinates": "緯度和經度必須為數字。"
+      "unknown": "未知錯誤"
     }
   },
   "device": {
     "types": {
-      "name": "花粉類型 ({latitude},{longitude})"
+      "name": "{title} - 花粉類型 ({latitude},{longitude})"
     },
     "plants": {
-      "name": "植物 ({latitude},{longitude})"
+      "name": "{title} - 植物 ({latitude},{longitude})"
     },
     "info": {
-      "name": "花粉資訊 ({latitude},{longitude})"
+      "name": "{title} - 花粉資訊 ({latitude},{longitude})"
     }
   },
   "services": {

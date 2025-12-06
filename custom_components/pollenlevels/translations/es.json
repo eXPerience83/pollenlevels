@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Configuración de Niveles de Polen",
-        "description": "Introduce tu clave de API de Google, latitud, longitud, intervalo de actualización (horas) y código de idioma de la respuesta de la API.",
+        "description": "Introduce tu clave de API de Google, selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API.",
         "data": {
           "api_key": "Clave API",
-          "entry_name": "Nombre de la entrada",
-          "latitude": "Latitud",
-          "longitude": "Longitud",
+          "name": "Nombre",
+          "location": "Ubicación",
           "update_interval": "Intervalo de actualización (horas)",
           "language_code": "Código de idioma de la respuesta de la API"
         }
@@ -23,13 +22,14 @@
     },
     "error": {
       "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio",
+      "cannot_connect": "No se puede conectar al servicio de polen.\n\n{error_message}",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "invalid_coordinates": "La latitud y la longitud deben ser numéricas."
+      "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
+      "unknown": "Error desconocido"
     },
     "abort": {
       "already_configured": "Esta ubicación ya está configurada.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opciones",
-        "description": "Cambia el intervalo de actualización, el idioma de respuesta de la API, los días de previsión y los sensores por día para TIPOS.\nOpciones de sensores por día (TIPOS): Solo hoy (none), Hasta mañana (D+1), Hasta pasado mañana (D+2).",
+        "description": "Cambia el intervalo de actualización, el idioma de respuesta de la API, los días de previsión y los sensores por día para {title}.\nOpciones de sensores por día (TIPOS): Solo hoy (none), Hasta mañana (D+1), Hasta pasado mañana (D+2).",
         "data": {
           "update_interval": "Intervalo de actualización (horas)",
           "language_code": "Código de idioma de la respuesta de la API",
@@ -52,24 +52,24 @@
     },
     "error": {
       "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio",
+      "cannot_connect": "No se puede conectar al servicio de polen.",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "invalid_coordinates": "La latitud y la longitud deben ser numéricas."
+      "unknown": "Error desconocido"
     }
   },
   "device": {
     "types": {
-      "name": "Tipos de polen ({latitude},{longitude})"
+      "name": "{title} - Tipos de polen ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Plantas ({latitude},{longitude})"
+      "name": "{title} - Plantas ({latitude},{longitude})"
     },
     "info": {
-      "name": "Información de polen ({latitude},{longitude})"
+      "name": "{title} - Información de polen ({latitude},{longitude})"
     }
   },
   "services": {

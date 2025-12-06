@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Konfiguration af pollenniveauer",
-        "description": "Angiv din Google API-nøgle, breddegrad, længdegrad, opdateringsinterval (timer) og sprogkode for API-svar.",
+        "description": "Angiv din Google API-nøgle, vælg din placering på kortet, opdateringsinterval (timer) og sprogkode for API-svar.",
         "data": {
           "api_key": "API-nøgle",
-          "entry_name": "Integrationsnavn",
-          "latitude": "Breddegrad",
-          "longitude": "Længdegrad",
+          "name": "Navn",
+          "location": "Placering",
           "update_interval": "Opdateringsinterval (timer)",
           "language_code": "Sprogkode for API-svar"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette felt må ikke være tomt",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
-      "invalid_coordinates": "Breddegrad og længdegrad skal være numeriske."
+      "invalid_coordinates": "Vælg en gyldig placering på kortet.",
+      "unknown": "Ukendt fejl"
     },
     "abort": {
       "already_configured": "Denne placering er allerede konfigureret.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Indstillinger",
-        "description": "Skift opdateringsinterval, API-sprog, prognosedage og sensorer pr. dag for TYPER.\nIndstillinger for sensorer pr. dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med overmorgen (D+2).",
+        "description": "Skift opdateringsinterval, API-sprog, prognosedage og sensorer pr. dag for {title}.\nIndstillinger for sensorer pr. dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med overmorgen (D+2).",
         "data": {
           "update_interval": "Opdateringsinterval (timer)",
           "language_code": "Sprogkode for API-svar",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette felt må ikke være tomt",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
-      "invalid_coordinates": "Breddegrad og længdegrad skal være numeriske."
+      "unknown": "Ukendt fejl"
     }
   },
   "device": {
     "types": {
-      "name": "Pollentyper ({latitude},{longitude})"
+      "name": "{title} - Pollentyper ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Planter ({latitude},{longitude})"
+      "name": "{title} - Planter ({latitude},{longitude})"
     },
     "info": {
-      "name": "Polleninfo ({latitude},{longitude})"
+      "name": "{title} - Polleninfo ({latitude},{longitude})"
     }
   },
   "services": {

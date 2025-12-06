@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Configurazione Livelli di polline",
-        "description": "Inserisci la tua chiave API Google, latitudine, longitudine, intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
+        "description": "Inserisci la tua chiave API Google, seleziona la tua posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
         "data": {
           "api_key": "Chiave API",
-          "entry_name": "Nome della voce",
-          "latitude": "Latitudine",
-          "longitude": "Longitudine",
+          "name": "Nome",
+          "location": "Posizione",
           "update_interval": "Intervallo di aggiornamento (ore)",
           "language_code": "Codice lingua per la risposta dell'API"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "empty": "Questo campo non può essere vuoto",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
-      "invalid_coordinates": "Latitudine e longitudine devono essere numeriche."
+      "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
+      "unknown": "Errore sconosciuto"
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opzioni",
-        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
+        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI per {title}.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
         "data": {
           "update_interval": "Intervallo di aggiornamento (ore)",
           "language_code": "Codice lingua per la risposta dell'API",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "empty": "Questo campo non può essere vuoto",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
-      "invalid_coordinates": "Latitudine e longitudine devono essere numeriche."
+      "unknown": "Errore sconosciuto"
     }
   },
   "device": {
     "types": {
-      "name": "Tipi di polline ({latitude},{longitude})"
+      "name": "{title} - Tipi di polline ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Piante ({latitude},{longitude})"
+      "name": "{title} - Piante ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informazioni sul polline ({latitude},{longitude})"
+      "name": "{title} - Informazioni sul polline ({latitude},{longitude})"
     }
   },
   "services": {

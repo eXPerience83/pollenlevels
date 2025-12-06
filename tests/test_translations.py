@@ -271,9 +271,16 @@ def _extract_config_flow_keys() -> set[str]:
             values.update(language_error_returns)
         return values
 
-    error_keys_from_assignments: set[str] = set()
+    class _ScopedErrorsVisitor(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.class_stack: list[str | None] = []
+            self.by_class: dict[str | None, set[str]] = {}
 
-    class _ErrorsVisitor(ast.NodeVisitor):
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:  # noqa: N802
+            self.class_stack.append(node.name)
+            self.generic_visit(node)
+            self.class_stack.pop()
+
         def visit_Assign(self, node: ast.Assign) -> None:  # noqa: N802
             for target in node.targets:
                 self._record_errors(target, node.value)
@@ -290,9 +297,13 @@ def _extract_config_flow_keys() -> set[str]:
                 and target.value.id == "errors"
                 and value is not None
             ):
-                error_keys_from_assignments.update(_extract_error_values(value))
+                class_name = self.class_stack[-1] if self.class_stack else None
+                self.by_class.setdefault(class_name, set()).update(
+                    _extract_error_values(value)
+                )
 
-    _ErrorsVisitor().visit(config_tree)
+    scoped_errors = _ScopedErrorsVisitor()
+    scoped_errors.visit(config_tree)
 
     keys: set[str] = set()
 
@@ -368,7 +379,12 @@ def _extract_config_flow_keys() -> set[str]:
                                 keys.add(f"{prefix}.error.{err_key}")
                     elif isinstance(kw.value, ast.Name):
                         if kw.value.id == "errors":
-                            for err_key in error_keys_from_assignments:
+                            class_name = (
+                                self.class_stack[-1] if self.class_stack else None
+                            )
+                            for err_key in scoped_errors.by_class.get(
+                                class_name, set()
+                            ):
                                 keys.add(f"{prefix}.error.{err_key}")
                         else:
                             resolved = _resolve_name(kw.value.id, mapping)
@@ -398,4 +414,5 @@ def _extract_config_flow_keys() -> set[str]:
                     keys.add(f"{prefix}.abort.{kw.value.value}")
 
     FlowVisitor().visit(config_tree)
+
     return keys

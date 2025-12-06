@@ -1,4 +1,69 @@
 # Changelog
+## [1.8.5-rc2] - 2025-12-06
+### Changed
+- Sanitized map selector defaults and suggested values to drop invalid Home Assistant
+  coordinates instead of pre-filling the map at (0,0) or an empty location, keeping setup
+  reliable even when core location settings are missing.
+- Normalized config entry titles and device translation placeholders to fall back to the
+  default name when users supply blank or whitespace-only titles, preventing empty device
+  labels in the UI.
+- Cleared stale `error_message` placeholders when unexpected errors surface as `unknown`
+  in the config flow to avoid misleading details in the setup form.
+- Trimmed whitespace-only names in the ConfigEntry test stub to mirror runtime title handling
+  and keep test behavior aligned with production.
+- Avoided suggesting null map coordinates when Home Assistant has no valid location, keeping
+  the selector empty until the user picks a point.
+- Simplified user-facing connection errors during setup by removing raw HTTP status codes from
+  the `error_message` placeholder while retaining detailed logging for debugging.
+
+## [1.8.5-rc1] - 2025-12-02
+### Changed
+- Hardened the map selector defaults to validate Home Assistant coordinates and fall back to a
+  safe entry title when core configuration values are missing or invalid, keeping setup usable
+  in edge cases.
+- Expanded the Home Assistant constant test stub with common config keys to improve isolation of
+  sensor tests without altering runtime behavior.
+- Fixed legacy coordinate validation to surface `invalid_coordinates` on the appropriate field
+  (map `location` when present; base-level only for legacy lat/lon reauth forms), and aligned the
+  longitude test stub with Home Assistant's invalid-type behavior. Unexpected validation errors
+  now map to `unknown`.
+
+## [1.8.5-alpha2] - 2025-12-01
+### Changed
+- Simplified options-flow connectivity errors to use generic localized messages without the
+  `error_message` placeholder, keeping detailed HTTP context limited to setup and
+  reauthentication flows.
+- Updated `invalid_coordinates` translations across all locales to reference selecting a valid
+  location on the map instead of entering raw latitude/longitude values.
+- Removed the unused entry-name constant and cleaned up import declarations to drop dead code
+  without altering entity identifiers.
+- Removed the unused `options.error.invalid_coordinates` translation key across all locales to
+  keep translation strings aligned with the current options flow.
+- Options flow descriptions now show the config entry title and unexpected validation errors map
+  to the generic `unknown` message instead of implying connectivity failures.
+
+## [1.8.5-alpha1] - 2025-11-29
+### Changed
+- Switched the setup form to a map-based location selector that defaults to the Home Assistant
+  location name and coordinates while validating latitude/longitude with Home Assistant helpers.
+- Updated config-flow messaging and translations to reflect the new map selector and include richer
+  connection and location validation errors.
+- Added sanitized `error_message` placeholders to `cannot_connect` responses in the config and
+  reauthentication flows so users see short reasons for HTTP, timeout, and malformed response
+  failures without exposing secrets.
+- Updated the remaining locale setup descriptions to reference selecting a location on the map
+  instead of entering latitude and longitude manually.
+- Replaced Home Assistant common translation placeholders with explicit labels across all locales
+  so the custom integration strings render correctly in setup and options.
+- Device names now include the config entry title (for example, "Home – Pollen Types") while
+  keeping identifiers unchanged for existing entities.
+
+### Added
+- Expanded config flow tests to cover map selector input, coordinate edge cases, and connectivity
+  failures while ensuring normalized coordinates are stored in entries.
+- Regression coverage ensuring `error_message` is set when validation maps to `cannot_connect`,
+  keeping the new placeholder behavior guarded.
+
 ## [1.8.4] - 2025-11-27
 ### Fixed
 - Added a bounds check to the sensor test SequenceSession helper so exhausting the

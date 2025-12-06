@@ -53,9 +53,16 @@ sensor_mod.SensorEntity = _StubSensorEntity
 sensor_mod.SensorStateClass = _StubSensorStateClass
 sys.modules.setdefault("homeassistant.components.sensor", sensor_mod)
 
-const_mod = types.ModuleType("homeassistant.const")
+const_mod = sys.modules.get("homeassistant.const")
+if const_mod is None:
+    const_mod = types.ModuleType("homeassistant.const")
+    sys.modules["homeassistant.const"] = const_mod
+
 const_mod.ATTR_ATTRIBUTION = "Attribution"
-sys.modules.setdefault("homeassistant.const", const_mod)
+const_mod.CONF_NAME = "name"
+const_mod.CONF_LOCATION = "location"
+const_mod.CONF_LATITUDE = "latitude"
+const_mod.CONF_LONGITUDE = "longitude"
 
 exceptions_mod = types.ModuleType("homeassistant.exceptions")
 

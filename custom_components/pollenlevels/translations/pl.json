@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "Konfiguracja poziomów pyłku",
-        "description": "Wprowadź swój klucz Google API, szerokość i długość geograficzną, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
+        "description": "Wprowadź klucz Google API, wybierz swoją lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "data": {
           "api_key": "Klucz API",
-          "entry_name": "Nazwa wpisu",
-          "latitude": "Szerokość geograficzna",
-          "longitude": "Długość geograficzna",
+          "name": "Nazwa",
+          "location": "Lokalizacja",
           "update_interval": "Interwał aktualizacji (godziny)",
           "language_code": "Kod języka odpowiedzi API"
         }
@@ -29,7 +28,8 @@
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
-      "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami."
+      "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
+      "unknown": "Nieznany błąd"
     },
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcje",
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
+        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
         "data": {
           "update_interval": "Interwał aktualizacji (godziny)",
           "language_code": "Kod języka odpowiedzi API",
@@ -58,18 +58,18 @@
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
-      "invalid_coordinates": "Szerokość i długość geograficzna muszą być liczbami."
+      "unknown": "Nieznany błąd"
     }
   },
   "device": {
     "types": {
-      "name": "Typy pyłków ({latitude},{longitude})"
+      "name": "{title} - Typy pyłków ({latitude},{longitude})"
     },
     "plants": {
-      "name": "Rośliny ({latitude},{longitude})"
+      "name": "{title} - Rośliny ({latitude},{longitude})"
     },
     "info": {
-      "name": "Informacje o pyłkach ({latitude},{longitude})"
+      "name": "{title} - Informacje o pyłkach ({latitude},{longitude})"
     }
   },
   "services": {

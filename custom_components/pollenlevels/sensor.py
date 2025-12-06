@@ -46,6 +46,7 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
@@ -95,8 +96,7 @@ def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
 
     # Check if any of the channels is actually provided as numeric
     has_any_channel = any(
-        isinstance(color.get(k), int | float)
-        for k in ("red", "green", "blue")  # Ruff UP038: use PEP 604 unions
+        isinstance(color.get(k), (int, float)) for k in ("red", "green", "blue")
     )
     if not has_any_channel:
         return None
@@ -208,6 +208,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     allow_d1 = create_d1 and forecast_days >= 2
     allow_d2 = create_d2 and forecast_days >= 3
 
+    raw_title = config_entry.title or ""
+    clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
+
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
         api_key=api_key,
@@ -216,6 +219,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         hours=interval,
         language=lang,  # normalized in the coordinator
         entry_id=config_entry.entry_id,
+        entry_title=clean_title,
         forecast_days=forecast_days,
         create_d1=allow_d1,  # pass effective flags
         create_d2=allow_d2,
@@ -273,6 +277,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         forecast_days: int,
         create_d1: bool,
         create_d2: bool,
+        entry_title: str = DEFAULT_ENTRY_TITLE,
     ):
         """Initialize coordinator with configuration and interval."""
         super().__init__(
@@ -293,6 +298,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.language = language if language else None
 
         self.entry_id = entry_id
+        self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
         self.forecast_days = max(1, min(5, int(forecast_days)))
         self.create_d1 = create_d1
         self.create_d2 = create_d2
@@ -342,7 +348,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         # Trend (today vs tomorrow)
         now_val = base.get("value")
         tomorrow_val = base.get("tomorrow_value")
-        if isinstance(now_val, int | float) and isinstance(tomorrow_val, int | float):
+        if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
             if tomorrow_val > now_val:
                 base["trend"] = "up"
             elif tomorrow_val < now_val:
@@ -355,7 +361,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         # Expected peak (excluding today)
         peak = None
         for f in forecast_list:
-            if f.get("has_index") and isinstance(f.get("value"), int | float):
+            if f.get("has_index") and isinstance(f.get("value"), (int, float)):
                 if peak is None or f["value"] > peak["value"]:
                     peak = f
         base["expected_peak"] = (
@@ -905,6 +911,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "model": "Pollen API",
             "translation_key": translation_key,
             "translation_placeholders": {
+                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
             },
@@ -930,6 +937,7 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
             "model": "Pollen API",
             "translation_key": "info",
             "translation_placeholders": {
+                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
                 "latitude": f"{self.coordinator.lat:.6f}",
                 "longitude": f"{self.coordinator.lon:.6f}",
             },
