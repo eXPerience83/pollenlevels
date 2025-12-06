@@ -1,5 +1,5 @@
 # Changelog
-## [1.8.5-rc2] - 2025-12-04
+## [1.8.5-rc2] - 2025-12-06
 ### Changed
 - Sanitized map selector defaults and suggested values to drop invalid Home Assistant
   coordinates instead of pre-filling the map at (0,0) or an empty location, keeping setup
