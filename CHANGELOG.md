@@ -1,4 +1,13 @@
 # Changelog
+## [1.8.4] - 2025-11-27
+### Fixed
+- Added a bounds check to the sensor test SequenceSession helper so exhausting the
+  fake response list raises a clear AssertionError instead of an IndexError.
+- Added metadata consistency tests to keep the package name/version aligned with
+  the manifest and catch missing fields early in CI.
+- Corrected the manifest JSON formatting so metadata parses cleanly without
+  trailing separators.
+
 ## [1.8.3] - 2025-11-24
 ### Fixed
 - Stop logging coordinate values through the invalid-coordinate exception message in the config

@@ -2,6 +2,7 @@ name: Validate with hassfest
 
 on:
   push:
+    branches: [main, master]
   pull_request:
   schedule:
     - cron: "0 0 * * *"
@@ -17,7 +18,7 @@ jobs:
     steps:
       # Checkout so hassfest can read manifests and structure
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # Official hassfest action (Home Assistant recommends @master)
       - name: Run hassfest

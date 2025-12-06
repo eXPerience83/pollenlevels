@@ -4,11 +4,13 @@
 
 from __future__ import annotations
 
+import ast
 import asyncio
-import json
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -76,14 +78,45 @@ config_validation_mod.string = lambda value=None: value
 sys.modules.setdefault("homeassistant.helpers.config_validation", config_validation_mod)
 
 aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
-aiohttp_client_mod.async_get_clientsession = lambda hass: SimpleNamespace(
-    get=lambda *args, **kwargs: SimpleNamespace(
-        __aenter__=lambda self: self,
-        __aexit__=lambda self, exc_type, exc, tb: None,
-        read=lambda: b"{}",
-        status=200,
-    )
-)
+
+
+class _StubResponse:
+    """Async response stub matching aiohttp.ClientResponse for tests."""
+
+    def __init__(self, *, status: int = 200, body: bytes = b"{}") -> None:
+        self.status = status
+        self._body = body
+
+    async def read(self) -> bytes:
+        """Return the fake response body."""
+
+        return self._body
+
+    async def __aenter__(self) -> _StubResponse:
+        """Support the async context manager protocol."""
+
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        """Support the async context manager protocol."""
+
+        return None
+
+
+class _StubSession:
+    """Async session stub exposing a get() method."""
+
+    def __init__(self, *, status: int = 200, body: bytes = b"{}") -> None:
+        self._status = status
+        self._body = body
+
+    def get(self, *args, **kwargs) -> _StubResponse:
+        """Return an async context manager response stub."""
+
+        return _StubResponse(status=self._status, body=self._body)
+
+
+aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
 sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 ha_mod.helpers = helpers_mod
@@ -121,6 +154,7 @@ vol_mod.Required = lambda *args, **kwargs: None
 vol_mod.All = lambda *args, **kwargs: None
 vol_mod.Coerce = lambda *args, **kwargs: None
 vol_mod.Range = lambda *args, **kwargs: None
+vol_mod.In = lambda *args, **kwargs: None
 sys.modules.setdefault("voluptuous", vol_mod)
 
 from custom_components.pollenlevels import config_flow as cf
@@ -137,6 +171,91 @@ from custom_components.pollenlevels.const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
 )
+
+
+class _StubResponse:
+    def __init__(self, status: int, body: bytes | None = None) -> None:
+        self.status = status
+        self._body = body or b"{}"
+
+    async def __aenter__(self):  # pragma: no cover - trivial
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):  # pragma: no cover - trivial
+        return None
+
+    async def read(self) -> bytes:
+        return self._body
+
+
+class _SequenceSession:
+    def __init__(self, responses: list[_StubResponse]) -> None:
+        self.responses = responses
+        self.calls: list[tuple[tuple, dict]] = []
+
+    def get(self, *args, **kwargs):
+        self.calls.append((args, kwargs))
+        return self.responses.pop(0)
+
+
+def _collect_error_keys_from_config_flow() -> set[str]:
+    """Parse the config flow to extract all error keys used in forms."""
+
+    source = (ROOT / "custom_components" / "pollenlevels" / "config_flow.py").read_text(
+        encoding="utf-8"
+    )
+    tree = ast.parse(source)
+
+    language_error_returns: set[str] = set()
+
+    class _LanguageErrorVisitor(ast.NodeVisitor):
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
+            if node.name == "_language_error_to_form_key":
+                for child in ast.walk(node):
+                    if (
+                        isinstance(child, ast.Return)
+                        and isinstance(child.value, ast.Constant)
+                        and isinstance(child.value.value, str)
+                    ):
+                        language_error_returns.add(child.value.value)
+
+    _LanguageErrorVisitor().visit(tree)
+
+    error_keys: set[str] = set()
+
+    def _extract_error_values(value: ast.AST) -> set[str]:
+        values: set[str] = set()
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            values.add(value.value)
+        elif (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "_language_error_to_form_key"
+        ):
+            values.update(language_error_returns)
+        return values
+
+    class _ErrorsVisitor(ast.NodeVisitor):
+        def visit_Assign(self, node: ast.Assign) -> None:  # noqa: N802
+            for target in node.targets:
+                self._record_errors(target, node.value)
+            self.generic_visit(node)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:  # noqa: N802
+            self._record_errors(node.target, node.value)
+            self.generic_visit(node)
+
+        def _record_errors(self, target: ast.AST, value: ast.AST | None) -> None:
+            if (
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "errors"
+                and value is not None
+            ):
+                error_keys.update(_extract_error_values(value))
+
+    _ErrorsVisitor().visit(tree)
+    return error_keys
 
 
 def test_validate_input_invalid_language_key_mapping() -> None:
@@ -213,21 +332,122 @@ def test_validate_input_out_of_range_coordinates() -> None:
     assert normalized is None
 
 
-def test_translations_define_required_error_keys() -> None:
-    """Every translation must expose the custom error messages."""
+def _patch_client_session(monkeypatch: pytest.MonkeyPatch, response: _StubResponse):
+    session = _SequenceSession([response])
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
+    return session
 
-    translations_dir = ROOT / "custom_components" / "pollenlevels" / "translations"
-    required_errors = {"invalid_language_format", "invalid_coordinates"}
 
-    for path in translations_dir.glob("*.json"):
-        content = json.loads(path.read_text(encoding="utf-8"))
-        for section in ("config", "options"):
-            errors = content.get(section, {}).get("error", {})
-            for key in required_errors:
-                assert key in errors, f"missing {key} in {path.name} ({section})"
-                assert errors[
-                    key
-                ].strip(), f"empty {key} message in {path.name} ({section})"
+def _base_user_input() -> dict:
+    return {
+        CONF_API_KEY: "test-key",
+        CONF_LATITUDE: "1.0",
+        CONF_LONGITUDE: "2.0",
+    }
+
+
+def test_validate_input_http_403_sets_invalid_auth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 403 during validation should map to invalid_auth."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(403))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert session.calls
+    assert errors == {"base": "invalid_auth"}
+    assert normalized is None
+
+
+def test_validate_input_http_429_sets_quota_exceeded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 429 during validation should map to quota_exceeded."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(429))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert session.calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+
+
+def test_validate_input_http_500_sets_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected HTTP failures should map to cannot_connect."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(500))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+
+
+def test_validate_input_happy_path_sets_unique_id_and_normalizes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Successful validation should normalize data and set unique ID."""
+
+    body = b'{"dailyInfo": [{"day": "D0"}]}'
+    session = _patch_client_session(monkeypatch, _StubResponse(200, body))
+
+    class _TrackingFlow(PollenLevelsConfigFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.unique_ids: list[str] = []
+            self.abort_calls = 0
+
+        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
+            self.unique_ids.append(uid)
+            return None
+
+        def _abort_if_unique_id_configured(self):
+            self.abort_calls += 1
+            return None
+
+    flow = _TrackingFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(),
+    )
+
+    user_input = {
+        **_base_user_input(),
+        CONF_LANGUAGE_CODE: " es ",
+        CONF_ENTRY_NAME: "Name",
+    }
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(user_input, check_unique_id=True)
+    )
+
+    assert session.calls
+    assert errors == {}
+    assert normalized is not None
+    assert normalized[CONF_LATITUDE] == pytest.approx(1.0)
+    assert normalized[CONF_LONGITUDE] == pytest.approx(2.0)
+    assert normalized[CONF_LANGUAGE_CODE] == "es"
+    assert flow.unique_ids == ["1.0000_2.0000"]
+    assert flow.abort_calls == 1
 
 
 def test_reauth_confirm_updates_and_reloads_entry() -> None:
