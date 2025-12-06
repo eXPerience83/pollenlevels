@@ -15,8 +15,6 @@
   the selector empty until the user picks a point.
 - Simplified user-facing connection errors during setup by removing raw HTTP status codes from
   the `error_message` placeholder while retaining detailed logging for debugging.
-- Fixed legacy coordinate validation to show base-level errors during reauthentication and
-  aligned the longitude test stub with Home Assistant's validation behavior for invalid types.
 
 ## [1.8.5-rc1] - 2025-12-02
 ### Changed
@@ -25,6 +23,10 @@
   in edge cases.
 - Expanded the Home Assistant constant test stub with common config keys to improve isolation of
   sensor tests without altering runtime behavior.
+- Fixed legacy coordinate validation to surface `invalid_coordinates` on the appropriate field
+  (map `location` when present; base-level only for legacy lat/lon reauth forms), and aligned the
+  longitude test stub with Home Assistant's invalid-type behavior. Unexpected validation errors
+  now map to `unknown`.
 
 ## [1.8.5-alpha2] - 2025-12-01
 ### Changed
