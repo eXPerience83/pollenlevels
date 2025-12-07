@@ -17,10 +17,21 @@ def pytest_configure(config: pytest.Config) -> None:
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
-    """Run coroutine tests marked with @pytest.mark.asyncio via a local loop."""
+    """Run @pytest.mark.asyncio tests locally when no other async plugin is active."""
 
     marker = pyfuncitem.get_closest_marker("asyncio")
     if marker is None or not asyncio.iscoroutinefunction(pyfuncitem.obj):
+        return None
+
+    # If another asyncio-aware plugin is active, let it handle the test.
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        running_loop = None
+    else:
+        running_loop = True
+
+    if running_loop:
         return None
 
     loop = asyncio.new_event_loop()
