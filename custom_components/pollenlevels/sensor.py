@@ -16,7 +16,7 @@ import logging
 import random
 from collections.abc import Awaitable
 from datetime import date, timedelta  # Added `date` for DATE device class native_value
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiohttp  # For explicit ClientTimeout and ClientError
 
@@ -26,20 +26,22 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ATTRIBUTION
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
     UpdateFailed,
 )
 from homeassistant.util import dt as dt_util
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_API_KEY,

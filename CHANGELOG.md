@@ -9,6 +9,8 @@
   device metadata carries trimmed or default entry titles in translation placeholders.
 - Raised the minimum Home Assistant requirement to 2025.3.0 and bumped the integration
   version to 1.8.6-alpha1.
+- Guarded Home Assistant type imports and simplified async device-title tests so the
+  lightweight test harness runs without the full Home Assistant package installed.
 
 ## [1.8.5-rc2] - 2025-12-06
 ### Changed
