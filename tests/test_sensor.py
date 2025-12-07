@@ -133,6 +133,15 @@ class _StubDataUpdateCoordinator:
         self.last_updated = None
 
     async def async_config_entry_first_refresh(self):
+        """Simulate a successful first refresh with minimal payload."""
+
+        if self.data is None:
+            # Provide minimal successful payload so entity setup can proceed
+            self.data = {
+                "date": {"source": "meta"},
+                "region": {"source": "meta"},
+            }
+
         return None
 
 

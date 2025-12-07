@@ -28,7 +28,19 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
     try:
         loop.run_until_complete(pyfuncitem.obj(**pyfuncitem.funcargs))
     finally:
-        loop.close()
-        asyncio.set_event_loop(None)
+        # Ensure all tasks and async generators are properly cleaned up
+        try:
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                task.cancel()
+            if pending:
+                loop.run_until_complete(
+                    asyncio.gather(*pending, return_exceptions=True)
+                )
+        finally:
+            # Shutdown async generators and close the loop
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
+            asyncio.set_event_loop(None)
 
     return True
