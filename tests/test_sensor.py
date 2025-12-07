@@ -880,7 +880,8 @@ def test_async_setup_entry_missing_api_key_triggers_reauth() -> None:
         loop.close()
 
 
-def test_device_info_uses_default_title_when_blank(
+@pytest.mark.asyncio
+async def test_device_info_uses_default_title_when_blank(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Whitespace titles fall back to the default in translation placeholders."""
@@ -895,38 +896,38 @@ def test_device_info_uses_default_title_when_blank(
     )
     monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
 
-    async def _run() -> None:
-        hass = DummyHass(asyncio.get_running_loop())
-        config_entry = FakeConfigEntry(
-            data={
-                sensor.CONF_API_KEY: "key",
-                sensor.CONF_LATITUDE: 1.0,
-                sensor.CONF_LONGITUDE: 2.0,
-                sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
-                sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
-            },
-            entry_id="entry",
-        )
-        config_entry.title = "   "
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        entry_id="entry",
+    )
+    config_entry.title = "   "
 
-        captured: list[Any] = []
+    captured: list[Any] = []
 
-        def _capture_entities(entities, _update_before_add=False):
-            captured.extend(entities)
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
 
-        await sensor.async_setup_entry(hass, config_entry, _capture_entities)
+    await sensor.async_setup_entry(hass, config_entry, _capture_entities)
 
-        region_sensor = next(
-            entity for entity in captured if isinstance(entity, sensor.RegionSensor)
-        )
+    region_sensor = next(
+        entity for entity in captured if isinstance(entity, sensor.RegionSensor)
+    )
 
-        placeholders = region_sensor.device_info["translation_placeholders"]
-        assert placeholders["title"] == sensor.DEFAULT_ENTRY_TITLE
-
-    asyncio.run(_run())
+    placeholders = region_sensor.device_info["translation_placeholders"]
+    assert placeholders["title"] == sensor.DEFAULT_ENTRY_TITLE
 
 
-def test_device_info_trims_custom_title(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_device_info_trims_custom_title(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Custom titles are trimmed before reaching translation placeholders."""
 
     async def _stub_first_refresh(self):  # type: ignore[override]
@@ -939,32 +940,29 @@ def test_device_info_trims_custom_title(monkeypatch: pytest.MonkeyPatch) -> None
     )
     monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
 
-    async def _run() -> None:
-        hass = DummyHass(asyncio.get_running_loop())
-        config_entry = FakeConfigEntry(
-            data={
-                sensor.CONF_API_KEY: "key",
-                sensor.CONF_LATITUDE: 1.0,
-                sensor.CONF_LONGITUDE: 2.0,
-                sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
-                sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
-            },
-            entry_id="entry",
-        )
-        config_entry.title = "  My Location  "
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        entry_id="entry",
+    )
+    config_entry.title = "  My Location  "
 
-        captured: list[Any] = []
+    captured: list[Any] = []
 
-        def _capture_entities(entities, _update_before_add=False):
-            captured.extend(entities)
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
 
-        await sensor.async_setup_entry(hass, config_entry, _capture_entities)
+    await sensor.async_setup_entry(hass, config_entry, _capture_entities)
 
-        region_sensor = next(
-            entity for entity in captured if isinstance(entity, sensor.RegionSensor)
-        )
+    region_sensor = next(
+        entity for entity in captured if isinstance(entity, sensor.RegionSensor)
+    )
 
-        placeholders = region_sensor.device_info["translation_placeholders"]
-        assert placeholders["title"] == "My Location"
-
-    asyncio.run(_run())
+    placeholders = region_sensor.device_info["translation_placeholders"]
+    assert placeholders["title"] == "My Location"

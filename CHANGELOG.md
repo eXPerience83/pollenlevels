@@ -12,7 +12,7 @@
 - Guarded Home Assistant type imports and simplified async device-title tests so the
   lightweight test harness runs without the full Home Assistant package installed.
 
-## [1.8.5-rc2] - 2025-12-06
+## [1.8.5] - 2025-12-06
 ### Changed
 - Sanitized map selector defaults and suggested values to drop invalid Home Assistant
   coordinates instead of pre-filling the map at (0,0) or an empty location, keeping setup
@@ -28,9 +28,6 @@
   the selector empty until the user picks a point.
 - Simplified user-facing connection errors during setup by removing raw HTTP status codes from
   the `error_message` placeholder while retaining detailed logging for debugging.
-
-## [1.8.5-rc1] - 2025-12-02
-### Changed
 - Hardened the map selector defaults to validate Home Assistant coordinates and fall back to a
   safe entry title when core configuration values are missing or invalid, keeping setup usable
   in edge cases.
@@ -40,9 +37,6 @@
   (map `location` when present; base-level only for legacy lat/lon reauth forms), and aligned the
   longitude test stub with Home Assistant's invalid-type behavior. Unexpected validation errors
   now map to `unknown`.
-
-## [1.8.5-alpha2] - 2025-12-01
-### Changed
 - Simplified options-flow connectivity errors to use generic localized messages without the
   `error_message` placeholder, keeping detailed HTTP context limited to setup and
   reauthentication flows.
@@ -54,9 +48,6 @@
   keep translation strings aligned with the current options flow.
 - Options flow descriptions now show the config entry title and unexpected validation errors map
   to the generic `unknown` message instead of implying connectivity failures.
-
-## [1.8.5-alpha1] - 2025-11-29
-### Changed
 - Switched the setup form to a map-based location selector that defaults to the Home Assistant
   location name and coordinates while validating latitude/longitude with Home Assistant helpers.
 - Updated config-flow messaging and translations to reflect the new map selector and include richer
