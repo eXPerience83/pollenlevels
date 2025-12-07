@@ -26,11 +26,14 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -122,7 +125,7 @@ def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
 
 
 async def _cleanup_per_day_entities(
-    hass, entry_id: str, allow_d1: bool, allow_d2: bool
+    hass: HomeAssistant, entry_id: str, allow_d1: bool, allow_d2: bool
 ) -> int:
     """Remove stale per-day entities (D+1/D+2) from the Entity Registry.
 
@@ -179,7 +182,11 @@ async def _cleanup_per_day_entities(
     return removed
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Create coordinator and build sensors."""
     api_key = config_entry.data.get(CONF_API_KEY)
     if not api_key:
@@ -267,7 +274,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
     def __init__(
         self,
-        hass,
+        hass: HomeAssistant,
         api_key: str,
         lat: float,
         lon: float,

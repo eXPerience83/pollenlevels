@@ -1,4 +1,15 @@
 # Changelog
+## [1.8.6-alpha1] - 2025-12-07
+### Changed
+- Clarified tooling-versus-runtime Python guidance to keep integration code compatible
+  with Home Assistant's Python 3.13 floor while tooling targets Python 3.14+.
+- Added Home Assistant type hints for sensor setup and coordinator helpers to improve
+  editor support and future static checking.
+- Hardened tests by asserting `requires-python` stays at 3.14+ and verifying sensor
+  device metadata carries trimmed or default entry titles in translation placeholders.
+- Raised the minimum Home Assistant requirement to 2025.3.0 and bumped the integration
+  version to 1.8.6-alpha1.
+
 ## [1.8.5-rc2] - 2025-12-06
 ### Changed
 - Sanitized map selector defaults and suggested values to drop invalid Home Assistant

@@ -112,6 +112,10 @@ class _StubEntityCategory:
 entity_mod.EntityCategory = _StubEntityCategory
 sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
 
+entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
+entity_platform_mod.AddEntitiesCallback = Any
+sys.modules.setdefault("homeassistant.helpers.entity_platform", entity_platform_mod)
+
 update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
 
 
@@ -128,10 +132,23 @@ class _StubDataUpdateCoordinator:
         self.data = None
         self.last_updated = None
 
+    async def async_config_entry_first_refresh(self):
+        return None
+
 
 class _StubCoordinatorEntity:
     def __init__(self, coordinator):
         self.coordinator = coordinator
+        self._attr_unique_id = None
+        self._attr_device_info = None
+
+    @property
+    def unique_id(self):  # pragma: no cover - simple data holder
+        return self._attr_unique_id
+
+    @property
+    def device_info(self):  # pragma: no cover - simple data holder
+        return self._attr_device_info
 
 
 update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
@@ -861,3 +878,99 @@ def test_async_setup_entry_missing_api_key_triggers_reauth() -> None:
             )
     finally:
         loop.close()
+
+
+def test_device_info_uses_default_title_when_blank(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Whitespace titles fall back to the default in translation placeholders."""
+
+    async def _stub_first_refresh(self):  # type: ignore[override]
+        self.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
+
+    monkeypatch.setattr(
+        sensor.PollenDataUpdateCoordinator,
+        "async_config_entry_first_refresh",
+        _stub_first_refresh,
+    )
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        entry_id="entry",
+    )
+    config_entry.title = "   "
+
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    try:
+        loop.run_until_complete(
+            sensor.async_setup_entry(hass, config_entry, _capture_entities)
+        )
+    finally:
+        loop.close()
+
+    region_sensor = next(
+        entity for entity in captured if isinstance(entity, sensor.RegionSensor)
+    )
+
+    placeholders = region_sensor.device_info["translation_placeholders"]
+    assert placeholders["title"] == sensor.DEFAULT_ENTRY_TITLE
+
+
+def test_device_info_trims_custom_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Custom titles are trimmed before reaching translation placeholders."""
+
+    async def _stub_first_refresh(self):  # type: ignore[override]
+        self.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
+
+    monkeypatch.setattr(
+        sensor.PollenDataUpdateCoordinator,
+        "async_config_entry_first_refresh",
+        _stub_first_refresh,
+    )
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        entry_id="entry",
+    )
+    config_entry.title = "  My Location  "
+
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    try:
+        loop.run_until_complete(
+            sensor.async_setup_entry(hass, config_entry, _capture_entities)
+        )
+    finally:
+        loop.close()
+
+    region_sensor = next(
+        entity for entity in captured if isinstance(entity, sensor.RegionSensor)
+    )
+
+    placeholders = region_sensor.device_info["translation_placeholders"]
+    assert placeholders["title"] == "My Location"
