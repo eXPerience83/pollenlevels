@@ -113,7 +113,13 @@ entity_mod.EntityCategory = _StubEntityCategory
 sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
 
 entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
-entity_platform_mod.AddEntitiesCallback = Any
+
+
+def _add_entities_callback_stub(entities, update_before_add: bool = False) -> None:
+    return None
+
+
+entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
 sys.modules.setdefault("homeassistant.helpers.entity_platform", entity_platform_mod)
 
 update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")

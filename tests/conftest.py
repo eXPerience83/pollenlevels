@@ -24,6 +24,12 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
         return None
 
     # If another asyncio-aware plugin is active, let it handle the test.
+    plugin_manager = pyfuncitem.config.pluginmanager
+    if plugin_manager.hasplugin("asyncio") or plugin_manager.hasplugin(
+        "pytest-asyncio"
+    ):
+        return None
+
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -48,10 +54,16 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
                 loop.run_until_complete(
                     asyncio.gather(*pending, return_exceptions=True)
                 )
+        except Exception:
+            # Continue teardown even if cleanup raises
+            pass
         finally:
-            # Shutdown async generators and close the loop
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
-            asyncio.set_event_loop(None)
+            try:
+                loop.run_until_complete(loop.shutdown_asyncgens())
+            except Exception:
+                pass
+            finally:
+                loop.close()
+                asyncio.set_event_loop(None)
 
     return True

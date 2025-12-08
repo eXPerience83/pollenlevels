@@ -199,8 +199,14 @@ async def async_setup_entry(
             config_entry.entry_id,
         )
         raise ConfigEntryAuthFailed("Missing API key in config entry")
-    lat = config_entry.data[CONF_LATITUDE]
-    lon = config_entry.data[CONF_LONGITUDE]
+    lat = config_entry.data.get(CONF_LATITUDE)
+    lon = config_entry.data.get(CONF_LONGITUDE)
+    if lat is None or lon is None:
+        _LOGGER.error(
+            "Config entry %s is missing coordinates; delaying setup until entry is complete",
+            config_entry.entry_id,
+        )
+        raise ConfigEntryNotReady("Missing coordinates in config entry")
 
     opts = config_entry.options or {}
     interval = opts.get(

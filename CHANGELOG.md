@@ -13,6 +13,10 @@
   lightweight test harness runs without the full Home Assistant package installed.
 - Replaced hardcoded forecast-day bounds with shared constants to ease future range
   adjustments without altering behavior today.
+- Deferred setup when config entries lack coordinates, logging a clear message and
+  retrying instead of raising KeyError during sensor platform initialization.
+- Strengthened the lightweight asyncio test hook and Home Assistant stubs to avoid
+  conflicts with async plugins and better mirror entity callback signatures.
 
 ## [1.8.5] - 2025-12-06
 ### Changed
