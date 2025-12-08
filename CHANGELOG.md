@@ -1,5 +1,5 @@
 # Changelog
-## [1.8.6-alpha1] - 2025-12-07
+## [1.8.6-alpha1] - 2025-12-08
 ### Changed
 - Clarified tooling-versus-runtime Python guidance to keep integration code compatible
   with Home Assistant's Python 3.13 floor while tooling targets Python 3.14+.
