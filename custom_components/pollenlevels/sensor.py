@@ -55,6 +55,8 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
 )
 from .util import redact_api_key
 
@@ -308,7 +310,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.entry_id = entry_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
-        self.forecast_days = max(1, min(5, int(forecast_days)))
+        self.forecast_days = max(
+            MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, int(forecast_days))
+        )
         self.create_d1 = create_d1
         self.create_d2 = create_d2
 

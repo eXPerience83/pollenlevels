@@ -11,6 +11,8 @@
   version to 1.8.6-alpha1.
 - Guarded Home Assistant type imports and simplified async device-title tests so the
   lightweight test harness runs without the full Home Assistant package installed.
+- Replaced hardcoded forecast-day bounds with shared constants to ease future range
+  adjustments without altering behavior today.
 
 ## [1.8.5] - 2025-12-06
 ### Changed
