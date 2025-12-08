@@ -147,6 +147,8 @@ class _StubDataUpdateCoordinator:
                 "date": {"source": "meta"},
                 "region": {"source": "meta"},
             }
+        if self.last_updated is None:
+            self.last_updated = "now"
 
         return None
 

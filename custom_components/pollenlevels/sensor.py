@@ -202,7 +202,7 @@ async def async_setup_entry(
     lat = config_entry.data.get(CONF_LATITUDE)
     lon = config_entry.data.get(CONF_LONGITUDE)
     if lat is None or lon is None:
-        _LOGGER.error(
+        _LOGGER.warning(
             "Config entry %s is missing coordinates; delaying setup until entry is complete",
             config_entry.entry_id,
         )

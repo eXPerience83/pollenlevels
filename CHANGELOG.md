@@ -17,6 +17,10 @@
   retrying instead of raising KeyError during sensor platform initialization.
 - Strengthened the lightweight asyncio test hook and Home Assistant stubs to avoid
   conflicts with async plugins and better mirror entity callback signatures.
+- Added a fail-fast guard for unexpected running event loops and restored any prior
+  loop after async tests to keep the harness isolated from external plugins.
+- Updated the stub data coordinator to populate a placeholder `last_updated` timestamp
+  during its initial refresh so tests mirror Home Assistant semantics more closely.
 
 ## [1.8.5] - 2025-12-06
 ### Changed

@@ -33,12 +33,20 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
     try:
         asyncio.get_running_loop()
     except RuntimeError:
-        running_loop = None
+        running_loop = False
     else:
         running_loop = True
 
     if running_loop:
-        return None
+        raise RuntimeError(
+            "Detected a running event loop without an asyncio-aware pytest plugin. "
+            "Disable conflicting plugins or install/enable pytest-asyncio."
+        )
+
+    try:
+        previous_loop = asyncio.get_event_loop()
+    except RuntimeError:
+        previous_loop = None
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -64,6 +72,9 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
                 pass
             finally:
                 loop.close()
-                asyncio.set_event_loop(None)
+                try:
+                    asyncio.set_event_loop(previous_loop)
+                except Exception:
+                    asyncio.set_event_loop(None)
 
     return True
