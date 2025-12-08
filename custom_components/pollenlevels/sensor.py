@@ -55,8 +55,6 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    MAX_FORECAST_DAYS,
-    MIN_FORECAST_DAYS,
 )
 from .util import redact_api_key
 
@@ -199,37 +197,16 @@ async def async_setup_entry(
             config_entry.entry_id,
         )
         raise ConfigEntryAuthFailed("Missing API key in config entry")
-    raw_lat = config_entry.data.get(CONF_LATITUDE)
-    raw_lon = config_entry.data.get(CONF_LONGITUDE)
-    try:
-        lat = float(raw_lat) if raw_lat is not None else None
-        lon = float(raw_lon) if raw_lon is not None else None
-    except (TypeError, ValueError):
-        _LOGGER.error(
-            "Config entry %s contains non-numeric coordinates (%r, %r); prompting reconfiguration",
-            config_entry.entry_id,
-            raw_lat,
-            raw_lon,
-        )
-        raise ConfigEntryAuthFailed(
-            "Invalid coordinate types in config entry"
-        ) from None
-
+    # Config flow already enforces type and range on coordinates; missing values here
+    # would indicate a corrupted entry, so we only guard for presence.
+    lat = config_entry.data.get(CONF_LATITUDE)
+    lon = config_entry.data.get(CONF_LONGITUDE)
     if lat is None or lon is None:
         _LOGGER.warning(
             "Config entry %s is missing coordinates; delaying setup until entry is complete",
             config_entry.entry_id,
         )
         raise ConfigEntryNotReady("Missing coordinates in config entry")
-
-    if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
-        _LOGGER.warning(
-            "Config entry %s has out-of-range coordinates (lat=%s, lon=%s); delaying setup",
-            config_entry.entry_id,
-            lat,
-            lon,
-        )
-        raise ConfigEntryNotReady("Out-of-range coordinates in config entry")
 
     opts = config_entry.options or {}
     interval = opts.get(
@@ -339,9 +316,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.entry_id = entry_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
-        self.forecast_days = max(
-            MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, int(forecast_days))
-        )
+        # Options flow restricts this range; no runtime clamping needed.
+        self.forecast_days = int(forecast_days)
         self.create_d1 = create_d1
         self.create_d2 = create_d2
 

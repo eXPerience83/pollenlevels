@@ -21,6 +21,9 @@
   loop after async tests to keep the harness isolated from external plugins.
 - Updated the stub data coordinator to populate a placeholder `last_updated` timestamp
   during its initial refresh so tests mirror Home Assistant semantics more closely.
+- Removed redundant runtime revalidation of coordinates and forecast ranges now that
+  the config and options flows enforce these values, keeping only a minimal guard for
+  corrupted entries.
 
 ## [1.8.5] - 2025-12-06
 ### Changed
