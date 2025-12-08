@@ -205,14 +205,31 @@ async def async_setup_entry(
         lat = float(raw_lat) if raw_lat is not None else None
         lon = float(raw_lon) if raw_lon is not None else None
     except (TypeError, ValueError):
-        lat = None
-        lon = None
+        _LOGGER.error(
+            "Config entry %s contains non-numeric coordinates (%r, %r); prompting reconfiguration",
+            config_entry.entry_id,
+            raw_lat,
+            raw_lon,
+        )
+        raise ConfigEntryAuthFailed(
+            "Invalid coordinate types in config entry"
+        ) from None
+
     if lat is None or lon is None:
         _LOGGER.warning(
-            "Config entry %s is missing or invalid coordinates; delaying setup until entry is complete",
+            "Config entry %s is missing coordinates; delaying setup until entry is complete",
             config_entry.entry_id,
         )
-        raise ConfigEntryNotReady("Missing or invalid coordinates in config entry")
+        raise ConfigEntryNotReady("Missing coordinates in config entry")
+
+    if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
+        _LOGGER.warning(
+            "Config entry %s has out-of-range coordinates (lat=%s, lon=%s); delaying setup",
+            config_entry.entry_id,
+            lat,
+            lon,
+        )
+        raise ConfigEntryNotReady("Out-of-range coordinates in config entry")
 
     opts = config_entry.options or {}
     interval = opts.get(
