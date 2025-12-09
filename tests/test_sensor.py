@@ -620,10 +620,26 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["expected_peak"]["value"] == 4
 
 
-def test_cleanup_per_day_entities_removes_disabled_d1(
+@pytest.mark.parametrize(
+    (
+        "allow_d1",
+        "allow_d2",
+        "expected_removed",
+        "expected_entities",
+    ),
+    [
+        (False, True, 1, ["sensor.pollen_type_grass_d1"]),
+        (True, False, 1, ["sensor.pollen_type_grass_d2"]),
+    ],
+)
+def test_cleanup_per_day_entities_removes_disabled_days(
     monkeypatch: pytest.MonkeyPatch,
+    allow_d1: bool,
+    allow_d2: bool,
+    expected_removed: int,
+    expected_entities: list[str],
 ) -> None:
-    """D+1 entries are awaited and removed when the option is disabled."""
+    """D+1/D+2 entities are awaited and removed when disabled."""
 
     entries = [
         RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
@@ -637,41 +653,14 @@ def test_cleanup_per_day_entities_removes_disabled_d1(
     try:
         removed = loop.run_until_complete(
             sensor._cleanup_per_day_entities(
-                hass, "entry", allow_d1=False, allow_d2=True
+                hass, "entry", allow_d1=allow_d1, allow_d2=allow_d2
             )
         )
     finally:
         loop.close()
 
-    assert removed == 1
-    assert registry.removals == ["sensor.pollen_type_grass_d1"]
-
-
-def test_cleanup_per_day_entities_removes_disabled_d2(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """D+2 entries are awaited and removed when the option is disabled."""
-
-    entries = [
-        RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
-        RegistryEntry("entry_type_grass_d1", "sensor.pollen_type_grass_d1"),
-        RegistryEntry("entry_type_grass_d2", "sensor.pollen_type_grass_d2"),
-    ]
-    registry = _setup_registry_stub(monkeypatch, entries, entry_id="entry")
-
-    loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    try:
-        removed = loop.run_until_complete(
-            sensor._cleanup_per_day_entities(
-                hass, "entry", allow_d1=True, allow_d2=False
-            )
-        )
-    finally:
-        loop.close()
-
-    assert removed == 1
-    assert registry.removals == ["sensor.pollen_type_grass_d2"]
+    assert removed == expected_removed
+    assert registry.removals == expected_entities
 
 
 def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None:
