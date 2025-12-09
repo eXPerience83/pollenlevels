@@ -3,6 +3,8 @@
 ### Changed
 - Parallelized the `force_update` service to refresh all entry coordinators concurrently,
   reducing wait time when multiple locations are configured.
+- Aligned `force_update` refresh result logging to the correct entries when some
+  coordinators are missing, avoiding misattributed failures.
 - Consolidated per-day cleanup tests into a single parametrized case covering D+1/D+2
   removal combinations without duplicating setup code.
 - Bumped version metadata to 1.8.6-alpha2.

@@ -39,15 +39,17 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         _LOGGER.info("Executing force_update service for all Pollen Levels entries")
         entries = list(hass.config_entries.async_entries(DOMAIN))
         tasks: list[Awaitable[None]] = []
+        task_entries: list[ConfigEntry] = []
         for entry in entries:
             coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
             if coordinator:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
                 tasks.append(coordinator.async_refresh())
+                task_entries.append(entry)
 
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for entry, result in zip(entries, results, strict=False):
+            for entry, result in zip(task_entries, results, strict=False):
                 if isinstance(result, Exception):
                     _LOGGER.warning(
                         "Manual refresh failed for entry %s: %r",
