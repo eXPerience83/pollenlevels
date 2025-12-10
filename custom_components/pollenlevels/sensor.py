@@ -221,10 +221,6 @@ async def async_setup_entry(
     allow_d1 = create_d1 and forecast_days >= 2
     allow_d2 = create_d2 and forecast_days >= 3
 
-    raw_title = config_entry.title or ""
-    clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
-    coordinator.entry_title = clean_title
-
     data = coordinator.data or {}
     has_daily = ("date" in data) or any(
         key.startswith(("type_", "plants_")) for key in data

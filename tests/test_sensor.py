@@ -928,6 +928,7 @@ async def test_device_info_uses_default_title_when_blank(
     config_entry.title = "   "
 
     client = sensor.GooglePollenApiClient(FakeSession({}), "key")
+    clean_title = sensor.DEFAULT_ENTRY_TITLE
     coordinator = sensor.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
@@ -936,7 +937,7 @@ async def test_device_info_uses_default_title_when_blank(
         hours=sensor.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
-        entry_title=config_entry.title,
+        entry_title=clean_title,
         forecast_days=sensor.DEFAULT_FORECAST_DAYS,
         create_d1=False,
         create_d2=False,
@@ -982,6 +983,7 @@ async def test_device_info_trims_custom_title(
     config_entry.title = "  My Location  "
 
     client = sensor.GooglePollenApiClient(FakeSession({}), "key")
+    clean_title = config_entry.title.strip()
     coordinator = sensor.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
@@ -990,7 +992,7 @@ async def test_device_info_trims_custom_title(
         hours=sensor.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
-        entry_title=config_entry.title,
+        entry_title=clean_title,
         forecast_days=sensor.DEFAULT_FORECAST_DAYS,
         create_d1=False,
         create_d2=False,

@@ -7,6 +7,10 @@
 - Updated sensors, diagnostics, and the `pollenlevels.force_update` service to
   read coordinators from runtime data so each entry reuses a single API client
   for Google Pollen requests.
+- Restored API key validation during setup to raise `ConfigEntryAuthFailed`
+  when the key is missing instead of retrying endlessly.
+- Centralized config entry title normalization during setup so the cleaned
+  device titles are reused across all sensors.
 
 ## [1.8.6] - 2025-12-09
 ### Changed

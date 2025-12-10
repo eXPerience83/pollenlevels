@@ -29,6 +29,7 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
@@ -108,18 +109,25 @@ async def async_setup_entry(
     create_d1 = mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2)
     create_d2 = mode == ForecastSensorMode.D1_D2
 
+    api_key = entry.data.get(CONF_API_KEY)
+    if not api_key:
+        raise ConfigEntryAuthFailed("Missing API key")
+
+    raw_title = entry.title or ""
+    clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
+
     session = async_get_clientsession(hass)
-    client = GooglePollenApiClient(session, entry.data[CONF_API_KEY])
+    client = GooglePollenApiClient(session, api_key)
 
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
-        api_key=entry.data[CONF_API_KEY],
+        api_key=api_key,
         lat=cast(float, entry.data[CONF_LATITUDE]),
         lon=cast(float, entry.data[CONF_LONGITUDE]),
         hours=hours,
         language=language,
         entry_id=entry.entry_id,
-        entry_title=entry.title,
+        entry_title=clean_title,
         forecast_days=forecast_days,
         create_d1=create_d1,
         create_d2=create_d2,
