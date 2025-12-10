@@ -41,15 +41,30 @@ if TYPE_CHECKING:
 
 from .client import GooglePollenApiClient
 from .const import (
+    CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
+    DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .util import redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
+
+__all__ = [
+    "CONF_API_KEY",
+    "CONF_LATITUDE",
+    "CONF_LONGITUDE",
+    "CONF_UPDATE_INTERVAL",
+    "DEFAULT_FORECAST_DAYS",
+    "DEFAULT_UPDATE_INTERVAL",
+]
 
 # ---- Icons ---------------------------------------------------------------
 
@@ -239,7 +254,9 @@ async def async_setup_entry(
     )
 
     _LOGGER.debug(
-        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
+        "Creating %d sensors: %s",
+        len(sensors),
+        [getattr(s, "unique_id", None) for s in sensors],
     )
     async_add_entities(sensors, True)
 
@@ -802,6 +819,18 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
 
 class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
     """Provide base for metadata sensors."""
+
+    @property
+    def unique_id(self) -> str | None:
+        """Return the cached unique ID."""
+
+        return getattr(self, "_attr_unique_id", None)
+
+    @property
+    def device_info(self) -> dict[str, Any] | None:
+        """Return cached device info for diagnostics."""
+
+        return getattr(self, "_attr_device_info", None)
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
         """Initialize metadata sensor.

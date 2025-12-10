@@ -34,9 +34,62 @@ core_mod.HomeAssistant = _StubHomeAssistant
 core_mod.ServiceCall = _StubServiceCall
 sys.modules.setdefault("homeassistant.core", core_mod)
 
+ha_components_mod = sys.modules.get("homeassistant.components") or types.ModuleType(
+    "homeassistant.components"
+)
+sys.modules["homeassistant.components"] = ha_components_mod
+
+sensor_mod = types.ModuleType("homeassistant.components.sensor")
+
+
+class _StubSensorEntity:  # pragma: no cover - structure only
+    pass
+
+
+class _StubSensorDeviceClass:  # pragma: no cover - structure only
+    DATE = "date"
+    TIMESTAMP = "timestamp"
+
+
+class _StubSensorStateClass:  # pragma: no cover - structure only
+    MEASUREMENT = "measurement"
+
+
+sensor_mod.SensorEntity = _StubSensorEntity
+sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
+sensor_mod.SensorStateClass = _StubSensorStateClass
+sys.modules.setdefault("homeassistant.components.sensor", sensor_mod)
+
+const_mod = sys.modules.get("homeassistant.const") or types.ModuleType(
+    "homeassistant.const"
+)
+const_mod.ATTR_ATTRIBUTION = "Attribution"
+sys.modules["homeassistant.const"] = const_mod
+
 aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
 aiohttp_client_mod.async_get_clientsession = lambda _hass: None
 sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+
+aiohttp_mod = sys.modules.get("aiohttp") or types.ModuleType("aiohttp")
+
+
+class _StubClientError(Exception):
+    pass
+
+
+class _StubClientSession:  # pragma: no cover - structure only
+    pass
+
+
+class _StubClientTimeout:
+    def __init__(self, total: float | None = None):
+        self.total = total
+
+
+aiohttp_mod.ClientError = _StubClientError
+aiohttp_mod.ClientSession = _StubClientSession
+aiohttp_mod.ClientTimeout = _StubClientTimeout
+sys.modules["aiohttp"] = aiohttp_mod
 
 cv_mod = sys.modules["homeassistant.helpers.config_validation"]
 cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
@@ -44,6 +97,53 @@ cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
 vol_mod = sys.modules["voluptuous"]
 if not hasattr(vol_mod, "Schema"):
     vol_mod.Schema = lambda *args, **kwargs: None
+
+helpers_mod = sys.modules.get("homeassistant.helpers") or types.ModuleType(
+    "homeassistant.helpers"
+)
+sys.modules["homeassistant.helpers"] = helpers_mod
+
+entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
+
+
+def _stub_async_get(_hass):  # pragma: no cover - structure only
+    class _Registry:
+        @staticmethod
+        def async_entries_for_config_entry(_registry, _entry_id):
+            return []
+
+    return _Registry()
+
+
+entity_registry_mod.async_get = _stub_async_get
+entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
+sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry_mod)
+
+entity_mod = types.ModuleType("homeassistant.helpers.entity")
+
+
+class _StubEntityCategory:
+    DIAGNOSTIC = "diagnostic"
+
+
+entity_mod.EntityCategory = _StubEntityCategory
+sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
+
+dt_mod = types.ModuleType("homeassistant.util.dt")
+
+
+def _stub_utcnow():
+    from datetime import UTC, datetime
+
+    return datetime.now(UTC)
+
+
+dt_mod.utcnow = _stub_utcnow
+sys.modules.setdefault("homeassistant.util.dt", dt_mod)
+
+util_mod = types.ModuleType("homeassistant.util")
+util_mod.dt = dt_mod
+sys.modules.setdefault("homeassistant.util", util_mod)
 
 exceptions_mod = sys.modules.setdefault(
     "homeassistant.exceptions", types.ModuleType("homeassistant.exceptions")
@@ -68,6 +168,11 @@ class _StubUpdateFailed(Exception):
     pass
 
 
+class _StubCoordinatorEntity:
+    def __init__(self, coordinator):
+        self.coordinator = coordinator
+
+
 class _StubDataUpdateCoordinator:
     def __init__(self, hass, logger, *, name: str, update_interval):
         self.hass = hass
@@ -87,6 +192,7 @@ class _StubDataUpdateCoordinator:
 
 update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
 update_coordinator_mod.UpdateFailed = _StubUpdateFailed
+update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
 sys.modules.setdefault(
     "homeassistant.helpers.update_coordinator", update_coordinator_mod
 )

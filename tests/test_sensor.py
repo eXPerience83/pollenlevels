@@ -193,10 +193,14 @@ util_mod = types.ModuleType("homeassistant.util")
 util_mod.dt = dt_mod
 sys.modules.setdefault("homeassistant.util", util_mod)
 
-aiohttp_mod = types.ModuleType("aiohttp")
+aiohttp_mod = sys.modules.get("aiohttp") or types.ModuleType("aiohttp")
 
 
 class _StubClientError(Exception):
+    pass
+
+
+class _StubClientSession:  # pragma: no cover - structure only
     pass
 
 
@@ -206,8 +210,9 @@ class _StubClientTimeout:
 
 
 aiohttp_mod.ClientError = _StubClientError
+aiohttp_mod.ClientSession = _StubClientSession
 aiohttp_mod.ClientTimeout = _StubClientTimeout
-sys.modules.setdefault("aiohttp", aiohttp_mod)
+sys.modules["aiohttp"] = aiohttp_mod
 
 
 def _load_module(module_name: str, relative_path: str):
@@ -223,6 +228,7 @@ def _load_module(module_name: str, relative_path: str):
 
 _load_module("custom_components.pollenlevels.const", "const.py")
 sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
+client_mod = importlib.import_module("custom_components.pollenlevels.client")
 
 
 class DummyHass:
@@ -713,7 +719,7 @@ def test_coordinator_retries_then_raises_on_rate_limit(
         delays.append(delay)
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
-    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
     client = sensor.GooglePollenApiClient(session, "test")
 
@@ -757,7 +763,7 @@ def test_coordinator_retries_then_raises_on_server_errors(
         delays.append(delay)
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
-    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
     client = sensor.GooglePollenApiClient(session, "test")
 
@@ -799,7 +805,7 @@ def test_coordinator_retries_then_wraps_timeout(
         delays.append(delay)
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
-    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
     client = sensor.GooglePollenApiClient(session, "test")
 
@@ -835,7 +841,10 @@ def test_coordinator_retries_then_wraps_client_error(
     """Client errors retry once then raise UpdateFailed with redacted message."""
 
     session = SequenceSession(
-        [sensor.aiohttp.ClientError("net down"), sensor.aiohttp.ClientError("net down")]
+        [
+            client_mod.ClientError("net down"),
+            client_mod.ClientError("net down"),
+        ]
     )
     delays: list[float] = []
 
@@ -843,7 +852,7 @@ def test_coordinator_retries_then_wraps_client_error(
         delays.append(delay)
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
-    monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
     client = sensor.GooglePollenApiClient(session, "secret")
 

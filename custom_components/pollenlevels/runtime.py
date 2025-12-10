@@ -18,4 +18,7 @@ class PollenLevelsRuntimeData:
     client: GooglePollenApiClient
 
 
-type PollenLevelsConfigEntry = ConfigEntry[PollenLevelsRuntimeData]
+if TYPE_CHECKING:
+    PollenLevelsConfigEntry = ConfigEntry[PollenLevelsRuntimeData]
+else:
+    PollenLevelsConfigEntry = ConfigEntry
