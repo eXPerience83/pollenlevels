@@ -1,4 +1,13 @@
 # Changelog
+## [1.9.0-alpha1] - 2025-12-10
+### Changed
+- Moved runtime state to config entry `runtime_data` with a shared
+  `GooglePollenApiClient` per entry while keeping existing sensor behaviour and
+  identifiers unchanged.
+- Updated sensors, diagnostics, and the `pollenlevels.force_update` service to
+  read coordinators from runtime data so each entry reuses a single API client
+  for Google Pollen requests.
+
 ## [1.8.6] - 2025-12-09
 ### Changed
 - Parallelized the `force_update` service to refresh all entry coordinators concurrently

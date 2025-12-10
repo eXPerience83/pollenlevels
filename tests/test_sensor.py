@@ -246,6 +246,7 @@ class FakeConfigEntry:
         self.data = data
         self.options = options or {}
         self.entry_id = entry_id
+        self.runtime_data = None
 
 
 class FakeResponse:
@@ -388,7 +389,7 @@ def test_type_sensor_preserves_source_with_single_day(
     }
 
     fake_session = FakeSession(payload)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+    client = sensor.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -403,6 +404,7 @@ def test_type_sensor_preserves_source_with_single_day(
         forecast_days=1,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -469,7 +471,7 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
     }
 
     fake_session = FakeSession(payload)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+    client = sensor.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -484,6 +486,7 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
         forecast_days=5,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -578,7 +581,7 @@ def test_plant_sensor_includes_forecast_attributes(
     }
 
     fake_session = FakeSession(payload)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+    client = sensor.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -593,6 +596,7 @@ def test_plant_sensor_includes_forecast_attributes(
         forecast_days=5,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -667,7 +671,7 @@ def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None
     """A 403 response triggers ConfigEntryAuthFailed for re-auth flows."""
 
     fake_session = FakeSession({}, status=403)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: fake_session)
+    client = sensor.GooglePollenApiClient(fake_session, "bad")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -682,6 +686,7 @@ def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None
         forecast_days=1,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -709,7 +714,8 @@ def test_coordinator_retries_then_raises_on_rate_limit(
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    client = sensor.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -724,6 +730,7 @@ def test_coordinator_retries_then_raises_on_rate_limit(
         forecast_days=1,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -751,7 +758,8 @@ def test_coordinator_retries_then_raises_on_server_errors(
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    client = sensor.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -766,6 +774,7 @@ def test_coordinator_retries_then_raises_on_server_errors(
         forecast_days=1,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -791,7 +800,8 @@ def test_coordinator_retries_then_wraps_timeout(
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    client = sensor.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -806,6 +816,7 @@ def test_coordinator_retries_then_wraps_timeout(
         forecast_days=1,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -833,7 +844,8 @@ def test_coordinator_retries_then_wraps_client_error(
 
     monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(sensor.random, "uniform", lambda *_args, **_kwargs: 0.0)
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: session)
+
+    client = sensor.GooglePollenApiClient(session, "secret")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -848,6 +860,7 @@ def test_coordinator_retries_then_wraps_client_error(
         forecast_days=1,
         create_d1=False,
         create_d2=False,
+        client=client,
     )
 
     try:
@@ -878,7 +891,7 @@ def test_async_setup_entry_missing_api_key_triggers_reauth() -> None:
         return None
 
     try:
-        with pytest.raises(sensor.ConfigEntryAuthFailed):
+        with pytest.raises(sensor.ConfigEntryNotReady):
             loop.run_until_complete(
                 sensor.async_setup_entry(hass, config_entry, _noop_add_entities)
             )
@@ -892,16 +905,6 @@ async def test_device_info_uses_default_title_when_blank(
 ) -> None:
     """Whitespace titles fall back to the default in translation placeholders."""
 
-    async def _stub_first_refresh(self):  # type: ignore[override]
-        self.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
-
-    monkeypatch.setattr(
-        sensor.PollenDataUpdateCoordinator,
-        "async_config_entry_first_refresh",
-        _stub_first_refresh,
-    )
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
-
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
@@ -914,6 +917,26 @@ async def test_device_info_uses_default_title_when_blank(
         entry_id="entry",
     )
     config_entry.title = "   "
+
+    client = sensor.GooglePollenApiClient(FakeSession({}), "key")
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="key",
+        lat=1.0,
+        lon=2.0,
+        hours=sensor.DEFAULT_UPDATE_INTERVAL,
+        language=None,
+        entry_id="entry",
+        entry_title=config_entry.title,
+        forecast_days=sensor.DEFAULT_FORECAST_DAYS,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+    coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
+    config_entry.runtime_data = sensor.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=client
+    )
 
     captured: list[Any] = []
 
@@ -936,16 +959,6 @@ async def test_device_info_trims_custom_title(
 ) -> None:
     """Custom titles are trimmed before reaching translation placeholders."""
 
-    async def _stub_first_refresh(self):  # type: ignore[override]
-        self.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
-
-    monkeypatch.setattr(
-        sensor.PollenDataUpdateCoordinator,
-        "async_config_entry_first_refresh",
-        _stub_first_refresh,
-    )
-    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
-
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
@@ -958,6 +971,26 @@ async def test_device_info_trims_custom_title(
         entry_id="entry",
     )
     config_entry.title = "  My Location  "
+
+    client = sensor.GooglePollenApiClient(FakeSession({}), "key")
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="key",
+        lat=1.0,
+        lon=2.0,
+        hours=sensor.DEFAULT_UPDATE_INTERVAL,
+        language=None,
+        entry_id="entry",
+        entry_title=config_entry.title,
+        forecast_days=sensor.DEFAULT_FORECAST_DAYS,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+    coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
+    config_entry.runtime_data = sensor.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=client
+    )
 
     captured: list[Any] = []
 

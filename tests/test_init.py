@@ -34,6 +34,10 @@ core_mod.HomeAssistant = _StubHomeAssistant
 core_mod.ServiceCall = _StubServiceCall
 sys.modules.setdefault("homeassistant.core", core_mod)
 
+aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
+aiohttp_client_mod.async_get_clientsession = lambda _hass: None
+sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+
 cv_mod = sys.modules["homeassistant.helpers.config_validation"]
 cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
 
@@ -56,6 +60,36 @@ if not hasattr(exceptions_mod, "ConfigEntryAuthFailed"):
         pass
 
     exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
+
+update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
+
+
+class _StubUpdateFailed(Exception):
+    pass
+
+
+class _StubDataUpdateCoordinator:
+    def __init__(self, hass, logger, *, name: str, update_interval):
+        self.hass = hass
+        self.logger = logger
+        self.name = name
+        self.update_interval = update_interval
+        self.data = {"date": {}, "region": {}}
+        self.last_updated = None
+
+    async def async_config_entry_first_refresh(self):
+        self.last_updated = "now"
+        return None
+
+    async def async_refresh(self):
+        return None
+
+
+update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
+update_coordinator_mod.UpdateFailed = _StubUpdateFailed
+sys.modules.setdefault(
+    "homeassistant.helpers.update_coordinator", update_coordinator_mod
+)
 
 integration = importlib.import_module(
     "custom_components.pollenlevels.__init__"
@@ -88,10 +122,24 @@ class _FakeConfigEntries:
 
 
 class _FakeEntry:
-    def __init__(self, *, entry_id: str = "entry-1", title: str = "Pollen Levels"):
+    def __init__(
+        self,
+        *,
+        entry_id: str = "entry-1",
+        title: str = "Pollen Levels",
+        data: dict | None = None,
+        options: dict | None = None,
+    ):
         self.entry_id = entry_id
         self.title = title
         self._update_listener = None
+        self.data = data or {
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        }
+        self.options = options or {}
+        self.runtime_data = None
 
     def add_update_listener(self, listener):
         self._update_listener = listener
@@ -137,7 +185,37 @@ def test_setup_entry_success_and_unload() -> None:
 
     hass = _FakeHass()
     entry = _FakeEntry()
-    hass.data[integration.DOMAIN] = {entry.entry_id: "coordinator"}
+
+    class _StubClient:
+        def __init__(self, _session, _api_key):
+            self.session = _session
+            self.api_key = _api_key
+
+        async def async_fetch_pollen_data(self, **_kwargs):
+            return {"region": {"source": "meta"}, "dailyInfo": []}
+
+    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+        def __init__(self, *args, **kwargs):
+            self.api_key = kwargs["api_key"]
+            self.lat = kwargs["lat"]
+            self.lon = kwargs["lon"]
+            self.forecast_days = kwargs["forecast_days"]
+            self.language = kwargs["language"]
+            self.create_d1 = kwargs["create_d1"]
+            self.create_d2 = kwargs["create_d2"]
+            self.entry_id = kwargs["entry_id"]
+            self.entry_title = kwargs.get("entry_title")
+            self.last_updated = None
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+        async def async_refresh(self):
+            return None
+
+    integration.GooglePollenApiClient = _StubClient
+    integration.PollenDataUpdateCoordinator = _StubCoordinator
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
@@ -145,9 +223,11 @@ def test_setup_entry_success_and_unload() -> None:
     assert entry._update_listener is integration._update_listener  # noqa: SLF001
     assert entry._on_unload is entry._update_listener  # noqa: SLF001
 
+    assert entry.runtime_data is not None
+    assert entry.runtime_data.coordinator.entry_id == entry.entry_id
+
     asyncio.run(entry._update_listener(hass, entry))  # noqa: SLF001
     assert hass.config_entries.reload_calls == [entry.entry_id]
 
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
     assert hass.config_entries.unload_calls == [(entry, ["sensor"])]
-    assert hass.data[integration.DOMAIN] == {}
