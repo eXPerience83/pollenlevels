@@ -1,39 +1,24 @@
 # Changelog
-## [1.8.6-alpha2] - 2025-12-09
+## [1.8.6] - 2025-12-09
 ### Changed
-- Parallelized the `force_update` service to refresh all entry coordinators concurrently,
-  reducing wait time when multiple locations are configured.
-- Aligned `force_update` refresh result logging to the correct entries when some
-  coordinators are missing, avoiding misattributed failures.
-- Consolidated per-day cleanup tests into a single parametrized case covering D+1/D+2
-  removal combinations without duplicating setup code.
-- Bumped version metadata to 1.8.6-alpha2.
-
-## [1.8.6-alpha1] - 2025-12-08
-### Changed
+- Parallelized the `force_update` service to refresh all entry coordinators concurrently
+  and log per-entry failures without aborting other updates.
+- Aligned `force_update` refresh result logging to the entries that spawned refresh
+  tasks so errors are attributed correctly.
 - Clarified tooling-versus-runtime Python guidance to keep integration code compatible
   with Home Assistant's Python 3.13 floor while tooling targets Python 3.14+.
-- Added Home Assistant type hints for sensor setup and coordinator helpers to improve
-  editor support and future static checking.
-- Hardened tests by asserting `requires-python` stays at 3.14+ and verifying sensor
-  device metadata carries trimmed or default entry titles in translation placeholders.
-- Raised the minimum Home Assistant requirement to 2025.3.0 and bumped the integration
-  version to 1.8.6-alpha1.
-- Guarded Home Assistant type imports and simplified async device-title tests so the
-  lightweight test harness runs without the full Home Assistant package installed.
-- Replaced hardcoded forecast-day bounds with shared constants to ease future range
-  adjustments without altering behavior today.
-- Deferred setup when config entries lack coordinates, logging a clear message and
-  retrying instead of raising KeyError during sensor platform initialization.
-- Strengthened the lightweight asyncio test hook and Home Assistant stubs to avoid
-  conflicts with async plugins and better mirror entity callback signatures.
-- Added a fail-fast guard for unexpected running event loops and restored any prior
-  loop after async tests to keep the harness isolated from external plugins.
-- Updated the stub data coordinator to populate a placeholder `last_updated` timestamp
-  during its initial refresh so tests mirror Home Assistant semantics more closely.
-- Removed redundant runtime revalidation of coordinates and forecast ranges now that
-  the config and options flows enforce these values, keeping only a minimal guard for
-  corrupted entries.
+- Added Home Assistant type hints for sensor setup and coordinator helpers while
+  guarding imports so the lightweight test harness runs without the full Home
+  Assistant package installed.
+- Hardened tests by enforcing `requires-python` 3.14+, verifying sensor device
+  metadata trims or defaults titles, strengthening the asyncio test hook and stubs,
+  and stamping stub coordinators with placeholder `last_updated` values.
+- Raised the minimum Home Assistant requirement to 2025.3.0 and finalized the
+  integration version at 1.8.6.
+- Simplified runtime validation by relying on config and options flows for coordinates
+  and forecast ranges while keeping only a minimal guard for missing entries.
+- Consolidated per-day cleanup coverage into a single parametrized test covering
+  D+1/D+2 removal combinations without duplicating setup code.
 
 ## [1.8.5] - 2025-12-06
 ### Changed
