@@ -8,7 +8,9 @@ Notes:
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections.abc import Awaitable
 from typing import Any
 
 import homeassistant.helpers.config_validation as cv
@@ -35,12 +37,25 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         """Refresh pollen data for all entries."""
         # Added: top-level log to confirm manual trigger for easier debugging.
         _LOGGER.info("Executing force_update service for all Pollen Levels entries")
-        for entry in hass.config_entries.async_entries(DOMAIN):
+        entries = list(hass.config_entries.async_entries(DOMAIN))
+        tasks: list[Awaitable[None]] = []
+        task_entries: list[ConfigEntry] = []
+        for entry in entries:
             coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
             if coordinator:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                # Wait until the update completes to surface errors in logs.
-                await coordinator.async_refresh()
+                tasks.append(coordinator.async_refresh())
+                task_entries.append(entry)
+
+        if tasks:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for entry, result in zip(task_entries, results, strict=False):
+                if isinstance(result, Exception):
+                    _LOGGER.warning(
+                        "Manual refresh failed for entry %s: %r",
+                        entry.entry_id,
+                        result,
+                    )
 
     # Enforce empty payload for the service; reject unknown fields for clearer errors.
     hass.services.async_register(

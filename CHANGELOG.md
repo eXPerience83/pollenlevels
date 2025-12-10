@@ -1,5 +1,26 @@
 # Changelog
-## [1.8.5-rc2] - 2025-12-06
+## [1.8.6] - 2025-12-09
+### Changed
+- Parallelized the `force_update` service to refresh all entry coordinators concurrently
+  and log per-entry failures without aborting other updates.
+- Aligned `force_update` refresh result logging to the entries that spawned refresh
+  tasks so errors are attributed correctly.
+- Clarified tooling-versus-runtime Python guidance to keep integration code compatible
+  with Home Assistant's Python 3.13 floor while tooling targets Python 3.14+.
+- Added Home Assistant type hints for sensor setup and coordinator helpers while
+  guarding imports so the lightweight test harness runs without the full Home
+  Assistant package installed.
+- Hardened tests by enforcing `requires-python` 3.14+, verifying sensor device
+  metadata trims or defaults titles, strengthening the asyncio test hook and stubs,
+  and stamping stub coordinators with placeholder `last_updated` values.
+- Raised the minimum Home Assistant requirement to 2025.3.0 and finalized the
+  integration version at 1.8.6.
+- Simplified runtime validation by relying on config and options flows for coordinates
+  and forecast ranges while keeping only a minimal guard for missing entries.
+- Consolidated per-day cleanup coverage into a single parametrized test covering
+  D+1/D+2 removal combinations without duplicating setup code.
+
+## [1.8.5] - 2025-12-06
 ### Changed
 - Sanitized map selector defaults and suggested values to drop invalid Home Assistant
   coordinates instead of pre-filling the map at (0,0) or an empty location, keeping setup
@@ -15,9 +36,6 @@
   the selector empty until the user picks a point.
 - Simplified user-facing connection errors during setup by removing raw HTTP status codes from
   the `error_message` placeholder while retaining detailed logging for debugging.
-
-## [1.8.5-rc1] - 2025-12-02
-### Changed
 - Hardened the map selector defaults to validate Home Assistant coordinates and fall back to a
   safe entry title when core configuration values are missing or invalid, keeping setup usable
   in edge cases.
@@ -27,9 +45,6 @@
   (map `location` when present; base-level only for legacy lat/lon reauth forms), and aligned the
   longitude test stub with Home Assistant's invalid-type behavior. Unexpected validation errors
   now map to `unknown`.
-
-## [1.8.5-alpha2] - 2025-12-01
-### Changed
 - Simplified options-flow connectivity errors to use generic localized messages without the
   `error_message` placeholder, keeping detailed HTTP context limited to setup and
   reauthentication flows.
@@ -41,9 +56,6 @@
   keep translation strings aligned with the current options flow.
 - Options flow descriptions now show the config entry title and unexpected validation errors map
   to the generic `unknown` message instead of implying connectivity failures.
-
-## [1.8.5-alpha1] - 2025-11-29
-### Changed
 - Switched the setup form to a map-based location selector that defaults to the Home Assistant
   location name and coordinates while validating latitude/longitude with Home Assistant helpers.
 - Updated config-flow messaging and translations to reflect the new map selector and include richer

@@ -112,6 +112,16 @@ class _StubEntityCategory:
 entity_mod.EntityCategory = _StubEntityCategory
 sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
 
+entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
+
+
+def _add_entities_callback_stub(entities, update_before_add: bool = False) -> None:
+    return None
+
+
+entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
+sys.modules.setdefault("homeassistant.helpers.entity_platform", entity_platform_mod)
+
 update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
 
 
@@ -128,10 +138,34 @@ class _StubDataUpdateCoordinator:
         self.data = None
         self.last_updated = None
 
+    async def async_config_entry_first_refresh(self):
+        """Simulate a successful first refresh with minimal payload."""
+
+        if self.data is None:
+            # Provide minimal successful payload so entity setup can proceed
+            self.data = {
+                "date": {"source": "meta"},
+                "region": {"source": "meta"},
+            }
+        if self.last_updated is None:
+            self.last_updated = "now"
+
+        return None
+
 
 class _StubCoordinatorEntity:
     def __init__(self, coordinator):
         self.coordinator = coordinator
+        self._attr_unique_id = None
+        self._attr_device_info = None
+
+    @property
+    def unique_id(self):  # pragma: no cover - simple data holder
+        return self._attr_unique_id
+
+    @property
+    def device_info(self):  # pragma: no cover - simple data holder
+        return self._attr_device_info
 
 
 update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
@@ -586,10 +620,26 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["expected_peak"]["value"] == 4
 
 
-def test_cleanup_per_day_entities_removes_disabled_d1(
+@pytest.mark.parametrize(
+    (
+        "allow_d1",
+        "allow_d2",
+        "expected_removed",
+        "expected_entities",
+    ),
+    [
+        (False, True, 1, ["sensor.pollen_type_grass_d1"]),
+        (True, False, 1, ["sensor.pollen_type_grass_d2"]),
+    ],
+)
+def test_cleanup_per_day_entities_removes_disabled_days(
     monkeypatch: pytest.MonkeyPatch,
+    allow_d1: bool,
+    allow_d2: bool,
+    expected_removed: int,
+    expected_entities: list[str],
 ) -> None:
-    """D+1 entries are awaited and removed when the option is disabled."""
+    """D+1/D+2 entities are awaited and removed when disabled."""
 
     entries = [
         RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
@@ -603,41 +653,14 @@ def test_cleanup_per_day_entities_removes_disabled_d1(
     try:
         removed = loop.run_until_complete(
             sensor._cleanup_per_day_entities(
-                hass, "entry", allow_d1=False, allow_d2=True
+                hass, "entry", allow_d1=allow_d1, allow_d2=allow_d2
             )
         )
     finally:
         loop.close()
 
-    assert removed == 1
-    assert registry.removals == ["sensor.pollen_type_grass_d1"]
-
-
-def test_cleanup_per_day_entities_removes_disabled_d2(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """D+2 entries are awaited and removed when the option is disabled."""
-
-    entries = [
-        RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
-        RegistryEntry("entry_type_grass_d1", "sensor.pollen_type_grass_d1"),
-        RegistryEntry("entry_type_grass_d2", "sensor.pollen_type_grass_d2"),
-    ]
-    registry = _setup_registry_stub(monkeypatch, entries, entry_id="entry")
-
-    loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    try:
-        removed = loop.run_until_complete(
-            sensor._cleanup_per_day_entities(
-                hass, "entry", allow_d1=True, allow_d2=False
-            )
-        )
-    finally:
-        loop.close()
-
-    assert removed == 1
-    assert registry.removals == ["sensor.pollen_type_grass_d2"]
+    assert removed == expected_removed
+    assert registry.removals == expected_entities
 
 
 def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -861,3 +884,91 @@ def test_async_setup_entry_missing_api_key_triggers_reauth() -> None:
             )
     finally:
         loop.close()
+
+
+@pytest.mark.asyncio
+async def test_device_info_uses_default_title_when_blank(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Whitespace titles fall back to the default in translation placeholders."""
+
+    async def _stub_first_refresh(self):  # type: ignore[override]
+        self.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
+
+    monkeypatch.setattr(
+        sensor.PollenDataUpdateCoordinator,
+        "async_config_entry_first_refresh",
+        _stub_first_refresh,
+    )
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        entry_id="entry",
+    )
+    config_entry.title = "   "
+
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    await sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    region_sensor = next(
+        entity for entity in captured if isinstance(entity, sensor.RegionSensor)
+    )
+
+    placeholders = region_sensor.device_info["translation_placeholders"]
+    assert placeholders["title"] == sensor.DEFAULT_ENTRY_TITLE
+
+
+@pytest.mark.asyncio
+async def test_device_info_trims_custom_title(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Custom titles are trimmed before reaching translation placeholders."""
+
+    async def _stub_first_refresh(self):  # type: ignore[override]
+        self.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
+
+    monkeypatch.setattr(
+        sensor.PollenDataUpdateCoordinator,
+        "async_config_entry_first_refresh",
+        _stub_first_refresh,
+    )
+    monkeypatch.setattr(sensor, "async_get_clientsession", lambda _hass: None)
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        entry_id="entry",
+    )
+    config_entry.title = "  My Location  "
+
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    await sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    region_sensor = next(
+        entity for entity in captured if isinstance(entity, sensor.RegionSensor)
+    )
+
+    placeholders = region_sensor.device_info["translation_placeholders"]
+    assert placeholders["title"] == "My Location"

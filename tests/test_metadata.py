@@ -38,3 +38,13 @@ def test_manifest_version_matches_pyproject() -> None:
     assert manifest.get("version") == project.get(
         "version"
     ), "Manifest version must match pyproject version"
+
+
+def test_pyproject_requires_python_is_314_plus() -> None:
+    """Ensure pyproject enforces Python 3.14+ for tooling."""
+    project = _load_pyproject().get("project", {})
+    requires = project.get("requires-python")
+
+    assert isinstance(requires, str) and requires.startswith(
+        ">=3.14"
+    ), "requires-python must stay aligned with the 3.14+ tooling story"

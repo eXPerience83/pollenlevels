@@ -5,8 +5,8 @@ Key points:
 - Normalizes language (trim/omit when empty) before calling the API.
 - Redacts API keys in debug logs.
 - Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
-- Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
-  so catching `TimeoutError` is sufficient and preferred.
+- Timeout handling: on modern Python (3.11+), built-in `TimeoutError` also covers
+  `asyncio.TimeoutError`, so catching `TimeoutError` is sufficient and preferred.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import logging
 import random
 from collections.abc import Awaitable
 from datetime import date, timedelta  # Added `date` for DATE device class native_value
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiohttp  # For explicit ClientTimeout and ClientError
 
@@ -37,6 +37,11 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 from homeassistant.util import dt as dt_util
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_API_KEY,
@@ -122,7 +127,7 @@ def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
 
 
 async def _cleanup_per_day_entities(
-    hass, entry_id: str, allow_d1: bool, allow_d2: bool
+    hass: HomeAssistant, entry_id: str, allow_d1: bool, allow_d2: bool
 ) -> int:
     """Remove stale per-day entities (D+1/D+2) from the Entity Registry.
 
@@ -179,7 +184,11 @@ async def _cleanup_per_day_entities(
     return removed
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Create coordinator and build sensors."""
     api_key = config_entry.data.get(CONF_API_KEY)
     if not api_key:
@@ -188,8 +197,16 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             config_entry.entry_id,
         )
         raise ConfigEntryAuthFailed("Missing API key in config entry")
-    lat = config_entry.data[CONF_LATITUDE]
-    lon = config_entry.data[CONF_LONGITUDE]
+    # Config flow already enforces type and range on coordinates; missing values here
+    # would indicate a corrupted entry, so we only guard for presence.
+    lat = config_entry.data.get(CONF_LATITUDE)
+    lon = config_entry.data.get(CONF_LONGITUDE)
+    if lat is None or lon is None:
+        _LOGGER.warning(
+            "Config entry %s is missing coordinates; delaying setup until entry is complete",
+            config_entry.entry_id,
+        )
+        raise ConfigEntryNotReady("Missing coordinates in config entry")
 
     opts = config_entry.options or {}
     interval = opts.get(
@@ -267,7 +284,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
     def __init__(
         self,
-        hass,
+        hass: HomeAssistant,
         api_key: str,
         lat: float,
         lon: float,
@@ -299,7 +316,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.entry_id = entry_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
-        self.forecast_days = max(1, min(5, int(forecast_days)))
+        # Options flow restricts this range; no runtime clamping needed.
+        self.forecast_days = int(forecast_days)
         self.create_d1 = create_d1
         self.create_d2 = create_d2
 
@@ -457,7 +475,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             except ConfigEntryAuthFailed:
                 raise
             except TimeoutError as err:
-                # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
+                # Catch built-in TimeoutError; on modern Python (3.11+) this also
+                # covers asyncio.TimeoutError.
                 if attempt < max_retries:
                     delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
                     _LOGGER.warning(

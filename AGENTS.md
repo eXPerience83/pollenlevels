@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Tooling
-- Tooling (CI, lint, format) runs on **Python 3.14**; keep runtime compatibility with Home Assistant's floor (Python 3.13), so avoid 3.14-only syntax.
+- Tooling (CI, lint, format) runs on **Python 3.14**. The `pyproject.toml` targets packaging/tooling and also pins `requires-python = ">=3.14"`. All code under `custom_components/pollenlevels/` must remain compatible with Home Assistant's current Python floor (Python 3.13 at the moment), so do not rely on 3.14-only syntax or standard library features outside tooling/CI.
 - Format code with Black (line length 88, target-version `py314`) pinned at `black==25.*`.
 - Lint and sort imports with Ruff targeting `py314`, pinned at `ruff==0.14.*`, matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
@@ -24,6 +24,8 @@
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
 - Keep imports tidy—remove unused symbols and respect the Ruff isort grouping so the Home Assistant package stays first-party under `custom_components/pollenlevels`.
+
+Note: When Home Assistant raises its Python floor to 3.14, this guidance will be updated; until then, treat Python 3.13 as the compatibility target for integration code.
 
 ## Integration Architecture
 - This repository hosts the custom integration **Pollen Levels for Home Assistant**, distributed through **HACS**.
