@@ -828,18 +828,6 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
 class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
     """Provide base for metadata sensors."""
 
-    @property
-    def unique_id(self) -> str | None:
-        """Return the cached unique ID."""
-
-        return getattr(self, "_attr_unique_id", None)
-
-    @property
-    def device_info(self) -> dict[str, Any] | None:
-        """Return cached device info for diagnostics."""
-
-        return getattr(self, "_attr_device_info", None)
-
     def __init__(self, coordinator: PollenDataUpdateCoordinator):
         """Initialize metadata sensor.
 

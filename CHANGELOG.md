@@ -1,5 +1,5 @@
 # Changelog
-## [1.9.0-alpha1] - 2025-12-10
+## [1.9.0-alpha1] - 2025-12-11
 ### Changed
 - Moved runtime state to config entry `runtime_data` with a shared
   `GooglePollenApiClient` per entry while keeping existing sensor behaviour and
@@ -11,6 +11,8 @@
   when the key is missing instead of retrying endlessly.
 - Centralized config entry title normalization during setup so the cleaned
   device titles are reused across all sensors.
+- Simplified metadata sensors by relying on inherited `unique_id` and
+  `device_info` properties instead of redefining them.
 
 ## [1.8.6] - 2025-12-09
 ### Changed

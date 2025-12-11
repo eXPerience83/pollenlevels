@@ -43,7 +43,17 @@ sensor_mod = types.ModuleType("homeassistant.components.sensor")
 
 
 class _StubSensorEntity:  # pragma: no cover - structure only
-    pass
+    def __init__(self, *args, **kwargs):
+        self._attr_unique_id = None
+        self._attr_device_info = None
+
+    @property
+    def unique_id(self):
+        return getattr(self, "_attr_unique_id", None)
+
+    @property
+    def device_info(self):
+        return getattr(self, "_attr_device_info", None)
 
 
 class _StubSensorDeviceClass:  # pragma: no cover - structure only
