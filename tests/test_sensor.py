@@ -990,8 +990,8 @@ def test_coordinator_retries_then_wraps_client_error(
     assert delays == [0.8]
 
 
-def test_async_setup_entry_missing_api_key_triggers_reauth() -> None:
-    """A missing API key results in ConfigEntryAuthFailed during setup."""
+def test_async_setup_entry_raises_not_ready_if_runtime_data_missing() -> None:
+    """Missing runtime data causes setup to raise ConfigEntryNotReady."""
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)

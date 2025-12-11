@@ -133,5 +133,3 @@ class GooglePollenApiClient:
                 msg = redact_api_key(err, self._api_key)
                 _LOGGER.error("Pollen API error: %s", msg)
                 raise UpdateFailed(msg) from err
-
-        raise UpdateFailed("Failed to fetch pollen data")

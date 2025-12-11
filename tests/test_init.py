@@ -273,6 +273,21 @@ def test_setup_entry_propagates_auth_failed() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+def test_setup_entry_missing_api_key_raises_auth_failed() -> None:
+    """Missing API key should trigger ConfigEntryAuthFailed."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        }
+    )
+
+    with pytest.raises(integration.ConfigEntryAuthFailed):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+
 def test_setup_entry_wraps_generic_error() -> None:
     """Unexpected errors convert to ConfigEntryNotReady for retries."""
 
