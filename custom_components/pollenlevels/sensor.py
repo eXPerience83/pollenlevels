@@ -218,11 +218,7 @@ async def async_setup_entry(
 
     mode_raw = opts.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE)
     try:
-        mode = (
-            mode_raw
-            if isinstance(mode_raw, ForecastSensorMode)
-            else ForecastSensorMode(mode_raw)
-        )
+        mode = ForecastSensorMode(mode_raw)
     except ValueError:
         mode = ForecastSensorMode.NONE
     create_d1 = mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2)

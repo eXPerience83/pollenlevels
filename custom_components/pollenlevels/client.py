@@ -21,6 +21,20 @@ class GooglePollenApiClient:
         self._session = session
         self._api_key = api_key
 
+    async def _async_backoff(
+        self,
+        *,
+        attempt: int,
+        max_retries: int,
+        message: str,
+        base_args: tuple[Any, ...] = (),
+    ) -> None:
+        """Log a retry warning with jittered backoff and sleep."""
+
+        delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
+        _LOGGER.warning(message, *base_args, delay, attempt + 1, max_retries)
+        await asyncio.sleep(delay)
+
     async def async_fetch_pollen_data(
         self,
         *,
@@ -76,15 +90,15 @@ class GooglePollenApiClient:
 
                     if 500 <= resp.status <= 599:
                         if attempt < max_retries:
-                            delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
-                            _LOGGER.warning(
-                                "Pollen API HTTP %s — retrying in %.2fs (attempt %d/%d)",
-                                resp.status,
-                                delay,
-                                attempt + 1,
-                                max_retries,
+                            await self._async_backoff(
+                                attempt=attempt,
+                                max_retries=max_retries,
+                                message=(
+                                    "Pollen API HTTP %s — retrying in %.2fs "
+                                    "(attempt %d/%d)"
+                                ),
+                                base_args=(resp.status,),
                             )
-                            await asyncio.sleep(delay)
                             continue
                         raise UpdateFailed(f"HTTP {resp.status}")
 
@@ -100,14 +114,13 @@ class GooglePollenApiClient:
                 raise
             except TimeoutError as err:
                 if attempt < max_retries:
-                    delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
-                    _LOGGER.warning(
-                        "Pollen API timeout — retrying in %.2fs (attempt %d/%d)",
-                        delay,
-                        attempt + 1,
-                        max_retries,
+                    await self._async_backoff(
+                        attempt=attempt,
+                        max_retries=max_retries,
+                        message=(
+                            "Pollen API timeout — retrying in %.2fs " "(attempt %d/%d)"
+                        ),
                     )
-                    await asyncio.sleep(delay)
                     continue
                 msg = (
                     redact_api_key(err, self._api_key)
@@ -116,14 +129,14 @@ class GooglePollenApiClient:
                 raise UpdateFailed(f"Timeout: {msg}") from err
             except ClientError as err:
                 if attempt < max_retries:
-                    delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
-                    _LOGGER.warning(
-                        "Network error to Pollen API — retrying in %.2fs (attempt %d/%d)",
-                        delay,
-                        attempt + 1,
-                        max_retries,
+                    await self._async_backoff(
+                        attempt=attempt,
+                        max_retries=max_retries,
+                        message=(
+                            "Network error to Pollen API — retrying in %.2fs "
+                            "(attempt %d/%d)"
+                        ),
                     )
-                    await asyncio.sleep(delay)
                     continue
                 msg = redact_api_key(err, self._api_key) or (
                     "Network error while calling the Google Pollen API"
