@@ -10,6 +10,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .const import POLLEN_API_TIMEOUT
 from .util import redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ class GooglePollenApiClient:
         for attempt in range(0, max_retries + 1):
             try:
                 async with self._session.get(
-                    url, params=params, timeout=ClientTimeout(total=10)
+                    url, params=params, timeout=ClientTimeout(total=POLLEN_API_TIMEOUT)
                 ) as resp:
                     if resp.status == 403:
                         raise ConfigEntryAuthFailed("Invalid API key")
