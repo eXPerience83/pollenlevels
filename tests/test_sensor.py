@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import importlib.util
 import sys
 import types
@@ -197,6 +198,30 @@ def _stub_utcnow():
 
 
 dt_mod.utcnow = _stub_utcnow
+
+
+def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
+    from datetime import UTC, datetime
+    from email.utils import parsedate_to_datetime
+
+    try:
+        parsed = parsedate_to_datetime(value) if value is not None else None
+    except (TypeError, ValueError, IndexError):
+        return None
+
+    if parsed is None:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+
+    if isinstance(parsed, datetime):
+        return parsed
+
+    return None
+
+
+dt_mod.parse_http_date = _stub_parse_http_date
 sys.modules.setdefault("homeassistant.util.dt", dt_mod)
 
 util_mod = types.ModuleType("homeassistant.util")
@@ -865,6 +890,57 @@ def test_coordinator_retries_then_raises_on_rate_limit(
 
     assert session.calls == 2
     assert delays == [3.0]
+
+
+def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Retry-After as HTTP-date is converted to a delay before retry."""
+
+    retry_after = "Wed, 10 Dec 2025 12:00:05 GMT"
+    session = SequenceSession(
+        [
+            ResponseSpec(status=429, payload={}, headers={"Retry-After": retry_after}),
+            ResponseSpec(status=429, payload={}, headers={"Retry-After": retry_after}),
+        ]
+    )
+    delays: list[float] = []
+
+    async def _fast_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    monkeypatch.setattr(
+        client_mod.dt_util,
+        "utcnow",
+        lambda: datetime.datetime(2025, 12, 10, 12, 0, 0, tzinfo=datetime.UTC),
+    )
+
+    client = sensor.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        with pytest.raises(sensor.UpdateFailed, match="Quota exceeded"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert session.calls == 2
+    assert delays == [5.0]
 
 
 def test_coordinator_retries_then_raises_on_server_errors(

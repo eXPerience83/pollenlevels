@@ -8,6 +8,7 @@ from typing import Any
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .util import redact_api_key
 
@@ -20,6 +21,20 @@ class GooglePollenApiClient:
     def __init__(self, session: ClientSession, api_key: str) -> None:
         self._session = session
         self._api_key = api_key
+
+    def _parse_retry_after(self, retry_after_raw: str) -> float:
+        """Translate a Retry-After header into a delay in seconds."""
+
+        try:
+            return float(retry_after_raw)
+        except (TypeError, ValueError):
+            retry_at = dt_util.parse_http_date(retry_after_raw)
+            if retry_at is not None:
+                delay = (retry_at - dt_util.utcnow()).total_seconds()
+                if delay > 0:
+                    return delay
+
+        return 2.0
 
     async def _async_backoff(
         self,
@@ -73,10 +88,7 @@ class GooglePollenApiClient:
                             retry_after_raw = resp.headers.get("Retry-After")
                             delay = 2.0
                             if retry_after_raw:
-                                try:
-                                    delay = float(retry_after_raw)
-                                except (TypeError, ValueError):
-                                    delay = 2.0
+                                delay = self._parse_retry_after(retry_after_raw)
                             delay = min(delay, 5.0) + random.uniform(0.0, 0.4)
                             _LOGGER.warning(
                                 "Pollen API 429 — retrying in %.2fs (attempt %d/%d)",

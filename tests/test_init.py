@@ -150,6 +150,30 @@ def _stub_utcnow():
 
 
 dt_mod.utcnow = _stub_utcnow
+
+
+def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
+    from datetime import UTC, datetime
+    from email.utils import parsedate_to_datetime
+
+    try:
+        parsed = parsedate_to_datetime(value) if value is not None else None
+    except (TypeError, ValueError, IndexError):
+        return None
+
+    if parsed is None:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+
+    if isinstance(parsed, datetime):
+        return parsed
+
+    return None
+
+
+dt_mod.parse_http_date = _stub_parse_http_date
 sys.modules.setdefault("homeassistant.util.dt", dt_mod)
 
 util_mod = types.ModuleType("homeassistant.util")
