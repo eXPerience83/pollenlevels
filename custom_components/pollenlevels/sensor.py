@@ -42,7 +42,6 @@ if TYPE_CHECKING:
 from .client import GooglePollenApiClient
 from .const import (
     CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -215,14 +214,8 @@ async def async_setup_entry(
 
     opts = config_entry.options or {}
     forecast_days = int(opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days))
-
-    mode_raw = opts.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE)
-    try:
-        mode = ForecastSensorMode(mode_raw)
-    except ValueError:
-        mode = ForecastSensorMode.NONE
-    create_d1 = mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2)
-    create_d2 = mode == ForecastSensorMode.D1_D2
+    create_d1 = coordinator.create_d1
+    create_d2 = coordinator.create_d2
 
     allow_d1 = create_d1 and forecast_days >= 2
     allow_d2 = create_d2 and forecast_days >= 3
