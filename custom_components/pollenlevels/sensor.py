@@ -51,6 +51,8 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
 )
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .util import redact_api_key
@@ -214,7 +216,15 @@ async def async_setup_entry(
     opts = config_entry.options or {}
     forecast_days = int(opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days))
 
-    mode = opts.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE)
+    mode_raw = opts.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE)
+    try:
+        mode = (
+            mode_raw
+            if isinstance(mode_raw, ForecastSensorMode)
+            else ForecastSensorMode(mode_raw)
+        )
+    except ValueError:
+        mode = ForecastSensorMode.NONE
     create_d1 = mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2)
     create_d2 = mode == ForecastSensorMode.D1_D2
 
@@ -295,8 +305,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.entry_id = entry_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
-        # Options flow restricts this range; no runtime clamping needed.
-        self.forecast_days = int(forecast_days)
+        # Clamp defensively for legacy/manual entries to supported range.
+        self.forecast_days = max(
+            MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, int(forecast_days))
+        )
         self.create_d1 = create_d1
         self.create_d2 = create_d2
         self._client = client

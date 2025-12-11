@@ -141,7 +141,7 @@ async def async_setup_entry(
     except ConfigEntryNotReady:
         raise
     except Exception as err:
-        _LOGGER.exception("Error forwarding entry setups: %s", err)
+        _LOGGER.exception("Error during initial data refresh: %s", err)
         raise ConfigEntryNotReady from err
 
     entry.runtime_data = PollenLevelsRuntimeData(coordinator=coordinator, client=client)

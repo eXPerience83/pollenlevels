@@ -427,6 +427,60 @@ def test_type_sensor_preserves_source_with_single_day(
     assert entry["tomorrow_value"] is None
 
 
+def test_coordinator_clamps_forecast_days_low() -> None:
+    """Forecast days are clamped to minimum for legacy or invalid values."""
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+
+    try:
+        coordinator = sensor.PollenDataUpdateCoordinator(
+            hass=hass,
+            api_key="test",
+            lat=1.0,
+            lon=2.0,
+            hours=12,
+            language=None,
+            entry_id="entry",
+            forecast_days=0,
+            create_d1=False,
+            create_d2=False,
+            client=client,
+        )
+    finally:
+        loop.close()
+
+    assert coordinator.forecast_days == sensor.MIN_FORECAST_DAYS
+
+
+def test_coordinator_clamps_forecast_days_high() -> None:
+    """Forecast days are clamped to maximum for legacy or invalid values."""
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+
+    try:
+        coordinator = sensor.PollenDataUpdateCoordinator(
+            hass=hass,
+            api_key="test",
+            lat=1.0,
+            lon=2.0,
+            hours=12,
+            language=None,
+            entry_id="entry",
+            forecast_days=10,
+            create_d1=False,
+            create_d2=False,
+            client=client,
+        )
+    finally:
+        loop.close()
+
+    assert coordinator.forecast_days == sensor.MAX_FORECAST_DAYS
+
+
 def test_type_sensor_uses_forecast_metadata_when_today_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
