@@ -454,6 +454,33 @@ def test_coordinator_clamps_forecast_days_low() -> None:
     assert coordinator.forecast_days == sensor.MIN_FORECAST_DAYS
 
 
+def test_coordinator_clamps_forecast_days_negative() -> None:
+    """Negative forecast days are clamped to minimum."""
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+
+    try:
+        coordinator = sensor.PollenDataUpdateCoordinator(
+            hass=hass,
+            api_key="test",
+            lat=1.0,
+            lon=2.0,
+            hours=12,
+            language=None,
+            entry_id="entry",
+            forecast_days=-5,
+            create_d1=False,
+            create_d2=False,
+            client=client,
+        )
+    finally:
+        loop.close()
+
+    assert coordinator.forecast_days == sensor.MIN_FORECAST_DAYS
+
+
 def test_coordinator_clamps_forecast_days_high() -> None:
     """Forecast days are clamped to maximum for legacy or invalid values."""
 
@@ -479,6 +506,33 @@ def test_coordinator_clamps_forecast_days_high() -> None:
         loop.close()
 
     assert coordinator.forecast_days == sensor.MAX_FORECAST_DAYS
+
+
+def test_coordinator_keeps_forecast_days_within_range() -> None:
+    """Valid forecast days remain unchanged after initialization."""
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+
+    try:
+        coordinator = sensor.PollenDataUpdateCoordinator(
+            hass=hass,
+            api_key="test",
+            lat=1.0,
+            lon=2.0,
+            hours=12,
+            language=None,
+            entry_id="entry",
+            forecast_days=3,
+            create_d1=False,
+            create_d2=False,
+            client=client,
+        )
+    finally:
+        loop.close()
+
+    assert coordinator.forecast_days == 3
 
 
 def test_type_sensor_uses_forecast_metadata_when_today_missing(
