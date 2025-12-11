@@ -61,8 +61,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             coordinator = getattr(runtime, "coordinator", None)
             if coordinator:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                tasks.append(coordinator.async_refresh())
-                task_entries.append(entry)
+                request = coordinator.async_request_refresh()
+                if request is not None:
+                    tasks.append(request)
+                    task_entries.append(entry)
 
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)

@@ -13,6 +13,9 @@
   device titles are reused across all sensors.
 - Simplified metadata sensors by relying on inherited `unique_id` and
   `device_info` properties instead of redefining them.
+- Updated the `force_update` service to queue coordinator refreshes via
+  `async_request_refresh` and added service coverage for entries lacking
+  runtime data.
 
 ## [1.8.6] - 2025-12-09
 ### Changed

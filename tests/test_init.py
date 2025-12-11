@@ -7,6 +7,7 @@ import importlib
 import sys
 import types
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -199,6 +200,9 @@ class _StubDataUpdateCoordinator:
     async def async_refresh(self):
         return None
 
+    def async_request_refresh(self):  # pragma: no cover - scheduling helper
+        return asyncio.create_task(self.async_refresh())
+
 
 update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
 update_coordinator_mod.UpdateFailed = _StubUpdateFailed
@@ -217,12 +221,14 @@ class _FakeConfigEntries:
         self,
         forward_exception: Exception | None = None,
         unload_result: bool = True,
+        entries: list[object] | None = None,
     ):
         self._forward_exception = forward_exception
         self._unload_result = unload_result
         self.forward_calls: list[tuple[object, list[str]]] = []
         self.unload_calls: list[tuple[object, list[str]]] = []
         self.reload_calls: list[str] = []
+        self._entries = entries or []
 
     async def async_forward_entry_setups(self, entry, platforms):
         self.forward_calls.append((entry, platforms))
@@ -236,6 +242,13 @@ class _FakeConfigEntries:
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
         self.reload_calls.append(entry_id)
 
+    def async_entries(self, domain: str | None = None):
+        if domain is None:
+            return list(self._entries)
+        return [
+            entry for entry in self._entries if getattr(entry, "domain", None) == domain
+        ]
+
 
 class _FakeEntry:
     def __init__(
@@ -248,6 +261,7 @@ class _FakeEntry:
     ):
         self.entry_id = entry_id
         self.title = title
+        self.domain = integration.DOMAIN
         self._update_listener = None
         self.data = data or {
             integration.CONF_API_KEY: "key",
@@ -268,9 +282,29 @@ class _FakeEntry:
 
 
 class _FakeHass:
-    def __init__(self, *, forward_exception: Exception | None = None):
-        self.config_entries = _FakeConfigEntries(forward_exception)
+    def __init__(
+        self,
+        *,
+        forward_exception: Exception | None = None,
+        entries: list[object] | None = None,
+    ):
+        self.config_entries = _FakeConfigEntries(
+            forward_exception=forward_exception, unload_result=True, entries=entries
+        )
         self.data = {}
+        self.services = _ServiceRegistry()
+
+
+class _ServiceRegistry:
+    def __init__(self):
+        self.registered: dict[tuple[str, str], Any] = {}
+
+    def async_register(self, domain: str, service: str, handler, schema=None):
+        self.registered[(domain, service)] = handler
+
+    async def async_call(self, domain: str, service: str):
+        handler = self.registered[(domain, service)]
+        await handler(_StubServiceCall())
 
 
 def test_setup_entry_propagates_auth_failed() -> None:
@@ -362,3 +396,34 @@ def test_setup_entry_success_and_unload() -> None:
 
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
     assert hass.config_entries.unload_calls == [(entry, ["sensor"])]
+
+
+def test_force_update_requests_refresh_per_entry() -> None:
+    """force_update should queue refresh via runtime_data coordinators and skip missing runtime data."""
+
+    class _StubCoordinator:
+        def __init__(self):
+            self.calls: list[str] = []
+
+        async def _mark(self):
+            self.calls.append("refresh")
+
+        def async_request_refresh(self):
+            return asyncio.create_task(self._mark())
+
+    entry1 = _FakeEntry(entry_id="entry-1")
+    entry1.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
+    entry2 = _FakeEntry(entry_id="entry-2")
+    entry2.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
+    entry3 = _FakeEntry(entry_id="entry-3")
+    entry3.runtime_data = None
+
+    hass = _FakeHass(entries=[entry1, entry2, entry3])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    assert (integration.DOMAIN, "force_update") in hass.services.registered
+
+    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert entry1.runtime_data.coordinator.calls == ["refresh"]
+    assert entry2.runtime_data.coordinator.calls == ["refresh"]
