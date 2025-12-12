@@ -243,8 +243,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
-                if status == 403:
-                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
+                if status in (401, 403):
+                    _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "invalid_auth"
                 elif status == 429:
                     _LOGGER.debug("Validation HTTP 429 (body omitted)")

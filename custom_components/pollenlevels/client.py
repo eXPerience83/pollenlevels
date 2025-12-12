@@ -81,7 +81,7 @@ class GooglePollenApiClient:
                 async with self._session.get(
                     url, params=params, timeout=ClientTimeout(total=POLLEN_API_TIMEOUT)
                 ) as resp:
-                    if resp.status == 403:
+                    if resp.status in (401, 403):
                         raise ConfigEntryAuthFailed("Invalid API key")
 
                     if resp.status == 429:

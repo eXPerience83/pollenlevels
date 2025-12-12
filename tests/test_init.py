@@ -420,6 +420,7 @@ def test_setup_entry_success_and_unload() -> None:
 
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
     assert hass.config_entries.unload_calls == [(entry, ["sensor"])]
+    assert entry.runtime_data is None
 
 
 def test_force_update_requests_refresh_per_entry() -> None:

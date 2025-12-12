@@ -7,6 +7,8 @@
 - Updated sensors, diagnostics, and the `pollenlevels.force_update` service to
   read coordinators from runtime data so each entry reuses a single API client
   for Google Pollen requests.
+- Treated HTTP 401 responses like 403 to surface `invalid_auth` during setup
+  validation and runtime calls instead of generic connection errors.
 - Restored API key validation during setup to raise `ConfigEntryAuthFailed`
   when the key is missing instead of retrying endlessly.
 - Centralized config entry title normalization during setup so the cleaned
@@ -16,6 +18,8 @@
 - Updated the `force_update` service to queue coordinator refreshes via
   `async_request_refresh` and added service coverage for entries lacking
   runtime data.
+- Cleared config entry `runtime_data` after unload to drop stale coordinator
+  references and keep teardown tidy.
 
 ## [1.8.6] - 2025-12-09
 ### Changed

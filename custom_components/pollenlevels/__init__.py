@@ -61,10 +61,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             coordinator = getattr(runtime, "coordinator", None)
             if coordinator:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                request = coordinator.async_request_refresh()
-                if request is not None:
-                    tasks.append(request)
-                    task_entries.append(entry)
+                refresh_coro = coordinator.async_request_refresh()
+                tasks.append(refresh_coro)
+                task_entries.append(entry)
 
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -171,6 +170,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "PollenLevels async_unload_entry called for entry_id=%s", entry.entry_id
     )
     unloaded = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
+    if unloaded:
+        entry.runtime_data = None
     return unloaded
 
 

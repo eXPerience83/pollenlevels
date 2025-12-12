@@ -816,10 +816,13 @@ def test_cleanup_per_day_entities_removes_disabled_days(
     assert registry.removals == expected_entities
 
 
-def test_coordinator_raises_auth_failed(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A 403 response triggers ConfigEntryAuthFailed for re-auth flows."""
+@pytest.mark.parametrize("status", [401, 403])
+def test_coordinator_raises_auth_failed(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    """Auth failures trigger ConfigEntryAuthFailed for re-auth flows."""
 
-    fake_session = FakeSession({}, status=403)
+    fake_session = FakeSession({}, status=status)
     client = sensor.GooglePollenApiClient(fake_session, "bad")
 
     loop = asyncio.new_event_loop()
