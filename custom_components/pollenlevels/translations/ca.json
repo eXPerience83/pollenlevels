@@ -1,101 +1,101 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Aquesta ubicació ja està configurada.",
+      "reauth_failed": "La reautenticació ha fallat. Torna-ho a provar.",
+      "reauth_successful": "La reautenticació s'ha completat correctament."
+    },
+    "error": {
+      "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
+      "empty": "Aquest camp no pot estar buit",
+      "invalid_auth": "Clau API no vàlida\n\n{error_message}",
+      "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
+      "invalid_language": "Codi d’idioma no vàlid",
+      "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
+      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
+      "quota_exceeded": "Quota excedida",
+      "unknown": "Error desconegut"
+    },
     "step": {
-      "user": {
-        "title": "Configuració de Nivells de pol·len",
-        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
+      "reauth_confirm": {
         "data": {
           "api_key": "Clau API",
-          "name": "Nom",
-          "location": "Ubicació",
-          "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta de l’API",
           "http_referrer": "HTTP Referrer"
         },
+        "description": "La clau API per {latitude},{longitude} ja no és vàlida. Introdueix una clau nova per reprendre les actualitzacions.",
+        "title": "Torna a autenticar Nivells de pol·len"
+      },
+      "user": {
+        "data": {
+          "api_key": "Clau API",
+          "http_referrer": "HTTP Referrer",
+          "language_code": "Codi d’idioma de la resposta de l’API",
+          "location": "Ubicació",
+          "name": "Nom",
+          "update_interval": "Interval d’actualització (hores)"
+        },
+        "description": "Introdueix la teva clau d’API de Google, selecciona la teva ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API.",
         "sections": {
           "api_key_options": {
             "title": "Optional API key options"
           }
-        }
-      },
-      "reauth_confirm": {
-        "title": "Torna a autenticar Nivells de pol·len",
-        "description": "La clau API per {latitude},{longitude} ja no és vàlida. Introdueix una clau nova per reprendre les actualitzacions.",
-        "data": {
-          "api_key": "Clau API",
-          "http_referrer": "HTTP Referrer"
-        }
+        },
+        "title": "Configuració de Nivells de pol·len"
       }
-    },
-    "error": {
-      "invalid_auth": "Clau API no vàlida\n\n{error_message}",
-      "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
-      "quota_exceeded": "Quota excedida",
-      "invalid_language": "Codi d’idioma no vàlid",
-      "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
-      "empty": "Aquest camp no pot estar buit",
-      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
-      "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
-      "unknown": "Error desconegut"
-    },
-    "abort": {
-      "already_configured": "Aquesta ubicació ja està configurada.",
-      "reauth_successful": "La reautenticació s'ha completat correctament.",
-      "reauth_failed": "La reautenticació ha fallat. Torna-ho a provar."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Opcions",
-        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2).",
-        "data": {
-          "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta de l’API",
-          "forecast_days": "Dies de previsió (1–5)",
-          "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Clau API no vàlida",
-      "cannot_connect": "No es pot connectar al servei de pol·len.",
-      "quota_exceeded": "Quota excedida",
-      "invalid_language": "Codi d’idioma no vàlid",
-      "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
-      "empty": "Aquest camp no pot estar buit",
-      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
-      "unknown": "Error desconegut"
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Tipus de pol·len ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informació del pol·len ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Plantes ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Informació del pol·len ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Actualització forçada",
-      "description": "Actualitza manualment les dades de pol·len per a totes les ubicacions configurades."
+    "types": {
+      "name": "{title} - Tipus de pol·len ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Regió"
-      },
       "date": {
         "name": "Data"
       },
       "last_updated": {
         "name": "Última actualització"
+      },
+      "region": {
+        "name": "Regió"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "No es pot connectar al servei de pol·len.",
+      "empty": "Aquest camp no pot estar buit",
+      "invalid_auth": "Clau API no vàlida",
+      "invalid_language": "Codi d’idioma no vàlid",
+      "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
+      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
+      "quota_exceeded": "Quota excedida",
+      "unknown": "Error desconegut"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)",
+          "forecast_days": "Dies de previsió (1–5)",
+          "language_code": "Codi d’idioma de la resposta de l’API",
+          "update_interval": "Interval d’actualització (hores)"
+        },
+        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2).",
+        "title": "Pollen Levels – Opcions"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Actualitza manualment les dades de pol·len per a totes les ubicacions configurades.",
+      "name": "Actualització forçada"
     }
   }
 }

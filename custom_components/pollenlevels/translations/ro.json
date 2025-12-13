@@ -1,101 +1,101 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Această locație este deja configurată.",
+      "reauth_failed": "Reautentificarea a eșuat. Încercați din nou.",
+      "reauth_successful": "Reautentificarea s-a încheiat cu succes."
+    },
+    "error": {
+      "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
+      "empty": "Acest câmp nu poate fi gol",
+      "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
+      "invalid_coordinates": "Selectează o locație validă pe hartă.",
+      "invalid_language": "Cod de limbă nevalid",
+      "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
+      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
+      "quota_exceeded": "Cota depășită",
+      "unknown": "Eroare necunoscută"
+    },
     "step": {
-      "user": {
-        "title": "Configurare Niveluri de Polen",
-        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
+      "reauth_confirm": {
         "data": {
           "api_key": "Cheie API",
-          "name": "Nume",
-          "location": "Locație",
-          "update_interval": "Interval de actualizare (ore)",
-          "language_code": "Codul limbii pentru răspunsul API",
           "http_referrer": "HTTP Referrer"
         },
+        "description": "Cheia API pentru {latitude},{longitude} nu mai este valabilă. Introduceți o cheie nouă pentru a relua actualizările.",
+        "title": "Reautentificați Pollen Levels"
+      },
+      "user": {
+        "data": {
+          "api_key": "Cheie API",
+          "http_referrer": "HTTP Referrer",
+          "language_code": "Codul limbii pentru răspunsul API",
+          "location": "Locație",
+          "name": "Nume",
+          "update_interval": "Interval de actualizare (ore)"
+        },
+        "description": "Introduceți cheia Google API, selectați locația pe hartă, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
         "sections": {
           "api_key_options": {
             "title": "Optional API key options"
           }
-        }
-      },
-      "reauth_confirm": {
-        "title": "Reautentificați Pollen Levels",
-        "description": "Cheia API pentru {latitude},{longitude} nu mai este valabilă. Introduceți o cheie nouă pentru a relua actualizările.",
-        "data": {
-          "api_key": "Cheie API",
-          "http_referrer": "HTTP Referrer"
-        }
+        },
+        "title": "Configurare Niveluri de Polen"
       }
-    },
-    "error": {
-      "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
-      "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
-      "quota_exceeded": "Cota depășită",
-      "invalid_language": "Cod de limbă nevalid",
-      "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
-      "empty": "Acest câmp nu poate fi gol",
-      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "invalid_coordinates": "Selectează o locație validă pe hartă.",
-      "unknown": "Eroare necunoscută"
-    },
-    "abort": {
-      "already_configured": "Această locație este deja configurată.",
-      "reauth_successful": "Reautentificarea s-a încheiat cu succes.",
-      "reauth_failed": "Reautentificarea a eșuat. Încercați din nou."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Opțiuni",
-        "description": "Modificați intervalul de actualizare, limba API, zilele de prognoză și senzorii pe zile pentru {title}.\nOpțiuni pentru senzorii pe zile (TIPURI): Doar azi (none), Până mâine (D+1), Până poimâine (D+2).",
-        "data": {
-          "update_interval": "Interval de actualizare (ore)",
-          "language_code": "Codul limbii pentru răspunsul API",
-          "forecast_days": "Zile de prognoză (1–5)",
-          "create_forecast_sensors": "Domeniul senzorilor pe zile (TIPURI)"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Cheie API nevalidă",
-      "cannot_connect": "Nu se poate conecta la serviciu",
-      "quota_exceeded": "Cota depășită",
-      "invalid_language": "Cod de limbă nevalid",
-      "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
-      "empty": "Acest câmp nu poate fi gol",
-      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "unknown": "Eroare necunoscută"
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Tipuri de polen ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informații polen ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Plante ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Informații polen ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Forțează actualizarea",
-      "description": "Actualizează manual datele despre polen pentru toate locațiile configurate."
+    "types": {
+      "name": "{title} - Tipuri de polen ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Regiune"
-      },
       "date": {
         "name": "Data"
       },
       "last_updated": {
         "name": "Ultima actualizare"
+      },
+      "region": {
+        "name": "Regiune"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Nu se poate conecta la serviciu",
+      "empty": "Acest câmp nu poate fi gol",
+      "invalid_auth": "Cheie API nevalidă",
+      "invalid_language": "Cod de limbă nevalid",
+      "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
+      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
+      "quota_exceeded": "Cota depășită",
+      "unknown": "Eroare necunoscută"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Domeniul senzorilor pe zile (TIPURI)",
+          "forecast_days": "Zile de prognoză (1–5)",
+          "language_code": "Codul limbii pentru răspunsul API",
+          "update_interval": "Interval de actualizare (ore)"
+        },
+        "description": "Modificați intervalul de actualizare, limba API, zilele de prognoză și senzorii pe zile pentru {title}.\nOpțiuni pentru senzorii pe zile (TIPURI): Doar azi (none), Până mâine (D+1), Până poimâine (D+2).",
+        "title": "Pollen Levels – Opțiuni"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Actualizează manual datele despre polen pentru toate locațiile configurate.",
+      "name": "Forțează actualizarea"
     }
   }
 }

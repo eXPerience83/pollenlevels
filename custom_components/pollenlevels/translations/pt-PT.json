@@ -1,101 +1,101 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Esta localização já está configurada.",
+      "reauth_failed": "A reautenticação falhou. Tente novamente.",
+      "reauth_successful": "Reautenticação concluída com sucesso."
+    },
+    "error": {
+      "cannot_connect": "Não é possível ligar ao serviço\n\n{error_message}",
+      "empty": "Este campo não pode estar vazio",
+      "invalid_auth": "Chave da API inválida\n\n{error_message}",
+      "invalid_coordinates": "Selecione uma localização válida no mapa.",
+      "invalid_language": "Código de idioma inválido",
+      "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
+      "quota_exceeded": "Quota excedida",
+      "unknown": "Erro desconhecido"
+    },
     "step": {
-      "user": {
-        "title": "Configuração dos Níveis de Pólen",
-        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
+      "reauth_confirm": {
         "data": {
           "api_key": "Chave da API",
-          "name": "Nome",
-          "location": "Localização",
-          "update_interval": "Intervalo de atualização (horas)",
-          "language_code": "Código de idioma da resposta da API",
           "http_referrer": "HTTP Referrer"
         },
+        "description": "A chave da API para {latitude},{longitude} deixou de ser válida. Introduza uma nova chave para retomar as atualizações.",
+        "title": "Reautenticar Pollen Levels"
+      },
+      "user": {
+        "data": {
+          "api_key": "Chave da API",
+          "http_referrer": "HTTP Referrer",
+          "language_code": "Código de idioma da resposta da API",
+          "location": "Localização",
+          "name": "Nome",
+          "update_interval": "Intervalo de atualização (horas)"
+        },
+        "description": "Introduza a sua chave da API do Google, selecione a sua localização no mapa, o intervalo de atualização (horas) e o código de idioma para a resposta da API.",
         "sections": {
           "api_key_options": {
             "title": "Optional API key options"
           }
-        }
-      },
-      "reauth_confirm": {
-        "title": "Reautenticar Pollen Levels",
-        "description": "A chave da API para {latitude},{longitude} deixou de ser válida. Introduza uma nova chave para retomar as atualizações.",
-        "data": {
-          "api_key": "Chave da API",
-          "http_referrer": "HTTP Referrer"
-        }
+        },
+        "title": "Configuração dos Níveis de Pólen"
       }
-    },
-    "error": {
-      "invalid_auth": "Chave da API inválida\n\n{error_message}",
-      "cannot_connect": "Não é possível ligar ao serviço\n\n{error_message}",
-      "quota_exceeded": "Quota excedida",
-      "invalid_language": "Código de idioma inválido",
-      "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
-      "empty": "Este campo não pode estar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
-      "invalid_coordinates": "Selecione uma localização válida no mapa.",
-      "unknown": "Erro desconhecido"
-    },
-    "abort": {
-      "already_configured": "Esta localização já está configurada.",
-      "reauth_successful": "Reautenticação concluída com sucesso.",
-      "reauth_failed": "A reautenticação falhou. Tente novamente."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Opções",
-        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para {title}.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2).",
-        "data": {
-          "update_interval": "Intervalo de atualização (horas)",
-          "language_code": "Código de idioma da resposta da API",
-          "forecast_days": "Dias de previsão (1–5)",
-          "create_forecast_sensors": "Âmbito dos sensores por dia (TIPOS)"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Chave da API inválida",
-      "cannot_connect": "Não é possível ligar ao serviço",
-      "quota_exceeded": "Quota excedida",
-      "invalid_language": "Código de idioma inválido",
-      "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
-      "empty": "Este campo não pode estar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
-      "unknown": "Erro desconhecido"
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Tipos de pólen ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informações de pólen ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Plantas ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Informações de pólen ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Forçar atualização",
-      "description": "Atualiza manualmente os dados de pólen para todas as localizações configuradas."
+    "types": {
+      "name": "{title} - Tipos de pólen ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Região"
-      },
       "date": {
         "name": "Data"
       },
       "last_updated": {
         "name": "Última atualização"
+      },
+      "region": {
+        "name": "Região"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Não é possível ligar ao serviço",
+      "empty": "Este campo não pode estar vazio",
+      "invalid_auth": "Chave da API inválida",
+      "invalid_language": "Código de idioma inválido",
+      "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
+      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
+      "quota_exceeded": "Quota excedida",
+      "unknown": "Erro desconhecido"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Âmbito dos sensores por dia (TIPOS)",
+          "forecast_days": "Dias de previsão (1–5)",
+          "language_code": "Código de idioma da resposta da API",
+          "update_interval": "Intervalo de atualização (horas)"
+        },
+        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para {title}.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2).",
+        "title": "Pollen Levels – Opções"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Atualiza manualmente os dados de pólen para todas as localizações configuradas.",
+      "name": "Forçar atualização"
     }
   }
 }

@@ -1,101 +1,101 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Denne placering er allerede konfigureret.",
+      "reauth_failed": "Genautentificering mislykkedes. Prøv igen.",
+      "reauth_successful": "Genautentificering fuldført."
+    },
+    "error": {
+      "cannot_connect": "Kan ikke oprette forbindelse til tjenesten\n\n{error_message}",
+      "empty": "Dette felt må ikke være tomt",
+      "invalid_auth": "Ugyldig API-nøgle\n\n{error_message}",
+      "invalid_coordinates": "Vælg en gyldig placering på kortet.",
+      "invalid_language": "Ugyldig sprogkode",
+      "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
+      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
+      "quota_exceeded": "Kvote overskredet",
+      "unknown": "Ukendt fejl"
+    },
     "step": {
-      "user": {
-        "title": "Konfiguration af pollenniveauer",
-        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
+      "reauth_confirm": {
         "data": {
           "api_key": "API-nøgle",
-          "name": "Navn",
-          "location": "Placering",
-          "update_interval": "Opdateringsinterval (timer)",
-          "language_code": "Sprogkode for API-svar",
           "http_referrer": "HTTP Referrer"
         },
+        "description": "API-nøglen for {latitude},{longitude} er ikke længere gyldig. Indtast en ny nøgle for at genoptage opdateringerne.",
+        "title": "Godkend Pollen Levels igen"
+      },
+      "user": {
+        "data": {
+          "api_key": "API-nøgle",
+          "http_referrer": "HTTP Referrer",
+          "language_code": "Sprogkode for API-svar",
+          "location": "Placering",
+          "name": "Navn",
+          "update_interval": "Opdateringsinterval (timer)"
+        },
+        "description": "Angiv din Google API-nøgle, vælg din placering på kortet, opdateringsinterval (timer) og sprogkode for API-svar.",
         "sections": {
           "api_key_options": {
             "title": "Optional API key options"
           }
-        }
-      },
-      "reauth_confirm": {
-        "title": "Godkend Pollen Levels igen",
-        "description": "API-nøglen for {latitude},{longitude} er ikke længere gyldig. Indtast en ny nøgle for at genoptage opdateringerne.",
-        "data": {
-          "api_key": "API-nøgle",
-          "http_referrer": "HTTP Referrer"
-        }
+        },
+        "title": "Konfiguration af pollenniveauer"
       }
-    },
-    "error": {
-      "invalid_auth": "Ugyldig API-nøgle\n\n{error_message}",
-      "cannot_connect": "Kan ikke oprette forbindelse til tjenesten\n\n{error_message}",
-      "quota_exceeded": "Kvote overskredet",
-      "invalid_language": "Ugyldig sprogkode",
-      "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
-      "empty": "Dette felt må ikke være tomt",
-      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
-      "invalid_coordinates": "Vælg en gyldig placering på kortet.",
-      "unknown": "Ukendt fejl"
-    },
-    "abort": {
-      "already_configured": "Denne placering er allerede konfigureret.",
-      "reauth_successful": "Genautentificering fuldført.",
-      "reauth_failed": "Genautentificering mislykkedes. Prøv igen."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Indstillinger",
-        "description": "Skift opdateringsinterval, API-sprog, prognosedage og sensorer pr. dag for {title}.\nIndstillinger for sensorer pr. dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med overmorgen (D+2).",
-        "data": {
-          "update_interval": "Opdateringsinterval (timer)",
-          "language_code": "Sprogkode for API-svar",
-          "forecast_days": "Prognosedage (1–5)",
-          "create_forecast_sensors": "Omfang af sensorer pr. dag (TYPER)"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Ugyldig API-nøgle",
-      "cannot_connect": "Kan ikke oprette forbindelse til tjenesten",
-      "quota_exceeded": "Kvote overskredet",
-      "invalid_language": "Ugyldig sprogkode",
-      "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
-      "empty": "Dette felt må ikke være tomt",
-      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
-      "unknown": "Ukendt fejl"
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Pollentyper ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Polleninfo ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Planter ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Polleninfo ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Gennemtving opdatering",
-      "description": "Opdaterer manuelt pollendata for alle konfigurerede placeringer."
+    "types": {
+      "name": "{title} - Pollentyper ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Region"
-      },
       "date": {
         "name": "Dato"
       },
       "last_updated": {
         "name": "Sidst opdateret"
+      },
+      "region": {
+        "name": "Region"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Kan ikke oprette forbindelse til tjenesten",
+      "empty": "Dette felt må ikke være tomt",
+      "invalid_auth": "Ugyldig API-nøgle",
+      "invalid_language": "Ugyldig sprogkode",
+      "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
+      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
+      "quota_exceeded": "Kvote overskredet",
+      "unknown": "Ukendt fejl"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Omfang af sensorer pr. dag (TYPER)",
+          "forecast_days": "Prognosedage (1–5)",
+          "language_code": "Sprogkode for API-svar",
+          "update_interval": "Opdateringsinterval (timer)"
+        },
+        "description": "Skift opdateringsinterval, API-sprog, prognosedage og sensorer pr. dag for {title}.\nIndstillinger for sensorer pr. dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med overmorgen (D+2).",
+        "title": "Pollen Levels – Indstillinger"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Opdaterer manuelt pollendata for alle konfigurerede placeringer.",
+      "name": "Gennemtving opdatering"
     }
   }
 }

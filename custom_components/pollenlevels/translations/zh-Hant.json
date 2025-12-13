@@ -1,101 +1,101 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "此位置已設定。",
+      "reauth_failed": "重新驗證失敗。請再試一次。",
+      "reauth_successful": "重新驗證已成功完成。"
+    },
+    "error": {
+      "cannot_connect": "無法連線到服務\n\n{error_message}",
+      "empty": "此欄位不得為空",
+      "invalid_auth": "無效的 API 金鑰\n\n{error_message}",
+      "invalid_coordinates": "請在地圖上選擇有效的位置。",
+      "invalid_language": "無效的語言代碼",
+      "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
+      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
+      "quota_exceeded": "超出配額",
+      "unknown": "未知錯誤"
+    },
     "step": {
-      "user": {
-        "title": "花粉水平設定",
-        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
+      "reauth_confirm": {
         "data": {
           "api_key": "API 金鑰",
-          "name": "名稱",
-          "location": "位置",
-          "update_interval": "更新間隔（小時）",
-          "language_code": "API 回應語言代碼",
           "http_referrer": "HTTP Referrer"
         },
+        "description": "{latitude},{longitude} 的 API 金鑰已失效。請輸入新的金鑰以恢復更新。",
+        "title": "重新驗證 Pollen Levels"
+      },
+      "user": {
+        "data": {
+          "api_key": "API 金鑰",
+          "http_referrer": "HTTP Referrer",
+          "language_code": "API 回應語言代碼",
+          "location": "位置",
+          "name": "名稱",
+          "update_interval": "更新間隔（小時）"
+        },
+        "description": "請輸入 Google API 金鑰、在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
         "sections": {
           "api_key_options": {
             "title": "Optional API key options"
           }
-        }
-      },
-      "reauth_confirm": {
-        "title": "重新驗證 Pollen Levels",
-        "description": "{latitude},{longitude} 的 API 金鑰已失效。請輸入新的金鑰以恢復更新。",
-        "data": {
-          "api_key": "API 金鑰",
-          "http_referrer": "HTTP Referrer"
-        }
+        },
+        "title": "花粉水平設定"
       }
-    },
-    "error": {
-      "invalid_auth": "無效的 API 金鑰\n\n{error_message}",
-      "cannot_connect": "無法連線到服務\n\n{error_message}",
-      "quota_exceeded": "超出配額",
-      "invalid_language": "無效的語言代碼",
-      "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
-      "empty": "此欄位不得為空",
-      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "invalid_coordinates": "請在地圖上選擇有效的位置。",
-      "unknown": "未知錯誤"
-    },
-    "abort": {
-      "already_configured": "此位置已設定。",
-      "reauth_successful": "重新驗證已成功完成。",
-      "reauth_failed": "重新驗證失敗。請再試一次。"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – 選項",
-        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器，適用於 {title}。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
-        "data": {
-          "update_interval": "更新間隔（小時）",
-          "language_code": "API 回應語言代碼",
-          "forecast_days": "預測天數（1–5）",
-          "create_forecast_sensors": "逐日類型感測器範圍"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "無效的 API 金鑰",
-      "cannot_connect": "無法連線到服務",
-      "quota_exceeded": "超出配額",
-      "invalid_language": "無效的語言代碼",
-      "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
-      "empty": "此欄位不得為空",
-      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "unknown": "未知錯誤"
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - 花粉類型 ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - 花粉資訊 ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - 植物 ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - 花粉資訊 ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "強制更新",
-      "description": "為所有已設定的位置手動重新整理花粉資料。"
+    "types": {
+      "name": "{title} - 花粉類型 ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "地區"
-      },
       "date": {
         "name": "日期"
       },
       "last_updated": {
         "name": "上次更新時間"
+      },
+      "region": {
+        "name": "地區"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "無法連線到服務",
+      "empty": "此欄位不得為空",
+      "invalid_auth": "無效的 API 金鑰",
+      "invalid_language": "無效的語言代碼",
+      "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
+      "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
+      "quota_exceeded": "超出配額",
+      "unknown": "未知錯誤"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "逐日類型感測器範圍",
+          "forecast_days": "預測天數（1–5）",
+          "language_code": "API 回應語言代碼",
+          "update_interval": "更新間隔（小時）"
+        },
+        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器，適用於 {title}。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
+        "title": "Pollen Levels – 選項"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "為所有已設定的位置手動重新整理花粉資料。",
+      "name": "強制更新"
     }
   }
 }
