@@ -1,4 +1,9 @@
 # Changelog
+## [1.9.0-alpha2] - 2025-12-13
+### Changed
+- Added stable constants for HTTP referrer support and API key helper URLs to
+  support upcoming flow updates.
+
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
 - Moved runtime state to config entry `runtime_data` with a shared

@@ -20,11 +20,25 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
+from homeassistant.data_entry_flow import SectionConfig, section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.helpers.selector import (
+    LocationSelector,
+    LocationSelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .const import (
     CONF_API_KEY,
+    CONF_HTTP_REFERER,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
@@ -36,7 +50,10 @@ from .const import (
     FORECAST_SENSORS_CHOICES,
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
+    POLLEN_API_KEY_URL,
     POLLEN_API_TIMEOUT,
+    RESTRICTING_API_KEYS_URL,
+    SECTION_API_KEY_OPTIONS,
 )
 from .util import redact_api_key
 
@@ -55,10 +72,24 @@ LANGUAGE_CODE_REGEX = re.compile(
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_API_KEY): str,
-        vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
-            vol.Coerce(int), vol.Range(min=1)
+        vol.Optional(
+            CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
+        ): NumberSelector(
+            NumberSelectorConfig(
+                min=1,
+                step=1,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="h",
+            )
         ),
-        vol.Optional(CONF_LANGUAGE_CODE): str,
+        vol.Optional(CONF_LANGUAGE_CODE): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.TEXT)
+        ),
+        section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): {
+            vol.Optional(CONF_HTTP_REFERER, default=""): TextSelector(
+                TextSelectorConfig(type=TextSelectorType.TEXT)
+            ),
+        },
     }
 )
 
@@ -170,11 +201,39 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
 
-        placeholders = description_placeholders
+        placeholders = (
+            description_placeholders if description_placeholders is not None else {}
+        )
         errors: dict[str, str] = {}
         normalized: dict[str, Any] = dict(user_input)
         normalized.pop(CONF_NAME, None)
         normalized.pop(CONF_LOCATION, None)
+
+        async def _extract_error_message(
+            resp: aiohttp.ClientResponse, default: str
+        ) -> str:
+            message = ""
+            try:
+                data = await resp.json()
+                if isinstance(data, dict):
+                    err = data.get("error")
+                    if isinstance(err, dict):
+                        body_message = err.get("message")
+                        if isinstance(body_message, str):
+                            message = body_message
+            except Exception:
+                message = ""
+
+            if not message:
+                try:
+                    message = await resp.text()
+                except Exception:
+                    message = ""
+
+            message = (message or "").strip() or default
+            if len(message) > 300:
+                message = message[:300]
+            return message
 
         latlon = None
         if CONF_LOCATION in user_input:
@@ -243,20 +302,30 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
-                if status in (401, 403):
-                    _LOGGER.debug("Validation HTTP %s (body omitted)", status)
+                if status == 401:
+                    _LOGGER.debug("Validation HTTP 401 (body omitted)")
                     errors["base"] = "invalid_auth"
+                    placeholders["error_message"] = await _extract_error_message(
+                        resp, "HTTP 401"
+                    )
+                elif status == 403:
+                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
+                    errors["base"] = "cannot_connect"
+                    placeholders["error_message"] = await _extract_error_message(
+                        resp, "HTTP 403"
+                    )
                 elif status == 429:
                     _LOGGER.debug("Validation HTTP 429 (body omitted)")
                     errors["base"] = "quota_exceeded"
+                    placeholders["error_message"] = await _extract_error_message(
+                        resp, "HTTP 429"
+                    )
                 elif status != 200:
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
-                    if placeholders is not None:
-                        # Keep user-facing message generic; HTTP status is logged above
-                        placeholders["error_message"] = (
-                            "Unable to validate the API key with the pollen service."
-                        )
+                    placeholders["error_message"] = await _extract_error_message(
+                        resp, f"HTTP {status}"
+                    )
                 else:
                     raw = await resp.read()
                     try:
@@ -284,6 +353,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return errors, None
 
             normalized[CONF_LANGUAGE_CODE] = lang
+            if CONF_UPDATE_INTERVAL in normalized:
+                normalized[CONF_UPDATE_INTERVAL] = int(normalized[CONF_UPDATE_INTERVAL])
             return errors, normalized
 
         except vol.Invalid as ve:
@@ -332,18 +403,50 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle initial step."""
         errors: dict[str, str] = {}
-        description_placeholders: dict[str, Any] = {}
+        description_placeholders: dict[str, Any] = {
+            "api_key_url": POLLEN_API_KEY_URL,
+            "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
+        }
 
         if user_input:
-            errors, normalized = await self._async_validate_input(
-                user_input,
-                check_unique_id=True,
-                description_placeholders=description_placeholders,
-            )
-            if not errors and normalized is not None:
-                entry_name = str(user_input.get(CONF_NAME, "")).strip()
-                title = entry_name or DEFAULT_ENTRY_TITLE
-                return self.async_create_entry(title=title, data=normalized)
+            sanitized_input: dict[str, Any] = dict(user_input)
+            section_values = sanitized_input.get(SECTION_API_KEY_OPTIONS)
+            raw_http_referer = sanitized_input.get(CONF_HTTP_REFERER)
+            if raw_http_referer is None and isinstance(section_values, dict):
+                raw_http_referer = section_values.get(CONF_HTTP_REFERER)
+            sanitized_input.pop(SECTION_API_KEY_OPTIONS, None)
+
+            http_referer: str | None = None
+            if raw_http_referer is not None:
+                if not isinstance(raw_http_referer, str):
+                    errors["base"] = "cannot_connect"
+                    description_placeholders["error_message"] = (
+                        "Invalid HTTP referrer value."
+                    )
+                else:
+                    http_referer = raw_http_referer.strip()
+                    if "\r" in http_referer or "\n" in http_referer:
+                        errors["base"] = "cannot_connect"
+                        description_placeholders["error_message"] = (
+                            "Invalid HTTP referrer value."
+                        )
+                    elif not http_referer:
+                        http_referer = None
+
+            if not errors:
+                sanitized_input.pop(CONF_HTTP_REFERER, None)
+                if http_referer:
+                    sanitized_input[CONF_HTTP_REFERER] = http_referer
+
+                errors, normalized = await self._async_validate_input(
+                    sanitized_input,
+                    check_unique_id=True,
+                    description_placeholders=description_placeholders,
+                )
+                if not errors and normalized is not None:
+                    entry_name = str(user_input.get(CONF_NAME, "")).strip()
+                    title = entry_name or DEFAULT_ENTRY_TITLE
+                    return self.async_create_entry(title=title, data=normalized)
 
         base_schema = STEP_USER_DATA_SCHEMA.schema.copy()
         base_schema.update(_get_location_schema(self.hass).schema)
@@ -391,6 +494,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         placeholders = {
             "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
             "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
+            "api_key_url": POLLEN_API_KEY_URL,
+            "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
         }
 
         if user_input:
@@ -436,62 +541,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         placeholders = {"title": self.entry.title or DEFAULT_ENTRY_TITLE}
 
-        if user_input is not None:
-            try:
-                # Language: allow empty; if provided, validate & normalize.
-                raw_lang = user_input.get(
-                    CONF_LANGUAGE_CODE,
-                    self.entry.options.get(
-                        CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, "")
-                    ),
-                )
-                lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
-                if lang:
-                    lang = is_valid_language_code(lang)
-                user_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
-
-                # forecast_days within 1..5
-                days = int(
-                    user_input.get(
-                        CONF_FORECAST_DAYS,
-                        self.entry.options.get(
-                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
-                        ),
-                    )
-                )
-                if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
-                    errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
-
-                # per-day sensors vs number of days
-                mode = user_input.get(
-                    CONF_CREATE_FORECAST_SENSORS,
-                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
-                )
-                needed = 1
-                if mode == "D+1":
-                    needed = 2
-                elif mode == "D+1+2":
-                    needed = 3
-                if days < needed:
-                    errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
-
-            except vol.Invalid as ve:
-                _LOGGER.warning(
-                    "Options language validation failed for '%s': %s",
-                    user_input.get(CONF_LANGUAGE_CODE),
-                    ve,
-                )
-                errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
-            except Exception as err:  # defensive
-                _LOGGER.exception(
-                    "Options validation error: %s",
-                    redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
-                )
-                errors["base"] = "unknown"
-
-            if not errors:
-                return self.async_create_entry(title="", data=user_input)
-
         # Defaults: prefer options, fallback to data/HA config
         current_interval = self.entry.options.get(
             CONF_UPDATE_INTERVAL,
@@ -507,20 +556,103 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         )
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
+        if user_input is not None:
+            normalized_input: dict[str, Any] = dict(user_input)
+            try:
+                normalized_input[CONF_UPDATE_INTERVAL] = int(
+                    user_input.get(CONF_UPDATE_INTERVAL, current_interval)
+                )
+                normalized_input[CONF_FORECAST_DAYS] = int(
+                    user_input.get(CONF_FORECAST_DAYS, current_days)
+                )
+            except (TypeError, ValueError):
+                errors["base"] = "unknown"
+
+            if not errors:
+                try:
+                    # Language: allow empty; if provided, validate & normalize.
+                    raw_lang = normalized_input.get(
+                        CONF_LANGUAGE_CODE,
+                        self.entry.options.get(
+                            CONF_LANGUAGE_CODE,
+                            self.entry.data.get(CONF_LANGUAGE_CODE, ""),
+                        ),
+                    )
+                    lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
+                    if lang:
+                        lang = is_valid_language_code(lang)
+                    normalized_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
+
+                    # forecast_days within 1..5
+                    days = normalized_input[CONF_FORECAST_DAYS]
+                    if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
+                        errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
+
+                    # per-day sensors vs number of days
+                    mode = normalized_input.get(
+                        CONF_CREATE_FORECAST_SENSORS,
+                        self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                    )
+                    needed = 1
+                    if mode == "D+1":
+                        needed = 2
+                    elif mode == "D+1+2":
+                        needed = 3
+                    if days < needed:
+                        errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+
+                except vol.Invalid as ve:
+                    _LOGGER.warning(
+                        "Options language validation failed for '%s': %s",
+                        normalized_input.get(CONF_LANGUAGE_CODE),
+                        ve,
+                    )
+                    errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
+                except Exception as err:  # defensive
+                    _LOGGER.exception(
+                        "Options validation error: %s",
+                        redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
+                    )
+                    errors["base"] = "unknown"
+
+            if not errors:
+                return self.async_create_entry(title="", data=normalized_input)
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Optional(
                         CONF_UPDATE_INTERVAL, default=current_interval
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                    vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
-                    vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.In(
-                        list(range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1))
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=1,
+                            step=1,
+                            mode=NumberSelectorMode.BOX,
+                            unit_of_measurement="h",
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_LANGUAGE_CODE, default=current_lang
+                    ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
+                    vol.Optional(
+                        CONF_FORECAST_DAYS, default=current_days
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=MIN_FORECAST_DAYS,
+                            max=MAX_FORECAST_DAYS,
+                            step=1,
+                            mode=NumberSelectorMode.BOX,
+                        )
                     ),
                     vol.Optional(
                         CONF_CREATE_FORECAST_SENSORS, default=current_mode
-                    ): vol.In(FORECAST_SENSORS_CHOICES),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            mode=SelectSelectorMode.DROPDOWN,
+                            options=FORECAST_SENSORS_CHOICES,
+                        )
+                    ),
                 }
             ),
             errors=errors,
