@@ -29,7 +29,8 @@
       "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "invalid_coordinates": "Válassz érvényes helyet a térképen.",
-      "unknown": "Ismeretlen hiba"
+      "unknown": "Ismeretlen hiba",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",

@@ -419,16 +419,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             http_referer: str | None = None
             if raw_http_referer is not None:
                 if not isinstance(raw_http_referer, str):
-                    errors["base"] = "cannot_connect"
+                    errors["base"] = "invalid_http_referrer"
                     description_placeholders["error_message"] = (
-                        "Invalid HTTP referrer value."
+                        "Invalid HTTP referrer value. It must not contain newline"
+                        " characters."
                     )
                 else:
                     http_referer = raw_http_referer.strip()
                     if "\r" in http_referer or "\n" in http_referer:
-                        errors["base"] = "cannot_connect"
+                        errors["base"] = "invalid_http_referrer"
                         description_placeholders["error_message"] = (
-                            "Invalid HTTP referrer value."
+                            "Invalid HTTP referrer value. It must not contain newline"
+                            " characters."
                         )
                     elif not http_referer:
                         http_referer = None
@@ -593,11 +595,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                         CONF_CREATE_FORECAST_SENSORS,
                         self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
                     )
-                    needed = 1
-                    if mode == "D+1":
-                        needed = 2
-                    elif mode == "D+1+2":
-                        needed = 3
+                    needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
                     if days < needed:
                         errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 

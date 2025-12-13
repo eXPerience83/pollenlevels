@@ -10,6 +10,8 @@
   form error placeholders without exposing secrets.
 - Updated the options flow to use selectors while normalizing numeric fields to
   integers and keeping existing validation rules and defaults intact.
+- Clarified HTTP referrer validation with a dedicated error to avoid confusing
+  connection-failure messaging when the input contains newline characters.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

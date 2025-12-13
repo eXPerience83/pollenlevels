@@ -29,7 +29,8 @@
       "empty": "此字段不能为空",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
       "invalid_coordinates": "请在地图上选择有效的位置。",
-      "unknown": "未知错误"
+      "unknown": "未知错误",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "该位置已配置。",

@@ -29,7 +29,8 @@
       "empty": "Ce champ ne peut pas être vide",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
-      "unknown": "Erreur inconnue"
+      "unknown": "Erreur inconnue",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré.",

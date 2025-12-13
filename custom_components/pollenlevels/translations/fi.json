@@ -29,7 +29,8 @@
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
-      "unknown": "Tuntematon virhe"
+      "unknown": "Tuntematon virhe",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",

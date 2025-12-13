@@ -29,7 +29,8 @@
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
-      "unknown": "Onbekende fout"
+      "unknown": "Onbekende fout",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
