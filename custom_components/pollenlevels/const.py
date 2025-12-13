@@ -20,6 +20,7 @@ DEFAULT_FORECAST_DAYS = 2  # today + 1 (tomorrow)
 DEFAULT_ENTRY_TITLE = "Pollen Levels"
 MAX_FORECAST_DAYS = 5
 MIN_FORECAST_DAYS = 1
+POLLEN_API_TIMEOUT = 10
 
 # Allowed values for create_forecast_sensors selector
 FORECAST_SENSORS_CHOICES = ["none", "D+1", "D+1+2"]

@@ -433,12 +433,13 @@ def _base_user_input() -> dict:
     }
 
 
-def test_validate_input_http_403_sets_invalid_auth(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize("status", [401, 403])
+def test_validate_input_http_auth_errors_set_invalid_auth(
+    monkeypatch: pytest.MonkeyPatch, status: int
 ) -> None:
-    """HTTP 403 during validation should map to invalid_auth."""
+    """HTTP auth failures during validation should map to invalid_auth."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(403))
+    session = _patch_client_session(monkeypatch, _StubResponse(status))
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()

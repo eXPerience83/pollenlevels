@@ -36,6 +36,7 @@ from .const import (
     FORECAST_SENSORS_CHOICES,
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
+    POLLEN_API_TIMEOUT,
 )
 from .util import redact_api_key
 
@@ -237,11 +238,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             # Add explicit timeout to prevent UI hangs on provider issues
             async with session.get(
-                url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+                url,
+                params=params,
+                timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
-                if status == 403:
-                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
+                if status in (401, 403):
+                    _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "invalid_auth"
                 elif status == 429:
                     _LOGGER.debug("Validation HTTP 429 (body omitted)")
@@ -293,14 +296,16 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except TimeoutError as err:
             # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
             _LOGGER.warning(
-                "Validation timeout (10s): %s",
+                "Validation timeout (%ss): %s",
+                POLLEN_API_TIMEOUT,
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
             if placeholders is not None:
                 redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
                 placeholders["error_message"] = (
-                    redacted or "Validation request timed out (10 seconds)."
+                    redacted
+                    or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
                 )
         except aiohttp.ClientError as err:
             _LOGGER.error(
