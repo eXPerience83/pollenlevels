@@ -134,7 +134,38 @@ def _fields_from_schema_call(call: ast.Call, mapping: dict[str, str]) -> set[str
     arg = call.args[0]
 
     fields: set[str] = set()
-    for key in arg.keys:
+    for key, value in zip(arg.keys, arg.values, strict=False):
+        if isinstance(key, ast.Call) and isinstance(key.func, ast.Name):
+            # section("...", SectionConfig(...)): {vol.Optional(...): ...}
+            if key.func.id == "section":
+                if not isinstance(value, ast.Dict):
+                    _fail_unexpected_ast("section value")
+                for nested_key in value.keys:
+                    if not isinstance(nested_key, ast.Call) or not isinstance(
+                        nested_key.func, ast.Attribute
+                    ):
+                        _fail_unexpected_ast("schema key wrapper")
+                    if nested_key.func.attr not in {"Required", "Optional"}:
+                        _fail_unexpected_ast(
+                            f"unexpected schema call {nested_key.func.attr}"
+                        )
+                    if not nested_key.args:
+                        _fail_unexpected_ast("schema key args")
+                    selector = nested_key.args[0]
+                    if isinstance(selector, ast.Constant) and isinstance(
+                        selector.value, str
+                    ):
+                        fields.add(selector.value)
+                    elif isinstance(selector, ast.Name):
+                        resolved = _resolve_name(selector.id, mapping)
+                        if resolved:
+                            fields.add(resolved)
+                        else:
+                            _fail_unexpected_ast(f"unmapped selector {selector.id}")
+                    else:
+                        _fail_unexpected_ast("selector type")
+                continue
+
         if not isinstance(key, ast.Call) or not isinstance(key.func, ast.Attribute):
             _fail_unexpected_ast("schema key wrapper")
         if key.func.attr not in {"Required", "Optional"}:

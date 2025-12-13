@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuratie",
-        "description": "Voer je Google API-sleutel in, selecteer je locatie op de kaart, het update-interval (uren) en de taalcode voor de API-respons.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API-sleutel",
           "name": "Naam",
           "location": "Locatie",
           "update_interval": "Update-interval (uren)",
-          "language_code": "Taalcode voor API-respons"
+          "language_code": "Taalcode voor API-respons",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Autoriseer Pollen Levels opnieuw",
         "description": "De API-sleutel voor {latitude},{longitude} is niet meer geldig. Voer een nieuwe sleutel in om de updates te hervatten.",
         "data": {
-          "api_key": "API-sleutel"
+          "api_key": "API-sleutel",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Ongeldige API-sleutel",
-      "cannot_connect": "Kan geen verbinding maken met de service",
+      "invalid_auth": "Ongeldige API-sleutel\n\n{error_message}",
+      "cannot_connect": "Kan geen verbinding maken met de service\n\n{error_message}",
       "quota_exceeded": "Limiet overschreden",
       "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",

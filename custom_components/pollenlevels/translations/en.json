@@ -3,25 +3,30 @@
     "step": {
       "user": {
         "title": "Pollen Levels Configuration",
-        "description": "Enter your Google API Key, select your location on the map, update interval (hours) and API response language code.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API Key",
           "name": "Name",
           "location": "Location",
           "update_interval": "Update interval (hours)",
-          "language_code": "API response language code"
+          "language_code": "API response language code",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Reauthenticate Pollen Levels",
         "description": "The API key for {latitude},{longitude} is no longer valid. Enter a new key to resume updates.",
         "data": {
-          "api_key": "API Key"
+          "api_key": "API Key",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Invalid API key",
+      "invalid_auth": "Invalid API key\n\n{error_message}",
       "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",

@@ -169,6 +169,68 @@ class _LocationSelector:
 
 selector_mod.LocationSelector = _LocationSelector
 selector_mod.LocationSelectorConfig = _LocationSelectorConfig
+selector_mod.NumberSelectorMode = SimpleNamespace(BOX="box")
+
+
+class _NumberSelectorConfig:
+    def __init__(
+        self, *, min=None, max=None, step=None, mode=None, unit_of_measurement=None
+    ):
+        self.min = min
+        self.max = max
+        self.step = step
+        self.mode = mode
+        self.unit_of_measurement = unit_of_measurement
+
+
+class _NumberSelector:
+    def __init__(self, config: _NumberSelectorConfig):
+        self.config = config
+
+
+class _TextSelectorConfig:
+    def __init__(self):
+        return None
+
+
+class _TextSelector:
+    def __init__(self, config: _TextSelectorConfig):
+        self.config = config
+
+
+class _SelectSelectorMode:
+    DROPDOWN = "dropdown"
+
+
+class _SelectSelectorConfig:
+    def __init__(self, *, options=None, mode=None):
+        self.options = options
+        self.mode = mode
+
+
+class _SelectSelector:
+    def __init__(self, config: _SelectSelectorConfig):
+        self.config = config
+
+
+class _SectionConfig:
+    def __init__(self, *, collapsed: bool = False):
+        self.collapsed = collapsed
+
+
+def _section(name, _config=None):
+    return name
+
+
+selector_mod.NumberSelector = _NumberSelector
+selector_mod.NumberSelectorConfig = _NumberSelectorConfig
+selector_mod.TextSelector = _TextSelector
+selector_mod.TextSelectorConfig = _TextSelectorConfig
+selector_mod.SelectSelector = _SelectSelector
+selector_mod.SelectSelectorConfig = _SelectSelectorConfig
+selector_mod.SelectSelectorMode = _SelectSelectorMode
+selector_mod.SectionConfig = _SectionConfig
+selector_mod.section = _section
 sys.modules.setdefault("homeassistant.helpers.selector", selector_mod)
 
 ha_mod.helpers = helpers_mod
@@ -223,6 +285,7 @@ from custom_components.pollenlevels.config_flow import (
 )
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
+    CONF_HTTP_REFERRER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
@@ -433,12 +496,13 @@ def _base_user_input() -> dict:
     }
 
 
-def test_validate_input_http_403_sets_invalid_auth(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize("status", [401, 403])
+def test_validate_input_http_auth_errors_set_invalid_auth(
+    monkeypatch: pytest.MonkeyPatch, status: int
 ) -> None:
-    """HTTP 403 during validation should map to invalid_auth."""
+    """HTTP auth failures during validation should map to invalid_auth."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(403))
+    session = _patch_client_session(monkeypatch, _StubResponse(status))
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -450,6 +514,32 @@ def test_validate_input_http_403_sets_invalid_auth(
     assert session.calls
     assert errors == {"base": "invalid_auth"}
     assert normalized is None
+
+
+def test_validate_input_http_403_surfaces_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 403 with a body should populate the placeholder."""
+
+    body = b'{"error": {"message": "API not enabled"}}'
+    session = _patch_client_session(monkeypatch, _StubResponse(403, body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "API not enabled"
 
 
 def test_validate_input_http_429_sets_quota_exceeded(
@@ -513,6 +603,61 @@ def test_validate_input_http_500_sets_error_message_placeholder(
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
     assert placeholders.get("error_message")
+
+
+def test_user_step_stores_referrer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Non-empty referrer should be stored in the created entry data."""
+
+    session = _patch_client_session(
+        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"indexInfo": []}]}')
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(
+            language="en",
+            location_name="Home",
+            latitude=1.0,
+            longitude=2.0,
+        )
+    )
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                **_base_user_input(),
+                CONF_HTTP_REFERRER: "https://example.com",
+                CONF_LOCATION: {CONF_LATITUDE: "1.0", CONF_LONGITUDE: "2.0"},
+            }
+        )
+    )
+
+    assert session.calls
+    assert result["data"].get(CONF_HTTP_REFERRER) == "https://example.com"
+
+
+def test_user_step_omits_empty_referrer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Empty referrers should not be persisted in entry data."""
+
+    session = _patch_client_session(
+        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"indexInfo": []}]}')
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                **_base_user_input(),
+                CONF_HTTP_REFERRER: " ",
+                CONF_LOCATION: {CONF_LATITUDE: "1.0", CONF_LONGITUDE: "2.0"},
+            }
+        )
+    )
+
+    assert session.calls
+    assert CONF_HTTP_REFERRER not in result["data"]
 
 
 def test_validate_input_unexpected_exception_sets_unknown(

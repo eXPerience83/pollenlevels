@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "花粉水平設定",
-        "description": "請輸入 Google API 金鑰、在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API 金鑰",
           "name": "名稱",
           "location": "位置",
           "update_interval": "更新間隔（小時）",
-          "language_code": "API 回應語言代碼"
+          "language_code": "API 回應語言代碼",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "重新驗證 Pollen Levels",
         "description": "{latitude},{longitude} 的 API 金鑰已失效。請輸入新的金鑰以恢復更新。",
         "data": {
-          "api_key": "API 金鑰"
+          "api_key": "API 金鑰",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "無效的 API 金鑰",
-      "cannot_connect": "無法連線到服務",
+      "invalid_auth": "無效的 API 金鑰\n\n{error_message}",
+      "cannot_connect": "無法連線到服務\n\n{error_message}",
       "quota_exceeded": "超出配額",
       "invalid_language": "無效的語言代碼",
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",

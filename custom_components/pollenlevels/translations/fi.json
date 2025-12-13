@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Siitepölytason asetukset",
-        "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API-avain",
           "name": "Nimi",
           "location": "Sijainti",
           "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi"
+          "language_code": "API-vastauksen kielikoodi",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Todenna Pollen Levels uudelleen",
         "description": "API-avain sijainnille {latitude},{longitude} ei ole enää voimassa. Anna uusi avain, jotta päivitykset jatkuvat.",
         "data": {
-          "api_key": "API-avain"
+          "api_key": "API-avain",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Virheellinen API-avain",
-      "cannot_connect": "Palveluun ei saada yhteyttä",
+      "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
+      "cannot_connect": "Palveluun ei saada yhteyttä\n\n{error_message}",
       "quota_exceeded": "Kiintiö ylitetty",
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",

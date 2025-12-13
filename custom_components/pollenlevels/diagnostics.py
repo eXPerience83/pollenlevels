@@ -11,7 +11,7 @@ No network I/O is performed.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
@@ -21,13 +21,14 @@ from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
+    CONF_HTTP_REFERRER,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
-    DOMAIN,
 )
+from .runtime import PollenLevelsRuntimeData
 from .util import redact_api_key
 
 # Redact potentially sensitive values from diagnostics.
@@ -37,6 +38,7 @@ TO_REDACT = {
     CONF_API_KEY,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_HTTP_REFERRER,
     "location.latitude",
     "location.longitude",
 }
@@ -57,7 +59,8 @@ async def async_get_config_entry_diagnostics(
 
     NOTE: This function must not perform any network I/O.
     """
-    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    runtime = cast(PollenLevelsRuntimeData | None, getattr(entry, "runtime_data", None))
+    coordinator = getattr(runtime, "coordinator", None)
     options: dict[str, Any] = dict(entry.options or {})
     data: dict[str, Any] = dict(entry.data or {})
 

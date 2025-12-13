@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Konfigurasjon av pollennivåer",
-        "description": "Angi Google API-nøkkel, velg posisjonen din på kartet, oppdateringsintervall (timer) og språkkode for API-svar.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API-nøkkel",
           "name": "Navn",
           "location": "Posisjon",
           "update_interval": "Oppdateringsintervall (timer)",
-          "language_code": "Språkkode for API-svar"
+          "language_code": "Språkkode for API-svar",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Autentiser Pollen Levels på nytt",
         "description": "API-nøkkelen for {latitude},{longitude} er ikke lenger gyldig. Angi en ny nøkkel for å gjenoppta oppdateringene.",
         "data": {
-          "api_key": "API-nøkkel"
+          "api_key": "API-nøkkel",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Ugyldig API-nøkkel",
-      "cannot_connect": "Kan ikke koble til tjenesten",
+      "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
+      "cannot_connect": "Kan ikke koble til tjenesten\n\n{error_message}",
       "quota_exceeded": "Kvote overskredet",
       "invalid_language": "Ugyldig språkkode",
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",

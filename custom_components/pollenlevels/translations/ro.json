@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Configurare Niveluri de Polen",
-        "description": "Introduceți cheia Google API, selectați locația pe hartă, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "Cheie API",
           "name": "Nume",
           "location": "Locație",
           "update_interval": "Interval de actualizare (ore)",
-          "language_code": "Codul limbii pentru răspunsul API"
+          "language_code": "Codul limbii pentru răspunsul API",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Reautentificați Pollen Levels",
         "description": "Cheia API pentru {latitude},{longitude} nu mai este valabilă. Introduceți o cheie nouă pentru a relua actualizările.",
         "data": {
-          "api_key": "Cheie API"
+          "api_key": "Cheie API",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Cheie API nevalidă",
-      "cannot_connect": "Nu se poate conecta la serviciu",
+      "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
+      "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
       "quota_exceeded": "Cota depășită",
       "invalid_language": "Cod de limbă nevalid",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",

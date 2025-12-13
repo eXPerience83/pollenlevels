@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Pollen szintek – beállítás",
-        "description": "Adja meg a Google API-kulcsot, válassza ki helyszínét a térképen, a frissítési időközt (órák) és az API-válasz nyelvi kódját.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API-kulcs",
           "name": "Név",
           "location": "Helyszín",
           "update_interval": "Frissítési időköz (óra)",
-          "language_code": "API-válasz nyelvi kódja"
+          "language_code": "API-válasz nyelvi kódja",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Hitelesítsd újra a Pollen Levels-t",
         "description": "A(z) {latitude},{longitude} API-kulcsa már nem érvényes. Adj meg új kulcsot a frissítések folytatásához.",
         "data": {
-          "api_key": "API-kulcs"
+          "api_key": "API-kulcs",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Érvénytelen API-kulcs",
-      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
+      "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
+      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz\n\n{error_message}",
       "quota_exceeded": "Kvóta túllépve",
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",

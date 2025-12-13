@@ -21,12 +21,26 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.helpers.selector import (
+    LocationSelector,
+    LocationSelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SectionConfig,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    section,
+)
 
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
+    CONF_HTTP_REFERRER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
@@ -36,6 +50,8 @@ from .const import (
     FORECAST_SENSORS_CHOICES,
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
+    POLLEN_API_TIMEOUT,
+    SECTION_API_KEY_OPTIONS,
 )
 from .util import redact_api_key
 
@@ -50,14 +66,79 @@ LANGUAGE_CODE_REGEX = re.compile(
     re.IGNORECASE,
 )
 
+API_KEY_URL = "https://developers.google.com/maps/documentation/pollen/get-api-key"
+RESTRICTING_API_KEYS_URL = (
+    "https://developers.google.com/maps/api-security-best-practices"
+)
+
+
+def _extract_error_message(body: str | None, api_key: str | None) -> str | None:
+    """Extract a concise error message from an HTTP response body."""
+
+    if not body:
+        return None
+
+    redacted = redact_api_key(body, api_key) or body
+    message: str | None = None
+
+    try:
+        data = json.loads(redacted)
+    except Exception:
+        data = None
+
+    if isinstance(data, dict):
+        error_obj = data.get("error") if isinstance(data.get("error"), dict) else None
+        if error_obj is not None:
+            message = error_obj.get("message")
+        if not message:
+            message = data.get("message")
+
+    if not message:
+        message = redacted.strip() or None
+
+    if message and len(message) > 160:
+        return message[:160]
+
+    return message
+
+
+def _classify_403_error(message: str | None) -> str:
+    """Return an error key for a 403 response based on the message."""
+
+    if not message:
+        return "invalid_auth"
+
+    lowered = message.lower()
+    auth_hints = ("invalid", "key", "referer", "referrer", "not allowed", "denied")
+    billing_hints = ("billing", "enable", "enabled", "project")
+
+    if any(hint in lowered for hint in auth_hints):
+        return "invalid_auth"
+    if any(hint in lowered for hint in billing_hints):
+        return "cannot_connect"
+
+    return "invalid_auth"
+
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_API_KEY): str,
-        vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
-            vol.Coerce(int), vol.Range(min=1)
+        vol.Optional(
+            CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
+        ): NumberSelector(
+            NumberSelectorConfig(
+                min=1,
+                step=1,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="h",
+            )
         ),
-        vol.Optional(CONF_LANGUAGE_CODE): str,
+        vol.Optional(CONF_LANGUAGE_CODE): TextSelector(TextSelectorConfig()),
+        section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): {
+            vol.Optional(CONF_HTTP_REFERRER, default=""): TextSelector(
+                TextSelectorConfig()
+            ),
+        },
     }
 )
 
@@ -175,6 +256,20 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized.pop(CONF_NAME, None)
         normalized.pop(CONF_LOCATION, None)
 
+        # Normalize update interval (selectors do not coerce types).
+        interval_raw = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+        try:
+            interval = int(interval_raw)
+        except (TypeError, ValueError):
+            interval = DEFAULT_UPDATE_INTERVAL
+        if interval < 1:
+            interval = 1
+        normalized[CONF_UPDATE_INTERVAL] = interval
+
+        raw_referrer = user_input.get(CONF_HTTP_REFERRER, "")
+        referrer = raw_referrer.strip() if isinstance(raw_referrer, str) else ""
+        normalized[CONF_HTTP_REFERRER] = referrer or None
+
         latlon = None
         if CONF_LOCATION in user_input:
             latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
@@ -237,12 +332,30 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             # Add explicit timeout to prevent UI hangs on provider issues
             async with session.get(
-                url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+                url,
+                params=params,
+                timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
+                headers={"Referer": referrer} if referrer else None,
             ) as resp:
                 status = resp.status
-                if status == 403:
-                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
-                    errors["base"] = "invalid_auth"
+                raw = await resp.read()
+                try:
+                    body_str = raw.decode()
+                except Exception:
+                    body_str = str(raw)
+                redacted_body = redact_api_key(body_str, user_input.get(CONF_API_KEY))
+
+                if status in (401, 403):
+                    message = _extract_error_message(
+                        redacted_body, user_input.get(CONF_API_KEY)
+                    )
+                    if placeholders is not None and message:
+                        placeholders["error_message"] = message
+
+                    if status == 403:
+                        errors["base"] = _classify_403_error(message)
+                    else:
+                        errors["base"] = "invalid_auth"
                 elif status == 429:
                     _LOGGER.debug("Validation HTTP 429 (body omitted)")
                     errors["base"] = "quota_exceeded"
@@ -250,20 +363,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
                     if placeholders is not None:
-                        # Keep user-facing message generic; HTTP status is logged above
                         placeholders["error_message"] = (
-                            "Unable to validate the API key with the pollen service."
+                            _extract_error_message(
+                                redacted_body, user_input.get(CONF_API_KEY)
+                            )
+                            or "Unable to validate the API key with the pollen service."
                         )
                 else:
-                    raw = await resp.read()
-                    try:
-                        body_str = raw.decode()
-                    except Exception:
-                        body_str = str(raw)
                     _LOGGER.debug(
                         "Validation HTTP %s — %s",
                         status,
-                        redact_api_key(body_str, user_input.get(CONF_API_KEY)),
+                        redacted_body,
                     )
                     try:
                         data = json.loads(body_str) if body_str else {}
@@ -293,14 +403,16 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except TimeoutError as err:
             # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
             _LOGGER.warning(
-                "Validation timeout (10s): %s",
+                "Validation timeout (%ss): %s",
+                POLLEN_API_TIMEOUT,
                 redact_api_key(err, user_input.get(CONF_API_KEY)),
             )
             errors["base"] = "cannot_connect"
             if placeholders is not None:
                 redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
                 placeholders["error_message"] = (
-                    redacted or "Validation request timed out (10 seconds)."
+                    redacted
+                    or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
                 )
         except aiohttp.ClientError as err:
             _LOGGER.error(
@@ -329,6 +441,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         description_placeholders: dict[str, Any] = {}
 
+        description_placeholders.setdefault("api_key_url", API_KEY_URL)
+        description_placeholders.setdefault(
+            "restricting_api_keys_url", RESTRICTING_API_KEYS_URL
+        )
+
         if user_input:
             errors, normalized = await self._async_validate_input(
                 user_input,
@@ -338,6 +455,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not errors and normalized is not None:
                 entry_name = str(user_input.get(CONF_NAME, "")).strip()
                 title = entry_name or DEFAULT_ENTRY_TITLE
+                if not normalized.get(CONF_HTTP_REFERRER):
+                    normalized.pop(CONF_HTTP_REFERRER, None)
                 return self.async_create_entry(title=title, data=normalized)
 
         base_schema = STEP_USER_DATA_SCHEMA.schema.copy()
@@ -396,6 +515,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 description_placeholders=placeholders,
             )
             if not errors and normalized is not None:
+                if not normalized.get(CONF_HTTP_REFERRER):
+                    normalized.pop(CONF_HTTP_REFERRER, None)
                 self.hass.config_entries.async_update_entry(
                     self._reauth_entry, data=normalized
                 )
@@ -407,7 +528,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_API_KEY,
                     default=self._reauth_entry.data.get(CONF_API_KEY, ""),
-                ): str
+                ): str,
+                section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): {
+                    vol.Optional(
+                        CONF_HTTP_REFERRER,
+                        default=self._reauth_entry.data.get(CONF_HTTP_REFERRER, ""),
+                    ): TextSelector(TextSelectorConfig()),
+                },
             }
         )
 
@@ -433,6 +560,21 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             try:
+                interval_val = int(
+                    user_input.get(
+                        CONF_UPDATE_INTERVAL,
+                        self.entry.options.get(
+                            CONF_UPDATE_INTERVAL,
+                            self.entry.data.get(
+                                CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                            ),
+                        ),
+                    )
+                )
+                if interval_val < 1:
+                    interval_val = 1
+                user_input[CONF_UPDATE_INTERVAL] = interval_val
+
                 # Language: allow empty; if provided, validate & normalize.
                 raw_lang = user_input.get(
                     CONF_LANGUAGE_CODE,
@@ -456,6 +598,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 )
                 if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
                     errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
+                user_input[CONF_FORECAST_DAYS] = days
 
                 # per-day sensors vs number of days
                 mode = user_input.get(
@@ -508,14 +651,35 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_UPDATE_INTERVAL, default=current_interval
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                    vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
-                    vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.In(
-                        list(range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1))
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=1,
+                            step=1,
+                            mode=NumberSelectorMode.BOX,
+                            unit_of_measurement="h",
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_LANGUAGE_CODE, default=current_lang
+                    ): TextSelector(TextSelectorConfig()),
+                    vol.Optional(
+                        CONF_FORECAST_DAYS, default=current_days
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=MIN_FORECAST_DAYS,
+                            max=MAX_FORECAST_DAYS,
+                            step=1,
+                            mode=NumberSelectorMode.BOX,
+                        )
                     ),
                     vol.Optional(
                         CONF_CREATE_FORECAST_SENSORS, default=current_mode
-                    ): vol.In(FORECAST_SENSORS_CHOICES),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=FORECAST_SENSORS_CHOICES,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
             errors=errors,

@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "花粉水平配置",
-        "description": "请输入 Google API 密钥、在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API 密钥",
           "name": "名称",
           "location": "位置",
           "update_interval": "更新间隔（小时）",
-          "language_code": "API 响应语言代码"
+          "language_code": "API 响应语言代码",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "重新验证 Pollen Levels",
         "description": "{latitude},{longitude} 的 API 密钥已失效。请输入新的密钥以恢复更新。",
         "data": {
-          "api_key": "API 密钥"
+          "api_key": "API 密钥",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "无效的 API 密钥",
-      "cannot_connect": "无法连接到服务",
+      "invalid_auth": "无效的 API 密钥\n\n{error_message}",
+      "cannot_connect": "无法连接到服务\n\n{error_message}",
       "quota_exceeded": "配额已用尽",
       "invalid_language": "无效的语言代码",
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",

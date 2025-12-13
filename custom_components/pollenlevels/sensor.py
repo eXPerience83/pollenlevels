@@ -13,12 +13,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import random
 from collections.abc import Awaitable
 from datetime import date, timedelta  # Added `date` for DATE device class native_value
-from typing import TYPE_CHECKING, Any
-
-import aiohttp  # For explicit ClientTimeout and ClientError
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any, cast
 
 # Modern sensor base + enums
 from homeassistant.components.sensor import (
@@ -29,7 +27,6 @@ from homeassistant.components.sensor import (
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er  # entity-registry cleanup
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -39,15 +36,13 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.util import dt as dt_util
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .client import GooglePollenApiClient
 from .const import (
     CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
-    CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
@@ -55,10 +50,22 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
 )
+from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .util import redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
+
+__all__ = [
+    "CONF_API_KEY",
+    "CONF_LATITUDE",
+    "CONF_LONGITUDE",
+    "CONF_UPDATE_INTERVAL",
+    "DEFAULT_FORECAST_DAYS",
+    "DEFAULT_UPDATE_INTERVAL",
+]
 
 # ---- Icons ---------------------------------------------------------------
 
@@ -70,6 +77,14 @@ TYPE_ICONS = {
 # Plants reuse the same icon mapping by type.
 PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
+
+
+class ForecastSensorMode(StrEnum):
+    """Options for forecast sensor creation."""
+
+    NONE = "none"
+    D1 = "D+1"
+    D1_D2 = "D+1+2"
 
 
 def _normalize_channel(v: Any) -> int | None:
@@ -186,62 +201,24 @@ async def _cleanup_per_day_entities(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: PollenLevelsConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create coordinator and build sensors."""
-    api_key = config_entry.data.get(CONF_API_KEY)
-    if not api_key:
-        _LOGGER.warning(
-            "Config entry %s is missing the API key; prompting reauthentication",
-            config_entry.entry_id,
-        )
-        raise ConfigEntryAuthFailed("Missing API key in config entry")
-    # Config flow already enforces type and range on coordinates; missing values here
-    # would indicate a corrupted entry, so we only guard for presence.
-    lat = config_entry.data.get(CONF_LATITUDE)
-    lon = config_entry.data.get(CONF_LONGITUDE)
-    if lat is None or lon is None:
-        _LOGGER.warning(
-            "Config entry %s is missing coordinates; delaying setup until entry is complete",
-            config_entry.entry_id,
-        )
-        raise ConfigEntryNotReady("Missing coordinates in config entry")
+    runtime = cast(
+        PollenLevelsRuntimeData | None, getattr(config_entry, "runtime_data", None)
+    )
+    if runtime is None:
+        raise ConfigEntryNotReady("Runtime data not ready")
+    coordinator = runtime.coordinator
 
     opts = config_entry.options or {}
-    interval = opts.get(
-        CONF_UPDATE_INTERVAL,
-        config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-    )
-    lang = opts.get(CONF_LANGUAGE_CODE, config_entry.data.get(CONF_LANGUAGE_CODE))
-    forecast_days = int(opts.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS))
+    forecast_days = int(opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days))
+    create_d1 = coordinator.create_d1
+    create_d2 = coordinator.create_d2
 
-    # Map unified selector to internal flags
-    mode = opts.get(CONF_CREATE_FORECAST_SENSORS, "none")
-    create_d1 = mode == "D+1" or mode == "D+1+2"
-    create_d2 = mode == "D+1+2"
-
-    # Decide if per-day entities are allowed *given current options*
     allow_d1 = create_d1 and forecast_days >= 2
     allow_d2 = create_d2 and forecast_days >= 3
-
-    raw_title = config_entry.title or ""
-    clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
-
-    coordinator = PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key=api_key,
-        lat=lat,
-        lon=lon,
-        hours=interval,
-        language=lang,  # normalized in the coordinator
-        entry_id=config_entry.entry_id,
-        entry_title=clean_title,
-        forecast_days=forecast_days,
-        create_d1=allow_d1,  # pass effective flags
-        create_d2=allow_d2,
-    )
-    await coordinator.async_config_entry_first_refresh()
 
     data = coordinator.data or {}
     has_daily = ("date" in data) or any(
@@ -256,8 +233,6 @@ async def async_setup_entry(
     await _cleanup_per_day_entities(
         hass, config_entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
     )
-
-    hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
 
     sensors: list[CoordinatorEntity] = []
     for code in coordinator.data:
@@ -274,7 +249,9 @@ async def async_setup_entry(
     )
 
     _LOGGER.debug(
-        "Creating %d sensors: %s", len(sensors), [s.unique_id for s in sensors]
+        "Creating %d sensors: %s",
+        len(sensors),
+        [getattr(s, "unique_id", None) for s in sensors],
     )
     async_add_entities(sensors, True)
 
@@ -294,6 +271,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         forecast_days: int,
         create_d1: bool,
         create_d2: bool,
+        client: GooglePollenApiClient,
         entry_title: str = DEFAULT_ENTRY_TITLE,
     ):
         """Initialize coordinator with configuration and interval."""
@@ -316,14 +294,16 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.entry_id = entry_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
-        # Options flow restricts this range; no runtime clamping needed.
-        self.forecast_days = int(forecast_days)
+        # Clamp defensively for legacy/manual entries to supported range.
+        self.forecast_days = max(
+            MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, int(forecast_days))
+        )
         self.create_d1 = create_d1
         self.create_d2 = create_d2
+        self._client = client
 
         self.data: dict[str, dict] = {}
         self.last_updated = None
-        self._session = async_get_clientsession(hass)
 
     # ------------------------------
     # DRY helper for forecast attrs
@@ -396,124 +376,21 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch pollen data and extract sensors for current day and forecast."""
-        url = "https://pollen.googleapis.com/v1/forecast:lookup"
-        params = {
-            "key": self.api_key,
-            "location.latitude": f"{self.lat:.6f}",
-            "location.longitude": f"{self.lon:.6f}",
-            "days": self.forecast_days,
-        }
-        if self.language:
-            params["languageCode"] = self.language
-
-        # SECURITY: Do not log request parameters (avoid coords/key leakage)
-        _LOGGER.debug(
-            "Fetching forecast (days=%s, lang_set=%s)",
-            self.forecast_days,
-            bool(self.language),
-        )
-
-        # --- Minimal, safe retry policy (single retry) -----------------------
-        max_retries = 1  # Keep it minimal to reduce cost/latency
-        for attempt in range(0, max_retries + 1):
-            try:
-                # Explicit total timeout for network call
-                async with self._session.get(
-                    url, params=params, timeout=aiohttp.ClientTimeout(total=10)
-                ) as resp:
-                    # Non-retryable auth logic first
-                    if resp.status == 403:
-                        raise ConfigEntryAuthFailed("Invalid API key")
-
-                    # 429: may be transient — respect Retry-After if present
-                    if resp.status == 429:
-                        if attempt < max_retries:
-                            retry_after_raw = resp.headers.get("Retry-After")
-                            delay = 2.0
-                            if retry_after_raw:
-                                try:
-                                    delay = float(retry_after_raw)
-                                except (TypeError, ValueError):
-                                    delay = 2.0
-                            # Cap delay and add small jitter to avoid herding
-                            delay = min(delay, 5.0) + random.uniform(0.0, 0.4)
-                            _LOGGER.warning(
-                                "Pollen API 429 — retrying in %.2fs (attempt %d/%d)",
-                                delay,
-                                attempt + 1,
-                                max_retries,
-                            )
-                            await asyncio.sleep(delay)
-                            continue
-                        raise UpdateFailed("Quota exceeded")
-
-                    # 5xx -> retry once with short backoff
-                    if 500 <= resp.status <= 599:
-                        if attempt < max_retries:
-                            delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
-                            _LOGGER.warning(
-                                "Pollen API HTTP %s — retrying in %.2fs (attempt %d/%d)",
-                                resp.status,
-                                delay,
-                                attempt + 1,
-                                max_retries,
-                            )
-                            await asyncio.sleep(delay)
-                            continue
-                        raise UpdateFailed(f"HTTP {resp.status}")
-
-                    # Other 4xx (client errors except 403/429) are not retried
-                    if 400 <= resp.status < 500 and resp.status not in (403, 429):
-                        raise UpdateFailed(f"HTTP {resp.status}")
-
-                    if resp.status != 200:
-                        raise UpdateFailed(f"HTTP {resp.status}")
-
-                    payload = await resp.json()
-                    break  # exit retry loop on success
-
-            except ConfigEntryAuthFailed:
-                raise
-            except TimeoutError as err:
-                # Catch built-in TimeoutError; on modern Python (3.11+) this also
-                # covers asyncio.TimeoutError.
-                if attempt < max_retries:
-                    delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
-                    _LOGGER.warning(
-                        "Pollen API timeout — retrying in %.2fs (attempt %d/%d)",
-                        delay,
-                        attempt + 1,
-                        max_retries,
-                    )
-                    await asyncio.sleep(delay)
-                    continue
-                msg = redact_api_key(err, self.api_key)
-                if not msg:
-                    msg = "Google Pollen API call timed out"
-                raise UpdateFailed(f"Timeout: {msg}") from err
-
-            except aiohttp.ClientError as err:
-                # Transient client-side issues (DNS reset, connector errors, etc.)
-                if attempt < max_retries:
-                    delay = 0.8 * (2**attempt) + random.uniform(0.0, 0.3)
-                    _LOGGER.warning(
-                        "Network error to Pollen API — retrying in %.2fs (attempt %d/%d)",
-                        delay,
-                        attempt + 1,
-                        max_retries,
-                    )
-                    await asyncio.sleep(delay)
-                    continue
-                msg = redact_api_key(err, self.api_key)
-                if not msg:
-                    msg = "Network error while calling the Google Pollen API"
-                raise UpdateFailed(msg) from err
-
-            except Exception as err:  # Keep previous behavior for unexpected errors
-                msg = redact_api_key(err, self.api_key)
-                _LOGGER.error("Pollen API error: %s", msg)
-                raise UpdateFailed(msg) from err
-        # --------------------------------------------------------------------
+        try:
+            payload = await self._client.async_fetch_pollen_data(
+                latitude=self.lat,
+                longitude=self.lon,
+                days=self.forecast_days,
+                language_code=self.language,
+            )
+        except ConfigEntryAuthFailed:
+            raise
+        except UpdateFailed:
+            raise
+        except Exception as err:  # Keep previous behavior for unexpected errors
+            msg = redact_api_key(err, self.api_key)
+            _LOGGER.error("Pollen API error: %s", msg)
+            raise UpdateFailed(msg) from err
 
         new_data: dict[str, dict] = {}
 
@@ -921,6 +798,14 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         """Return device info with translation support for the group."""
         info = self.coordinator.data.get(self.code, {}) or {}
         group = info.get("source")
+        if not group:
+            if self.code.startswith("type_"):
+                group = "type"
+            elif self.code.startswith("plant_"):
+                group = "plant"
+            else:
+                group = "info"
+
         device_id = f"{self.coordinator.entry_id}_{group}"
         translation_keys = {"type": "types", "plant": "plants", "meta": "info"}
         translation_key = translation_keys.get(group, "info")

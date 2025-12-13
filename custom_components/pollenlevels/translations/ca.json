@@ -3,25 +3,30 @@
     "step": {
       "user": {
         "title": "Configuració de Nivells de pol·len",
-        "description": "Introdueix la teva clau d’API de Google, selecciona la teva ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "Clau API",
           "name": "Nom",
           "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta de l’API"
+          "language_code": "Codi d’idioma de la resposta de l’API",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Torna a autenticar Nivells de pol·len",
         "description": "La clau API per {latitude},{longitude} ja no és vàlida. Introdueix una clau nova per reprendre les actualitzacions.",
         "data": {
-          "api_key": "Clau API"
+          "api_key": "Clau API",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Clau API no vàlida",
+      "invalid_auth": "Clau API no vàlida\n\n{error_message}",
       "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
       "quota_exceeded": "Quota excedida",
       "invalid_language": "Codi d’idioma no vàlid",

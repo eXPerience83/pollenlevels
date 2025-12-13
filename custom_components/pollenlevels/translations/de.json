@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Konfiguration",
-        "description": "Gib deinen Google API-Schlüssel an, wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "API-Schlüssel",
           "name": "Name",
           "location": "Standort",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für die API-Antwort"
+          "language_code": "Sprachcode für die API-Antwort",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Pollen Levels erneut authentifizieren",
         "description": "Der API-Schlüssel für {latitude},{longitude} ist nicht mehr gültig. Gib einen neuen Schlüssel ein, um die Aktualisierungen fortzusetzen.",
         "data": {
-          "api_key": "API-Schlüssel"
+          "api_key": "API-Schlüssel",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Ungültiger API-Schlüssel",
-      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
+      "invalid_auth": "Ungültiger API-Schlüssel\n\n{error_message}",
+      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen\n\n{error_message}",
       "quota_exceeded": "Kontingent überschritten",
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",

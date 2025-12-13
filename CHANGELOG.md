@@ -1,4 +1,29 @@
 # Changelog
+## [1.9.0-alpha1] - 2025-12-11
+### Changed
+- Moved runtime state to config entry `runtime_data` with a shared
+  `GooglePollenApiClient` per entry while keeping existing sensor behaviour and
+  identifiers unchanged.
+- Updated sensors, diagnostics, and the `pollenlevels.force_update` service to
+  read coordinators from runtime data so each entry reuses a single API client
+  for Google Pollen requests.
+- Treated HTTP 401 responses like 403 to surface `invalid_auth` during setup
+  validation and runtime calls instead of generic connection errors.
+- Restored API key validation during setup to raise `ConfigEntryAuthFailed`
+  when the key is missing instead of retrying endlessly.
+- Centralized config entry title normalization during setup so the cleaned
+  device titles are reused across all sensors.
+- Simplified metadata sensors by relying on inherited `unique_id` and
+  `device_info` properties instead of redefining them.
+- Updated the `force_update` service to queue coordinator refreshes via
+  `async_request_refresh` and added service coverage for entries lacking
+  runtime data.
+- Cleared config entry `runtime_data` after unload to drop stale coordinator
+  references and keep teardown tidy.
+- Updated config and reauthentication flows with selector-based inputs, API key
+  help links, optional HTTP referrer handling, and surfaced 401/403 server
+  messages while sending the referrer header to the Google Pollen API.
+
 ## [1.8.6] - 2025-12-09
 ### Changed
 - Parallelized the `force_update` service to refresh all entry coordinators concurrently

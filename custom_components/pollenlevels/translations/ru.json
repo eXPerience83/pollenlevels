@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Настройка уровней пыльцы",
-        "description": "Введите ваш ключ Google API, выберите свое местоположение на карте, интервал обновления (в часах) и код языка ответа API.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "Ключ API",
           "name": "Имя",
           "location": "Местоположение",
           "update_interval": "Интервал обновления (в часах)",
-          "language_code": "Код языка ответа API"
+          "language_code": "Код языка ответа API",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Повторная аутентификация Pollen Levels",
         "description": "Ключ API для {latitude},{longitude} больше не действителен. Введите новый ключ, чтобы возобновить обновления.",
         "data": {
-          "api_key": "Ключ API"
+          "api_key": "Ключ API",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Неверный ключ API",
-      "cannot_connect": "Не удаётся подключиться к сервису",
+      "invalid_auth": "Неверный ключ API\n\n{error_message}",
+      "cannot_connect": "Не удаётся подключиться к сервису\n\n{error_message}",
       "quota_exceeded": "Превышен лимит запросов",
       "invalid_language": "Неверный код языка",
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",

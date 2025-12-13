@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuration",
-        "description": "Saisissez votre clé API Google, sélectionnez votre position sur la carte, l’intervalle de mise à jour (heures) et le code de langue pour la réponse de l’API.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "Clé API",
           "name": "Nom",
           "location": "Emplacement",
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Code de langue pour la réponse de l’API"
+          "language_code": "Code de langue pour la réponse de l’API",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Réauthentifier Pollen Levels",
         "description": "La clé API pour {latitude},{longitude} n’est plus valide. Saisissez une nouvelle clé pour reprendre les mises à jour.",
         "data": {
-          "api_key": "Clé API"
+          "api_key": "Clé API",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Clé API invalide",
-      "cannot_connect": "Impossible de se connecter au service",
+      "invalid_auth": "Clé API invalide\n\n{error_message}",
+      "cannot_connect": "Impossible de se connecter au service\n\n{error_message}",
       "quota_exceeded": "Quota dépassé",
       "invalid_language": "Code de langue invalide",
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",

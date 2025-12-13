@@ -3,26 +3,31 @@
     "step": {
       "user": {
         "title": "Konfiguracja poziomów pyłku",
-        "description": "Wprowadź klucz Google API, wybierz swoją lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
+        "description": "Get your API key from [here]({api_key_url}) and review key restrictions [here]({restricting_api_keys_url}). Enter your Google API Key, select your location on the map, update interval (hours), API response language code, and optional HTTP referrer.",
         "data": {
           "api_key": "Klucz API",
           "name": "Nazwa",
           "location": "Lokalizacja",
           "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API"
+          "language_code": "Kod języka odpowiedzi API",
+          "http_referrer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {
         "title": "Ponownie uwierzytelnij Pollen Levels",
         "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",
         "data": {
-          "api_key": "Klucz API"
+          "api_key": "Klucz API",
+          "http_referrer": "HTTP Referrer"
         }
       }
     },
     "error": {
-      "invalid_auth": "Nieprawidłowy klucz API",
-      "cannot_connect": "Brak połączenia z usługą",
+      "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
+      "cannot_connect": "Brak połączenia z usługą\n\n{error_message}",
       "quota_exceeded": "Przekroczono limit",
       "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
