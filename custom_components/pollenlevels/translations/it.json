@@ -29,7 +29,8 @@
       "empty": "Questo campo non può essere vuoto",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
       "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
-      "unknown": "Errore sconosciuto"
+      "unknown": "Errore sconosciuto",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata.",

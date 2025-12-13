@@ -29,7 +29,8 @@
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location on the map.",
-      "unknown": "Unknown error"
+      "unknown": "Unknown error",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "This location is already configured.",

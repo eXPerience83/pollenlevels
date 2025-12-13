@@ -29,7 +29,8 @@
       "empty": "Это поле не может быть пустым",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
       "invalid_coordinates": "Выберите корректное местоположение на карте.",
-      "unknown": "Неизвестная ошибка"
+      "unknown": "Неизвестная ошибка",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Это местоположение уже настроено.",

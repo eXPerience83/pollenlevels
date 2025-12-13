@@ -29,7 +29,8 @@
       "empty": "Це поле не може бути порожнім",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "invalid_coordinates": "Виберіть дійсне місце на карті.",
-      "unknown": "Невідома помилка"
+      "unknown": "Невідома помилка",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Це розташування вже налаштовано.",

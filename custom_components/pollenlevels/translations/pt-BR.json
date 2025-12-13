@@ -29,7 +29,8 @@
       "empty": "Este campo não pode ficar vazio",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "invalid_coordinates": "Selecione um local válido no mapa.",
-      "unknown": "Erro desconhecido"
+      "unknown": "Erro desconhecido",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
     },
     "abort": {
       "already_configured": "Este local já está configurado.",
