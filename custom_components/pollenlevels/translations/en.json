@@ -13,9 +13,7 @@
           "http_referrer": "HTTP Referrer"
         },
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         }
       },
       "reauth_confirm": {

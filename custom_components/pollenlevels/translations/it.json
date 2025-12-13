@@ -36,9 +36,7 @@
         },
         "description": "Inserisci la tua chiave API Google, seleziona la tua posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Configurazione Livelli di polline"
       }

@@ -36,9 +36,7 @@
         },
         "description": "Adja meg a Google API-kulcsot, válassza ki helyszínét a térképen, a frissítési időközt (órák) és az API-válasz nyelvi kódját.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Pollen szintek – beállítás"
       }

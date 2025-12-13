@@ -36,9 +36,7 @@
         },
         "description": "Введите ваш ключ Google API, выберите свое местоположение на карте, интервал обновления (в часах) и код языка ответа API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Настройка уровней пыльцы"
       }

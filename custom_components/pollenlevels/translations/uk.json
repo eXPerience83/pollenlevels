@@ -36,9 +36,7 @@
         },
         "description": "Введіть свій ключ Google API, виберіть місцезнаходження на карті, інтервал оновлення (у годинах) та код мови для відповіді API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Налаштування рівнів пилку"
       }

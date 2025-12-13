@@ -36,9 +36,7 @@
         },
         "description": "Saisissez votre clé API Google, sélectionnez votre position sur la carte, l’intervalle de mise à jour (heures) et le code de langue pour la réponse de l’API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Pollen Levels – Configuration"
       }

@@ -36,9 +36,7 @@
         },
         "description": "Wprowadź klucz Google API, wybierz swoją lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Konfiguracja poziomów pyłku"
       }

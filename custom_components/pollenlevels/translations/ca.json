@@ -36,9 +36,7 @@
         },
         "description": "Introdueix la teva clau d’API de Google, selecciona la teva ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Configuració de Nivells de pol·len"
       }

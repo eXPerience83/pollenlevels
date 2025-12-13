@@ -36,9 +36,7 @@
         },
         "description": "Introduza a sua chave da API do Google, selecione a sua localização no mapa, o intervalo de atualização (horas) e o código de idioma para a resposta da API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Configuração dos Níveis de Pólen"
       }

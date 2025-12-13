@@ -36,9 +36,7 @@
         },
         "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Siitepölytason asetukset"
       }

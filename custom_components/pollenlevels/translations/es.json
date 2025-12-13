@@ -36,9 +36,7 @@
         },
         "description": "Introduce tu clave de API de Google, selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Configuración de Niveles de Polen"
       }

@@ -36,9 +36,7 @@
         },
         "description": "Angi Google API-nøkkel, velg posisjonen din på kartet, oppdateringsintervall (timer) og språkkode for API-svar.",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "Konfigurasjon av pollennivåer"
       }

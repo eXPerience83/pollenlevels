@@ -36,9 +36,7 @@
         },
         "description": "请输入 Google API 密钥、在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。",
         "sections": {
-          "api_key_options": {
-            "title": "Optional API key options"
-          }
+          "api_key_options": "Optional API key options"
         },
         "title": "花粉水平配置"
       }
