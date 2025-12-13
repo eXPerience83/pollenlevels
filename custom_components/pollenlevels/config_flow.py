@@ -38,9 +38,9 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_API_KEY,
-    CONF_HTTP_REFERER,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
+    CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,

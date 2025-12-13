@@ -3,6 +3,13 @@
 ### Changed
 - Added stable constants for HTTP referrer support and API key helper URLs to
   support upcoming flow updates.
+- Modernized the config flow with selectors, API key guidance links, and a
+  collapsed API key options section including an optional HTTP referrer field
+  stored flat in entry data.
+- Enhanced setup validation to surface HTTP 401/403 API messages safely via the
+  form error placeholders without exposing secrets.
+- Updated the options flow to use selectors while normalizing numeric fields to
+  integers and keeping existing validation rules and defaults intact.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

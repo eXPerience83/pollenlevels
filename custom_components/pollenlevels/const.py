@@ -23,7 +23,9 @@ DEFAULT_ENTRY_TITLE = "Pollen Levels"
 MAX_FORECAST_DAYS = 5
 MIN_FORECAST_DAYS = 1
 POLLEN_API_TIMEOUT = 10
-POLLEN_API_KEY_URL = "https://developers.google.com/maps/documentation/pollen/get-api-key"
+POLLEN_API_KEY_URL = (
+    "https://developers.google.com/maps/documentation/pollen/get-api-key"
+)
 RESTRICTING_API_KEYS_URL = (
     "https://developers.google.com/maps/api-security-best-practices"
 )
