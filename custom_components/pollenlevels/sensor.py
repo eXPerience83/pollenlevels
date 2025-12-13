@@ -798,6 +798,14 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         """Return device info with translation support for the group."""
         info = self.coordinator.data.get(self.code, {}) or {}
         group = info.get("source")
+        if not group:
+            if self.code.startswith("type_"):
+                group = "type"
+            elif self.code.startswith(("plant_", "plants_")):
+                group = "plant"
+            else:
+                group = "meta"
+
         device_id = f"{self.coordinator.entry_id}_{group}"
         translation_keys = {"type": "types", "plant": "plants", "meta": "info"}
         translation_key = translation_keys.get(group, "info")
