@@ -209,6 +209,24 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized.pop(CONF_NAME, None)
         normalized.pop(CONF_LOCATION, None)
 
+        headers: dict[str, str] | None = None
+        raw_http_referer = normalized.get(CONF_HTTP_REFERER)
+        if raw_http_referer is not None:
+            if not isinstance(raw_http_referer, str):
+                errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
+                return errors, None
+
+            http_referer = raw_http_referer.strip()
+            if "\r" in http_referer or "\n" in http_referer:
+                errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
+                return errors, None
+
+            if http_referer:
+                headers = {"Referer": http_referer}
+                normalized[CONF_HTTP_REFERER] = http_referer
+            else:
+                normalized.pop(CONF_HTTP_REFERER, None)
+
         async def _extract_error_message(
             resp: aiohttp.ClientResponse, default: str
         ) -> str:
@@ -299,6 +317,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             async with session.get(
                 url,
                 params=params,
+                headers=headers,
                 timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
