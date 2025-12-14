@@ -25,6 +25,7 @@ from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
+    CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -114,11 +115,13 @@ async def async_setup_entry(
     if not api_key:
         raise ConfigEntryAuthFailed("Missing API key")
 
+    http_referer = entry.data.get(CONF_HTTP_REFERER)
+
     raw_title = entry.title or ""
     clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
 
     session = async_get_clientsession(hass)
-    client = GooglePollenApiClient(session, api_key)
+    client = GooglePollenApiClient(session, api_key, http_referer)
 
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,

@@ -19,9 +19,12 @@ _LOGGER = logging.getLogger(__name__)
 class GooglePollenApiClient:
     """Thin async client wrapper for the Google Pollen API."""
 
-    def __init__(self, session: ClientSession, api_key: str) -> None:
+    def __init__(
+        self, session: ClientSession, api_key: str, http_referer: str | None = None
+    ) -> None:
         self._session = session
         self._api_key = api_key
+        self._http_referer = http_referer
 
     async def _extract_error_message(self, resp: Any) -> str:
         """Extract and normalize an HTTP error message."""
@@ -106,8 +109,14 @@ class GooglePollenApiClient:
         max_retries = 1
         for attempt in range(0, max_retries + 1):
             try:
+                headers: dict[str, str] | None = None
+                if self._http_referer:
+                    headers = {"Referer": self._http_referer}
                 async with self._session.get(
-                    url, params=params, timeout=ClientTimeout(total=POLLEN_API_TIMEOUT)
+                    url,
+                    params=params,
+                    timeout=ClientTimeout(total=POLLEN_API_TIMEOUT),
+                    headers=headers,
                 ) as resp:
                     if resp.status == 401:
                         message = await self._extract_error_message(resp)

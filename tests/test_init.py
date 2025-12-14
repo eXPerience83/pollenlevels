@@ -376,9 +376,10 @@ def test_setup_entry_success_and_unload() -> None:
     entry = _FakeEntry()
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, _http_referer=None):
             self.session = _session
             self.api_key = _api_key
+            self.http_referer = _http_referer
 
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}

@@ -816,13 +816,10 @@ def test_cleanup_per_day_entities_removes_disabled_days(
     assert registry.removals == expected_entities
 
 
-@pytest.mark.parametrize("status", [401, 403])
-def test_coordinator_raises_auth_failed(
-    monkeypatch: pytest.MonkeyPatch, status: int
-) -> None:
-    """Auth failures trigger ConfigEntryAuthFailed for re-auth flows."""
+def test_coordinator_raises_auth_failed() -> None:
+    """401 responses trigger ConfigEntryAuthFailed for re-auth flows."""
 
-    fake_session = FakeSession({}, status=status)
+    fake_session = FakeSession({}, status=401)
     client = sensor.GooglePollenApiClient(fake_session, "bad")
 
     loop = asyncio.new_event_loop()
@@ -848,6 +845,35 @@ def test_coordinator_raises_auth_failed(
         loop.close()
 
 
+def test_coordinator_handles_forbidden() -> None:
+    """403 responses raise UpdateFailed without triggering re-auth."""
+
+    fake_session = FakeSession({"error": {"message": "Forbidden"}}, status=403)
+    client = sensor.GooglePollenApiClient(fake_session, "bad")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="bad",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        with pytest.raises(sensor.UpdateFailed):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+
 def test_coordinator_retries_then_raises_on_rate_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -855,8 +881,16 @@ def test_coordinator_retries_then_raises_on_rate_limit(
 
     session = SequenceSession(
         [
-            ResponseSpec(status=429, payload={}, headers={"Retry-After": "3"}),
-            ResponseSpec(status=429, payload={}, headers={"Retry-After": "3"}),
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": "3"},
+            ),
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": "3"},
+            ),
         ]
     )
     delays: list[float] = []
@@ -901,8 +935,16 @@ def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> N
     retry_after = "Wed, 10 Dec 2025 12:00:05 GMT"
     session = SequenceSession(
         [
-            ResponseSpec(status=429, payload={}, headers={"Retry-After": retry_after}),
-            ResponseSpec(status=429, payload={}, headers={"Retry-After": retry_after}),
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": retry_after},
+            ),
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": retry_after},
+            ),
         ]
     )
     delays: list[float] = []
