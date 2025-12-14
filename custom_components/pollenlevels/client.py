@@ -23,6 +23,34 @@ class GooglePollenApiClient:
         self._session = session
         self._api_key = api_key
 
+    async def _extract_error_message(self, resp: Any) -> str:
+        """Extract and normalize an HTTP error message."""
+
+        message: str | None = None
+        try:
+            data = await resp.json()
+            if isinstance(data, dict):
+                error = data.get("error")
+                if isinstance(error, dict):
+                    raw_msg = error.get("message")
+                    if isinstance(raw_msg, str):
+                        message = raw_msg
+        except Exception:  # noqa: BLE001
+            message = None
+
+        if not message:
+            try:
+                text = await resp.text()
+                message = text.strip() if isinstance(text, str) else None
+            except Exception:  # noqa: BLE001
+                message = None
+
+        if not message:
+            return f"HTTP {resp.status}"
+
+        message = message[:300]
+        return f"HTTP {resp.status}: {message}"
+
     def _parse_retry_after(self, retry_after_raw: str) -> float:
         """Translate a Retry-After header into a delay in seconds."""
 
@@ -81,8 +109,13 @@ class GooglePollenApiClient:
                 async with self._session.get(
                     url, params=params, timeout=ClientTimeout(total=POLLEN_API_TIMEOUT)
                 ) as resp:
-                    if resp.status in (401, 403):
-                        raise ConfigEntryAuthFailed("Invalid API key")
+                    if resp.status == 401:
+                        message = await self._extract_error_message(resp)
+                        raise ConfigEntryAuthFailed(message)
+
+                    if resp.status == 403:
+                        message = await self._extract_error_message(resp)
+                        raise UpdateFailed(message)
 
                     if resp.status == 429:
                         if attempt < max_retries:
@@ -99,7 +132,8 @@ class GooglePollenApiClient:
                             )
                             await asyncio.sleep(delay)
                             continue
-                        raise UpdateFailed("Quota exceeded")
+                        message = await self._extract_error_message(resp)
+                        raise UpdateFailed(message)
 
                     if 500 <= resp.status <= 599:
                         if attempt < max_retries:
@@ -113,13 +147,16 @@ class GooglePollenApiClient:
                                 base_args=(resp.status,),
                             )
                             continue
-                        raise UpdateFailed(f"HTTP {resp.status}")
+                        message = await self._extract_error_message(resp)
+                        raise UpdateFailed(message)
 
                     if 400 <= resp.status < 500 and resp.status not in (403, 429):
-                        raise UpdateFailed(f"HTTP {resp.status}")
+                        message = await self._extract_error_message(resp)
+                        raise UpdateFailed(message)
 
                     if resp.status != 200:
-                        raise UpdateFailed(f"HTTP {resp.status}")
+                        message = await self._extract_error_message(resp)
+                        raise UpdateFailed(message)
 
                     return await resp.json()
 
