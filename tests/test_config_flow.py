@@ -9,6 +9,7 @@ import asyncio
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -66,6 +67,9 @@ class _StubConfigFlow:
 
     def async_create_entry(self, *args, **kwargs):  # pragma: no cover - not used
         return {"title": kwargs.get("title"), "data": kwargs.get("data")}
+
+    def add_suggested_values_to_schema(self, schema, suggested_values):
+        return schema
 
 
 class _StubOptionsFlow:
@@ -280,10 +284,15 @@ class _StubInvalid(Exception):
         self.error_message = error_message
 
 
+class _StubSchema:
+    def __init__(self, schema):
+        self.schema = schema
+
+
 vol_mod.Invalid = _StubInvalid
-vol_mod.Schema = lambda *args, **kwargs: None
-vol_mod.Optional = lambda *args, **kwargs: None
-vol_mod.Required = lambda *args, **kwargs: None
+vol_mod.Schema = lambda schema, **kwargs: _StubSchema(schema)
+vol_mod.Optional = lambda key, **kwargs: key
+vol_mod.Required = lambda key, **kwargs: key
 vol_mod.All = lambda *args, **kwargs: None
 vol_mod.Coerce = lambda *args, **kwargs: None
 vol_mod.Range = lambda *args, **kwargs: None
@@ -304,6 +313,7 @@ from custom_components.pollenlevels.config_flow import (
 )
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
+    CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
@@ -323,6 +333,14 @@ class _StubResponse:
 
     async def read(self) -> bytes:
         return self._body
+
+    async def json(self):
+        import json as _json
+
+        return _json.loads(self._body.decode())
+
+    async def text(self) -> str:
+        return self._body.decode()
 
 
 class _SequenceSession:
@@ -514,6 +532,103 @@ def _base_user_input() -> dict:
     }
 
 
+def test_async_step_user_persists_http_referer() -> None:
+    """HTTP referrer should be trimmed and persisted when provided."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        assert user_input[CONF_HTTP_REFERER] == "https://example.com"
+        normalized = {
+            CONF_API_KEY: user_input[CONF_API_KEY],
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+            CONF_LANGUAGE_CODE: "en",
+            CONF_HTTP_REFERER: "https://example.com",
+        }
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    user_input = {
+        **_base_user_input(),
+        CONF_UPDATE_INTERVAL: 6,
+        CONF_LANGUAGE_CODE: "en",
+        CONF_HTTP_REFERER: " https://example.com ",
+    }
+
+    result = asyncio.run(flow.async_step_user(user_input))
+
+    assert result["data"][CONF_HTTP_REFERER] == "https://example.com"
+
+
+def test_async_step_user_drops_blank_http_referer() -> None:
+    """Blank HTTP referrer values should not be persisted."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        assert CONF_HTTP_REFERER not in user_input
+        normalized = {
+            CONF_API_KEY: user_input[CONF_API_KEY],
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+            CONF_LANGUAGE_CODE: "en",
+        }
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    user_input = {
+        **_base_user_input(),
+        CONF_UPDATE_INTERVAL: 6,
+        CONF_LANGUAGE_CODE: "en",
+        CONF_HTTP_REFERER: "   ",
+    }
+
+    result = asyncio.run(flow.async_step_user(user_input))
+
+    assert CONF_HTTP_REFERER not in result["data"]
+
+
+def test_async_step_user_invalid_http_referer_sets_field_error() -> None:
+    """Newlines in HTTP referrer should surface a field-level error."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+
+    captured: dict[str, Any] = {}
+
+    def fake_show_form(*args, **kwargs):
+        captured.update(kwargs)
+        return kwargs
+
+    flow.async_show_form = fake_show_form  # type: ignore[assignment]
+
+    user_input = {
+        **_base_user_input(),
+        CONF_UPDATE_INTERVAL: 6,
+        CONF_LANGUAGE_CODE: "en",
+        CONF_HTTP_REFERER: "http://example.com/\npath",
+    }
+
+    asyncio.run(flow.async_step_user(user_input))
+
+    assert captured.get("errors") == {CONF_HTTP_REFERER: "invalid_http_referrer"}
+
+
 @pytest.mark.parametrize(
     ("status", "expected"),
     [
@@ -601,6 +716,32 @@ def test_validate_input_http_500_sets_error_message_placeholder(
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
     assert placeholders.get("error_message")
+
+
+def test_validate_input_http_403_sets_error_message_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 403 should populate the cannot_connect error_message placeholder."""
+
+    body = b'{"error": {"message": "Forbidden for this project"}}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=403, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert "Forbidden" in placeholders.get("error_message", "")
 
 
 def test_validate_input_unexpected_exception_sets_unknown(
