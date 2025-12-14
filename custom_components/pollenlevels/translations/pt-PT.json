@@ -37,7 +37,9 @@
         "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "title": "Configuração dos Níveis de Pólen",
         "sections": {
-          "api_key_options": "Optional API key options"
+          "api_key_options": {
+            "title": "Optional API key options"
+          }
         },
         "data_description": {
           "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
