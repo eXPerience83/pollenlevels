@@ -1,95 +1,95 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Siitepölytason asetukset",
-        "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
-        "data": {
-          "api_key": "API-avain",
-          "name": "Nimi",
-          "location": "Sijainti",
-          "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Todenna Pollen Levels uudelleen",
-        "description": "API-avain sijainnille {latitude},{longitude} ei ole enää voimassa. Anna uusi avain, jotta päivitykset jatkuvat.",
-        "data": {
-          "api_key": "API-avain"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Virheellinen API-avain",
-      "cannot_connect": "Palveluun ei saada yhteyttä",
-      "quota_exceeded": "Kiintiö ylitetty",
-      "invalid_language": "Virheellinen kielikoodi",
-      "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
-      "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
-      "unknown": "Tuntematon virhe",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
-    },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
-      "reauth_successful": "Uudelleentodennus onnistui.",
-      "reauth_failed": "Uudelleentodennus epäonnistui. Yritä uudelleen."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Asetukset",
-        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2).",
-        "data": {
-          "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi",
-          "forecast_days": "Ennustepäivät (1–5)",
-          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
-        }
-      }
+      "reauth_failed": "Uudelleentodennus epäonnistui. Yritä uudelleen.",
+      "reauth_successful": "Uudelleentodennus onnistui."
     },
     "error": {
+      "cannot_connect": "Palveluun ei saada yhteyttä\n\n{error_message}",
+      "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_auth": "Virheellinen API-avain",
-      "cannot_connect": "Palveluun ei saada yhteyttä",
-      "quota_exceeded": "Kiintiö ylitetty",
+      "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
-      "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
+      "quota_exceeded": "Kiintiö ylitetty",
       "unknown": "Tuntematon virhe"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "API-avain"
+        },
+        "description": "API-avain sijainnille {latitude},{longitude} ei ole enää voimassa. Anna uusi avain, jotta päivitykset jatkuvat.",
+        "title": "Todenna Pollen Levels uudelleen"
+      },
+      "user": {
+        "data": {
+          "api_key": "API-avain",
+          "language_code": "API-vastauksen kielikoodi",
+          "location": "Sijainti",
+          "name": "Nimi",
+          "update_interval": "Päivitysväli (tunnit)"
+        },
+        "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
+        "title": "Siitepölytason asetukset"
+      }
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Siitepölytyypit ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Siitepölytiedot ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Kasvit ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Siitepölytiedot ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Pakota päivitys",
-      "description": "Päivitä siitepölytiedot manuaalisesti kaikille määritetyille sijainneille."
+    "types": {
+      "name": "{title} - Siitepölytyypit ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Alue"
-      },
       "date": {
         "name": "Päivämäärä"
       },
       "last_updated": {
         "name": "Viimeksi päivitetty"
+      },
+      "region": {
+        "name": "Alue"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Palveluun ei saada yhteyttä",
+      "empty": "Tämä kenttä ei voi olla tyhjä",
+      "invalid_auth": "Virheellinen API-avain",
+      "invalid_language": "Virheellinen kielikoodi",
+      "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
+      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
+      "quota_exceeded": "Kiintiö ylitetty",
+      "unknown": "Tuntematon virhe"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)",
+          "forecast_days": "Ennustepäivät (1–5)",
+          "language_code": "API-vastauksen kielikoodi",
+          "update_interval": "Päivitysväli (tunnit)"
+        },
+        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2).",
+        "title": "Pollen Levels – Asetukset"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Päivitä siitepölytiedot manuaalisesti kaikille määritetyille sijainneille.",
+      "name": "Pakota päivitys"
     }
   }
 }

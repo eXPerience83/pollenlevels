@@ -31,6 +31,22 @@ sys.modules.setdefault("homeassistant", ha_mod)
 
 config_entries_mod = ModuleType("homeassistant.config_entries")
 
+data_entry_flow_mod = ModuleType("homeassistant.data_entry_flow")
+
+
+class _SectionConfig:
+    def __init__(self, collapsed: bool | None = None):
+        self.collapsed = collapsed
+
+
+def section(key: str, config: _SectionConfig):  # noqa: ARG001
+    return key
+
+
+data_entry_flow_mod.SectionConfig = _SectionConfig
+data_entry_flow_mod.section = section
+sys.modules.setdefault("homeassistant.data_entry_flow", data_entry_flow_mod)
+
 
 class _StubConfigFlow:
     def __init_subclass__(cls, **_kwargs):
@@ -167,12 +183,77 @@ class _LocationSelector:
         self.config = config
 
 
+class _NumberSelectorConfig:
+    def __init__(
+        self,
+        *,
+        min: float | None = None,
+        max: float | None = None,
+        step: float | None = None,
+        mode: str | None = None,
+        unit_of_measurement: str | None = None,
+    ) -> None:
+        self.min = min
+        self.max = max
+        self.step = step
+        self.mode = mode
+        self.unit_of_measurement = unit_of_measurement
+
+
+class _NumberSelectorMode:
+    BOX = "BOX"
+
+
+class _NumberSelector:
+    def __init__(self, config: _NumberSelectorConfig):
+        self.config = config
+
+
+class _TextSelectorConfig:
+    def __init__(self, *, type: str | None = None):  # noqa: A003
+        self.type = type
+
+
+class _TextSelectorType:
+    TEXT = "TEXT"
+
+
+class _TextSelector:
+    def __init__(self, config: _TextSelectorConfig):
+        self.config = config
+
+
+class _SelectSelectorConfig:
+    def __init__(self, *, mode: str | None = None, options=None):
+        self.mode = mode
+        self.options = options
+
+
+class _SelectSelectorMode:
+    DROPDOWN = "DROPDOWN"
+
+
+class _SelectSelector:
+    def __init__(self, config: _SelectSelectorConfig):
+        self.config = config
+
+
 selector_mod.LocationSelector = _LocationSelector
 selector_mod.LocationSelectorConfig = _LocationSelectorConfig
+selector_mod.NumberSelector = _NumberSelector
+selector_mod.NumberSelectorConfig = _NumberSelectorConfig
+selector_mod.NumberSelectorMode = _NumberSelectorMode
+selector_mod.TextSelector = _TextSelector
+selector_mod.TextSelectorConfig = _TextSelectorConfig
+selector_mod.TextSelectorType = _TextSelectorType
+selector_mod.SelectSelector = _SelectSelector
+selector_mod.SelectSelectorConfig = _SelectSelectorConfig
+selector_mod.SelectSelectorMode = _SelectSelectorMode
 sys.modules.setdefault("homeassistant.helpers.selector", selector_mod)
 
 ha_mod.helpers = helpers_mod
 ha_mod.config_entries = config_entries_mod
+ha_mod.data_entry_flow = data_entry_flow_mod
 
 aiohttp_mod = ModuleType("aiohttp")
 

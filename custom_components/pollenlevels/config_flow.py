@@ -419,19 +419,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             http_referer: str | None = None
             if raw_http_referer is not None:
                 if not isinstance(raw_http_referer, str):
-                    errors["base"] = "invalid_http_referrer"
-                    description_placeholders["error_message"] = (
-                        "Invalid HTTP referrer value. It must not contain newline"
-                        " characters."
-                    )
+                    errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
                 else:
                     http_referer = raw_http_referer.strip()
                     if "\r" in http_referer or "\n" in http_referer:
-                        errors["base"] = "invalid_http_referrer"
-                        description_placeholders["error_message"] = (
-                            "Invalid HTTP referrer value. It must not contain newline"
-                            " characters."
-                        )
+                        errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
                     elif not http_referer:
                         http_referer = None
 

@@ -1,95 +1,95 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Pollen szintek – beállítás",
-        "description": "Adja meg a Google API-kulcsot, válassza ki helyszínét a térképen, a frissítési időközt (órák) és az API-válasz nyelvi kódját.",
-        "data": {
-          "api_key": "API-kulcs",
-          "name": "Név",
-          "location": "Helyszín",
-          "update_interval": "Frissítési időköz (óra)",
-          "language_code": "API-válasz nyelvi kódja"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Hitelesítsd újra a Pollen Levels-t",
-        "description": "A(z) {latitude},{longitude} API-kulcsa már nem érvényes. Adj meg új kulcsot a frissítések folytatásához.",
-        "data": {
-          "api_key": "API-kulcs"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Érvénytelen API-kulcs",
-      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
-      "quota_exceeded": "Kvóta túllépve",
-      "invalid_language": "Érvénytelen nyelvi kód",
-      "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
-      "empty": "A mező nem lehet üres",
-      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "invalid_coordinates": "Válassz érvényes helyet a térképen.",
-      "unknown": "Ismeretlen hiba",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
-    },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",
-      "reauth_successful": "Az újrahitelesítés sikerült.",
-      "reauth_failed": "Az újrahitelesítés nem sikerült. Próbáld meg újra."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Beállítások",
-        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2).",
-        "data": {
-          "update_interval": "Frissítési időköz (óra)",
-          "language_code": "API-válasz nyelvi kódja",
-          "forecast_days": "Előrejelzési napok (1–5)",
-          "create_forecast_sensors": "Napi TÍPUS szenzorok tartománya"
-        }
-      }
+      "reauth_failed": "Az újrahitelesítés nem sikerült. Próbáld meg újra.",
+      "reauth_successful": "Az újrahitelesítés sikerült."
     },
     "error": {
+      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz\n\n{error_message}",
+      "empty": "A mező nem lehet üres",
       "invalid_auth": "Érvénytelen API-kulcs",
-      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
-      "quota_exceeded": "Kvóta túllépve",
+      "invalid_coordinates": "Válassz érvényes helyet a térképen.",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
-      "empty": "A mező nem lehet üres",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
+      "quota_exceeded": "Kvóta túllépve",
       "unknown": "Ismeretlen hiba"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "API-kulcs"
+        },
+        "description": "A(z) {latitude},{longitude} API-kulcsa már nem érvényes. Adj meg új kulcsot a frissítések folytatásához.",
+        "title": "Hitelesítsd újra a Pollen Levels-t"
+      },
+      "user": {
+        "data": {
+          "api_key": "API-kulcs",
+          "language_code": "API-válasz nyelvi kódja",
+          "location": "Helyszín",
+          "name": "Név",
+          "update_interval": "Frissítési időköz (óra)"
+        },
+        "description": "Adja meg a Google API-kulcsot, válassza ki helyszínét a térképen, a frissítési időközt (órák) és az API-válasz nyelvi kódját.",
+        "title": "Pollen szintek – beállítás"
+      }
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Pollentípusok ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Polleninformáció ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Növények ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Polleninformáció ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Frissítés kényszerítése",
-      "description": "Kézi frissítés a pollenadatokhoz minden beállított helyhez."
+    "types": {
+      "name": "{title} - Pollentípusok ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Régió"
-      },
       "date": {
         "name": "Dátum"
       },
       "last_updated": {
         "name": "Utoljára frissítve"
+      },
+      "region": {
+        "name": "Régió"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
+      "empty": "A mező nem lehet üres",
+      "invalid_auth": "Érvénytelen API-kulcs",
+      "invalid_language": "Érvénytelen nyelvi kód",
+      "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
+      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
+      "quota_exceeded": "Kvóta túllépve",
+      "unknown": "Ismeretlen hiba"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Napi TÍPUS szenzorok tartománya",
+          "forecast_days": "Előrejelzési napok (1–5)",
+          "language_code": "API-válasz nyelvi kódja",
+          "update_interval": "Frissítési időköz (óra)"
+        },
+        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2).",
+        "title": "Pollen Levels – Beállítások"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Kézi frissítés a pollenadatokhoz minden beállított helyhez.",
+      "name": "Frissítés kényszerítése"
     }
   }
 }

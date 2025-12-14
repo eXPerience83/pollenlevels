@@ -1,95 +1,95 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Pollen Levels – Konfiguration",
-        "description": "Gib deinen Google API-Schlüssel an, wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort.",
-        "data": {
-          "api_key": "API-Schlüssel",
-          "name": "Name",
-          "location": "Standort",
-          "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für die API-Antwort"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Pollen Levels erneut authentifizieren",
-        "description": "Der API-Schlüssel für {latitude},{longitude} ist nicht mehr gültig. Gib einen neuen Schlüssel ein, um die Aktualisierungen fortzusetzen.",
-        "data": {
-          "api_key": "API-Schlüssel"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Ungültiger API-Schlüssel",
-      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
-      "quota_exceeded": "Kontingent überschritten",
-      "invalid_language": "Ungültiger Sprachcode",
-      "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
-      "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
-      "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
-      "unknown": "Unbekannter Fehler",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
-    },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
-      "reauth_successful": "Die erneute Authentifizierung war erfolgreich.",
-      "reauth_failed": "Die erneute Authentifizierung ist fehlgeschlagen. Bitte versuche es erneut."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Optionen",
-        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2).",
-        "data": {
-          "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für die API-Antwort",
-          "forecast_days": "Vorhersagetage (1–5)",
-          "create_forecast_sensors": "Bereich der Tagessensoren (TYPEN)"
-        }
-      }
+      "reauth_failed": "Die erneute Authentifizierung ist fehlgeschlagen. Bitte versuche es erneut.",
+      "reauth_successful": "Die erneute Authentifizierung war erfolgreich."
     },
     "error": {
+      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen\n\n{error_message}",
+      "empty": "Dieses Feld darf nicht leer sein",
       "invalid_auth": "Ungültiger API-Schlüssel",
-      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
-      "quota_exceeded": "Kontingent überschritten",
+      "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
-      "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
+      "quota_exceeded": "Kontingent überschritten",
       "unknown": "Unbekannter Fehler"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "API-Schlüssel"
+        },
+        "description": "Der API-Schlüssel für {latitude},{longitude} ist nicht mehr gültig. Gib einen neuen Schlüssel ein, um die Aktualisierungen fortzusetzen.",
+        "title": "Pollen Levels erneut authentifizieren"
+      },
+      "user": {
+        "data": {
+          "api_key": "API-Schlüssel",
+          "language_code": "Sprachcode für die API-Antwort",
+          "location": "Standort",
+          "name": "Name",
+          "update_interval": "Aktualisierungsintervall (Stunden)"
+        },
+        "description": "Gib deinen Google API-Schlüssel an, wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort.",
+        "title": "Pollen Levels – Konfiguration"
+      }
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Pollenarten ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Polleninformationen ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Pflanzen ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Polleninformationen ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Aktualisierung erzwingen",
-      "description": "Aktualisiert die Pollendaten für alle konfigurierten Standorte manuell."
+    "types": {
+      "name": "{title} - Pollenarten ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Region"
-      },
       "date": {
         "name": "Datum"
       },
       "last_updated": {
         "name": "Letzte Aktualisierung"
+      },
+      "region": {
+        "name": "Region"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
+      "empty": "Dieses Feld darf nicht leer sein",
+      "invalid_auth": "Ungültiger API-Schlüssel",
+      "invalid_language": "Ungültiger Sprachcode",
+      "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
+      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
+      "quota_exceeded": "Kontingent überschritten",
+      "unknown": "Unbekannter Fehler"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Bereich der Tagessensoren (TYPEN)",
+          "forecast_days": "Vorhersagetage (1–5)",
+          "language_code": "Sprachcode für die API-Antwort",
+          "update_interval": "Aktualisierungsintervall (Stunden)"
+        },
+        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2).",
+        "title": "Pollen Levels – Optionen"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Aktualisiert die Pollendaten für alle konfigurierten Standorte manuell.",
+      "name": "Aktualisierung erzwingen"
     }
   }
 }

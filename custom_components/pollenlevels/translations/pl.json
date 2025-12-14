@@ -1,95 +1,95 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Konfiguracja poziomów pyłku",
-        "description": "Wprowadź klucz Google API, wybierz swoją lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
-        "data": {
-          "api_key": "Klucz API",
-          "name": "Nazwa",
-          "location": "Lokalizacja",
-          "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Ponownie uwierzytelnij Pollen Levels",
-        "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",
-        "data": {
-          "api_key": "Klucz API"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Nieprawidłowy klucz API",
-      "cannot_connect": "Brak połączenia z usługą",
-      "quota_exceeded": "Przekroczono limit",
-      "invalid_language": "Nieprawidłowy kod języka",
-      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
-      "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
-      "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
-      "unknown": "Nieznany błąd",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
-    },
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
-      "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie.",
-      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Opcje",
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
-        "data": {
-          "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API",
-          "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
-        }
-      }
+      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie.",
+      "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie."
     },
     "error": {
+      "cannot_connect": "Brak połączenia z usługą\n\n{error_message}",
+      "empty": "To pole nie może być puste",
       "invalid_auth": "Nieprawidłowy klucz API",
-      "cannot_connect": "Brak połączenia z usługą",
-      "quota_exceeded": "Przekroczono limit",
+      "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
-      "empty": "To pole nie może być puste",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "quota_exceeded": "Przekroczono limit",
       "unknown": "Nieznany błąd"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "Klucz API"
+        },
+        "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",
+        "title": "Ponownie uwierzytelnij Pollen Levels"
+      },
+      "user": {
+        "data": {
+          "api_key": "Klucz API",
+          "language_code": "Kod języka odpowiedzi API",
+          "location": "Lokalizacja",
+          "name": "Nazwa",
+          "update_interval": "Interwał aktualizacji (godziny)"
+        },
+        "description": "Wprowadź klucz Google API, wybierz swoją lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
+        "title": "Konfiguracja poziomów pyłku"
+      }
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Typy pyłków ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informacje o pyłkach ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Rośliny ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Informacje o pyłkach ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Wymuś aktualizację",
-      "description": "Ręcznie odśwież dane o pyłkach dla wszystkich skonfigurowanych lokalizacji."
+    "types": {
+      "name": "{title} - Typy pyłków ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Region"
-      },
       "date": {
         "name": "Data"
       },
       "last_updated": {
         "name": "Ostatnia aktualizacja"
+      },
+      "region": {
+        "name": "Region"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Brak połączenia z usługą",
+      "empty": "To pole nie może być puste",
+      "invalid_auth": "Nieprawidłowy klucz API",
+      "invalid_language": "Nieprawidłowy kod języka",
+      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "quota_exceeded": "Przekroczono limit",
+      "unknown": "Nieznany błąd"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)",
+          "forecast_days": "Dni prognozy (1–5)",
+          "language_code": "Kod języka odpowiedzi API",
+          "update_interval": "Interwał aktualizacji (godziny)"
+        },
+        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
+        "title": "Pollen Levels – Opcje"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Ręcznie odśwież dane o pyłkach dla wszystkich skonfigurowanych lokalizacji.",
+      "name": "Wymuś aktualizację"
     }
   }
 }

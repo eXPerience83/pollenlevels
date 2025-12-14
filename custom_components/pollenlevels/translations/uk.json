@@ -1,95 +1,95 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Налаштування рівнів пилку",
-        "description": "Введіть свій ключ Google API, виберіть місцезнаходження на карті, інтервал оновлення (у годинах) та код мови для відповіді API.",
-        "data": {
-          "api_key": "Ключ API",
-          "name": "Ім'я",
-          "location": "Місцезнаходження",
-          "update_interval": "Інтервал оновлення (у годинах)",
-          "language_code": "Код мови відповіді API"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Повторно автентифікуйте Pollen Levels",
-        "description": "Ключ API для {latitude},{longitude} більше не дійсний. Введіть новий ключ, щоб відновити оновлення.",
-        "data": {
-          "api_key": "Ключ API"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Невірний ключ API",
-      "cannot_connect": "Не вдається підключитися до сервісу",
-      "quota_exceeded": "Перевищено ліміт запитів",
-      "invalid_language": "Невірний код мови",
-      "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
-      "empty": "Це поле не може бути порожнім",
-      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
-      "invalid_coordinates": "Виберіть дійсне місце на карті.",
-      "unknown": "Невідома помилка",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
-    },
     "abort": {
       "already_configured": "Це розташування вже налаштовано.",
-      "reauth_successful": "Повторна автентифікація виконана успішно.",
-      "reauth_failed": "Повторна автентифікація не вдалася. Спробуйте ще раз."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Параметри",
-        "description": "Змініть інтервал оновлення, мову відповіді API, кількість днів прогнозу та денні датчики для ТИПІВ для {title}.\nПараметри денних датчиків (ТИПИ): Лише сьогодні (none), До завтра (D+1), До післязавтра (D+2).",
-        "data": {
-          "update_interval": "Інтервал оновлення (у годинах)",
-          "language_code": "Код мови відповіді API",
-          "forecast_days": "Дні прогнозу (1–5)",
-          "create_forecast_sensors": "Діапазон денних датчиків (ТИПИ)"
-        }
-      }
+      "reauth_failed": "Повторна автентифікація не вдалася. Спробуйте ще раз.",
+      "reauth_successful": "Повторна автентифікація виконана успішно."
     },
     "error": {
+      "cannot_connect": "Не вдається підключитися до сервісу\n\n{error_message}",
+      "empty": "Це поле не може бути порожнім",
       "invalid_auth": "Невірний ключ API",
-      "cannot_connect": "Не вдається підключитися до сервісу",
-      "quota_exceeded": "Перевищено ліміт запитів",
+      "invalid_coordinates": "Виберіть дійсне місце на карті.",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Невірний код мови",
       "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
-      "empty": "Це поле не може бути порожнім",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
+      "quota_exceeded": "Перевищено ліміт запитів",
       "unknown": "Невідома помилка"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "Ключ API"
+        },
+        "description": "Ключ API для {latitude},{longitude} більше не дійсний. Введіть новий ключ, щоб відновити оновлення.",
+        "title": "Повторно автентифікуйте Pollen Levels"
+      },
+      "user": {
+        "data": {
+          "api_key": "Ключ API",
+          "language_code": "Код мови відповіді API",
+          "location": "Місцезнаходження",
+          "name": "Ім'я",
+          "update_interval": "Інтервал оновлення (у годинах)"
+        },
+        "description": "Введіть свій ключ Google API, виберіть місцезнаходження на карті, інтервал оновлення (у годинах) та код мови для відповіді API.",
+        "title": "Налаштування рівнів пилку"
+      }
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Типи пилку ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Інформація про пилок ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Рослини ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Інформація про пилок ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Примусове оновлення",
-      "description": "Вручну оновити дані про пилок для всіх налаштованих місць."
+    "types": {
+      "name": "{title} - Типи пилку ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Регіон"
-      },
       "date": {
         "name": "Дата"
       },
       "last_updated": {
         "name": "Останнє оновлення"
+      },
+      "region": {
+        "name": "Регіон"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Не вдається підключитися до сервісу",
+      "empty": "Це поле не може бути порожнім",
+      "invalid_auth": "Невірний ключ API",
+      "invalid_language": "Невірний код мови",
+      "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
+      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
+      "quota_exceeded": "Перевищено ліміт запитів",
+      "unknown": "Невідома помилка"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Діапазон денних датчиків (ТИПИ)",
+          "forecast_days": "Дні прогнозу (1–5)",
+          "language_code": "Код мови відповіді API",
+          "update_interval": "Інтервал оновлення (у годинах)"
+        },
+        "description": "Змініть інтервал оновлення, мову відповіді API, кількість днів прогнозу та денні датчики для ТИПІВ для {title}.\nПараметри денних датчиків (ТИПИ): Лише сьогодні (none), До завтра (D+1), До післязавтра (D+2).",
+        "title": "Pollen Levels – Параметри"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Вручну оновити дані про пилок для всіх налаштованих місць.",
+      "name": "Примусове оновлення"
     }
   }
 }

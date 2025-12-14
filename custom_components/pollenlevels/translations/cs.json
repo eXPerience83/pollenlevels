@@ -1,95 +1,95 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Konfigurace úrovní pylu",
-        "description": "Zadejte svůj klíč Google API, vyberte svou polohu na mapě, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
-        "data": {
-          "api_key": "Klíč API",
-          "name": "Název",
-          "location": "Poloha",
-          "update_interval": "Interval aktualizace (hodiny)",
-          "language_code": "Kód jazyka odpovědi API"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Znovu ověřte Pollen Levels",
-        "description": "Klíč API pro {latitude},{longitude} již není platný. Zadejte nový klíč, aby se obnovily aktualizace.",
-        "data": {
-          "api_key": "Klíč API"
-        }
-      }
-    },
-    "error": {
-      "invalid_auth": "Neplatný klíč API",
-      "cannot_connect": "Nelze se připojit ke službě",
-      "quota_exceeded": "Překročena kvóta",
-      "invalid_language": "Neplatný kód jazyka",
-      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
-      "empty": "Toto pole nemůže být prázdné",
-      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "invalid_coordinates": "Vyberte platné umístění na mapě.",
-      "unknown": "Neznámá chyba",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
-    },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
-      "reauth_successful": "Opětovné ověření proběhlo úspěšně.",
-      "reauth_failed": "Opětovné ověření se nezdařilo. Zkuste to znovu."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Pollen Levels – Možnosti",
-        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2).",
-        "data": {
-          "update_interval": "Interval aktualizace (hodiny)",
-          "language_code": "Kód jazyka odpovědi API",
-          "forecast_days": "Dny předpovědi (1–5)",
-          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
-        }
-      }
+      "reauth_failed": "Opětovné ověření se nezdařilo. Zkuste to znovu.",
+      "reauth_successful": "Opětovné ověření proběhlo úspěšně."
     },
     "error": {
+      "cannot_connect": "Nelze se připojit ke službě\n\n{error_message}",
+      "empty": "Toto pole nemůže být prázdné",
       "invalid_auth": "Neplatný klíč API",
-      "cannot_connect": "Nelze se připojit ke službě",
-      "quota_exceeded": "Překročena kvóta",
+      "invalid_coordinates": "Vyberte platné umístění na mapě.",
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
-      "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
+      "quota_exceeded": "Překročena kvóta",
       "unknown": "Neznámá chyba"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "api_key": "Klíč API"
+        },
+        "description": "Klíč API pro {latitude},{longitude} již není platný. Zadejte nový klíč, aby se obnovily aktualizace.",
+        "title": "Znovu ověřte Pollen Levels"
+      },
+      "user": {
+        "data": {
+          "api_key": "Klíč API",
+          "language_code": "Kód jazyka odpovědi API",
+          "location": "Poloha",
+          "name": "Název",
+          "update_interval": "Interval aktualizace (hodiny)"
+        },
+        "description": "Zadejte svůj klíč Google API, vyberte svou polohu na mapě, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
+        "title": "Konfigurace úrovní pylu"
+      }
     }
   },
   "device": {
-    "types": {
-      "name": "{title} - Typy pylu ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informace o pylu ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Rostliny ({latitude},{longitude})"
     },
-    "info": {
-      "name": "{title} - Informace o pylu ({latitude},{longitude})"
-    }
-  },
-  "services": {
-    "force_update": {
-      "name": "Vynutit aktualizaci",
-      "description": "Ručně obnoví údaje o pylu pro všechna nastavená místa."
+    "types": {
+      "name": "{title} - Typy pylu ({latitude},{longitude})"
     }
   },
   "entity": {
     "sensor": {
-      "region": {
-        "name": "Oblast"
-      },
       "date": {
         "name": "Datum"
       },
       "last_updated": {
         "name": "Poslední aktualizace"
+      },
+      "region": {
+        "name": "Oblast"
       }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Nelze se připojit ke službě",
+      "empty": "Toto pole nemůže být prázdné",
+      "invalid_auth": "Neplatný klíč API",
+      "invalid_language": "Neplatný kód jazyka",
+      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
+      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
+      "quota_exceeded": "Překročena kvóta",
+      "unknown": "Neznámá chyba"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)",
+          "forecast_days": "Dny předpovědi (1–5)",
+          "language_code": "Kód jazyka odpovědi API",
+          "update_interval": "Interval aktualizace (hodiny)"
+        },
+        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2).",
+        "title": "Pollen Levels – Možnosti"
+      }
+    }
+  },
+  "services": {
+    "force_update": {
+      "description": "Ručně obnoví údaje o pylu pro všechna nastavená místa.",
+      "name": "Vynutit aktualizaci"
     }
   }
 }
