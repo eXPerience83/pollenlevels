@@ -227,6 +227,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 normalized.pop(CONF_HTTP_REFERER, None)
 
+        try:
+            normalized[CONF_UPDATE_INTERVAL] = int(
+                normalized.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            )
+        except (TypeError, ValueError):
+            errors[CONF_UPDATE_INTERVAL] = "invalid_option_combo"
+            return errors, None
+
+        if normalized[CONF_UPDATE_INTERVAL] < 1:
+            errors[CONF_UPDATE_INTERVAL] = "invalid_option_combo"
+            return errors, None
+
         async def _extract_error_message(
             resp: aiohttp.ClientResponse, default: str
         ) -> str:
@@ -372,8 +384,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return errors, None
 
             normalized[CONF_LANGUAGE_CODE] = lang
-            if CONF_UPDATE_INTERVAL in normalized:
-                normalized[CONF_UPDATE_INTERVAL] = int(normalized[CONF_UPDATE_INTERVAL])
             return errors, normalized
 
         except vol.Invalid as ve:
@@ -582,6 +592,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "invalid_option_combo"
 
             if not errors:
+                if normalized_input[CONF_UPDATE_INTERVAL] < 1:
+                    errors[CONF_UPDATE_INTERVAL] = "invalid_option_combo"
+
                 try:
                     # Language: allow empty; if provided, validate & normalize.
                     raw_lang = normalized_input.get(
