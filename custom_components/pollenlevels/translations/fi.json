@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Palveluun ei saada yhteyttä\n\n{error_message}",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_auth": "Virheellinen API-avain",
+      "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Virheellinen kielikoodi",
@@ -31,10 +31,17 @@
           "language_code": "API-vastauksen kielikoodi",
           "location": "Sijainti",
           "name": "Nimi",
-          "update_interval": "Päivitysväli (tunnit)"
+          "update_interval": "Päivitysväli (tunnit)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
-        "title": "Siitepölytason asetukset"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Siitepölytason asetukset",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Palveluun ei saada yhteyttä",
+      "cannot_connect": "Palveluun ei saada yhteyttä\n\n{error_message}",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_auth": "Virheellinen API-avain",
+      "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",

@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Не удаётся подключиться к сервису\n\n{error_message}",
       "empty": "Это поле не может быть пустым",
-      "invalid_auth": "Неверный ключ API",
+      "invalid_auth": "Неверный ключ API\n\n{error_message}",
       "invalid_coordinates": "Выберите корректное местоположение на карте.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Неверный код языка",
@@ -31,10 +31,17 @@
           "language_code": "Код языка ответа API",
           "location": "Местоположение",
           "name": "Имя",
-          "update_interval": "Интервал обновления (в часах)"
+          "update_interval": "Интервал обновления (в часах)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Введите ваш ключ Google API, выберите свое местоположение на карте, интервал обновления (в часах) и код языка ответа API.",
-        "title": "Настройка уровней пыльцы"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Настройка уровней пыльцы",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Не удаётся подключиться к сервису",
+      "cannot_connect": "Не удаётся подключиться к сервису\n\n{error_message}",
       "empty": "Это поле не может быть пустым",
-      "invalid_auth": "Неверный ключ API",
+      "invalid_auth": "Неверный ключ API\n\n{error_message}",
       "invalid_language": "Неверный код языка",
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",

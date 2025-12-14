@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Kan ikke koble til tjenesten\n\n{error_message}",
       "empty": "Dette feltet kan ikke være tomt",
-      "invalid_auth": "Ugyldig API-nøkkel",
+      "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
       "invalid_coordinates": "Velg en gyldig posisjon på kartet.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Ugyldig språkkode",
@@ -31,10 +31,17 @@
           "language_code": "Språkkode for API-svar",
           "location": "Posisjon",
           "name": "Navn",
-          "update_interval": "Oppdateringsintervall (timer)"
+          "update_interval": "Oppdateringsintervall (timer)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Angi Google API-nøkkel, velg posisjonen din på kartet, oppdateringsintervall (timer) og språkkode for API-svar.",
-        "title": "Konfigurasjon av pollennivåer"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Konfigurasjon av pollennivåer",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Kan ikke koble til tjenesten",
+      "cannot_connect": "Kan ikke koble til tjenesten\n\n{error_message}",
       "empty": "Dette feltet kan ikke være tomt",
-      "invalid_auth": "Ugyldig API-nøkkel",
+      "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
       "invalid_language": "Ugyldig språkkode",
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",

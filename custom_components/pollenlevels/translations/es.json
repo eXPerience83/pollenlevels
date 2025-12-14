@@ -3,13 +3,20 @@
     "step": {
       "user": {
         "title": "Configuración de Niveles de Polen",
-        "description": "Introduce tu clave de API de Google, selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API.",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "data": {
           "api_key": "Clave API",
           "name": "Nombre",
           "location": "Ubicación",
           "update_interval": "Intervalo de actualización (horas)",
-          "language_code": "Código de idioma de la respuesta de la API"
+          "language_code": "Código de idioma de la respuesta de la API",
+          "http_referer": "HTTP Referrer"
+        },
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
         }
       },
       "reauth_confirm": {
@@ -21,7 +28,7 @@
       }
     },
     "error": {
-      "invalid_auth": "Clave API inválida",
+      "invalid_auth": "Clave API inválida\n\n{error_message}",
       "cannot_connect": "No se puede conectar al servicio de polen.\n\n{error_message}",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
@@ -52,8 +59,8 @@
       }
     },
     "error": {
-      "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio de polen.",
+      "invalid_auth": "Clave API inválida\n\n{error_message}",
+      "cannot_connect": "No se puede conectar al servicio de polen.\n\n{error_message}",
       "quota_exceeded": "Cuota excedida",
       "invalid_language": "Código de idioma no válido",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",

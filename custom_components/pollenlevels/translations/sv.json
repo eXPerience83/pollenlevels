@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Kan inte ansluta till tjänsten\n\n{error_message}",
       "empty": "Detta fält får inte vara tomt",
-      "invalid_auth": "Ogiltig API-nyckel",
+      "invalid_auth": "Ogiltig API-nyckel\n\n{error_message}",
       "invalid_coordinates": "Välj en giltig plats på kartan.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Ogiltig språkkod",
@@ -31,10 +31,17 @@
           "language_code": "Språkkod för API-svar",
           "location": "Plats",
           "name": "Namn",
-          "update_interval": "Uppdateringsintervall (timmar)"
+          "update_interval": "Uppdateringsintervall (timmar)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Ange din Google API-nyckel, välj din plats på kartan, uppdateringsintervall (timmar) och språkkod för API-svar.",
-        "title": "Konfiguration av pollennivåer"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Konfiguration av pollennivåer",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Kan inte ansluta till tjänsten",
+      "cannot_connect": "Kan inte ansluta till tjänsten\n\n{error_message}",
       "empty": "Detta fält får inte vara tomt",
-      "invalid_auth": "Ogiltig API-nyckel",
+      "invalid_auth": "Ogiltig API-nyckel\n\n{error_message}",
       "invalid_language": "Ogiltig språkkod",
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",

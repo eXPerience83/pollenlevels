@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz\n\n{error_message}",
       "empty": "A mező nem lehet üres",
-      "invalid_auth": "Érvénytelen API-kulcs",
+      "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
       "invalid_coordinates": "Válassz érvényes helyet a térképen.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Érvénytelen nyelvi kód",
@@ -31,10 +31,17 @@
           "language_code": "API-válasz nyelvi kódja",
           "location": "Helyszín",
           "name": "Név",
-          "update_interval": "Frissítési időköz (óra)"
+          "update_interval": "Frissítési időköz (óra)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Adja meg a Google API-kulcsot, válassza ki helyszínét a térképen, a frissítési időközt (órák) és az API-válasz nyelvi kódját.",
-        "title": "Pollen szintek – beállítás"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Pollen szintek – beállítás",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz",
+      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz\n\n{error_message}",
       "empty": "A mező nem lehet üres",
-      "invalid_auth": "Érvénytelen API-kulcs",
+      "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",

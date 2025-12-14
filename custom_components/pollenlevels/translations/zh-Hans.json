@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "无法连接到服务\n\n{error_message}",
       "empty": "此字段不能为空",
-      "invalid_auth": "无效的 API 密钥",
+      "invalid_auth": "无效的 API 密钥\n\n{error_message}",
       "invalid_coordinates": "请在地图上选择有效的位置。",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "无效的语言代码",
@@ -31,10 +31,17 @@
           "language_code": "API 响应语言代码",
           "location": "位置",
           "name": "名称",
-          "update_interval": "更新间隔（小时）"
+          "update_interval": "更新间隔（小时）",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "请输入 Google API 密钥、在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。",
-        "title": "花粉水平配置"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "花粉水平配置",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "无法连接到服务",
+      "cannot_connect": "无法连接到服务\n\n{error_message}",
       "empty": "此字段不能为空",
-      "invalid_auth": "无效的 API 密钥",
+      "invalid_auth": "无效的 API 密钥\n\n{error_message}",
       "invalid_language": "无效的语言代码",
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",

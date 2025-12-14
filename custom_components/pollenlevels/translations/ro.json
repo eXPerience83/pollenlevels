@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
       "empty": "Acest câmp nu poate fi gol",
-      "invalid_auth": "Cheie API nevalidă",
+      "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
       "invalid_coordinates": "Selectează o locație validă pe hartă.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Cod de limbă nevalid",
@@ -31,10 +31,17 @@
           "language_code": "Codul limbii pentru răspunsul API",
           "location": "Locație",
           "name": "Nume",
-          "update_interval": "Interval de actualizare (ore)"
+          "update_interval": "Interval de actualizare (ore)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Introduceți cheia Google API, selectați locația pe hartă, intervalul de actualizare (ore) și codul de limbă pentru răspunsul API.",
-        "title": "Configurare Niveluri de Polen"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Configurare Niveluri de Polen",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Nu se poate conecta la serviciu",
+      "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
       "empty": "Acest câmp nu poate fi gol",
-      "invalid_auth": "Cheie API nevalidă",
+      "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
       "invalid_language": "Cod de limbă nevalid",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",

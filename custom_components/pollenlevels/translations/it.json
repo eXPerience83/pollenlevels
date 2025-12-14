@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Impossibile connettersi al servizio\n\n{error_message}",
       "empty": "Questo campo non può essere vuoto",
-      "invalid_auth": "Chiave API non valida",
+      "invalid_auth": "Chiave API non valida\n\n{error_message}",
       "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Codice lingua non valido",
@@ -31,10 +31,17 @@
           "language_code": "Codice lingua per la risposta dell'API",
           "location": "Posizione",
           "name": "Nome",
-          "update_interval": "Intervallo di aggiornamento (ore)"
+          "update_interval": "Intervallo di aggiornamento (ore)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Inserisci la tua chiave API Google, seleziona la tua posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua per la risposta dell'API.",
-        "title": "Configurazione Livelli di polline"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Configurazione Livelli di polline",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Impossibile connettersi al servizio",
+      "cannot_connect": "Impossibile connettersi al servizio\n\n{error_message}",
       "empty": "Questo campo non può essere vuoto",
-      "invalid_auth": "Chiave API non valida",
+      "invalid_auth": "Chiave API non valida\n\n{error_message}",
       "invalid_language": "Codice lingua non valido",
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",

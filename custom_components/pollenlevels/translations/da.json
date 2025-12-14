@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Kan ikke oprette forbindelse til tjenesten\n\n{error_message}",
       "empty": "Dette felt må ikke være tomt",
-      "invalid_auth": "Ugyldig API-nøgle",
+      "invalid_auth": "Ugyldig API-nøgle\n\n{error_message}",
       "invalid_coordinates": "Vælg en gyldig placering på kortet.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Ugyldig sprogkode",
@@ -31,10 +31,17 @@
           "language_code": "Sprogkode for API-svar",
           "location": "Placering",
           "name": "Navn",
-          "update_interval": "Opdateringsinterval (timer)"
+          "update_interval": "Opdateringsinterval (timer)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Angiv din Google API-nøgle, vælg din placering på kortet, opdateringsinterval (timer) og sprogkode for API-svar.",
-        "title": "Konfiguration af pollenniveauer"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Konfiguration af pollenniveauer",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Kan ikke oprette forbindelse til tjenesten",
+      "cannot_connect": "Kan ikke oprette forbindelse til tjenesten\n\n{error_message}",
       "empty": "Dette felt må ikke være tomt",
-      "invalid_auth": "Ugyldig API-nøgle",
+      "invalid_auth": "Ugyldig API-nøgle\n\n{error_message}",
       "invalid_language": "Ugyldig sprogkode",
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",

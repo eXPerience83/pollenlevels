@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Verbindung zum Dienst fehlgeschlagen\n\n{error_message}",
       "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_auth": "Ungültiger API-Schlüssel",
+      "invalid_auth": "Ungültiger API-Schlüssel\n\n{error_message}",
       "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
       "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
       "invalid_language": "Ungültiger Sprachcode",
@@ -31,10 +31,17 @@
           "language_code": "Sprachcode für die API-Antwort",
           "location": "Standort",
           "name": "Name",
-          "update_interval": "Aktualisierungsintervall (Stunden)"
+          "update_interval": "Aktualisierungsintervall (Stunden)",
+          "http_referer": "HTTP Referrer"
         },
-        "description": "Gib deinen Google API-Schlüssel an, wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort.",
-        "title": "Pollen Levels – Konfiguration"
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "title": "Pollen Levels – Konfiguration",
+        "sections": {
+          "api_key_options": "Optional API key options"
+        },
+        "data_description": {
+          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+        }
       }
     }
   },
@@ -64,9 +71,9 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
+      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen\n\n{error_message}",
       "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_auth": "Ungültiger API-Schlüssel",
+      "invalid_auth": "Ungültiger API-Schlüssel\n\n{error_message}",
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
