@@ -16,6 +16,8 @@
   when configured while preserving the default behavior for unrestricted keys.
 - Runtime HTTP 403 responses now surface detailed messages without triggering
   reauthentication, keeping setup and update behavior aligned.
+- Deduplicated HTTP error message extraction into a shared helper used by
+  config validation and the runtime client to keep diagnostics consistent.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

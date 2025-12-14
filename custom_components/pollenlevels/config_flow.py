@@ -56,7 +56,7 @@ from .const import (
     SECTION_API_KEY_OPTIONS,
     is_invalid_api_key_message,
 )
-from .util import redact_api_key
+from .util import extract_error_message, redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -240,32 +240,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors[CONF_UPDATE_INTERVAL] = "invalid_option_combo"
             return errors, None
 
-        async def _extract_error_message(
-            resp: aiohttp.ClientResponse, default: str
-        ) -> str:
-            message = ""
-            try:
-                data = await resp.json()
-                if isinstance(data, dict):
-                    err = data.get("error")
-                    if isinstance(err, dict):
-                        body_message = err.get("message")
-                        if isinstance(body_message, str):
-                            message = body_message
-            except Exception:
-                message = ""
-
-            if not message:
-                try:
-                    message = await resp.text()
-                except Exception:
-                    message = ""
-
-            message = (message or "").strip() or default
-            if len(message) > 300:
-                message = message[:300]
-            return message
-
         latlon = None
         if CONF_LOCATION in user_input:
             latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
@@ -337,12 +311,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if status == 401:
                     _LOGGER.debug("Validation HTTP 401 (body omitted)")
                     errors["base"] = "invalid_auth"
-                    placeholders["error_message"] = await _extract_error_message(
+                    placeholders["error_message"] = await extract_error_message(
                         resp, "HTTP 401"
                     )
                 elif status == 403:
                     _LOGGER.debug("Validation HTTP 403 (body omitted)")
-                    error_message = await _extract_error_message(resp, "HTTP 403")
+                    error_message = await extract_error_message(resp, "HTTP 403")
                     if is_invalid_api_key_message(error_message):
                         errors["base"] = "invalid_auth"
                     else:
@@ -351,13 +325,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 elif status == 429:
                     _LOGGER.debug("Validation HTTP 429 (body omitted)")
                     errors["base"] = "quota_exceeded"
-                    placeholders["error_message"] = await _extract_error_message(
+                    placeholders["error_message"] = await extract_error_message(
                         resp, "HTTP 429"
                     )
                 elif status != 200:
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
-                    placeholders["error_message"] = await _extract_error_message(
+                    placeholders["error_message"] = await extract_error_message(
                         resp, f"HTTP {status}"
                     )
                 else:

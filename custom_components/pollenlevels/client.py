@@ -11,7 +11,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .const import POLLEN_API_TIMEOUT, is_invalid_api_key_message
-from .util import redact_api_key
+from .util import extract_error_message, redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,34 +25,6 @@ class GooglePollenApiClient:
         self._session = session
         self._api_key = api_key
         self._http_referer = http_referer
-
-    async def _extract_error_message(self, resp: Any) -> str:
-        """Extract and normalize an HTTP error message without secrets."""
-
-        message: str | None = None
-        try:
-            data = await resp.json()
-            if isinstance(data, dict):
-                error = data.get("error")
-                if isinstance(error, dict):
-                    raw_msg = error.get("message")
-                    if isinstance(raw_msg, str):
-                        message = raw_msg.strip()
-        except Exception:  # noqa: BLE001
-            message = None
-
-        if not message:
-            try:
-                text = await resp.text()
-                if isinstance(text, str):
-                    message = text.strip()
-            except Exception:  # noqa: BLE001
-                message = None
-
-        if message and len(message) > 300:
-            message = message[:300]
-
-        return message or ""
 
     def _parse_retry_after(self, retry_after_raw: str) -> float:
         """Translate a Retry-After header into a delay in seconds."""
@@ -126,14 +98,14 @@ class GooglePollenApiClient:
                     headers=headers,
                 ) as resp:
                     if resp.status == 401:
-                        raw_message = await self._extract_error_message(resp)
+                        raw_message = await extract_error_message(resp)
                         message = raw_message or f"HTTP {resp.status}"
                         if raw_message:
                             message = f"HTTP {resp.status}: {raw_message}"
                         raise ConfigEntryAuthFailed(message)
 
                     if resp.status == 403:
-                        raw_message = await self._extract_error_message(resp)
+                        raw_message = await extract_error_message(resp)
                         message = raw_message or f"HTTP {resp.status}"
                         if raw_message:
                             message = f"HTTP {resp.status}: {raw_message}"
@@ -156,7 +128,7 @@ class GooglePollenApiClient:
                             )
                             await asyncio.sleep(delay)
                             continue
-                        raw_message = await self._extract_error_message(resp)
+                        raw_message = await extract_error_message(resp)
                         message = raw_message or f"HTTP {resp.status}"
                         if raw_message:
                             message = f"HTTP {resp.status}: {raw_message}"
@@ -174,21 +146,21 @@ class GooglePollenApiClient:
                                 base_args=(resp.status,),
                             )
                             continue
-                        raw_message = await self._extract_error_message(resp)
+                        raw_message = await extract_error_message(resp)
                         message = raw_message or f"HTTP {resp.status}"
                         if raw_message:
                             message = f"HTTP {resp.status}: {raw_message}"
                         raise UpdateFailed(message)
 
                     if 400 <= resp.status < 500 and resp.status not in (403, 429):
-                        raw_message = await self._extract_error_message(resp)
+                        raw_message = await extract_error_message(resp)
                         message = raw_message or f"HTTP {resp.status}"
                         if raw_message:
                             message = f"HTTP {resp.status}: {raw_message}"
                         raise UpdateFailed(message)
 
                     if resp.status != 200:
-                        raw_message = await self._extract_error_message(resp)
+                        raw_message = await extract_error_message(resp)
                         message = raw_message or f"HTTP {resp.status}"
                         if raw_message:
                             message = f"HTTP {resp.status}: {raw_message}"
