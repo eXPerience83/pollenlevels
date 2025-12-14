@@ -551,16 +551,16 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
         if user_input is not None:
-            normalized_input: dict[str, Any] = dict(user_input)
+            normalized_input: dict[str, Any] = {**self.entry.options, **user_input}
             try:
                 normalized_input[CONF_UPDATE_INTERVAL] = int(
-                    user_input.get(CONF_UPDATE_INTERVAL, current_interval)
+                    float(normalized_input.get(CONF_UPDATE_INTERVAL, current_interval))
                 )
                 normalized_input[CONF_FORECAST_DAYS] = int(
-                    user_input.get(CONF_FORECAST_DAYS, current_days)
+                    float(normalized_input.get(CONF_FORECAST_DAYS, current_days))
                 )
             except (TypeError, ValueError):
-                errors["base"] = "unknown"
+                errors["base"] = "invalid_option_combo"
 
             if not errors:
                 try:
