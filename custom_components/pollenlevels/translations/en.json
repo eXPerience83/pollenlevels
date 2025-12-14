@@ -53,7 +53,7 @@
     },
     "error": {
       "invalid_auth": "Invalid API key",
-      "cannot_connect": "Unable to connect to the pollen service.",
+      "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded",
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
