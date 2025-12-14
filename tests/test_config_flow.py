@@ -633,8 +633,7 @@ def test_validate_input_sends_referer_header(monkeypatch: pytest.MonkeyPatch) ->
     """Validation should forward the Referer header when provided."""
 
     session = _patch_client_session(
-        monkeypatch,
-        _StubResponse(200, b"{\"dailyInfo\": [{\"indexInfo\": []}]}")
+        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"indexInfo": []}]}')
     )
 
     flow = PollenLevelsConfigFlow()
