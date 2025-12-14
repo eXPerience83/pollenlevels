@@ -32,3 +32,20 @@ RESTRICTING_API_KEYS_URL = (
 
 # Allowed values for create_forecast_sensors selector
 FORECAST_SENSORS_CHOICES = ["none", "D+1", "D+1+2"]
+
+
+def is_invalid_api_key_message(message: str | None) -> bool:
+    """Return True if *message* strongly indicates an invalid API key."""
+
+    if not message:
+        return False
+
+    msg = message.casefold()
+    signals = (
+        "api key not valid",
+        "invalid api key",
+        "api_key_invalid",
+        "apikeynotvalid",
+        "api key is not valid",
+    )
+    return any(signal in msg for signal in signals)

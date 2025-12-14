@@ -54,6 +54,7 @@ from .const import (
     POLLEN_API_TIMEOUT,
     RESTRICTING_API_KEYS_URL,
     SECTION_API_KEY_OPTIONS,
+    is_invalid_api_key_message,
 )
 from .util import redact_api_key
 
@@ -341,10 +342,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 elif status == 403:
                     _LOGGER.debug("Validation HTTP 403 (body omitted)")
-                    errors["base"] = "cannot_connect"
-                    placeholders["error_message"] = await _extract_error_message(
-                        resp, "HTTP 403"
-                    )
+                    error_message = await _extract_error_message(resp, "HTTP 403")
+                    if is_invalid_api_key_message(error_message):
+                        errors["base"] = "invalid_auth"
+                    else:
+                        errors["base"] = "cannot_connect"
+                    placeholders["error_message"] = error_message
                 elif status == 429:
                     _LOGGER.debug("Validation HTTP 429 (body omitted)")
                     errors["base"] = "quota_exceeded"

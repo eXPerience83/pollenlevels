@@ -744,6 +744,32 @@ def test_validate_input_http_403_sets_error_message_placeholder(
     assert "Forbidden" in placeholders.get("error_message", "")
 
 
+def test_validate_input_http_403_invalid_key_maps_to_invalid_auth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 403 invalid API key messages should behave like invalid_auth."""
+
+    body = b'{"error": {"message": "API key not valid. Please pass a valid API key."}}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=403, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "invalid_auth"}
+    assert normalized is None
+    assert "api key not valid" in placeholders.get("error_message", "").lower()
+
+
 def test_validate_input_unexpected_exception_sets_unknown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

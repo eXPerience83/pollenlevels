@@ -874,6 +874,36 @@ def test_coordinator_handles_forbidden() -> None:
         loop.close()
 
 
+def test_coordinator_invalid_key_message_triggers_reauth() -> None:
+    """403 invalid API key messages should raise ConfigEntryAuthFailed."""
+
+    payload = {"error": {"message": "API key not valid. Please pass a valid API key."}}
+    fake_session = FakeSession(payload, status=403)
+    client = sensor.GooglePollenApiClient(fake_session, "bad")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="bad",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        with pytest.raises(sensor.ConfigEntryAuthFailed):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+
 def test_coordinator_retries_then_raises_on_rate_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
