@@ -15,7 +15,8 @@
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit",
-      "unknown": "Nieznany błąd"
+      "unknown": "Nieznany błąd",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "reauth_confirm": {
@@ -80,7 +81,8 @@
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit",
-      "unknown": "Nieznany błąd"
+      "unknown": "Nieznany błąd",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "init": {

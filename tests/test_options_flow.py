@@ -128,3 +128,22 @@ def test_options_flow_valid_submission_returns_entry_data() -> None:
             CONF_LANGUAGE_CODE: "es",
         },
     }
+
+
+def test_options_flow_update_interval_below_min_sets_error() -> None:
+    """Sub-1 update intervals should raise a field error."""
+
+    flow = _flow()
+
+    result = asyncio.run(
+        flow.async_step_init(
+            {
+                CONF_LANGUAGE_CODE: "en",
+                CONF_FORECAST_DAYS: 2,
+                CONF_CREATE_FORECAST_SENSORS: "none",
+                CONF_UPDATE_INTERVAL: 0,
+            }
+        )
+    )
+
+    assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}

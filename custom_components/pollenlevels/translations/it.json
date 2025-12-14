@@ -15,7 +15,8 @@
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
       "quota_exceeded": "Quota superata",
-      "unknown": "Errore sconosciuto"
+      "unknown": "Errore sconosciuto",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "reauth_confirm": {
@@ -80,7 +81,8 @@
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
       "quota_exceeded": "Quota superata",
-      "unknown": "Errore sconosciuto"
+      "unknown": "Errore sconosciuto",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "init": {

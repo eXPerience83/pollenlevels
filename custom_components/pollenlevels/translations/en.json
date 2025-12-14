@@ -39,7 +39,8 @@
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "abort": {
       "already_configured": "This location is already configured.",
@@ -68,7 +69,8 @@
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
-      "unknown": "Unknown error"
+      "unknown": "Unknown error",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     }
   },
   "device": {

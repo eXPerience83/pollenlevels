@@ -15,7 +15,8 @@
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
       "quota_exceeded": "Kvote overskredet",
-      "unknown": "Ukjent feil"
+      "unknown": "Ukjent feil",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "reauth_confirm": {
@@ -80,7 +81,8 @@
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
       "quota_exceeded": "Kvote overskredet",
-      "unknown": "Ukjent feil"
+      "unknown": "Ukjent feil",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "init": {

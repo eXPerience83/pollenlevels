@@ -629,6 +629,51 @@ def test_async_step_user_invalid_http_referer_sets_field_error() -> None:
     assert captured.get("errors") == {CONF_HTTP_REFERER: "invalid_http_referrer"}
 
 
+def test_validate_input_sends_referer_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Validation should forward the Referer header when provided."""
+
+    session = _patch_client_session(
+        monkeypatch,
+        _StubResponse(200, b"{\"dailyInfo\": [{\"indexInfo\": []}]}")
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    user_input = {**_base_user_input(), CONF_HTTP_REFERER: "https://example.com"}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(user_input, check_unique_id=False)
+    )
+
+    assert errors == {}
+    assert normalized is not None
+    assert session.calls
+    _, kwargs = session.calls[0]
+    assert kwargs.get("headers") == {"Referer": "https://example.com"}
+
+
+def test_validate_input_update_interval_below_min_sets_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sub-1 update intervals should surface a field error and skip I/O."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(200))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: 0}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(user_input, check_unique_id=False)
+    )
+
+    assert errors == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+    assert normalized is None
+    assert not session.calls
+
+
 @pytest.mark.parametrize(
     ("status", "expected"),
     [

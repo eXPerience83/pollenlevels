@@ -15,7 +15,8 @@
       "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "quota_exceeded": "Cota excedida",
-      "unknown": "Erro desconhecido"
+      "unknown": "Erro desconhecido",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "reauth_confirm": {
@@ -80,7 +81,8 @@
       "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "quota_exceeded": "Cota excedida",
-      "unknown": "Erro desconhecido"
+      "unknown": "Erro desconhecido",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "init": {

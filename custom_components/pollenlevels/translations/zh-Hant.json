@@ -15,7 +15,8 @@
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "quota_exceeded": "超出配額",
-      "unknown": "未知錯誤"
+      "unknown": "未知錯誤",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "reauth_confirm": {
@@ -80,7 +81,8 @@
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "quota_exceeded": "超出配額",
-      "unknown": "未知錯誤"
+      "unknown": "未知錯誤",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "step": {
       "init": {

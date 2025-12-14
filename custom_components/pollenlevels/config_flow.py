@@ -237,7 +237,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return errors, None
 
         if normalized[CONF_UPDATE_INTERVAL] < 1:
-            errors[CONF_UPDATE_INTERVAL] = "invalid_option_combo"
+            errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
             return errors, None
 
         latlon = None
@@ -570,7 +570,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
             if not errors:
                 if normalized_input[CONF_UPDATE_INTERVAL] < 1:
-                    errors[CONF_UPDATE_INTERVAL] = "invalid_option_combo"
+                    errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
 
                 try:
                     # Language: allow empty; if provided, validate & normalize.

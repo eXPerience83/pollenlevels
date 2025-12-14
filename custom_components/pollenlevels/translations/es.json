@@ -39,7 +39,8 @@
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
       "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
       "unknown": "Error desconocido",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters."
+      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "abort": {
       "already_configured": "Esta ubicación ya está configurada.",
@@ -68,7 +69,8 @@
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "unknown": "Error desconocido"
+      "unknown": "Error desconocido",
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     }
   },
   "device": {
