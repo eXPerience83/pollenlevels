@@ -61,11 +61,15 @@ You can change:
 - **Per-day TYPE sensors** via `create_forecast_sensors`:
   - `none` → no extra sensors
   - `D+1` → sensors for each TYPE with suffix `(D+1)`
-  - `D+1+2` → sensors for `(D+1)` and `(D+2)`
+ - `D+1+2` → sensors for `(D+1)` and `(D+2)`
 
 > **Validation rules:**
 > - `D+1` requires `forecast_days ≥ 2`
 > - `D+1+2` requires `forecast_days ≥ 3`
+
+The config and options flows use modern Home Assistant selectors and include
+links to Google’s API key setup and security best practices so you can follow
+the recommended restrictions.
 
 > **After saving Options:** if per-day sensors are disabled or `forecast_days` becomes insufficient, the integration **removes** any stale D+1/D+2 entities from the **Entity Registry** automatically. No manual cleanup needed.
 
@@ -87,9 +91,25 @@ You need a valid Google Cloud API key with access to the **Maps Pollen API**.
    - **Application restrictions** (optional but recommended):  
      - **HTTP referrers** (for frontend usages) or  
      - **IP addresses** (for server-side usage, e.g. your HA host).  
-6. **Copy** the key and paste it in the integration setup.  
+6. **Copy** the key and paste it in the integration setup.
+
+The setup form also links directly to the Google documentation for obtaining
+an API key and best-practice restrictions.
 
 👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to avoid exhausting your free tier.
+
+### Optional HTTP Referrer header
+
+If your API key is restricted by HTTP referrers (website origins), you can add
+an optional **HTTP Referrer** value in the advanced section of the config
+flow. When set, the integration sends it as the `Referer` header on API
+requests. Leave it blank for unrestricted or IP-restricted keys.
+
+### Troubleshooting 403 errors
+
+403 responses during setup or updates now include the API’s reason (when
+available). They often indicate billing is disabled, the Pollen API is not
+enabled, or referrer restrictions are blocking the request.
 
 ---
 

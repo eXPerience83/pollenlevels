@@ -12,6 +12,10 @@
   integers and keeping existing validation rules and defaults intact.
 - Clarified HTTP referrer validation with a dedicated error to avoid confusing
   connection-failure messaging when the input contains newline characters.
+- Added optional HTTP referrer support that sends a sanitized `Referer` header
+  when configured while preserving the default behavior for unrestricted keys.
+- Runtime HTTP 403 responses now surface detailed messages without triggering
+  reauthentication, keeping setup and update behavior aligned.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
