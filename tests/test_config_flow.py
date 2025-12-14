@@ -514,11 +514,17 @@ def _base_user_input() -> dict:
     }
 
 
-@pytest.mark.parametrize("status", [401, 403])
-def test_validate_input_http_auth_errors_set_invalid_auth(
-    monkeypatch: pytest.MonkeyPatch, status: int
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (401, {"base": "invalid_auth"}),
+        (403, {"base": "cannot_connect"}),
+    ],
+)
+def test_validate_input_http_auth_errors_map_correctly(
+    monkeypatch: pytest.MonkeyPatch, status: int, expected: dict
 ) -> None:
-    """HTTP auth failures during validation should map to invalid_auth."""
+    """HTTP auth failures during validation should map correctly."""
 
     session = _patch_client_session(monkeypatch, _StubResponse(status))
 
@@ -530,7 +536,7 @@ def test_validate_input_http_auth_errors_set_invalid_auth(
     )
 
     assert session.calls
-    assert errors == {"base": "invalid_auth"}
+    assert errors == expected
     assert normalized is None
 
 
