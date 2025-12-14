@@ -38,7 +38,7 @@
         "title": "Konfigurace úrovní pylu",
         "sections": {
           "api_key_options": {
-            "title": "Optional API key options"
+            "name": "Optional API key options"
           }
         },
         "data_description": {
