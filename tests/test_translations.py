@@ -122,6 +122,51 @@ def _resolve_name(name: str, mapping: dict[str, str]) -> str | None:
     return mapping.get(name)
 
 
+def _fields_from_section_value(value: ast.AST, mapping: dict[str, str]) -> set[str]:
+    """Extract fields from a section(...) value."""
+
+    if isinstance(value, ast.Dict):
+        return _fields_from_schema_dict(value, mapping)
+    if isinstance(value, ast.Call):
+        if isinstance(value.func, ast.Attribute) and value.func.attr == "Schema":
+            return _fields_from_schema_call(value, mapping)
+    _fail_unexpected_ast("unexpected section value AST")
+    return set()
+
+
+def _fields_from_schema_dict(
+    schema_dict: ast.Dict, mapping: dict[str, str]
+) -> set[str]:
+    """Extract field keys from an AST dict representing a schema."""
+
+    fields: set[str] = set()
+    for key_node, value_node in zip(schema_dict.keys, schema_dict.values, strict=False):
+        if not isinstance(key_node, ast.Call):
+            _fail_unexpected_ast("schema key wrapper")
+        if isinstance(key_node.func, ast.Attribute) and key_node.func.attr in {
+            "Required",
+            "Optional",
+        }:
+            if not key_node.args:
+                _fail_unexpected_ast("schema key args")
+            selector = key_node.args[0]
+            if isinstance(selector, ast.Constant) and isinstance(selector.value, str):
+                fields.add(selector.value)
+            elif isinstance(selector, ast.Name):
+                resolved = _resolve_name(selector.id, mapping)
+                if resolved:
+                    fields.add(resolved)
+                else:
+                    _fail_unexpected_ast(f"unmapped selector {selector.id}")
+            else:
+                _fail_unexpected_ast("selector type")
+        elif isinstance(key_node.func, ast.Name) and key_node.func.id == "section":
+            fields.update(_fields_from_section_value(value_node, mapping))
+        else:
+            _fail_unexpected_ast("unexpected schema call wrapper")
+    return fields
+
+
 def _fields_from_schema_call(call: ast.Call, mapping: dict[str, str]) -> set[str]:
     """Extract field keys from a vol.Schema(...) call.
 
@@ -131,28 +176,8 @@ def _fields_from_schema_call(call: ast.Call, mapping: dict[str, str]) -> set[str
 
     if not call.args or not isinstance(call.args[0], ast.Dict):
         _fail_unexpected_ast("schema call arguments")
-    arg = call.args[0]
 
-    fields: set[str] = set()
-    for key in arg.keys:
-        if not isinstance(key, ast.Call) or not isinstance(key.func, ast.Attribute):
-            _fail_unexpected_ast("schema key wrapper")
-        if key.func.attr not in {"Required", "Optional"}:
-            _fail_unexpected_ast(f"unexpected schema call {key.func.attr}")
-        if not key.args:
-            _fail_unexpected_ast("schema key args")
-        selector = key.args[0]
-        if isinstance(selector, ast.Constant) and isinstance(selector.value, str):
-            fields.add(selector.value)
-        elif isinstance(selector, ast.Name):
-            resolved = _resolve_name(selector.id, mapping)
-            if resolved:
-                fields.add(resolved)
-            else:
-                _fail_unexpected_ast(f"unmapped selector {selector.id}")
-        else:
-            _fail_unexpected_ast("selector type")
-    return fields
+    return _fields_from_schema_dict(call.args[0], mapping)
 
 
 def _extract_schema_fields(
