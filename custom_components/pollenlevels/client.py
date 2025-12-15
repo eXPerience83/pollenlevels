@@ -114,7 +114,7 @@ class GooglePollenApiClient:
                         raw_message = await extract_error_message(resp)
                         message = _format_http_message(resp.status, raw_message)
                         if is_invalid_api_key_message(raw_message):
-                            raise ConfigEntryAuthFailed(message or "Invalid API key")
+                            raise ConfigEntryAuthFailed(message)
                         raise UpdateFailed(message)
 
                     if resp.status == 429:
