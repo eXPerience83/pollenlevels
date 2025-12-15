@@ -14,7 +14,7 @@
       "invalid_language": "Невірний код мови",
       "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
-      "quota_exceeded": "Перевищено ліміт запитів",
+      "quota_exceeded": "Перевищено ліміт запитів\n\n{error_message}",
       "unknown": "Невідома помилка",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },
@@ -33,7 +33,7 @@
           "location": "Місцезнаходження",
           "name": "Ім'я",
           "update_interval": "Інтервал оновлення (у годинах)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "title": "Налаштування рівнів пилку",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
         }
       }
     }
@@ -80,7 +80,7 @@
       "invalid_language": "Невірний код мови",
       "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
-      "quota_exceeded": "Перевищено ліміт запитів",
+      "quota_exceeded": "Перевищено ліміт запитів\n\n{error_message}",
       "unknown": "Невідома помилка",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },

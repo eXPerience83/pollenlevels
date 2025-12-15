@@ -14,7 +14,7 @@
       "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
-      "quota_exceeded": "Limiet overschreden",
+      "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },
@@ -33,7 +33,7 @@
           "location": "Locatie",
           "name": "Naam",
           "update_interval": "Update-interval (uren)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "title": "Pollen Levels – Configuratie",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
         }
       }
     }
@@ -80,7 +80,7 @@
       "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
-      "quota_exceeded": "Limiet overschreden",
+      "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },

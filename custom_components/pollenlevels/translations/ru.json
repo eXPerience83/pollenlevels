@@ -14,7 +14,7 @@
       "invalid_language": "Неверный код языка",
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
-      "quota_exceeded": "Превышен лимит запросов",
+      "quota_exceeded": "Превышен лимит запросов\n\n{error_message}",
       "unknown": "Неизвестная ошибка",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },
@@ -33,7 +33,7 @@
           "location": "Местоположение",
           "name": "Имя",
           "update_interval": "Интервал обновления (в часах)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "title": "Настройка уровней пыльцы",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
         }
       }
     }
@@ -80,7 +80,7 @@
       "invalid_language": "Неверный код языка",
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
-      "quota_exceeded": "Превышен лимит запросов",
+      "quota_exceeded": "Превышен лимит запросов\n\n{error_message}",
       "unknown": "Неизвестная ошибка",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },

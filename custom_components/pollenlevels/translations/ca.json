@@ -32,7 +32,7 @@
     "error": {
       "invalid_auth": "Clau API no vàlida\n\n{error_message}",
       "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
-      "quota_exceeded": "Quota excedida",
+      "quota_exceeded": "Quota excedida\n\n{error_message}",
       "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
@@ -64,7 +64,7 @@
     "error": {
       "invalid_auth": "Clau API no vàlida\n\n{error_message}",
       "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
-      "quota_exceeded": "Quota excedida",
+      "quota_exceeded": "Quota excedida\n\n{error_message}",
       "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",

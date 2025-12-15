@@ -14,7 +14,7 @@
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
-      "quota_exceeded": "Kontingent überschritten",
+      "quota_exceeded": "Kontingent überschritten\n\n{error_message}",
       "unknown": "Unbekannter Fehler",
       "invalid_update_interval": "Das Aktualisierungsintervall muss mindestens 1 Stunde betragen."
     },
@@ -80,7 +80,7 @@
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
-      "quota_exceeded": "Kontingent überschritten",
+      "quota_exceeded": "Kontingent überschritten\n\n{error_message}",
       "unknown": "Unbekannter Fehler",
       "invalid_update_interval": "Das Aktualisierungsintervall muss mindestens 1 Stunde betragen."
     },

@@ -10,7 +10,7 @@
           "location": "Location",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP Referer"
         },
         "sections": {
           "api_key_options": {
@@ -18,7 +18,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
         }
       },
       "reauth_confirm": {
@@ -32,7 +32,7 @@
     "error": {
       "invalid_auth": "Invalid API key\n\n{error_message}",
       "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
-      "quota_exceeded": "Quota exceeded",
+      "quota_exceeded": "Quota exceeded\n\n{error_message}",
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
@@ -64,7 +64,7 @@
     "error": {
       "invalid_auth": "Invalid API key\n\n{error_message}",
       "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
-      "quota_exceeded": "Quota exceeded",
+      "quota_exceeded": "Quota exceeded\n\n{error_message}",
       "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",

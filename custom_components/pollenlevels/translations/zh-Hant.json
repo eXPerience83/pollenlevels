@@ -14,7 +14,7 @@
       "invalid_language": "無效的語言代碼",
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "quota_exceeded": "超出配額",
+      "quota_exceeded": "超出配額\n\n{error_message}",
       "unknown": "未知錯誤",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },
@@ -33,7 +33,7 @@
           "location": "位置",
           "name": "名稱",
           "update_interval": "更新間隔（小時）",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "title": "花粉水平設定",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
         }
       }
     }
@@ -80,7 +80,7 @@
       "invalid_language": "無效的語言代碼",
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "quota_exceeded": "超出配額",
+      "quota_exceeded": "超出配額\n\n{error_message}",
       "unknown": "未知錯誤",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },

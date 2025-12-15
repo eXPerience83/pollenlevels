@@ -14,7 +14,7 @@
       "invalid_language": "Cod de limbă nevalid",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "quota_exceeded": "Cota depășită",
+      "quota_exceeded": "Cota depășită\n\n{error_message}",
       "unknown": "Eroare necunoscută",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },
@@ -33,7 +33,7 @@
           "location": "Locație",
           "name": "Nume",
           "update_interval": "Interval de actualizare (ore)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "title": "Configurare Niveluri de Polen",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
         }
       }
     }
@@ -80,7 +80,7 @@
       "invalid_language": "Cod de limbă nevalid",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "quota_exceeded": "Cota depășită",
+      "quota_exceeded": "Cota depășită\n\n{error_message}",
       "unknown": "Eroare necunoscută",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },

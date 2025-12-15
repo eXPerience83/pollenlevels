@@ -14,7 +14,7 @@
       "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "quota_exceeded": "Překročena kvóta",
+      "quota_exceeded": "Překročena kvóta\n\n{error_message}",
       "unknown": "Neznámá chyba",
       "invalid_update_interval": "Interval aktualizace musí být alespoň 1 hodina."
     },
@@ -80,7 +80,7 @@
       "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "quota_exceeded": "Překročena kvóta",
+      "quota_exceeded": "Překročena kvóta\n\n{error_message}",
       "unknown": "Neznámá chyba",
       "invalid_update_interval": "Interval aktualizace musí být alespoň 1 hodina."
     },

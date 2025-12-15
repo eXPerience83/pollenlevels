@@ -14,7 +14,7 @@
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "quota_exceeded": "Kiintiö ylitetty",
+      "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}",
       "unknown": "Tuntematon virhe",
       "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti."
     },
@@ -80,7 +80,7 @@
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "quota_exceeded": "Kiintiö ylitetty",
+      "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}",
       "unknown": "Tuntematon virhe",
       "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti."
     },

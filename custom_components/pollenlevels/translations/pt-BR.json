@@ -14,7 +14,7 @@
       "invalid_language": "Código de idioma inválido",
       "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
-      "quota_exceeded": "Cota excedida",
+      "quota_exceeded": "Cota excedida\n\n{error_message}",
       "unknown": "Erro desconhecido",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },
@@ -33,7 +33,7 @@
           "location": "Localização",
           "name": "Nome",
           "update_interval": "Intervalo de atualização (horas)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
         "title": "Configuração dos Níveis de Pólen",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
         }
       }
     }
@@ -80,7 +80,7 @@
       "invalid_language": "Código de idioma inválido",
       "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
-      "quota_exceeded": "Cota excedida",
+      "quota_exceeded": "Cota excedida\n\n{error_message}",
       "unknown": "Erro desconhecido",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },

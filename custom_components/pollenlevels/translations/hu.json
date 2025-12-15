@@ -14,7 +14,7 @@
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "quota_exceeded": "Kvóta túllépve",
+      "quota_exceeded": "Kvóta túllépve\n\n{error_message}",
       "unknown": "Ismeretlen hiba",
       "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
     },
@@ -80,7 +80,7 @@
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "quota_exceeded": "Kvóta túllépve",
+      "quota_exceeded": "Kvóta túllépve\n\n{error_message}",
       "unknown": "Ismeretlen hiba",
       "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
     },
