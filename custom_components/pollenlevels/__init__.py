@@ -115,7 +115,17 @@ async def async_setup_entry(
     if not api_key:
         raise ConfigEntryAuthFailed("Missing API key")
 
-    http_referer = entry.data.get(CONF_HTTP_REFERER)
+    raw_http_referer = entry.data.get(CONF_HTTP_REFERER)
+    http_referer: str | None = None
+    if isinstance(raw_http_referer, str):
+        candidate = raw_http_referer.strip()
+        if candidate and "\r" not in candidate and "\n" not in candidate:
+            http_referer = candidate
+        elif candidate and ("\r" in candidate or "\n" in candidate):
+            _LOGGER.warning(
+                "Ignoring http_referer for entry %s because it contains newline characters",
+                entry.entry_id,
+            )
 
     raw_title = entry.title or ""
     clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE

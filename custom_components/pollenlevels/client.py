@@ -16,6 +16,14 @@ from .util import extract_error_message, redact_api_key
 _LOGGER = logging.getLogger(__name__)
 
 
+def _format_http_message(status: int, raw_message: str | None) -> str:
+    """Format an HTTP status and optional message consistently."""
+
+    if raw_message:
+        return f"HTTP {status}: {raw_message}"
+    return f"HTTP {status}"
+
+
 class GooglePollenApiClient:
     """Thin async client wrapper for the Google Pollen API."""
 
@@ -99,16 +107,12 @@ class GooglePollenApiClient:
                 ) as resp:
                     if resp.status == 401:
                         raw_message = await extract_error_message(resp)
-                        message = raw_message or f"HTTP {resp.status}"
-                        if raw_message:
-                            message = f"HTTP {resp.status}: {raw_message}"
+                        message = _format_http_message(resp.status, raw_message)
                         raise ConfigEntryAuthFailed(message)
 
                     if resp.status == 403:
                         raw_message = await extract_error_message(resp)
-                        message = raw_message or f"HTTP {resp.status}"
-                        if raw_message:
-                            message = f"HTTP {resp.status}: {raw_message}"
+                        message = _format_http_message(resp.status, raw_message)
                         if is_invalid_api_key_message(raw_message):
                             raise ConfigEntryAuthFailed(message or "Invalid API key")
                         raise UpdateFailed(message)
@@ -129,9 +133,7 @@ class GooglePollenApiClient:
                             await asyncio.sleep(delay)
                             continue
                         raw_message = await extract_error_message(resp)
-                        message = raw_message or f"HTTP {resp.status}"
-                        if raw_message:
-                            message = f"HTTP {resp.status}: {raw_message}"
+                        message = _format_http_message(resp.status, raw_message)
                         raise UpdateFailed(message)
 
                     if 500 <= resp.status <= 599:
@@ -147,23 +149,17 @@ class GooglePollenApiClient:
                             )
                             continue
                         raw_message = await extract_error_message(resp)
-                        message = raw_message or f"HTTP {resp.status}"
-                        if raw_message:
-                            message = f"HTTP {resp.status}: {raw_message}"
+                        message = _format_http_message(resp.status, raw_message)
                         raise UpdateFailed(message)
 
                     if 400 <= resp.status < 500 and resp.status not in (403, 429):
                         raw_message = await extract_error_message(resp)
-                        message = raw_message or f"HTTP {resp.status}"
-                        if raw_message:
-                            message = f"HTTP {resp.status}: {raw_message}"
+                        message = _format_http_message(resp.status, raw_message)
                         raise UpdateFailed(message)
 
                     if resp.status != 200:
                         raw_message = await extract_error_message(resp)
-                        message = raw_message or f"HTTP {resp.status}"
-                        if raw_message:
-                            message = f"HTTP {resp.status}: {raw_message}"
+                        message = _format_http_message(resp.status, raw_message)
                         raise UpdateFailed(message)
 
                     return await resp.json()
