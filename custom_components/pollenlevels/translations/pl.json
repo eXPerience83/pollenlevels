@@ -10,13 +10,13 @@
       "empty": "To pole nie może być puste",
       "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
       "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Nieprawidłowa wartość HTTP Referer. Nie może zawierać znaków nowej linii.",
       "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę."
     },
     "step": {
       "reauth_confirm": {
@@ -35,15 +35,15 @@
           "update_interval": "Interwał aktualizacji (godziny)",
           "http_referer": "HTTP Referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Wprowadź swój klucz Google API ([uzyskaj go tutaj]({api_key_url})) i zapoznaj się z dobrymi praktykami ([dobre praktyki]({restricting_api_keys_url})). Wybierz lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "title": "Konfiguracja poziomów pyłku",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Opcjonalne opcje klucza API"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Wymagane tylko, jeśli Twój klucz API jest ograniczony przez HTTP Referer (witryny)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę."
     },
     "step": {
       "init": {

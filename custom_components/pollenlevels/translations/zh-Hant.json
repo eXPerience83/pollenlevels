@@ -10,13 +10,13 @@
       "empty": "此欄位不得為空",
       "invalid_auth": "無效的 API 金鑰\n\n{error_message}",
       "invalid_coordinates": "請在地圖上選擇有效的位置。",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "無效的 HTTP Referer 值。不得包含換行符。",
       "invalid_language": "無效的語言代碼",
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "quota_exceeded": "超出配額\n\n{error_message}",
       "unknown": "未知錯誤",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "更新間隔必須至少為 1 小時。"
     },
     "step": {
       "reauth_confirm": {
@@ -35,15 +35,15 @@
           "update_interval": "更新間隔（小時）",
           "http_referer": "HTTP Referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "輸入你的 Google API 金鑰（[在此取得]({api_key_url})) 並查看最佳實務（[最佳實務]({restricting_api_keys_url})). 在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
         "title": "花粉水平設定",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "可選的 API 金鑰選項"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "僅在你的 API 金鑰受 HTTP Referer（網站）限制時需要。"
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "quota_exceeded": "超出配額\n\n{error_message}",
       "unknown": "未知錯誤",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "更新間隔必須至少為 1 小時。"
     },
     "step": {
       "init": {

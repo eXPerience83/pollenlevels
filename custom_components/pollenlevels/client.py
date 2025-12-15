@@ -90,15 +90,8 @@ class GooglePollenApiClient:
         for attempt in range(0, max_retries + 1):
             try:
                 headers: dict[str, str] | None = None
-                referer = self._http_referer
-                if referer:
-                    if "\r" in referer or "\n" in referer:
-                        _LOGGER.warning(
-                            "Ignoring http_referer containing newline characters"
-                        )
-                        referer = None
-                    else:
-                        headers = {"Referer": referer}
+                if self._http_referer:
+                    headers = {"Referer": self._http_referer}
                 async with self._session.get(
                     url,
                     params=params,

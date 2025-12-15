@@ -420,26 +420,19 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 raw_http_referer = section_values.get(CONF_HTTP_REFERER)
             sanitized_input.pop(SECTION_API_KEY_OPTIONS, None)
 
-            http_referer: str | None = None
-            try:
-                http_referer = normalize_http_referer(raw_http_referer)
-            except ValueError:
-                errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
+            sanitized_input.pop(CONF_HTTP_REFERER, None)
+            if raw_http_referer:
+                sanitized_input[CONF_HTTP_REFERER] = raw_http_referer
 
-            if not errors:
-                sanitized_input.pop(CONF_HTTP_REFERER, None)
-                if http_referer:
-                    sanitized_input[CONF_HTTP_REFERER] = http_referer
-
-                errors, normalized = await self._async_validate_input(
-                    sanitized_input,
-                    check_unique_id=True,
-                    description_placeholders=description_placeholders,
-                )
-                if not errors and normalized is not None:
-                    entry_name = str(user_input.get(CONF_NAME, "")).strip()
-                    title = entry_name or DEFAULT_ENTRY_TITLE
-                    return self.async_create_entry(title=title, data=normalized)
+            errors, normalized = await self._async_validate_input(
+                sanitized_input,
+                check_unique_id=True,
+                description_placeholders=description_placeholders,
+            )
+            if not errors and normalized is not None:
+                entry_name = str(user_input.get(CONF_NAME, "")).strip()
+                title = entry_name or DEFAULT_ENTRY_TITLE
+                return self.async_create_entry(title=title, data=normalized)
 
         base_schema = STEP_USER_DATA_SCHEMA.schema.copy()
         base_schema.update(_get_location_schema(self.hass).schema)

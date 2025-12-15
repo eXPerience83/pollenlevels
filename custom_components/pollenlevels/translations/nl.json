@@ -10,13 +10,13 @@
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_auth": "Ongeldige API-sleutel\n\n{error_message}",
       "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Ongeldige HTTP Referer-waarde. Deze mag geen regeleinden bevatten.",
       "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn."
     },
     "step": {
       "reauth_confirm": {
@@ -35,15 +35,15 @@
           "update_interval": "Update-interval (uren)",
           "http_referer": "HTTP Referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Voer je Google API-sleutel in ([haal hem hier]({api_key_url})) en bekijk de best practices ([best practices]({restricting_api_keys_url})). Selecteer je locatie op de kaart, het update-interval (uren) en de taalcode van de API-respons.",
         "title": "Pollen Levels – Configuratie",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Optionele API-sleutelopties"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Alleen nodig als je API-sleutel is beperkt tot HTTP Referer (websites)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn."
     },
     "step": {
       "init": {

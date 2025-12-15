@@ -10,13 +10,13 @@
       "empty": "Dette feltet kan ikke være tomt",
       "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
       "invalid_coordinates": "Velg en gyldig posisjon på kartet.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Ugyldig HTTP Referer-verdi. Den kan ikke inneholde linjeskift.",
       "invalid_language": "Ugyldig språkkode",
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
       "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "unknown": "Ukjent feil",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time."
     },
     "step": {
       "reauth_confirm": {
@@ -35,15 +35,15 @@
           "update_interval": "Oppdateringsintervall (timer)",
           "http_referer": "HTTP Referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Oppgi Google API-nøkkelen din ([få den her]({api_key_url})) og les beste praksis ([beste praksis]({restricting_api_keys_url})). Velg posisjonen din på kartet, oppdateringsintervallet (timer) og språkkoden for API-svaret.",
         "title": "Konfigurasjon av pollennivåer",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Valgfrie API-nøkkelalternativer"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Bare nødvendig hvis API-nøkkelen din er begrenset av HTTP Referer (nettsteder)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
       "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "unknown": "Ukjent feil",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time."
     },
     "step": {
       "init": {

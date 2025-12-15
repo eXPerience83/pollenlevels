@@ -10,13 +10,13 @@
       "empty": "Detta fält får inte vara tomt",
       "invalid_auth": "Ogiltig API-nyckel\n\n{error_message}",
       "invalid_coordinates": "Välj en giltig plats på kartan.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Ogiltigt HTTP Referer-värde. Det får inte innehålla radbrytningar.",
       "invalid_language": "Ogiltig språkkod",
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "quota_exceeded": "Kvoten har överskridits\n\n{error_message}",
       "unknown": "Okänt fel",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Uppdateringsintervallet måste vara minst 1 timme."
     },
     "step": {
       "reauth_confirm": {
@@ -35,15 +35,15 @@
           "update_interval": "Uppdateringsintervall (timmar)",
           "http_referer": "HTTP Referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Ange din Google API-nyckel ([hämta den här]({api_key_url})) och läs bästa praxis ([bästa praxis]({restricting_api_keys_url})). Välj din plats på kartan, uppdateringsintervallet (timmar) och språkkoden för API-svaret.",
         "title": "Konfiguration av pollennivåer",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Valfria API-nyckelalternativ"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Endast nödvändigt om din API-nyckel är begränsad av HTTP Referer (webbplatser)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "quota_exceeded": "Kvoten har överskridits\n\n{error_message}",
       "unknown": "Okänt fel",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Uppdateringsintervallet måste vara minst 1 timme."
     },
     "step": {
       "init": {

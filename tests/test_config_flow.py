@@ -317,6 +317,7 @@ from custom_components.pollenlevels.const import (
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
+    normalize_http_referer,
 )
 
 
@@ -543,13 +544,14 @@ def test_async_step_user_persists_http_referer() -> None:
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
     ):
-        assert user_input[CONF_HTTP_REFERER] == "https://example.com"
+        http_referer = normalize_http_referer(user_input.get(CONF_HTTP_REFERER))
+        assert http_referer == "https://example.com"
         normalized = {
             CONF_API_KEY: user_input[CONF_API_KEY],
             CONF_LATITUDE: 1.0,
             CONF_LONGITUDE: 2.0,
             CONF_LANGUAGE_CODE: "en",
-            CONF_HTTP_REFERER: "https://example.com",
+            CONF_HTTP_REFERER: http_referer,
         }
         return {}, normalized
 
@@ -578,7 +580,8 @@ def test_async_step_user_drops_blank_http_referer() -> None:
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
     ):
-        assert CONF_HTTP_REFERER not in user_input
+        http_referer = normalize_http_referer(user_input.get(CONF_HTTP_REFERER))
+        assert http_referer is None
         normalized = {
             CONF_API_KEY: user_input[CONF_API_KEY],
             CONF_LATITUDE: 1.0,

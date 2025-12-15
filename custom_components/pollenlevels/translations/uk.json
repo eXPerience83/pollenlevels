@@ -10,13 +10,13 @@
       "empty": "Це поле не може бути порожнім",
       "invalid_auth": "Невірний ключ API\n\n{error_message}",
       "invalid_coordinates": "Виберіть дійсне місце на карті.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Неприпустиме значення HTTP Referer. Воно не повинно містити символів нового рядка.",
       "invalid_language": "Невірний код мови",
       "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "quota_exceeded": "Перевищено ліміт запитів\n\n{error_message}",
       "unknown": "Невідома помилка",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Інтервал оновлення має бути щонайменше 1 година."
     },
     "step": {
       "reauth_confirm": {
@@ -35,15 +35,15 @@
           "update_interval": "Інтервал оновлення (у годинах)",
           "http_referer": "HTTP Referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Введіть свій ключ Google API ([отримайте його тут]({api_key_url})) та ознайомтеся з найкращими практиками ([найкращі практики]({restricting_api_keys_url})). Виберіть місце на карті, інтервал оновлення (години) і код мови відповіді API.",
         "title": "Налаштування рівнів пилку",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Додаткові параметри ключа API"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Потрібно лише якщо ваш ключ API обмежено через HTTP Referer (вебсайти)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "quota_exceeded": "Перевищено ліміт запитів\n\n{error_message}",
       "unknown": "Невідома помилка",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Інтервал оновлення має бути щонайменше 1 година."
     },
     "step": {
       "init": {

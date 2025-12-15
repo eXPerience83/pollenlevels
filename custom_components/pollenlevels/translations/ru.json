@@ -10,13 +10,13 @@
       "empty": "Это поле не может быть пустым",
       "invalid_auth": "Неверный ключ API\n\n{error_message}",
       "invalid_coordinates": "Выберите корректное местоположение на карте.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Неверное значение HTTP Referer. Оно не должно содержать символы новой строки.",
       "invalid_language": "Неверный код языка",
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
       "quota_exceeded": "Превышен лимит запросов\n\n{error_message}",
       "unknown": "Неизвестная ошибка",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Интервал обновления должен быть не менее 1 часа."
     },
     "step": {
       "reauth_confirm": {
@@ -35,15 +35,15 @@
           "update_interval": "Интервал обновления (в часах)",
           "http_referer": "HTTP Referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Введите ключ Google API ([получите его здесь]({api_key_url})) и изучите рекомендации ([лучшие практики]({restricting_api_keys_url})). Выберите местоположение на карте, интервал обновления (часы) и языковой код ответа API.",
         "title": "Настройка уровней пыльцы",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Дополнительные параметры ключа API"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Нужно только если ваш ключ API ограничен HTTP Referer (веб-сайты)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
       "quota_exceeded": "Превышен лимит запросов\n\n{error_message}",
       "unknown": "Неизвестная ошибка",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Интервал обновления должен быть не менее 1 часа."
     },
     "step": {
       "init": {
