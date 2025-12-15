@@ -33,7 +33,7 @@
           "location": "Emplacement",
           "name": "Nom",
           "update_interval": "Intervalle de mise à jour (heures)",
-          "http_referer": "HTTP referer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Saisissez votre clé API Google ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse de l’API.",
         "title": "Pollen Levels – Configuration",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Nécessaire uniquement si votre clé API est limitée par des HTTP referers (sites web)."
+          "http_referer": "Nécessaire uniquement si votre clé API est limitée par des HTTP Referers (sites web)."
         }
       }
     }

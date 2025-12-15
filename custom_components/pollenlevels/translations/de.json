@@ -33,7 +33,7 @@
           "location": "Standort",
           "name": "Name",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "http_referer": "HTTP-Referer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Gib deinen Google API-Schlüssel ein ([hier abrufen]({api_key_url})) und lies die Best Practices ([Best Practices]({restricting_api_keys_url})). Wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode der API-Antwort.",
         "title": "Pollen Levels – Konfiguration",

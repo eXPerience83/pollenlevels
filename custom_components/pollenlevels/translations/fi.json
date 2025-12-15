@@ -33,7 +33,7 @@
           "location": "Sijainti",
           "name": "Nimi",
           "update_interval": "Päivitysväli (tunnit)",
-          "http_referer": "HTTP referer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Syötä Google API -avaimesi ([hanki se täältä]({api_key_url})) ja tutustu parhaisiin käytäntöihin ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi.",
         "title": "Siitepölytason asetukset",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Tarvitaan vain, jos API-avaimesi on rajoitettu HTTP refererien (verkkosivustojen) perusteella."
+          "http_referer": "Tarvitaan vain, jos API-avaimesi on rajoitettu HTTP Refererien (verkkosivustojen) perusteella."
         }
       }
     }

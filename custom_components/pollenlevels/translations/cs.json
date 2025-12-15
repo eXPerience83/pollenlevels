@@ -33,7 +33,7 @@
           "location": "Poloha",
           "name": "Název",
           "update_interval": "Interval aktualizace (hodiny)",
-          "http_referer": "HTTP referer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API.",
         "title": "Konfigurace úrovní pylu",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Potřebné pouze pokud je váš API klíč omezen podle HTTP refererů (webových stránek)."
+          "http_referer": "Potřebné pouze pokud je váš API klíč omezen podle HTTP Refererů (webových stránek)."
         }
       }
     }

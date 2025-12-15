@@ -10,7 +10,7 @@
           "location": "Ubicación",
           "update_interval": "Intervalo de actualización (horas)",
           "language_code": "Código de idioma de la respuesta de la API",
-          "http_referer": "Referer HTTP"
+          "http_referer": "HTTP Referer"
         },
         "sections": {
           "api_key_options": {
@@ -18,7 +18,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Solo es necesario si tu clave API está restringida por referers HTTP (sitios web)."
+          "http_referer": "Solo es necesario si tu clave API está restringida por Referers HTTP (sitios web)."
         }
       },
       "reauth_confirm": {

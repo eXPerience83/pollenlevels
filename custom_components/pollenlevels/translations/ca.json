@@ -10,7 +10,7 @@
           "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API",
-          "http_referer": "Referer HTTP"
+          "http_referer": "HTTP Referer"
         },
         "sections": {
           "api_key_options": {
@@ -18,7 +18,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Només cal si la teva clau API està restringida per referers HTTP (llocs web)."
+          "http_referer": "Només cal si la teva clau API està restringida per Referers HTTP (llocs web)."
         }
       },
       "reauth_confirm": {

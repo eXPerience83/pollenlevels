@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Kun nødvendig hvis din API-nøgle er begrænset via HTTP referers (websteder)."
+          "http_referer": "Kun nødvendig hvis din API-nøgle er begrænset via HTTP Referers (websteder)."
         }
       }
     }

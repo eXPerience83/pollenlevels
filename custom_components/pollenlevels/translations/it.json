@@ -33,7 +33,7 @@
           "location": "Posizione",
           "name": "Nome",
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "http_referer": "HTTP referer"
+          "http_referer": "HTTP Referer"
         },
         "description": "Inserisci la tua chiave API di Google ([ottienila qui]({api_key_url})) e consulta le best practice ([best practice]({restricting_api_keys_url})). Seleziona la posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua della risposta dell’API.",
         "title": "Configurazione Livelli di polline",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Necessario solo se la tua chiave API è limitata dai referer HTTP (siti web)."
+          "http_referer": "Necessario solo se la tua chiave API è limitata dai Referer HTTP (siti web)."
         }
       }
     }
