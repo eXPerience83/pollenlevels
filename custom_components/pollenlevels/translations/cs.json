@@ -10,13 +10,13 @@
       "empty": "Toto pole nemůže být prázdné",
       "invalid_auth": "Neplatný klíč API\n\n{error_message}",
       "invalid_coordinates": "Vyberte platné umístění na mapě.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Neplatná hodnota HTTP refereru. Nesmí obsahovat znaky nového řádku.",
       "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "quota_exceeded": "Překročena kvóta",
       "unknown": "Neznámá chyba",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Interval aktualizace musí být alespoň 1 hodina."
     },
     "step": {
       "reauth_confirm": {
@@ -33,17 +33,17 @@
           "location": "Poloha",
           "name": "Název",
           "update_interval": "Interval aktualizace (hodiny)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API.",
         "title": "Konfigurace úrovní pylu",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Volitelné možnosti API klíče"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Potřebné pouze pokud je váš API klíč omezen podle HTTP refererů (webových stránek)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "quota_exceeded": "Překročena kvóta",
       "unknown": "Neznámá chyba",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Interval aktualizace musí být alespoň 1 hodina."
     },
     "step": {
       "init": {

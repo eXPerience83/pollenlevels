@@ -3,22 +3,22 @@
     "step": {
       "user": {
         "title": "Configuració de Nivells de pol·len",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Introdueix la teva clau API de Google ([aconsegueix-la aquí]({api_key_url})) i revisa les bones pràctiques ([bones pràctiques]({restricting_api_keys_url})). Selecciona la ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API.",
         "data": {
           "api_key": "Clau API",
           "name": "Nom",
           "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "Referer HTTP"
         },
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Opcions opcionals de la clau API"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Només cal si la teva clau API està restringida per referers HTTP (llocs web)."
         }
       },
       "reauth_confirm": {
@@ -39,8 +39,8 @@
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
       "unknown": "Error desconegut",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_http_referrer": "Valor de referer HTTP no vàlid. No pot contenir salts de línia.",
+      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora."
     },
     "abort": {
       "already_configured": "Aquesta ubicació ja està configurada.",
@@ -70,7 +70,7 @@
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "unknown": "Error desconegut",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora."
     }
   },
   "device": {

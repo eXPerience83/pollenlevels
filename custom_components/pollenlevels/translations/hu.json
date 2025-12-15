@@ -10,13 +10,13 @@
       "empty": "A mező nem lehet üres",
       "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
       "invalid_coordinates": "Válassz érvényes helyet a térképen.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Érvénytelen HTTP referer érték. Nem tartalmazhat sortörés karaktereket.",
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "quota_exceeded": "Kvóta túllépve",
       "unknown": "Ismeretlen hiba",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
     },
     "step": {
       "reauth_confirm": {
@@ -33,17 +33,17 @@
           "location": "Helyszín",
           "name": "Név",
           "update_interval": "Frissítési időköz (óra)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Add meg a Google API-kulcsodat ([itt szerezhető be]({api_key_url})) és nézd át a bevált gyakorlatokat ([bevált gyakorlatok]({restricting_api_keys_url})). Válaszd ki a helyszínt a térképen, a frissítési időközt (órában) és az API-válasz nyelvi kódját.",
         "title": "Pollen szintek – beállítás",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Opcionális API-kulcs beállítások"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Csak akkor szükséges, ha az API-kulcsod HTTP refererek (weboldalak) alapján van korlátozva."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "quota_exceeded": "Kvóta túllépve",
       "unknown": "Ismeretlen hiba",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
     },
     "step": {
       "init": {

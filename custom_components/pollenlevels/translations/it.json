@@ -10,13 +10,13 @@
       "empty": "Questo campo non può essere vuoto",
       "invalid_auth": "Chiave API non valida\n\n{error_message}",
       "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Valore di referer HTTP non valido. Non deve contenere caratteri di nuova riga.",
       "invalid_language": "Codice lingua non valido",
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
       "quota_exceeded": "Quota superata",
       "unknown": "Errore sconosciuto",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "L’intervallo di aggiornamento deve essere di almeno 1 ora."
     },
     "step": {
       "reauth_confirm": {
@@ -33,17 +33,17 @@
           "location": "Posizione",
           "name": "Nome",
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Inserisci la tua chiave API di Google ([ottienila qui]({api_key_url})) e consulta le best practice ([best practice]({restricting_api_keys_url})). Seleziona la posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua della risposta dell’API.",
         "title": "Configurazione Livelli di polline",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Opzioni facoltative della chiave API"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Necessario solo se la tua chiave API è limitata dai referer HTTP (siti web)."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
       "quota_exceeded": "Quota superata",
       "unknown": "Errore sconosciuto",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "L’intervallo di aggiornamento deve essere di almeno 1 ora."
     },
     "step": {
       "init": {

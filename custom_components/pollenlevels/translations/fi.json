@@ -10,13 +10,13 @@
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
-      "invalid_http_referrer": "Invalid HTTP referrer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Virheellinen HTTP referer -arvo. Se ei saa sisältää rivinvaihtomerkkejä.",
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "quota_exceeded": "Kiintiö ylitetty",
       "unknown": "Tuntematon virhe",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti."
     },
     "step": {
       "reauth_confirm": {
@@ -33,17 +33,17 @@
           "location": "Sijainti",
           "name": "Nimi",
           "update_interval": "Päivitysväli (tunnit)",
-          "http_referer": "HTTP Referrer"
+          "http_referer": "HTTP referer"
         },
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Syötä Google API -avaimesi ([hanki se täältä]({api_key_url})) ja tutustu parhaisiin käytäntöihin ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi.",
         "title": "Siitepölytason asetukset",
         "sections": {
           "api_key_options": {
-            "name": "Optional API key options"
+            "name": "Valinnaiset API-avaimen asetukset"
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP referrers (websites)."
+          "http_referer": "Tarvitaan vain, jos API-avaimesi on rajoitettu HTTP refererien (verkkosivustojen) perusteella."
         }
       }
     }
@@ -82,7 +82,7 @@
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "quota_exceeded": "Kiintiö ylitetty",
       "unknown": "Tuntematon virhe",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti."
     },
     "step": {
       "init": {
