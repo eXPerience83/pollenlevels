@@ -147,3 +147,22 @@ def test_options_flow_update_interval_below_min_sets_error() -> None:
     )
 
     assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+
+
+def test_options_flow_invalid_update_interval_short_circuits() -> None:
+    """Invalid update interval should short-circuit without extra errors."""
+
+    flow = _flow()
+
+    result = asyncio.run(
+        flow.async_step_init(
+            {
+                CONF_LANGUAGE_CODE: "en",
+                CONF_FORECAST_DAYS: 0,
+                CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+                CONF_UPDATE_INTERVAL: "not-a-number",
+            }
+        )
+    )
+
+    assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}

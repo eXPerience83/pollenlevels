@@ -1,3 +1,5 @@
+from typing import Any
+
 # Define constants for Pollen Levels integration
 
 DOMAIN = "pollenlevels"
@@ -49,3 +51,19 @@ def is_invalid_api_key_message(message: str | None) -> bool:
         "api key is not valid",
     )
     return any(signal in msg for signal in signals)
+
+
+def normalize_http_referer(value: Any) -> str | None:
+    """Normalize HTTP referrer input and reject CR/LF."""
+
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    if "\r" in text or "\n" in text:
+        raise ValueError("invalid http referer")
+
+    return text

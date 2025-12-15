@@ -55,6 +55,7 @@ from .const import (
     RESTRICTING_API_KEYS_URL,
     SECTION_API_KEY_OPTIONS,
     is_invalid_api_key_message,
+    normalize_http_referer,
 )
 from .util import extract_error_message, redact_api_key
 
@@ -211,29 +212,24 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized.pop(CONF_LOCATION, None)
 
         headers: dict[str, str] | None = None
-        raw_http_referer = normalized.get(CONF_HTTP_REFERER)
-        if raw_http_referer is not None:
-            if not isinstance(raw_http_referer, str):
-                errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
-                return errors, None
+        try:
+            http_referer = normalize_http_referer(normalized.get(CONF_HTTP_REFERER))
+        except ValueError:
+            errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
+            return errors, None
 
-            http_referer = raw_http_referer.strip()
-            if "\r" in http_referer or "\n" in http_referer:
-                errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
-                return errors, None
-
-            if http_referer:
-                headers = {"Referer": http_referer}
-                normalized[CONF_HTTP_REFERER] = http_referer
-            else:
-                normalized.pop(CONF_HTTP_REFERER, None)
+        if http_referer:
+            headers = {"Referer": http_referer}
+            normalized[CONF_HTTP_REFERER] = http_referer
+        else:
+            normalized.pop(CONF_HTTP_REFERER, None)
 
         try:
             normalized[CONF_UPDATE_INTERVAL] = int(
                 normalized.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
             )
         except (TypeError, ValueError):
-            errors[CONF_UPDATE_INTERVAL] = "invalid_option_combo"
+            errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
             return errors, None
 
         if normalized[CONF_UPDATE_INTERVAL] < 1:
@@ -423,15 +419,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             sanitized_input.pop(SECTION_API_KEY_OPTIONS, None)
 
             http_referer: str | None = None
-            if raw_http_referer is not None:
-                if not isinstance(raw_http_referer, str):
-                    errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
-                else:
-                    http_referer = raw_http_referer.strip()
-                    if "\r" in http_referer or "\n" in http_referer:
-                        errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
-                    elif not http_referer:
-                        http_referer = None
+            try:
+                http_referer = normalize_http_referer(raw_http_referer)
+            except ValueError:
+                errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
 
             if not errors:
                 sanitized_input.pop(CONF_HTTP_REFERER, None)
@@ -556,12 +547,61 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         )
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
+        options_schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_UPDATE_INTERVAL, default=current_interval
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=1,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement="h",
+                    )
+                ),
+                vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.TEXT)
+                ),
+                vol.Optional(CONF_FORECAST_DAYS, default=current_days): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_FORECAST_DAYS,
+                        max=MAX_FORECAST_DAYS,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Optional(
+                    CONF_CREATE_FORECAST_SENSORS, default=current_mode
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        mode=SelectSelectorMode.DROPDOWN,
+                        options=FORECAST_SENSORS_CHOICES,
+                    )
+                ),
+            }
+        )
+
         if user_input is not None:
             normalized_input: dict[str, Any] = {**self.entry.options, **user_input}
             try:
                 normalized_input[CONF_UPDATE_INTERVAL] = int(
                     float(normalized_input.get(CONF_UPDATE_INTERVAL, current_interval))
                 )
+            except (TypeError, ValueError):
+                errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
+
+            if not errors and normalized_input[CONF_UPDATE_INTERVAL] < 1:
+                errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
+
+            if errors.get(CONF_UPDATE_INTERVAL):
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=options_schema,
+                    errors=errors,
+                    description_placeholders=placeholders,
+                )
+
+            try:
                 normalized_input[CONF_FORECAST_DAYS] = int(
                     float(normalized_input.get(CONF_FORECAST_DAYS, current_days))
                 )
@@ -569,9 +609,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "invalid_option_combo"
 
             if not errors:
-                if normalized_input[CONF_UPDATE_INTERVAL] < 1:
-                    errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
-
                 try:
                     # Language: allow empty; if provided, validate & normalize.
                     raw_lang = normalized_input.get(
@@ -619,41 +656,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_UPDATE_INTERVAL, default=current_interval
-                    ): NumberSelector(
-                        NumberSelectorConfig(
-                            min=1,
-                            step=1,
-                            mode=NumberSelectorMode.BOX,
-                            unit_of_measurement="h",
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_LANGUAGE_CODE, default=current_lang
-                    ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
-                    vol.Optional(
-                        CONF_FORECAST_DAYS, default=current_days
-                    ): NumberSelector(
-                        NumberSelectorConfig(
-                            min=MIN_FORECAST_DAYS,
-                            max=MAX_FORECAST_DAYS,
-                            step=1,
-                            mode=NumberSelectorMode.BOX,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_CREATE_FORECAST_SENSORS, default=current_mode
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            mode=SelectSelectorMode.DROPDOWN,
-                            options=FORECAST_SENSORS_CHOICES,
-                        )
-                    ),
-                }
-            ),
+            data_schema=options_schema,
             errors=errors,
             description_placeholders=placeholders,
         )
