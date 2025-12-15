@@ -673,6 +673,30 @@ def test_validate_input_update_interval_below_min_sets_error(
     assert not session.calls
 
 
+def test_validate_input_update_interval_float_string(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Float-like strings should coerce to int and allow validation to proceed."""
+
+    session = _patch_client_session(
+        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"indexInfo": []}]}')
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: "1.0"}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(user_input, check_unique_id=False)
+    )
+
+    assert errors == {}
+    assert normalized is not None
+    assert normalized[CONF_UPDATE_INTERVAL] == 1
+    assert session.calls
+
+
 def test_validate_input_update_interval_non_numeric_sets_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

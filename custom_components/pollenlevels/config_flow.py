@@ -225,12 +225,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             normalized.pop(CONF_HTTP_REFERER, None)
 
         try:
-            normalized[CONF_UPDATE_INTERVAL] = int(
-                normalized.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+            parsed_update_interval = int(
+                float(normalized.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
             )
         except (TypeError, ValueError):
             errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
             return errors, None
+
+        normalized[CONF_UPDATE_INTERVAL] = parsed_update_interval
 
         if normalized[CONF_UPDATE_INTERVAL] < 1:
             errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
