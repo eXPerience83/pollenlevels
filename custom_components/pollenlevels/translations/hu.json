@@ -82,7 +82,8 @@
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "quota_exceeded": "Kvóta túllépve\n\n{error_message}",
       "unknown": "Ismeretlen hiba",
-      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
+      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie.",
+      "invalid_forecast_days": "Adjon meg érvényes előrejelzési napok számát 1 és 5 között."
     },
     "step": {
       "init": {

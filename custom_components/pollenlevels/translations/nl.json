@@ -82,7 +82,8 @@
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
-      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn."
+      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn.",
+      "invalid_forecast_days": "Voer een geldig aantal voorspellingsdagen in tussen 1 en 5."
     },
     "step": {
       "init": {

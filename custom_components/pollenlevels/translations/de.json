@@ -82,7 +82,8 @@
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
       "quota_exceeded": "Kontingent überschritten\n\n{error_message}",
       "unknown": "Unbekannter Fehler",
-      "invalid_update_interval": "Das Aktualisierungsintervall muss mindestens 1 Stunde betragen."
+      "invalid_update_interval": "Das Aktualisierungsintervall muss mindestens 1 Stunde betragen.",
+      "invalid_forecast_days": "Geben Sie eine gültige Anzahl an Prognosetagen zwischen 1 und 5 ein."
     },
     "step": {
       "init": {

@@ -82,7 +82,8 @@
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "quota_exceeded": "Kvoten har överskridits\n\n{error_message}",
       "unknown": "Okänt fel",
-      "invalid_update_interval": "Uppdateringsintervallet måste vara minst 1 timme."
+      "invalid_update_interval": "Uppdateringsintervallet måste vara minst 1 timme.",
+      "invalid_forecast_days": "Ange ett giltigt antal prognosdagar mellan 1 och 5."
     },
     "step": {
       "init": {

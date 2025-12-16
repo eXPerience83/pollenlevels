@@ -82,7 +82,8 @@
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "quota_exceeded": "超出配額\n\n{error_message}",
       "unknown": "未知錯誤",
-      "invalid_update_interval": "更新間隔必須至少為 1 小時。"
+      "invalid_update_interval": "更新間隔必須至少為 1 小時。",
+      "invalid_forecast_days": "請輸入 1 到 5 之間的有效預測天數。"
     },
     "step": {
       "init": {

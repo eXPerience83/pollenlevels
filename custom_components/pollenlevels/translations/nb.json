@@ -82,7 +82,8 @@
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
       "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "unknown": "Ukjent feil",
-      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time."
+      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time.",
+      "invalid_forecast_days": "Angi et gyldig antall prognosedager mellom 1 og 5."
     },
     "step": {
       "init": {

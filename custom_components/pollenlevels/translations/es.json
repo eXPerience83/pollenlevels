@@ -70,7 +70,8 @@
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
       "unknown": "Error desconocido",
-      "invalid_update_interval": "El intervalo de actualización debe ser de al menos 1 hora."
+      "invalid_update_interval": "El intervalo de actualización debe ser de al menos 1 hora.",
+      "invalid_forecast_days": "Introduce un número válido de días de previsión entre 1 y 5."
     }
   },
   "device": {

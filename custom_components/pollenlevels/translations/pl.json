@@ -82,7 +82,8 @@
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę.",
+      "invalid_forecast_days": "Wprowadź prawidłową liczbę dni prognozy od 1 do 5."
     },
     "step": {
       "init": {

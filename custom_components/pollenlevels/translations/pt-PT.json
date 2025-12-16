@@ -82,7 +82,8 @@
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "quota_exceeded": "Quota excedida\n\n{error_message}",
       "unknown": "Erro desconhecido",
-      "invalid_update_interval": "O intervalo de atualização deve ser de pelo menos 1 hora."
+      "invalid_update_interval": "O intervalo de atualização deve ser de pelo menos 1 hora.",
+      "invalid_forecast_days": "Introduza um número válido de dias de previsão entre 1 e 5."
     },
     "step": {
       "init": {

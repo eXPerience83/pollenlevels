@@ -82,7 +82,8 @@
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}",
       "unknown": "Tuntematon virhe",
-      "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti."
+      "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti.",
+      "invalid_forecast_days": "Anna kelvollinen ennustepäivien määrä väliltä 1–5."
     },
     "step": {
       "init": {

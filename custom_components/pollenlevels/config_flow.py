@@ -601,7 +601,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     float(normalized_input.get(CONF_FORECAST_DAYS, current_days))
                 )
             except (TypeError, ValueError):
-                errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
+                errors[CONF_FORECAST_DAYS] = "invalid_forecast_days"
 
             if not errors:
                 try:
@@ -621,7 +621,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     # forecast_days within 1..5
                     days = normalized_input[CONF_FORECAST_DAYS]
                     if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
-                        errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
+                        errors[CONF_FORECAST_DAYS] = "invalid_forecast_days"
 
                     # per-day sensors vs number of days
                     mode = normalized_input.get(

@@ -82,7 +82,8 @@
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "quota_exceeded": "Quota dépassé\n\n{error_message}",
       "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure."
+      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure.",
+      "invalid_forecast_days": "Saisissez un nombre de jours de prévision valide entre 1 et 5."
     },
     "step": {
       "init": {

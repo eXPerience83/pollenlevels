@@ -70,7 +70,8 @@
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "unknown": "Error desconegut",
-      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora."
+      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora.",
+      "invalid_forecast_days": "Introduïu un nombre vàlid de dies de previsió entre 1 i 5."
     }
   },
   "device": {

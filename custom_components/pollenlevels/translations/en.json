@@ -70,7 +70,8 @@
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "unknown": "Unknown error",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Update interval must be at least 1 hour.",
+      "invalid_forecast_days": "Enter a valid number of forecast days between 1 and 5."
     }
   },
   "device": {
