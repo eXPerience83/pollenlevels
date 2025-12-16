@@ -93,7 +93,7 @@
           "language_code": "Codice lingua per la risposta dell'API",
           "update_interval": "Intervallo di aggiornamento (ore)"
         },
-        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI per {title}.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+2).",
+        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI per {title}.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi, Fino a domani, Fino a dopodomani.",
         "title": "Pollen Levels – Opzioni"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Aggiorna manualmente i dati dei pollini per tutte le località configurate.",
       "name": "Forza aggiornamento"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Solo oggi",
+        "D+1": "Fino a domani",
+        "D+1+2": "Fino a dopodomani"
+      }
     }
   }
 }

@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Nécessaire uniquement si votre clé API est limitée par des HTTP Referers (sites web)."
+          "http_referer": "Nécessaire uniquement si votre clé API est limitée par HTTP Referer (sites web)."
         }
       }
     }
@@ -93,7 +93,7 @@
           "language_code": "Code de langue pour la réponse de l’API",
           "update_interval": "Intervalle de mise à jour (heures)"
         },
-        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+2).",
+        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement, Jusqu’à demain, Jusqu’au surlendemain.",
         "title": "Pollen Levels – Options"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Actualise manuellement les données de pollen pour tous les emplacements configurés.",
       "name": "Forcer la mise à jour"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Aujourd’hui uniquement",
+        "D+1": "Jusqu’à demain",
+        "D+1+2": "Jusqu’au surlendemain"
+      }
     }
   }
 }

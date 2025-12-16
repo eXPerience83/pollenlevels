@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Nur erforderlich, wenn dein API-Schlüssel durch HTTP-Referer (Websites) eingeschränkt ist."
+          "http_referer": "Nur erforderlich, wenn dein API-Schlüssel durch HTTP Referer (Websites) eingeschränkt ist."
         }
       }
     }
@@ -93,7 +93,7 @@
           "language_code": "Sprachcode für die API-Antwort",
           "update_interval": "Aktualisierungsintervall (Stunden)"
         },
-        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2).",
+        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute, Bis morgen, Bis übermorgen.",
         "title": "Pollen Levels – Optionen"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Aktualisiert die Pollendaten für alle konfigurierten Standorte manuell.",
       "name": "Aktualisierung erzwingen"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Nur heute",
+        "D+1": "Bis morgen",
+        "D+1+2": "Bis übermorgen"
+      }
     }
   }
 }

@@ -26,6 +26,8 @@
   `invalid_forecast_days` error code for out-of-range values.
 - Consolidated numeric options validation in the options flow through a shared
   helper to reduce duplication for interval and forecast day checks.
+- Localized per-day forecast sensor selector options and aligned HTTP Referer
+  guidance across all translations while keeping stored values unchanged.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

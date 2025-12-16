@@ -93,7 +93,7 @@
           "language_code": "Kod języka odpowiedzi API",
           "update_interval": "Interwał aktualizacji (godziny)"
         },
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
+        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś, Do jutra, Do pojutrza.",
         "title": "Pollen Levels – Opcje"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Ręcznie odśwież dane o pyłkach dla wszystkich skonfigurowanych lokalizacji.",
       "name": "Wymuś aktualizację"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Tylko dziś",
+        "D+1": "Do jutra",
+        "D+1+2": "Do pojutrza"
+      }
     }
   }
 }

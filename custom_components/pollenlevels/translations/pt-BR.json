@@ -93,7 +93,7 @@
           "language_code": "Código de idioma da resposta da API",
           "update_interval": "Intervalo de atualização (horas)"
         },
-        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para {title}.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2).",
+        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para {title}.\nOpções de sensores por dia (TIPOS): Apenas hoje, Até amanhã, Até depois de amanhã.",
         "title": "Pollen Levels – Opções"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Atualize manualmente os dados de pólen para todas as localizações configuradas.",
       "name": "Forçar atualização"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Apenas hoje",
+        "D+1": "Até amanhã",
+        "D+1+2": "Até depois de amanhã"
+      }
     }
   }
 }

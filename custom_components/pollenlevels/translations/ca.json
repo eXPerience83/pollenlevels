@@ -18,7 +18,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Només cal si la teva clau API està restringida per Referers HTTP (llocs web)."
+          "http_referer": "Només cal si la teva clau API està restringida per HTTP Referer (llocs web)."
         }
       },
       "reauth_confirm": {
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcions",
-        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2).",
+        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui, Fins demà, Fins demà passat.",
         "data": {
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API",
@@ -101,6 +101,15 @@
       },
       "last_updated": {
         "name": "Última actualització"
+      }
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Només avui",
+        "D+1": "Fins demà",
+        "D+1+2": "Fins demà passat"
       }
     }
   }

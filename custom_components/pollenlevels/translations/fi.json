@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Tarvitaan vain, jos API-avaimesi on rajoitettu HTTP Refererien (verkkosivustojen) perusteella."
+          "http_referer": "Tarvitaan vain, jos API-avaimesi on rajoitettu HTTP Referer (verkkosivustojen) perusteella."
         }
       }
     }
@@ -93,7 +93,7 @@
           "language_code": "API-vastauksen kielikoodi",
           "update_interval": "Päivitysväli (tunnit)"
         },
-        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2).",
+        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään, Huomiseen asti, Ylihuomiseen asti.",
         "title": "Pollen Levels – Asetukset"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Päivitä siitepölytiedot manuaalisesti kaikille määritetyille sijainneille.",
       "name": "Pakota päivitys"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Vain tänään",
+        "D+1": "Huomiseen asti",
+        "D+1+2": "Ylihuomiseen asti"
+      }
     }
   }
 }

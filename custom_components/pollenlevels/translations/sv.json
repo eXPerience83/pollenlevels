@@ -93,7 +93,7 @@
           "language_code": "Språkkod för API-svar",
           "update_interval": "Uppdateringsintervall (timmar)"
         },
-        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för {title}.\nAlternativ för sensorer per dag (TYPER): Endast idag (none), Till och med i morgon (D+1), Till och med i övermorgon (D+2).",
+        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för {title}.\nAlternativ för sensorer per dag (TYPER): Endast idag, Till och med i morgon, Till och med i övermorgon.",
         "title": "Pollen Levels – Alternativ"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Uppdatera pollendata manuellt för alla konfigurerade platser.",
       "name": "Tvinga uppdatering"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Endast idag",
+        "D+1": "Till och med i morgon",
+        "D+1+2": "Till och med i övermorgon"
+      }
     }
   }
 }

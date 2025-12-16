@@ -566,6 +566,15 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         )
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
+        forecast_selector = SelectSelectorConfig(
+            mode=SelectSelectorMode.DROPDOWN,
+            options=FORECAST_SENSORS_CHOICES,
+        )
+        try:
+            forecast_selector.translation_key = CONF_CREATE_FORECAST_SENSORS
+        except Exception:
+            pass
+
         options_schema = vol.Schema(
             {
                 vol.Optional(
@@ -591,12 +600,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 ),
                 vol.Optional(
                     CONF_CREATE_FORECAST_SENSORS, default=current_mode
-                ): SelectSelector(
-                    SelectSelectorConfig(
-                        mode=SelectSelectorMode.DROPDOWN,
-                        options=FORECAST_SENSORS_CHOICES,
-                    )
-                ),
+                ): SelectSelector(forecast_selector),
             }
         )
 

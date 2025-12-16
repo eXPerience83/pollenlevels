@@ -18,7 +18,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Only needed if your API key is restricted by HTTP Referer (websites)."
         }
       },
       "reauth_confirm": {
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Change the update interval, API language, forecast days and per-day TYPE sensors for {title}.\nOptions for per-day TYPE sensors: Only today (none), Through tomorrow (D+1), Through day after tomorrow (D+2).",
+        "description": "Change the update interval, API language, forecast days and per-day TYPE sensors for {title}.\nOptions for per-day TYPE sensors: Only today, Through tomorrow, Through day after tomorrow.",
         "data": {
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",
@@ -101,6 +101,15 @@
       },
       "last_updated": {
         "name": "Last Updated"
+      }
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Only today",
+        "D+1": "Through tomorrow",
+        "D+1+2": "Through day after tomorrow"
       }
     }
   }

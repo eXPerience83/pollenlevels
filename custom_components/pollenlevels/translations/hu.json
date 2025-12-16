@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Csak akkor szükséges, ha az API-kulcsod HTTP Refererek (weboldalak) alapján van korlátozva."
+          "http_referer": "Csak akkor szükséges, ha az API-kulcsod HTTP Referer (weboldalak) alapján van korlátozva."
         }
       }
     }
@@ -93,7 +93,7 @@
           "language_code": "API-válasz nyelvi kódja",
           "update_interval": "Frissítési időköz (óra)"
         },
-        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2).",
+        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma, Holnapig, Holnaputánig.",
         "title": "Pollen Levels – Beállítások"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Kézi frissítés a pollenadatokhoz minden beállított helyhez.",
       "name": "Frissítés kényszerítése"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Csak ma",
+        "D+1": "Holnapig",
+        "D+1+2": "Holnaputánig"
+      }
     }
   }
 }

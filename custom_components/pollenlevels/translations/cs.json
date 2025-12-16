@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Potřebné pouze pokud je váš API klíč omezen podle HTTP Refererů (webových stránek)."
+          "http_referer": "Potřebné pouze pokud je váš API klíč omezen podle HTTP Referer (webových stránek)."
         }
       }
     }
@@ -93,7 +93,7 @@
           "language_code": "Kód jazyka odpovědi API",
           "update_interval": "Interval aktualizace (hodiny)"
         },
-        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2).",
+        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes, Do zítra, Do pozítří.",
         "title": "Pollen Levels – Možnosti"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Ručně obnoví údaje o pylu pro všechna nastavená místa.",
       "name": "Vynutit aktualizaci"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Pouze dnes",
+        "D+1": "Do zítra",
+        "D+1+2": "Do pozítří"
+      }
     }
   }
 }

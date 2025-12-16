@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Kun nødvendig hvis din API-nøgle er begrænset via HTTP Referers (websteder)."
+          "http_referer": "Kun nødvendig hvis din API-nøgle er begrænset via HTTP Referer (websteder)."
         }
       }
     }
@@ -93,7 +93,7 @@
           "language_code": "Sprogkode for API-svar",
           "update_interval": "Opdateringsinterval (timer)"
         },
-        "description": "Skift opdateringsinterval, API-sprog, prognosedage og sensorer pr. dag for {title}.\nIndstillinger for sensorer pr. dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med overmorgen (D+2).",
+        "description": "Skift opdateringsinterval, API-sprog, prognosedage og sensorer pr. dag for {title}.\nIndstillinger for sensorer pr. dag (TYPER): Kun i dag, Til og med i morgen, Til og med i overmorgen.",
         "title": "Pollen Levels – Indstillinger"
       }
     }
@@ -102,6 +102,15 @@
     "force_update": {
       "description": "Opdaterer manuelt pollendata for alle konfigurerede placeringer.",
       "name": "Gennemtving opdatering"
+    }
+  },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Kun i dag",
+        "D+1": "Til og med i morgen",
+        "D+1+2": "Til og med i overmorgen"
+      }
     }
   }
 }
