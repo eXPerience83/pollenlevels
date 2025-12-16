@@ -1,5 +1,5 @@
 # Changelog
-## [1.9.0-alpha2] - 2025-12-15
+## [1.9.0-alpha2] - 2025-12-16
 ### Changed
 - Added stable constants for HTTP referrer support and API key helper URLs to
   support upcoming flow updates.
@@ -20,6 +20,8 @@
   config validation and the runtime client to keep diagnostics consistent.
 - Standardized translation locales for HTTP Referer wording, quota-exceeded
   details, and invalid update interval errors to keep UI feedback aligned.
+- Simplified HTTP Referer handling during validation/runtime and finalized
+  locale wording, including corrected Chinese setup descriptions.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
