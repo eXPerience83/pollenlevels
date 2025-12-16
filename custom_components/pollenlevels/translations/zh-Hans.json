@@ -102,7 +102,7 @@
           "language_code": "API 响应语言代码",
           "update_interval": "更新间隔（小时）"
         },
-        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今天、到明天、到后天。",
+        "description": "修改更新间隔、API 语言、预测天数以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今天、到明天、到后天。",
         "title": "Pollen Levels – 选项"
       }
     }
