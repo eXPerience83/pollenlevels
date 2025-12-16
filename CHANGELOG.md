@@ -24,6 +24,8 @@
   locale wording, including corrected Chinese setup descriptions.
 - Updated the options flow regression test to expect the new
   `invalid_forecast_days` error code for out-of-range values.
+- Consolidated numeric options validation in the options flow through a shared
+  helper to reduce duplication for interval and forecast day checks.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

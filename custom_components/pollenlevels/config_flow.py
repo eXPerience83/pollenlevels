@@ -180,6 +180,30 @@ def _validate_location_dict(
     return lat, lon
 
 
+def _parse_int_option(
+    value: Any,
+    default: int,
+    *,
+    min_value: int | None = None,
+    max_value: int | None = None,
+    error_key: str | None = None,
+) -> tuple[int, str | None]:
+    """Parse a numeric option to int and enforce bounds."""
+
+    try:
+        parsed = int(float(value if value is not None else default))
+    except (TypeError, ValueError):
+        return default, error_key
+
+    if min_value is not None and parsed < min_value:
+        return parsed, error_key
+
+    if max_value is not None and parsed > max_value:
+        return parsed, error_key
+
+    return parsed, None
+
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
@@ -578,15 +602,15 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             normalized_input: dict[str, Any] = {**self.entry.options, **user_input}
-            try:
-                normalized_input[CONF_UPDATE_INTERVAL] = int(
-                    float(normalized_input.get(CONF_UPDATE_INTERVAL, current_interval))
-                )
-            except (TypeError, ValueError):
-                errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
-
-            if not errors and normalized_input[CONF_UPDATE_INTERVAL] < 1:
-                errors[CONF_UPDATE_INTERVAL] = "invalid_update_interval"
+            interval_value, interval_error = _parse_int_option(
+                normalized_input.get(CONF_UPDATE_INTERVAL, current_interval),
+                current_interval,
+                min_value=1,
+                error_key="invalid_update_interval",
+            )
+            normalized_input[CONF_UPDATE_INTERVAL] = interval_value
+            if interval_error:
+                errors[CONF_UPDATE_INTERVAL] = interval_error
 
             if errors.get(CONF_UPDATE_INTERVAL):
                 return self.async_show_form(
@@ -596,55 +620,56 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     description_placeholders=placeholders,
                 )
 
+            forecast_days, days_error = _parse_int_option(
+                normalized_input.get(CONF_FORECAST_DAYS, current_days),
+                current_days,
+                min_value=MIN_FORECAST_DAYS,
+                max_value=MAX_FORECAST_DAYS,
+                error_key="invalid_forecast_days",
+            )
+            normalized_input[CONF_FORECAST_DAYS] = forecast_days
+            if days_error:
+                errors[CONF_FORECAST_DAYS] = days_error
+
             try:
-                normalized_input[CONF_FORECAST_DAYS] = int(
-                    float(normalized_input.get(CONF_FORECAST_DAYS, current_days))
-                )
-            except (TypeError, ValueError):
-                errors[CONF_FORECAST_DAYS] = "invalid_forecast_days"
-
-            if not errors:
-                try:
-                    # Language: allow empty; if provided, validate & normalize.
-                    raw_lang = normalized_input.get(
+                # Language: allow empty; if provided, validate & normalize.
+                raw_lang = normalized_input.get(
+                    CONF_LANGUAGE_CODE,
+                    self.entry.options.get(
                         CONF_LANGUAGE_CODE,
-                        self.entry.options.get(
-                            CONF_LANGUAGE_CODE,
-                            self.entry.data.get(CONF_LANGUAGE_CODE, ""),
-                        ),
-                    )
-                    lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
-                    if lang:
-                        lang = is_valid_language_code(lang)
-                    normalized_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
+                        self.entry.data.get(CONF_LANGUAGE_CODE, ""),
+                    ),
+                )
+                lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
+                if lang:
+                    lang = is_valid_language_code(lang)
+                normalized_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
 
-                    # forecast_days within 1..5
-                    days = normalized_input[CONF_FORECAST_DAYS]
-                    if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
-                        errors[CONF_FORECAST_DAYS] = "invalid_forecast_days"
+                # forecast_days within 1..5
+                days = normalized_input[CONF_FORECAST_DAYS]
 
-                    # per-day sensors vs number of days
-                    mode = normalized_input.get(
-                        CONF_CREATE_FORECAST_SENSORS,
-                        self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
-                    )
-                    needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
-                    if days < needed:
-                        errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+                # per-day sensors vs number of days
+                mode = normalized_input.get(
+                    CONF_CREATE_FORECAST_SENSORS,
+                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                )
+                needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
+                if days < needed:
+                    errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 
-                except vol.Invalid as ve:
-                    _LOGGER.warning(
-                        "Options language validation failed for '%s': %s",
-                        normalized_input.get(CONF_LANGUAGE_CODE),
-                        ve,
-                    )
-                    errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
-                except Exception as err:  # defensive
-                    _LOGGER.exception(
-                        "Options validation error: %s",
-                        redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
-                    )
-                    errors["base"] = "unknown"
+            except vol.Invalid as ve:
+                _LOGGER.warning(
+                    "Options language validation failed for '%s': %s",
+                    normalized_input.get(CONF_LANGUAGE_CODE),
+                    ve,
+                )
+                errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
+            except Exception as err:  # defensive
+                _LOGGER.exception(
+                    "Options validation error: %s",
+                    redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
+                )
+                errors["base"] = "unknown"
 
             if not errors:
                 return self.async_create_entry(title="", data=normalized_input)
