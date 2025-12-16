@@ -10,7 +10,7 @@
       "empty": "Acest câmp nu poate fi gol",
       "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
       "invalid_coordinates": "Selectează o locație validă pe hartă.",
-      "invalid_http_referrer": "Valoare HTTP Referer invalidă. Nu trebuie să conțină caractere de linie nouă.",
+      "invalid_http_referrer": "Valoare invalidă pentru HTTP Referer. Nu trebuie să conțină caractere de linie nouă.",
       "invalid_language": "Cod de limbă nevalid",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Necesar doar dacă cheia API este restricționată după HTTP Referer (site-uri web)."
+          "http_referer": "Necesar doar dacă cheia ta API are o [restricție de site web]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "quota_exceeded": "Cota depășită\n\n{error_message}",
       "unknown": "Eroare necunoscută",
-      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră.",
-      "invalid_forecast_days": "Introduceți un număr valid de zile de prognoză între 1 și 5."
+      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră."
     },
     "step": {
       "init": {

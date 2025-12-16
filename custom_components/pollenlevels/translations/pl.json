@@ -10,7 +10,7 @@
       "empty": "To pole nie może być puste",
       "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
       "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
-      "invalid_http_referrer": "Nieprawidłowa wartość HTTP Referer. Nie może zawierać znaków nowej linii.",
+      "invalid_http_referrer": "Nieprawidłowa wartość dla HTTP Referer. Nie może zawierać znaków nowej linii.",
       "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Wymagane tylko, jeśli Twój klucz API jest ograniczony przez HTTP Referer (witryny)."
+          "http_referer": "Wymagane tylko, jeśli Twój klucz API ma [ograniczenie witryny]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę.",
-      "invalid_forecast_days": "Wprowadź prawidłową liczbę dni prognozy od 1 do 5."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę."
     },
     "step": {
       "init": {

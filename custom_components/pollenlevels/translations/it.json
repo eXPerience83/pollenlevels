@@ -10,7 +10,7 @@
       "empty": "Questo campo non può essere vuoto",
       "invalid_auth": "Chiave API non valida\n\n{error_message}",
       "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
-      "invalid_http_referrer": "Valore HTTP Referer non valido. Non deve contenere caratteri di nuova riga.",
+      "invalid_http_referrer": "Valore per HTTP Referer non valido. Non deve contenere caratteri di nuova riga.",
       "invalid_language": "Codice lingua non valido",
       "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Necessario solo se la tua chiave API è limitata da HTTP Referer (siti web)."
+          "http_referer": "Necessario solo se la tua chiave API ha una [restrizione per siti web]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
       "quota_exceeded": "Quota superata\n\n{error_message}",
       "unknown": "Errore sconosciuto",
-      "invalid_update_interval": "L’intervallo di aggiornamento deve essere di almeno 1 ora.",
-      "invalid_forecast_days": "Inserisci un numero valido di giorni di previsione tra 1 e 5."
+      "invalid_update_interval": "L’intervallo di aggiornamento deve essere di almeno 1 ora."
     },
     "step": {
       "init": {

@@ -10,7 +10,7 @@
       "empty": "Это поле не может быть пустым",
       "invalid_auth": "Неверный ключ API\n\n{error_message}",
       "invalid_coordinates": "Выберите корректное местоположение на карте.",
-      "invalid_http_referrer": "Неверное значение HTTP Referer. Оно не должно содержать символы новой строки.",
+      "invalid_http_referrer": "Неверное значение для HTTP Referer. Оно не должно содержать символы новой строки.",
       "invalid_language": "Неверный код языка",
       "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Нужно только если ваш ключ API ограничен HTTP Referer (веб-сайты)."
+          "http_referer": "Нужно только если ваш ключ API имеет [ограничение по веб‑сайту]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
       "quota_exceeded": "Превышен лимит запросов\n\n{error_message}",
       "unknown": "Неизвестная ошибка",
-      "invalid_update_interval": "Интервал обновления должен быть не менее 1 часа.",
-      "invalid_forecast_days": "Введите допустимое количество дней прогноза от 1 до 5."
+      "invalid_update_interval": "Интервал обновления должен быть не менее 1 часа."
     },
     "step": {
       "init": {

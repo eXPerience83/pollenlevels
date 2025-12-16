@@ -10,7 +10,7 @@
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
-      "invalid_http_referrer": "Virheellinen HTTP Referer -arvo. Se ei saa sisältää rivinvaihtomerkkejä.",
+      "invalid_http_referrer": "Virheellinen arvo kohteelle HTTP Referer. Se ei saa sisältää rivinvaihtomerkkejä.",
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Tarvitaan vain, jos API-avaimesi on rajoitettu HTTP Refererien (verkkosivustojen) perusteella."
+          "http_referer": "Tarvitaan vain, jos API-avaimesi käyttää [verkkosivustorajoitusta]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}",
       "unknown": "Tuntematon virhe",
-      "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti.",
-      "invalid_forecast_days": "Anna kelvollinen ennustepäivien määrä väliltä 1–5."
+      "invalid_update_interval": "Päivitysvälin on oltava vähintään 1 tunti."
     },
     "step": {
       "init": {

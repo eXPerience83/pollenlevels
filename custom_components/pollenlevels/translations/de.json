@@ -10,7 +10,7 @@
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_auth": "Ungültiger API-Schlüssel\n\n{error_message}",
       "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
-      "invalid_http_referrer": "Ungültiger HTTP Referer-Wert. Er darf keine Zeilenumbrüche enthalten.",
+      "invalid_http_referrer": "Ungültiger Wert für HTTP Referer. Er darf keine Zeilenumbrüche enthalten.",
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Nur erforderlich, wenn dein API-Schlüssel durch HTTP-Referer (Websites) eingeschränkt ist."
+          "http_referer": "Nur erforderlich, wenn dein API-Schlüssel eine [Website-Beschränkung]({restricting_api_keys_url}) (HTTP Referer) verwendet."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
       "quota_exceeded": "Kontingent überschritten\n\n{error_message}",
       "unknown": "Unbekannter Fehler",
-      "invalid_update_interval": "Das Aktualisierungsintervall muss mindestens 1 Stunde betragen.",
-      "invalid_forecast_days": "Geben Sie eine gültige Anzahl an Prognosetagen zwischen 1 und 5 ein."
+      "invalid_update_interval": "Das Aktualisierungsintervall muss mindestens 1 Stunde betragen."
     },
     "step": {
       "init": {

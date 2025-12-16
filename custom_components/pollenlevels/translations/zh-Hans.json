@@ -10,7 +10,7 @@
       "empty": "此字段不能为空",
       "invalid_auth": "无效的 API 密钥\n\n{error_message}",
       "invalid_coordinates": "请在地图上选择有效的位置。",
-      "invalid_http_referrer": "无效的 HTTP Referer 值。它不能包含换行符。",
+      "invalid_http_referrer": "HTTP Referer 的值无效。它不能包含换行符。",
       "invalid_language": "无效的语言代码",
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
@@ -35,7 +35,7 @@
           "update_interval": "更新间隔（小时）",
           "http_referer": "HTTP Referer"
         },
-        "description": "输入你的 Google API 密钥（[在此获取]({api_key_url})）并查看最佳实践（[最佳实践]({restricting_api_keys_url})）。在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。",
+        "description": "输入你的 Google API 密钥（[在此获取]({api_key_url})）并查看最佳实践（[最佳实践]({restricting_api_keys_url})). 在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。",
         "title": "花粉水平配置",
         "sections": {
           "api_key_options": {
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "仅在你的 API 密钥受 HTTP Referer（网站）限制时需要。"
+          "http_referer": "仅在你的 API 密钥启用了[网站限制]({restricting_api_keys_url})（HTTP Referer）时需要。"
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
       "quota_exceeded": "配额已用尽\n\n{error_message}",
       "unknown": "未知错误",
-      "invalid_update_interval": "更新间隔必须至少为 1 小时。",
-      "invalid_forecast_days": "请输入 1 到 5 之间有效的预测天数。"
+      "invalid_update_interval": "更新间隔必须至少为 1 小时。"
     },
     "step": {
       "init": {

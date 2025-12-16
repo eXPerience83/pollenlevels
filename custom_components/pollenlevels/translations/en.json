@@ -18,7 +18,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Only needed if your API key is restricted by HTTP Referers (websites)."
+          "http_referer": "Only needed if your API key uses a [website restriction]({restricting_api_keys_url}) (HTTP Referer)."
         }
       },
       "reauth_confirm": {
@@ -39,7 +39,7 @@
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error",
-      "invalid_http_referrer": "Invalid HTTP Referer value. It must not contain newline characters.",
+      "invalid_http_referrer": "Invalid value for HTTP Referer. It must not contain newline characters.",
       "invalid_update_interval": "Update interval must be at least 1 hour."
     },
     "abort": {
@@ -70,8 +70,7 @@
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "unknown": "Unknown error",
-      "invalid_update_interval": "Update interval must be at least 1 hour.",
-      "invalid_forecast_days": "Enter a valid number of forecast days between 1 and 5."
+      "invalid_update_interval": "Update interval must be at least 1 hour."
     }
   },
   "device": {

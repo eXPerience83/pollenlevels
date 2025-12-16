@@ -10,7 +10,7 @@
       "empty": "A mező nem lehet üres",
       "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
       "invalid_coordinates": "Válassz érvényes helyet a térképen.",
-      "invalid_http_referrer": "Érvénytelen HTTP Referer érték. Nem tartalmazhat sortörés karaktereket.",
+      "invalid_http_referrer": "Érvénytelen érték a HTTP Referer mezőhöz. Nem tartalmazhat sortörés karaktereket.",
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Csak akkor szükséges, ha az API-kulcsod HTTP Refererek (weboldalak) alapján van korlátozva."
+          "http_referer": "Csak akkor szükséges, ha az API-kulcsod [webhely-korlátozást]({restricting_api_keys_url}) használ (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "quota_exceeded": "Kvóta túllépve\n\n{error_message}",
       "unknown": "Ismeretlen hiba",
-      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie.",
-      "invalid_forecast_days": "Adjon meg érvényes előrejelzési napok számát 1 és 5 között."
+      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
     },
     "step": {
       "init": {

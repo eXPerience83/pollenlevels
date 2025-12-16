@@ -10,7 +10,7 @@
       "empty": "Dette feltet kan ikke være tomt",
       "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
       "invalid_coordinates": "Velg en gyldig posisjon på kartet.",
-      "invalid_http_referrer": "Ugyldig HTTP Referer-verdi. Den kan ikke inneholde linjeskift.",
+      "invalid_http_referrer": "Ugyldig verdi for HTTP Referer. Den kan ikke inneholde linjeskift.",
       "invalid_language": "Ugyldig språkkode",
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Bare nødvendig hvis API-nøkkelen din er begrenset av HTTP Referer (nettsteder)."
+          "http_referer": "Bare nødvendig hvis API-nøkkelen din har en [nettstedbegrensning]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
       "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "unknown": "Ukjent feil",
-      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time.",
-      "invalid_forecast_days": "Angi et gyldig antall prognosedager mellom 1 og 5."
+      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time."
     },
     "step": {
       "init": {

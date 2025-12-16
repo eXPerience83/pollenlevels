@@ -10,7 +10,7 @@
       "empty": "Dette felt må ikke være tomt",
       "invalid_auth": "Ugyldig API-nøgle\n\n{error_message}",
       "invalid_coordinates": "Vælg en gyldig placering på kortet.",
-      "invalid_http_referrer": "Ugyldig HTTP Referer-værdi. Den må ikke indeholde linjeskift.",
+      "invalid_http_referrer": "Ugyldig værdi for HTTP Referer. Den må ikke indeholde linjeskift.",
       "invalid_language": "Ugyldig sprogkode",
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Kun nødvendig hvis din API-nøgle er begrænset via HTTP Referers (websteder)."
+          "http_referer": "Kun nødvendig hvis din API-nøgle har en [webstedsbegrænsning]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
       "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "unknown": "Ukendt fejl",
-      "invalid_update_interval": "Opdateringsintervallet skal være mindst 1 time.",
-      "invalid_forecast_days": "Angiv et gyldigt antal prognosedage mellem 1 og 5."
+      "invalid_update_interval": "Opdateringsintervallet skal være mindst 1 time."
     },
     "step": {
       "init": {

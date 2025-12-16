@@ -10,7 +10,7 @@
       "empty": "Detta fält får inte vara tomt",
       "invalid_auth": "Ogiltig API-nyckel\n\n{error_message}",
       "invalid_coordinates": "Välj en giltig plats på kartan.",
-      "invalid_http_referrer": "Ogiltigt HTTP Referer-värde. Det får inte innehålla radbrytningar.",
+      "invalid_http_referrer": "Ogiltigt värde för HTTP Referer. Det får inte innehålla radbrytningar.",
       "invalid_language": "Ogiltig språkkod",
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Endast nödvändigt om din API-nyckel är begränsad av HTTP Referer (webbplatser)."
+          "http_referer": "Endast nödvändigt om din API-nyckel har en [webbplatsbegränsning]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "quota_exceeded": "Kvoten har överskridits\n\n{error_message}",
       "unknown": "Okänt fel",
-      "invalid_update_interval": "Uppdateringsintervallet måste vara minst 1 timme.",
-      "invalid_forecast_days": "Ange ett giltigt antal prognosdagar mellan 1 och 5."
+      "invalid_update_interval": "Uppdateringsintervallet måste vara minst 1 timme."
     },
     "step": {
       "init": {

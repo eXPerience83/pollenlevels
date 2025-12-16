@@ -10,7 +10,7 @@
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_auth": "Ongeldige API-sleutel\n\n{error_message}",
       "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
-      "invalid_http_referrer": "Ongeldige HTTP Referer-waarde. Deze mag geen regeleinden bevatten.",
+      "invalid_http_referrer": "Ongeldige waarde voor HTTP Referer. Deze mag geen regeleinden bevatten.",
       "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Alleen nodig als je API-sleutel is beperkt tot HTTP Referer (websites)."
+          "http_referer": "Alleen nodig als je API-sleutel een [websitebeperking]({restricting_api_keys_url}) gebruikt (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
-      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn.",
-      "invalid_forecast_days": "Voer een geldig aantal voorspellingsdagen in tussen 1 en 5."
+      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn."
     },
     "step": {
       "init": {

@@ -18,7 +18,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Solo es necesario si tu clave API está restringida por Referers HTTP (sitios web)."
+          "http_referer": "Especifica esto solo si tu clave API tiene una [restricción de aplicación del sitio web]({restricting_api_keys_url}) (HTTP Referer)."
         }
       },
       "reauth_confirm": {
@@ -70,8 +70,7 @@
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
       "unknown": "Error desconocido",
-      "invalid_update_interval": "El intervalo de actualización debe ser de al menos 1 hora.",
-      "invalid_forecast_days": "Introduce un número válido de días de previsión entre 1 y 5."
+      "invalid_update_interval": "El intervalo de actualización debe ser de al menos 1 hora."
     }
   },
   "device": {

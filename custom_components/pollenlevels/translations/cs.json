@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Potřebné pouze pokud je váš API klíč omezen podle HTTP Refererů (webových stránek)."
+          "http_referer": "Potřebné pouze pokud má váš API klíč [omezení webu]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "quota_exceeded": "Překročena kvóta\n\n{error_message}",
       "unknown": "Neznámá chyba",
-      "invalid_update_interval": "Interval aktualizace musí být alespoň 1 hodina.",
-      "invalid_forecast_days": "Zadejte platný počet dní předpovědi v rozmezí 1 až 5."
+      "invalid_update_interval": "Interval aktualizace musí být alespoň 1 hodina."
     },
     "step": {
       "init": {

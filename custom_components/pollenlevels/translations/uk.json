@@ -10,7 +10,7 @@
       "empty": "Це поле не може бути порожнім",
       "invalid_auth": "Невірний ключ API\n\n{error_message}",
       "invalid_coordinates": "Виберіть дійсне місце на карті.",
-      "invalid_http_referrer": "Неприпустиме значення HTTP Referer. Воно не повинно містити символів нового рядка.",
+      "invalid_http_referrer": "Неприпустиме значення для HTTP Referer. Воно не повинно містити символів нового рядка.",
       "invalid_language": "Невірний код мови",
       "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Потрібно лише якщо ваш ключ API обмежено через HTTP Referer (вебсайти)."
+          "http_referer": "Потрібно лише якщо ваш ключ API має [обмеження веб‑сайту]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "quota_exceeded": "Перевищено ліміт запитів\n\n{error_message}",
       "unknown": "Невідома помилка",
-      "invalid_update_interval": "Інтервал оновлення має бути щонайменше 1 година.",
-      "invalid_forecast_days": "Вкажіть дійсну кількість днів прогнозу від 1 до 5."
+      "invalid_update_interval": "Інтервал оновлення має бути щонайменше 1 година."
     },
     "step": {
       "init": {

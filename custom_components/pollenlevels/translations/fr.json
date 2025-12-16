@@ -10,7 +10,7 @@
       "empty": "Ce champ ne peut pas être vide",
       "invalid_auth": "Clé API invalide\n\n{error_message}",
       "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
-      "invalid_http_referrer": "Valeur de HTTP Referer invalide. Elle ne doit pas contenir de retours à la ligne.",
+      "invalid_http_referrer": "Valeur pour HTTP Referer invalide. Elle ne doit pas contenir de retours à la ligne.",
       "invalid_language": "Code de langue invalide",
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
@@ -43,7 +43,7 @@
           }
         },
         "data_description": {
-          "http_referer": "Nécessaire uniquement si votre clé API est limitée par des HTTP Referers (sites web)."
+          "http_referer": "Renseignez ceci uniquement si votre clé API a une [restriction de site web]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
     }
@@ -82,8 +82,7 @@
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "quota_exceeded": "Quota dépassé\n\n{error_message}",
       "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure.",
-      "invalid_forecast_days": "Saisissez un nombre de jours de prévision valide entre 1 et 5."
+      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure."
     },
     "step": {
       "init": {
