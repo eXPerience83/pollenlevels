@@ -1,6 +1,9 @@
 # Changelog
 ## [1.9.0-alpha2] - 2025-12-16
 ### Changed
+- Enabled forecast day count and per-day sensor mode selection during initial
+  setup using dropdown selectors shared with the options flow to keep
+  validation consistent.
 - Added stable constants for HTTP referrer support and API key helper URLs to
   support upcoming flow updates.
 - Modernized the config flow with selectors, API key guidance links, and a
