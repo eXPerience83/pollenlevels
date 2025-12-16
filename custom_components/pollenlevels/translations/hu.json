@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Csak ma",
-        "D+1": "Holnapig",
-        "D+1+2": "Holnaputánig"
+        "d1": "Holnapig",
+        "d1_2": "Holnaputánig"
       }
     }
   }

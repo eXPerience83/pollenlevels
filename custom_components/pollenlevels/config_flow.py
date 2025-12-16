@@ -1,7 +1,7 @@
 """Config & options flow for Pollen Levels.
 
 Notes:
-- Unified per-day sensors option ('create_forecast_sensors'): "none" | "D+1" | "D+1+2".
+- Unified per-day sensors option ('create_forecast_sensors'): "none" | "d1" | "d1_2".
 - Allows empty language (omit languageCode). Trims language whitespace on save.
 - Redacts API keys in debug logs.
 - Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
@@ -43,11 +43,14 @@ from .const import (
     CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
+    CREATE_FORECAST_OPTIONS,
     DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    FORECAST_SENSORS_CHOICES,
+    FORECAST_D1,
+    FORECAST_D1_2,
+    FORECAST_NONE,
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
     POLLEN_API_KEY_URL,
@@ -55,6 +58,7 @@ from .const import (
     RESTRICTING_API_KEYS_URL,
     SECTION_API_KEY_OPTIONS,
     is_invalid_api_key_message,
+    normalize_create_forecast_sensors,
     normalize_http_referer,
 )
 from .util import extract_error_message, redact_api_key
@@ -564,11 +568,13 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_FORECAST_DAYS,
             self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
-        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
+        current_mode = normalize_create_forecast_sensors(
+            self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_NONE)
+        )
 
         forecast_selector = SelectSelectorConfig(
             mode=SelectSelectorMode.DROPDOWN,
-            options=FORECAST_SENSORS_CHOICES,
+            options=CREATE_FORECAST_OPTIONS,
         )
         try:
             forecast_selector.translation_key = CONF_CREATE_FORECAST_SENSORS
@@ -636,6 +642,11 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors[CONF_FORECAST_DAYS] = days_error
 
             try:
+                normalized_mode = normalize_create_forecast_sensors(
+                    normalized_input.get(CONF_CREATE_FORECAST_SENSORS, current_mode)
+                )
+                normalized_input[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
+
                 # Language: allow empty; if provided, validate & normalize.
                 raw_lang = normalized_input.get(
                     CONF_LANGUAGE_CODE,
@@ -653,11 +664,8 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = normalized_input[CONF_FORECAST_DAYS]
 
                 # per-day sensors vs number of days
-                mode = normalized_input.get(
-                    CONF_CREATE_FORECAST_SENSORS,
-                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
-                )
-                needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
+                mode = normalized_mode
+                needed = {FORECAST_D1: 2, FORECAST_D1_2: 3}.get(mode, 1)
                 if days < needed:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 

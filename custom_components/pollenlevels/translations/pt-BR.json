@@ -52,8 +52,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Apenas hoje",
-        "D+1": "Até amanhã",
-        "D+1+2": "Até depois de amanhã"
+        "d1": "Até amanhã",
+        "d1_2": "Até depois de amanhã"
       }
     }
   },

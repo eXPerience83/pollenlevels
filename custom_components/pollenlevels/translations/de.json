@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Nur heute",
-        "D+1": "Bis morgen",
-        "D+1+2": "Bis übermorgen"
+        "d1": "Bis morgen",
+        "d1_2": "Bis übermorgen"
       }
     }
   }

@@ -52,8 +52,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Tylko dziś",
-        "D+1": "Do jutra",
-        "D+1+2": "Do pojutrza"
+        "d1": "Do jutra",
+        "d1_2": "Do pojutrza"
       }
     }
   },

@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Aujourd’hui uniquement",
-        "D+1": "Jusqu’à demain",
-        "D+1+2": "Jusqu’au surlendemain"
+        "d1": "Jusqu’à demain",
+        "d1_2": "Jusqu’au surlendemain"
       }
     }
   }

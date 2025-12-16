@@ -50,6 +50,9 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    FORECAST_D1,
+    FORECAST_D1_2,
+    FORECAST_NONE,
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
 )
@@ -82,9 +85,9 @@ DEFAULT_ICON = "mdi:flower-pollen"
 class ForecastSensorMode(StrEnum):
     """Options for forecast sensor creation."""
 
-    NONE = "none"
-    D1 = "D+1"
-    D1_D2 = "D+1+2"
+    NONE = FORECAST_NONE
+    D1 = FORECAST_D1
+    D1_D2 = FORECAST_D1_2
 
 
 def _normalize_channel(v: Any) -> int | None:

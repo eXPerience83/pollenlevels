@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Vain tänään",
-        "D+1": "Huomiseen asti",
-        "D+1+2": "Ylihuomiseen asti"
+        "d1": "Huomiseen asti",
+        "d1_2": "Ylihuomiseen asti"
       }
     }
   }

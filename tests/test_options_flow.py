@@ -15,6 +15,8 @@ from custom_components.pollenlevels.const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    FORECAST_D1,
+    FORECAST_D1_2,
 )
 from tests import test_config_flow as base
 
@@ -86,7 +88,7 @@ def test_options_flow_forecast_days_below_min_sets_error() -> None:
 
 @pytest.mark.parametrize(
     "mode,days",
-    [("D+1", 1), ("D+1+2", 2)],
+    [(FORECAST_D1, 1), (FORECAST_D1_2, 2), ("D+1", 1), ("D+1+2", 2)],
 )
 def test_options_flow_per_day_sensor_requires_enough_days(mode: str, days: int) -> None:
     """Per-day sensor modes should enforce minimum forecast days."""
@@ -124,7 +126,7 @@ def test_options_flow_valid_submission_returns_entry_data() -> None:
     assert result == {
         "title": "",
         "data": {
-            **user_input,
+            **{**user_input, CONF_CREATE_FORECAST_SENSORS: FORECAST_D1},
             CONF_LANGUAGE_CODE: "es",
         },
     }
@@ -159,10 +161,28 @@ def test_options_flow_invalid_update_interval_short_circuits() -> None:
             {
                 CONF_LANGUAGE_CODE: "en",
                 CONF_FORECAST_DAYS: 0,
-                CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+                CONF_CREATE_FORECAST_SENSORS: FORECAST_D1_2,
                 CONF_UPDATE_INTERVAL: "not-a-number",
             }
         )
     )
 
     assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+
+
+def test_options_flow_normalizes_legacy_mode_default() -> None:
+    """Legacy per-day sensor values should be normalized in defaults."""
+
+    flow = _flow(options={CONF_CREATE_FORECAST_SENSORS: "D+1"})
+
+    result = asyncio.run(flow.async_step_init({}))
+
+    assert result == {
+        "title": "",
+        "data": {
+            CONF_CREATE_FORECAST_SENSORS: FORECAST_D1,
+            CONF_FORECAST_DAYS: 2,
+            CONF_LANGUAGE_CODE: "en",
+            CONF_UPDATE_INTERVAL: 6,
+        },
+    }

@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Kun i dag",
-        "D+1": "Til og med i morgen",
-        "D+1+2": "Til og med i overmorgen"
+        "d1": "Til og med i morgen",
+        "d1_2": "Til og med i overmorgen"
       }
     }
   }

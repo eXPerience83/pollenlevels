@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Només avui",
-        "D+1": "Fins demà",
-        "D+1+2": "Fins demà passat"
+        "d1": "Fins demà",
+        "d1_2": "Fins demà passat"
       }
     }
   }

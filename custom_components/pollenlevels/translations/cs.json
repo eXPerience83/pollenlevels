@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Pouze dnes",
-        "D+1": "Do zítra",
-        "D+1+2": "Do pozítří"
+        "d1": "Do zítra",
+        "d1_2": "Do pozítří"
       }
     }
   }

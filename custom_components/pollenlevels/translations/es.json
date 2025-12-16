@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Solo hoy",
-        "D+1": "Hasta mañana",
-        "D+1+2": "Hasta pasado mañana"
+        "d1": "Hasta mañana",
+        "d1_2": "Hasta pasado mañana"
       }
     }
   }

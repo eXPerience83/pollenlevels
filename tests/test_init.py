@@ -11,6 +11,8 @@ from typing import Any
 
 import pytest
 
+import custom_components.pollenlevels.const as const
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -252,6 +254,7 @@ class _FakeConfigEntries:
         self.forward_calls: list[tuple[object, list[str]]] = []
         self.unload_calls: list[tuple[object, list[str]]] = []
         self.reload_calls: list[str] = []
+        self.update_calls: list[tuple[object, dict | None, dict | None]] = []
         self._entries = entries or []
 
     async def async_forward_entry_setups(self, entry, platforms):
@@ -265,6 +268,13 @@ class _FakeConfigEntries:
 
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
         self.reload_calls.append(entry_id)
+
+    def async_update_entry(self, entry, *, data=None, options=None):
+        self.update_calls.append((entry, data, options))
+        if data is not None:
+            entry.data = data
+        if options is not None:
+            entry.options = options
 
     def async_entries(self, domain: str | None = None):
         if domain is None:
@@ -422,6 +432,58 @@ def test_setup_entry_success_and_unload() -> None:
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
     assert hass.config_entries.unload_calls == [(entry, ["sensor"])]
     assert entry.runtime_data is None
+
+
+@pytest.mark.parametrize(
+    "legacy_value,expected_mode,create_d1,create_d2",
+    [
+        ("D+1", const.FORECAST_D1, True, False),
+        ("D+1+2", const.FORECAST_D1_2, True, True),
+    ],
+)
+def test_setup_entry_migrates_legacy_forecast_mode(
+    legacy_value: str, expected_mode: str, create_d1: bool, create_d2: bool
+) -> None:
+    """Legacy per-day sensor values should normalize during setup."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(options={integration.CONF_CREATE_FORECAST_SENSORS: legacy_value})
+
+    class _StubClient:
+        def __init__(self, _session, _api_key, _http_referer=None):
+            self.session = _session
+            self.api_key = _api_key
+            self.http_referer = _http_referer
+
+        async def async_fetch_pollen_data(self, **_kwargs):
+            return {"region": {"source": "meta"}, "dailyInfo": []}
+
+    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+        def __init__(self, *args, **kwargs):
+            self.create_d1 = kwargs["create_d1"]
+            self.create_d2 = kwargs["create_d2"]
+            self.entry_id = kwargs["entry_id"]
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+        async def async_refresh(self):
+            return None
+
+    integration.GooglePollenApiClient = _StubClient
+    integration.PollenDataUpdateCoordinator = _StubCoordinator
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == expected_mode
+    assert hass.config_entries.update_calls
+    assert (
+        hass.config_entries.update_calls[0][2][integration.CONF_CREATE_FORECAST_SENSORS]
+        == expected_mode
+    )
+    assert entry.runtime_data.coordinator.create_d1 is create_d1
+    assert entry.runtime_data.coordinator.create_d2 is create_d2
 
 
 def test_force_update_requests_refresh_per_entry() -> None:

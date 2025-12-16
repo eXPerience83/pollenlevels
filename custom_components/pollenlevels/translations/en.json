@@ -108,8 +108,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Only today",
-        "D+1": "Through tomorrow",
-        "D+1+2": "Through day after tomorrow"
+        "d1": "Through tomorrow",
+        "d1_2": "Through day after tomorrow"
       }
     }
   }

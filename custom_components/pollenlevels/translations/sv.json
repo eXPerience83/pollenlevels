@@ -52,8 +52,8 @@
     "create_forecast_sensors": {
       "options": {
         "none": "Endast idag",
-        "D+1": "Till och med i morgon",
-        "D+1+2": "Till och med i övermorgon"
+        "d1": "Till och med i morgon",
+        "d1_2": "Till och med i övermorgon"
       }
     }
   },

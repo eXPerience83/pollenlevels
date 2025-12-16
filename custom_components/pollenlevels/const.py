@@ -13,9 +13,11 @@ CONF_HTTP_REFERER = "http_referer"
 
 # Forecast-related options (Phase 1.1: types only)
 CONF_FORECAST_DAYS = "forecast_days"
-CONF_CREATE_FORECAST_SENSORS = (
-    "create_forecast_sensors"  # values: "none" | "D+1" | "D+1+2"
-)
+CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"
+FORECAST_NONE = "none"
+FORECAST_D1 = "d1"
+FORECAST_D1_2 = "d1_2"
+CREATE_FORECAST_OPTIONS = [FORECAST_NONE, FORECAST_D1, FORECAST_D1_2]
 SECTION_API_KEY_OPTIONS = "api_key_options"
 
 # Defaults
@@ -32,8 +34,33 @@ RESTRICTING_API_KEYS_URL = (
     "https://developers.google.com/maps/api-security-best-practices"
 )
 
-# Allowed values for create_forecast_sensors selector
-FORECAST_SENSORS_CHOICES = ["none", "D+1", "D+1+2"]
+# Legacy mapping for backward compatibility
+_LEGACY_FORECAST_MAP = {
+    "D+1": FORECAST_D1,
+    "d+1": FORECAST_D1,
+    "D+1+2": FORECAST_D1_2,
+    "d+1+2": FORECAST_D1_2,
+}
+
+
+def normalize_create_forecast_sensors(value: Any) -> str:
+    """Normalize per-day sensor mode to supported values."""
+
+    if value is None:
+        return FORECAST_NONE
+
+    text = str(value).strip()
+    if not text:
+        return FORECAST_NONE
+
+    if text in CREATE_FORECAST_OPTIONS:
+        return text
+
+    mapped = _LEGACY_FORECAST_MAP.get(text)
+    if mapped:
+        return mapped
+
+    return FORECAST_NONE
 
 
 def is_invalid_api_key_message(message: str | None) -> bool:

@@ -34,6 +34,7 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    normalize_create_forecast_sensors,
     normalize_http_referer,
 )
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
@@ -94,7 +95,12 @@ async def async_setup_entry(
         entry.title,
     )
 
-    options = entry.options or {}
+    options = dict(entry.options or {})
+    raw_mode = options.get(CONF_CREATE_FORECAST_SENSORS)
+    normalized_mode = normalize_create_forecast_sensors(raw_mode)
+    if raw_mode is not None and normalized_mode != raw_mode:
+        options = {**options, CONF_CREATE_FORECAST_SENSORS: normalized_mode}
+        hass.config_entries.async_update_entry(entry, options=options)
     hours = int(
         options.get(
             CONF_UPDATE_INTERVAL,
@@ -108,7 +114,7 @@ async def async_setup_entry(
         )
     )
     language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
-    mode = options.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE)
+    mode = ForecastSensorMode(normalized_mode)
     create_d1 = mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2)
     create_d2 = mode == ForecastSensorMode.D1_D2
 
