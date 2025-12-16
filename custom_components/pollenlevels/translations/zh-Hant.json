@@ -35,7 +35,7 @@
           "update_interval": "更新間隔（小時）",
           "http_referer": "HTTP Referer"
         },
-        "description": "輸入你的 Google API 金鑰（[在此取得]({api_key_url})) 並查看最佳實務（[最佳實務]({restricting_api_keys_url})). 在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
+        "description": "輸入你的 Google API 金鑰（[在此取得]({api_key_url})）並查看最佳實務（[最佳實務]({restricting_api_keys_url})）。在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
         "title": "花粉水平設定",
         "sections": {
           "api_key_options": {
