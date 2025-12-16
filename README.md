@@ -59,9 +59,9 @@ You can change:
 - **API response language code**
 - **Forecast days** (`1–5`) for pollen TYPES
 - **Per-day TYPE sensors** via `create_forecast_sensors`:
-    - `none` → no extra sensors
-    - `D+1` → sensors for each TYPE with suffix `(D+1)`
-    - `D+1+2` → sensors for `(D+1)` and `(D+2)`
+  - `none` → no extra sensors
+  - `D+1` → sensors for each TYPE with suffix `(D+1)`
+  - `D+1+2` → sensors for `(D+1)` and `(D+2)`
 
 > **Validation rules:**
 > - `D+1` requires `forecast_days ≥ 2`
