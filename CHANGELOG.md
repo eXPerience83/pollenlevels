@@ -22,6 +22,8 @@
   details, and invalid update interval errors to keep UI feedback aligned.
 - Simplified HTTP Referer handling during validation/runtime and finalized
   locale wording, including corrected Chinese setup descriptions.
+- Updated the options flow regression test to expect the new
+  `invalid_forecast_days` error code for out-of-range values.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

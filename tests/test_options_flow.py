@@ -79,7 +79,7 @@ def test_options_flow_forecast_days_below_min_sets_error() -> None:
     )
 
     assert result["errors"] == {
-        CONF_FORECAST_DAYS: "invalid_option_combo",
+        CONF_FORECAST_DAYS: "invalid_forecast_days",
         CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo",
     }
 
