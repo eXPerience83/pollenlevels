@@ -601,7 +601,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     float(normalized_input.get(CONF_FORECAST_DAYS, current_days))
                 )
             except (TypeError, ValueError):
-                errors["base"] = "invalid_option_combo"
+                errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
 
             if not errors:
                 try:
