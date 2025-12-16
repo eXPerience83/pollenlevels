@@ -233,6 +233,18 @@ curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&locat
 
 ---
 
+## 🛠️ Development
+
+Run the project formatters and linters before opening a pull request:
+
+```bash
+black .
+ruff check --fix --select I
+ruff check
+```
+
+---
+
 ## ❤️ Support the project
 
 If this integration helps you, consider supporting development:
