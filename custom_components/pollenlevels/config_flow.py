@@ -204,6 +204,17 @@ def _parse_int_option(
     return parsed, None
 
 
+def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
+    """Parse and validate the update interval in hours."""
+
+    return _parse_int_option(
+        value,
+        default=default,
+        min_value=1,
+        error_key="invalid_update_interval",
+    )
+
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
@@ -248,11 +259,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             normalized.pop(CONF_HTTP_REFERER, None)
 
-        interval_value, interval_error = _parse_int_option(
+        interval_value, interval_error = _parse_update_interval(
             normalized.get(CONF_UPDATE_INTERVAL),
             default=DEFAULT_UPDATE_INTERVAL,
-            min_value=1,
-            error_key="invalid_update_interval",
         )
         normalized[CONF_UPDATE_INTERVAL] = interval_value
         if interval_error:
@@ -599,11 +608,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             normalized_input: dict[str, Any] = {**self.entry.options, **user_input}
-            interval_value, interval_error = _parse_int_option(
+            interval_value, interval_error = _parse_update_interval(
                 normalized_input.get(CONF_UPDATE_INTERVAL, current_interval),
                 current_interval,
-                min_value=1,
-                error_key="invalid_update_interval",
             )
             normalized_input[CONF_UPDATE_INTERVAL] = interval_value
             if interval_error:
