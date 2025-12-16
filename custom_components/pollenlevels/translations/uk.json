@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Лише сьогодні",
+        "D+1": "До завтра",
+        "D+1+2": "До післязавтра"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Інформація про пилок ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Вручну оновити дані про пилок для всіх налаштованих місць.",
       "name": "Примусове оновлення"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Лише сьогодні",
-        "D+1": "До завтра",
-        "D+1+2": "До післязавтра"
-      }
     }
   }
 }

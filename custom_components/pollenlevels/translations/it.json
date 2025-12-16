@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Solo oggi",
+        "D+1": "Fino a domani",
+        "D+1+2": "Fino a dopodomani"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Informazioni sul polline ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Aggiorna manualmente i dati dei pollini per tutte le località configurate.",
       "name": "Forza aggiornamento"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Solo oggi",
-        "D+1": "Fino a domani",
-        "D+1+2": "Fino a dopodomani"
-      }
     }
   }
 }

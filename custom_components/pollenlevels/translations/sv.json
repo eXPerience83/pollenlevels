@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Endast idag",
+        "D+1": "Till och med i morgon",
+        "D+1+2": "Till och med i övermorgon"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Polleninfo ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Uppdatera pollendata manuellt för alla konfigurerade platser.",
       "name": "Tvinga uppdatering"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Endast idag",
-        "D+1": "Till och med i morgon",
-        "D+1+2": "Till och med i övermorgon"
-      }
     }
   }
 }

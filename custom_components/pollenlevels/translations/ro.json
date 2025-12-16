@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Doar azi",
+        "D+1": "Până mâine",
+        "D+1+2": "Până poimâine"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Informații polen ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Actualizează manual datele despre polen pentru toate locațiile configurate.",
       "name": "Forțează actualizarea"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Doar azi",
-        "D+1": "Până mâine",
-        "D+1+2": "Până poimâine"
-      }
     }
   }
 }

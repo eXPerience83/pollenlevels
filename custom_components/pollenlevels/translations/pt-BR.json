@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Apenas hoje",
+        "D+1": "Até amanhã",
+        "D+1+2": "Até depois de amanhã"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Informações de pólen ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Atualize manualmente os dados de pólen para todas as localizações configuradas.",
       "name": "Forçar atualização"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Apenas hoje",
-        "D+1": "Até amanhã",
-        "D+1+2": "Até depois de amanhã"
-      }
     }
   }
 }

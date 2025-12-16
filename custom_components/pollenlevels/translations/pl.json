@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Tylko dziś",
+        "D+1": "Do jutra",
+        "D+1+2": "Do pojutrza"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Informacje o pyłkach ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Ręcznie odśwież dane o pyłkach dla wszystkich skonfigurowanych lokalizacji.",
       "name": "Wymuś aktualizację"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Tylko dziś",
-        "D+1": "Do jutra",
-        "D+1+2": "Do pojutrza"
-      }
     }
   }
 }

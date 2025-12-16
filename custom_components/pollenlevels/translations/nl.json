@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Alleen vandaag",
+        "D+1": "Tot en met morgen",
+        "D+1+2": "Tot en met overmorgen"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Polleninfo ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Ververs handmatig pollengegevens voor alle geconfigureerde locaties.",
       "name": "Update forceren"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Alleen vandaag",
-        "D+1": "Tot en met morgen",
-        "D+1+2": "Tot en met overmorgen"
-      }
     }
   }
 }

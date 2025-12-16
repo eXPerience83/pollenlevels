@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "Kun i dag",
+        "D+1": "Til og med i morgen",
+        "D+1+2": "Til og med i overmorgen"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - Polleninfo ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "Oppdater pollendata manuelt for alle konfigurerte steder.",
       "name": "Tving oppdatering"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "Kun i dag",
-        "D+1": "Til og med i morgen",
-        "D+1+2": "Til og med i overmorgen"
-      }
     }
   }
 }
