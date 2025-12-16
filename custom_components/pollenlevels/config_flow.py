@@ -572,6 +572,11 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         )
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
 
+        # UI: Forecast days as dropdown to prevent invalid values (keep stored type as int).
+        forecast_days_options = [
+            str(i) for i in range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1)
+        ]
+
         options_schema = vol.Schema(
             {
                 vol.Optional(
@@ -587,12 +592,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.TEXT)
                 ),
-                vol.Optional(CONF_FORECAST_DAYS, default=current_days): NumberSelector(
-                    NumberSelectorConfig(
-                        min=MIN_FORECAST_DAYS,
-                        max=MAX_FORECAST_DAYS,
-                        step=1,
-                        mode=NumberSelectorMode.BOX,
+                vol.Optional(
+                    CONF_FORECAST_DAYS, default=str(current_days)
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        mode=SelectSelectorMode.DROPDOWN,
+                        options=forecast_days_options,
                     )
                 ),
                 vol.Optional(
@@ -624,6 +629,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     description_placeholders=placeholders,
                 )
 
+            # Persist forecast_days as int, even though UI returns str.
             forecast_days, days_error = _parse_int_option(
                 normalized_input.get(CONF_FORECAST_DAYS, current_days),
                 current_days,
