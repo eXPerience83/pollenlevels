@@ -10,7 +10,7 @@
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_auth": "Ungültiger API-Schlüssel\n\n{error_message}",
       "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
-      "invalid_http_referrer": "Ungültiger HTTP-Referer-Wert. Er darf keine Zeilenumbrüche enthalten.",
+      "invalid_http_referrer": "Ungültiger HTTP Referer-Wert. Er darf keine Zeilenumbrüche enthalten.",
       "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",

@@ -39,7 +39,7 @@
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
       "unknown": "Error desconegut",
-      "invalid_http_referrer": "Valor de referer HTTP no vàlid. No pot contenir salts de línia.",
+      "invalid_http_referrer": "Valor de HTTP Referer no vàlid. No pot contenir salts de línia.",
       "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora."
     },
     "abort": {

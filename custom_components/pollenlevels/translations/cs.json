@@ -10,7 +10,7 @@
       "empty": "Toto pole nemůže být prázdné",
       "invalid_auth": "Neplatný klíč API\n\n{error_message}",
       "invalid_coordinates": "Vyberte platné umístění na mapě.",
-      "invalid_http_referrer": "Neplatná hodnota HTTP refereru. Nesmí obsahovat znaky nového řádku.",
+      "invalid_http_referrer": "Neplatná hodnota HTTP Referer. Nesmí obsahovat znaky nového řádku.",
       "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",

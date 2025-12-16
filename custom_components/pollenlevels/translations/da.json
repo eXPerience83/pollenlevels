@@ -10,7 +10,7 @@
       "empty": "Dette felt må ikke være tomt",
       "invalid_auth": "Ugyldig API-nøgle\n\n{error_message}",
       "invalid_coordinates": "Vælg en gyldig placering på kortet.",
-      "invalid_http_referrer": "Ugyldig HTTP referer-værdi. Den må ikke indeholde linjeskift.",
+      "invalid_http_referrer": "Ugyldig HTTP Referer-værdi. Den må ikke indeholde linjeskift.",
       "invalid_language": "Ugyldig sprogkode",
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",

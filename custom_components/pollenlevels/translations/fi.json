@@ -10,7 +10,7 @@
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
-      "invalid_http_referrer": "Virheellinen HTTP referer -arvo. Se ei saa sisältää rivinvaihtomerkkejä.",
+      "invalid_http_referrer": "Virheellinen HTTP Referer -arvo. Se ei saa sisältää rivinvaihtomerkkejä.",
       "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",

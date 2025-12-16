@@ -10,7 +10,7 @@
       "empty": "A mező nem lehet üres",
       "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
       "invalid_coordinates": "Válassz érvényes helyet a térképen.",
-      "invalid_http_referrer": "Érvénytelen HTTP referer érték. Nem tartalmazhat sortörés karaktereket.",
+      "invalid_http_referrer": "Érvénytelen HTTP Referer érték. Nem tartalmazhat sortörés karaktereket.",
       "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",

@@ -10,7 +10,7 @@
       "empty": "Ce champ ne peut pas être vide",
       "invalid_auth": "Clé API invalide\n\n{error_message}",
       "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
-      "invalid_http_referrer": "Valeur de HTTP referer invalide. Elle ne doit pas contenir de retours à la ligne.",
+      "invalid_http_referrer": "Valeur de HTTP Referer invalide. Elle ne doit pas contenir de retours à la ligne.",
       "invalid_language": "Code de langue invalide",
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
