@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "仅今天",
+        "D+1": "到明天",
+        "D+1+2": "到后天"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - 花粉信息 ({latitude},{longitude})"
@@ -93,7 +102,7 @@
           "language_code": "API 响应语言代码",
           "update_interval": "更新间隔（小时）"
         },
-        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今日、至明日、至后日。",
+        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今天、到明天、到后天。",
         "title": "Pollen Levels – 选项"
       }
     }
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "为所有已配置的位置手动刷新花粉数据。",
       "name": "强制更新"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "仅今日",
-        "D+1": "至明日",
-        "D+1+2": "至后日"
-      }
     }
   }
 }

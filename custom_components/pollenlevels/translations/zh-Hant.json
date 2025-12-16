@@ -48,6 +48,15 @@
       }
     }
   },
+  "selector": {
+    "create_forecast_sensors": {
+      "options": {
+        "none": "僅今日",
+        "D+1": "至明日",
+        "D+1+2": "至後日"
+      }
+    }
+  },
   "device": {
     "info": {
       "name": "{title} - 花粉資訊 ({latitude},{longitude})"
@@ -102,15 +111,6 @@
     "force_update": {
       "description": "為所有已設定的位置手動重新整理花粉資料。",
       "name": "強制更新"
-    }
-  },
-  "selector": {
-    "create_forecast_sensors": {
-      "options": {
-        "none": "僅今日",
-        "D+1": "至明日",
-        "D+1+2": "至後日"
-      }
     }
   }
 }
