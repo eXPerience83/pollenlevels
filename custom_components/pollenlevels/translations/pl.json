@@ -11,12 +11,12 @@
       "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
       "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
       "invalid_http_referrer": "Nieprawidłowa wartość dla HTTP Referer. Nie może zawierać znaków nowej linii.",
-      "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę.",
+      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
     },
     "step": {
       "reauth_confirm": {
@@ -33,7 +33,9 @@
           "location": "Lokalizacja",
           "name": "Nazwa",
           "update_interval": "Interwał aktualizacji (godziny)",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Dni prognozy (1–5)",
+          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
         },
         "description": "Wprowadź swój klucz Google API ([uzyskaj go tutaj]({api_key_url})) i zapoznaj się z dobrymi praktykami ([dobre praktyki]({restricting_api_keys_url})). Wybierz lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API.",
         "title": "Konfiguracja poziomów pyłku",
@@ -74,15 +76,12 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Brak połączenia z usługą\n\n{error_message}",
       "empty": "To pole nie może być puste",
-      "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
-      "invalid_language": "Nieprawidłowy kod języka",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
-      "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę.",
+      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
     },
     "step": {
       "init": {
@@ -92,7 +91,7 @@
           "language_code": "Kod języka odpowiedzi API",
           "update_interval": "Interwał aktualizacji (godziny)"
         },
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2).",
+        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+1+2).",
         "title": "Pollen Levels – Opcje"
       }
     }

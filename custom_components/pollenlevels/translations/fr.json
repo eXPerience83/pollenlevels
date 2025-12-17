@@ -11,12 +11,12 @@
       "invalid_auth": "Clé API invalide\n\n{error_message}",
       "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
       "invalid_http_referrer": "Valeur pour HTTP Referer invalide. Elle ne doit pas contenir de retours à la ligne.",
-      "invalid_language": "Code de langue invalide",
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "quota_exceeded": "Quota dépassé\n\n{error_message}",
       "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure."
+      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure.",
+      "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
     },
     "step": {
       "reauth_confirm": {
@@ -33,7 +33,9 @@
           "location": "Emplacement",
           "name": "Nom",
           "update_interval": "Intervalle de mise à jour (heures)",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Jours de prévision (1–5)",
+          "create_forecast_sensors": "Portée des capteurs par jour (TYPES)"
         },
         "description": "Saisissez votre clé API Google ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse de l’API.",
         "title": "Pollen Levels – Configuration",
@@ -74,15 +76,12 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Impossible de se connecter au service\n\n{error_message}",
       "empty": "Ce champ ne peut pas être vide",
-      "invalid_auth": "Clé API invalide\n\n{error_message}",
-      "invalid_language": "Code de langue invalide",
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
-      "quota_exceeded": "Quota dépassé\n\n{error_message}",
       "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure."
+      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure.",
+      "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
     },
     "step": {
       "init": {
@@ -92,7 +91,7 @@
           "language_code": "Code de langue pour la réponse de l’API",
           "update_interval": "Intervalle de mise à jour (heures)"
         },
-        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+2).",
+        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+1+2).",
         "title": "Pollen Levels – Options"
       }
     }

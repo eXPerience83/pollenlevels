@@ -11,12 +11,12 @@
       "invalid_auth": "Ongeldige API-sleutel\n\n{error_message}",
       "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
       "invalid_http_referrer": "Ongeldige waarde voor HTTP Referer. Deze mag geen regeleinden bevatten.",
-      "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
-      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn."
+      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn.",
+      "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen."
     },
     "step": {
       "reauth_confirm": {
@@ -33,7 +33,9 @@
           "location": "Locatie",
           "name": "Naam",
           "update_interval": "Update-interval (uren)",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Voorspellingsdagen (1–5)",
+          "create_forecast_sensors": "Bereik van per-dag TYPE-sensoren"
         },
         "description": "Voer je Google API-sleutel in ([haal hem hier]({api_key_url})) en bekijk de best practices ([best practices]({restricting_api_keys_url})). Selecteer je locatie op de kaart, het update-interval (uren) en de taalcode van de API-respons.",
         "title": "Pollen Levels – Configuratie",
@@ -74,15 +76,12 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Kan geen verbinding maken met de service\n\n{error_message}",
       "empty": "Dit veld mag niet leeg zijn",
-      "invalid_auth": "Ongeldige API-sleutel\n\n{error_message}",
-      "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
-      "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "unknown": "Onbekende fout",
-      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn."
+      "invalid_update_interval": "Het update-interval moet minimaal 1 uur zijn.",
+      "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen."
     },
     "step": {
       "init": {
@@ -92,7 +91,7 @@
           "language_code": "Taalcode voor API-respons",
           "update_interval": "Update-interval (uren)"
         },
-        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2).",
+        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+1+2).",
         "title": "Pollen Levels – Opties"
       }
     }

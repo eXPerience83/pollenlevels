@@ -11,12 +11,12 @@
       "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
       "invalid_coordinates": "Velg en gyldig posisjon på kartet.",
       "invalid_http_referrer": "Ugyldig verdi for HTTP Referer. Den kan ikke inneholde linjeskift.",
-      "invalid_language": "Ugyldig språkkode",
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
       "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "unknown": "Ukjent feil",
-      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time."
+      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time.",
+      "invalid_forecast_days": "Prognosedager må være mellom 1 og 5."
     },
     "step": {
       "reauth_confirm": {
@@ -33,7 +33,9 @@
           "location": "Posisjon",
           "name": "Navn",
           "update_interval": "Oppdateringsintervall (timer)",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Prognosedager (1–5)",
+          "create_forecast_sensors": "Omfang av sensorer per dag (TYPER)"
         },
         "description": "Oppgi Google API-nøkkelen din ([få den her]({api_key_url})) og les beste praksis ([beste praksis]({restricting_api_keys_url})). Velg posisjonen din på kartet, oppdateringsintervallet (timer) og språkkoden for API-svaret.",
         "title": "Konfigurasjon av pollennivåer",
@@ -74,15 +76,12 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Kan ikke koble til tjenesten\n\n{error_message}",
       "empty": "Dette feltet kan ikke være tomt",
-      "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
-      "invalid_language": "Ugyldig språkkode",
       "invalid_language_format": "Bruk en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "invalid_option_combo": "Øk «Prognosedager» for å dekke valgte sensorer per dag.",
-      "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "unknown": "Ukjent feil",
-      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time."
+      "invalid_update_interval": "Oppdateringsintervallet må være minst 1 time.",
+      "invalid_forecast_days": "Prognosedager må være mellom 1 og 5."
     },
     "step": {
       "init": {
@@ -92,7 +91,7 @@
           "language_code": "Språkkode for API-svar",
           "update_interval": "Oppdateringsintervall (timer)"
         },
-        "description": "Endre oppdateringsintervall, API-språk, prognosedager og sensorer per dag for {title}.\nAlternativer for sensorer per dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med i overmorgen (D+2).",
+        "description": "Endre oppdateringsintervall, API-språk, prognosedager og sensorer per dag for {title}.\nAlternativer for sensorer per dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med i overmorgen (D+1+2).",
         "title": "Pollen Levels – Innstillinger"
       }
     }

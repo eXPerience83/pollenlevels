@@ -11,12 +11,12 @@
       "invalid_auth": "无效的 API 密钥\n\n{error_message}",
       "invalid_coordinates": "请在地图上选择有效的位置。",
       "invalid_http_referrer": "HTTP Referer 的值无效。它不能包含换行符。",
-      "invalid_language": "无效的语言代码",
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
       "quota_exceeded": "配额已用尽\n\n{error_message}",
       "unknown": "未知错误",
-      "invalid_update_interval": "更新间隔必须至少为 1 小时。"
+      "invalid_update_interval": "更新间隔必须至少为 1 小时。",
+      "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
     },
     "step": {
       "reauth_confirm": {
@@ -33,7 +33,9 @@
           "location": "位置",
           "name": "名称",
           "update_interval": "更新间隔（小时）",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "预测天数（1–5）",
+          "create_forecast_sensors": "逐日类型传感器范围"
         },
         "description": "输入你的 Google API 密钥（[在此获取]({api_key_url})）并查看最佳实践（[最佳实践]({restricting_api_keys_url})). 在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。",
         "title": "花粉水平配置",
@@ -74,15 +76,12 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "无法连接到服务\n\n{error_message}",
       "empty": "此字段不能为空",
-      "invalid_auth": "无效的 API 密钥\n\n{error_message}",
-      "invalid_language": "无效的语言代码",
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
-      "quota_exceeded": "配额已用尽\n\n{error_message}",
       "unknown": "未知错误",
-      "invalid_update_interval": "更新间隔必须至少为 1 小时。"
+      "invalid_update_interval": "更新间隔必须至少为 1 小时。",
+      "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
     },
     "step": {
       "init": {
@@ -92,7 +91,7 @@
           "language_code": "API 响应语言代码",
           "update_interval": "更新间隔（小时）"
         },
-        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今日（none）、至明日（D+1）、至后日（D+2）。",
+        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今日（none）、至明日（D+1）、至后日（D+1+2）。",
         "title": "Pollen Levels – 选项"
       }
     }

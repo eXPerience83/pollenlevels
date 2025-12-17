@@ -11,12 +11,12 @@
       "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
       "invalid_coordinates": "Selectează o locație validă pe hartă.",
       "invalid_http_referrer": "Valoare invalidă pentru HTTP Referer. Nu trebuie să conțină caractere de linie nouă.",
-      "invalid_language": "Cod de limbă nevalid",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "quota_exceeded": "Cota depășită\n\n{error_message}",
       "unknown": "Eroare necunoscută",
-      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră."
+      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră.",
+      "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5."
     },
     "step": {
       "reauth_confirm": {
@@ -33,7 +33,9 @@
           "location": "Locație",
           "name": "Nume",
           "update_interval": "Interval de actualizare (ore)",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Zile de prognoză (1–5)",
+          "create_forecast_sensors": "Domeniul senzorilor pe zile (TIPURI)"
         },
         "description": "Introdu cheia ta API Google ([obține-o aici]({api_key_url})) și consultă cele mai bune practici ([cele mai bune practici]({restricting_api_keys_url})). Selectează locația pe hartă, intervalul de actualizare (ore) și codul de limbă al răspunsului API.",
         "title": "Configurare Niveluri de Polen",
@@ -74,15 +76,12 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
       "empty": "Acest câmp nu poate fi gol",
-      "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
-      "invalid_language": "Cod de limbă nevalid",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
-      "quota_exceeded": "Cota depășită\n\n{error_message}",
       "unknown": "Eroare necunoscută",
-      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră."
+      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră.",
+      "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5."
     },
     "step": {
       "init": {
@@ -92,7 +91,7 @@
           "language_code": "Codul limbii pentru răspunsul API",
           "update_interval": "Interval de actualizare (ore)"
         },
-        "description": "Modificați intervalul de actualizare, limba API, zilele de prognoză și senzorii pe zile pentru {title}.\nOpțiuni pentru senzorii pe zile (TIPURI): Doar azi (none), Până mâine (D+1), Până poimâine (D+2).",
+        "description": "Modificați intervalul de actualizare, limba API, zilele de prognoză și senzorii pe zile pentru {title}.\nOpțiuni pentru senzorii pe zile (TIPURI): Doar azi (none), Până mâine (D+1), Până poimâine (D+1+2).",
         "title": "Pollen Levels – Opțiuni"
       }
     }

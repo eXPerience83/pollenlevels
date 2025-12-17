@@ -10,7 +10,9 @@
           "location": "Location",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Forecast days (1–5)",
+          "create_forecast_sensors": "Per-day TYPE sensors range"
         },
         "sections": {
           "api_key_options": {
@@ -33,14 +35,14 @@
       "invalid_auth": "Invalid API key\n\n{error_message}",
       "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded\n\n{error_message}",
-      "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error",
       "invalid_http_referrer": "Invalid value for HTTP Referer. It must not contain newline characters.",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Update interval must be at least 1 hour.",
+      "invalid_forecast_days": "Forecast days must be between 1 and 5."
     },
     "abort": {
       "already_configured": "This location is already configured.",
@@ -52,7 +54,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Change the update interval, API language, forecast days and per-day TYPE sensors for {title}.\nOptions for per-day TYPE sensors: Only today (none), Through tomorrow (D+1), Through day after tomorrow (D+2).",
+        "description": "Change the update interval, API language, forecast days and per-day TYPE sensors for {title}.\nOptions for per-day TYPE sensors: Only today (none), Through tomorrow (D+1), Through day after tomorrow (D+1+2).",
         "data": {
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",
@@ -62,15 +64,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Invalid API key\n\n{error_message}",
-      "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
-      "quota_exceeded": "Quota exceeded\n\n{error_message}",
-      "invalid_language": "Invalid language code",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "unknown": "Unknown error",
-      "invalid_update_interval": "Update interval must be at least 1 hour."
+      "invalid_update_interval": "Update interval must be at least 1 hour.",
+      "invalid_forecast_days": "Forecast days must be between 1 and 5."
     }
   },
   "device": {
