@@ -108,7 +108,14 @@ async def async_setup_entry(
         )
     )
     language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
-    mode = options.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE)
+    raw_mode = options.get(
+        CONF_CREATE_FORECAST_SENSORS,
+        entry.data.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE),
+    )
+    try:
+        mode = ForecastSensorMode(raw_mode)
+    except (ValueError, TypeError):
+        mode = ForecastSensorMode.NONE
     create_d1 = mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2)
     create_d2 = mode == ForecastSensorMode.D1_D2
 
