@@ -5,7 +5,12 @@ import logging
 import random
 from typing import Any
 
-from aiohttp import ClientError, ClientSession, ClientTimeout, ContentTypeError
+from aiohttp import ClientError, ClientSession, ClientTimeout
+
+try:  # pragma: no cover - fallback for environments with stubbed aiohttp
+    from aiohttp import ContentTypeError
+except ImportError:  # pragma: no cover - tests stub aiohttp without ContentTypeError
+    ContentTypeError = ValueError  # type: ignore[misc,assignment]
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -179,7 +184,10 @@ class GooglePollenApiClient:
                         raise UpdateFailed(message)
 
                     try:
-                        payload = await resp.json(content_type=None)
+                        try:
+                            payload = await resp.json(content_type=None)
+                        except TypeError:
+                            payload = await resp.json()
                     except (ContentTypeError, TypeError, ValueError) as err:
                         raise UpdateFailed(
                             "Unexpected API response: invalid JSON"

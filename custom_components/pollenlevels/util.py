@@ -15,7 +15,10 @@ async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
 
     message: str | None = None
     try:
-        json_obj = await resp.json(content_type=None)
+        try:
+            json_obj = await resp.json(content_type=None)
+        except TypeError:
+            json_obj = await resp.json()
         if isinstance(json_obj, dict):
             error = json_obj.get("error")
             if isinstance(error, dict):
