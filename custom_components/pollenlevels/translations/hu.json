@@ -11,12 +11,12 @@
       "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
       "invalid_coordinates": "Válassz érvényes helyet a térképen.",
       "invalid_http_referrer": "Érvénytelen érték a HTTP Referer mezőhöz. Nem tartalmazhat sortörés karaktereket.",
-      "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "quota_exceeded": "Kvóta túllépve\n\n{error_message}",
       "unknown": "Ismeretlen hiba",
-      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
+      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie.",
+      "invalid_forecast_days": "Az előrejelzési napoknak 1 és 5 között kell lenniük."
     },
     "step": {
       "reauth_confirm": {
@@ -33,7 +33,9 @@
           "location": "Helyszín",
           "name": "Név",
           "update_interval": "Frissítési időköz (óra)",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Előrejelzési napok (1–5)",
+          "create_forecast_sensors": "Napi TÍPUS szenzorok tartománya"
         },
         "description": "Add meg a Google API-kulcsodat ([itt szerezhető be]({api_key_url})) és nézd át a bevált gyakorlatokat ([bevált gyakorlatok]({restricting_api_keys_url})). Válaszd ki a helyszínt a térképen, a frissítési időközt (órában) és az API-válasz nyelvi kódját.",
         "title": "Pollen szintek – beállítás",
@@ -74,15 +76,12 @@
   },
   "options": {
     "error": {
-      "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz\n\n{error_message}",
       "empty": "A mező nem lehet üres",
-      "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
-      "invalid_language": "Érvénytelen nyelvi kód",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
-      "quota_exceeded": "Kvóta túllépve\n\n{error_message}",
       "unknown": "Ismeretlen hiba",
-      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie."
+      "invalid_update_interval": "A frissítési időköznek legalább 1 órának kell lennie.",
+      "invalid_forecast_days": "Az előrejelzési napoknak 1 és 5 között kell lenniük."
     },
     "step": {
       "init": {
@@ -92,7 +91,7 @@
           "language_code": "API-válasz nyelvi kódja",
           "update_interval": "Frissítési időköz (óra)"
         },
-        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2).",
+        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+1+2).",
         "title": "Pollen Levels – Beállítások"
       }
     }

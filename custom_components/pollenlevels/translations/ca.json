@@ -10,7 +10,9 @@
           "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API",
-          "http_referer": "HTTP Referer"
+          "http_referer": "HTTP Referer",
+          "forecast_days": "Dies de previsió (1–5)",
+          "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)"
         },
         "sections": {
           "api_key_options": {
@@ -33,14 +35,14 @@
       "invalid_auth": "Clau API no vàlida\n\n{error_message}",
       "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
       "quota_exceeded": "Quota excedida\n\n{error_message}",
-      "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
       "unknown": "Error desconegut",
       "invalid_http_referrer": "Valor de HTTP Referer no vàlid. No pot contenir salts de línia.",
-      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora."
+      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora.",
+      "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5."
     },
     "abort": {
       "already_configured": "Aquesta ubicació ja està configurada.",
@@ -52,7 +54,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcions",
-        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2).",
+        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+1+2).",
         "data": {
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API",
@@ -62,15 +64,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Clau API no vàlida\n\n{error_message}",
-      "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
-      "quota_exceeded": "Quota excedida\n\n{error_message}",
-      "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "unknown": "Error desconegut",
-      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora."
+      "invalid_update_interval": "L’interval d’actualització ha de ser d’almenys 1 hora.",
+      "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5."
     }
   },
   "device": {
