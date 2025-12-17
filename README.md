@@ -28,7 +28,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
   - `forecast` list with `{offset, date, has_index, value, category, description, color_*}`
   - Convenience: `tomorrow_*` and `d2_*`
   - Derived: `trend` and `expected_peak`
-  - **Per-day sensors:** remain **TYPES-only** (optional `D+1` / `D+2`).  
+  - **Per-day sensors:** remain **TYPES-only** with selector options `none`, `D+1`,
+    or `D+1+2` (creates both `(D+1)` and `(D+2)` sensors).
     **PLANTS** expose forecast **as attributes only** (no extra entities).
 - **Smart grouping** — Organizes sensors into:
   - **Pollen Types** (Grass / Tree / Weed)
