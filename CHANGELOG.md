@@ -31,8 +31,8 @@
   helper to reduce duplication for interval and forecast day checks.
 - Centralized the pollen client retry count into a shared `MAX_RETRIES`
   constant to simplify future tuning without touching request logic.
-- Tightened error extraction typing to expect `aiohttp.ClientResponse` for
-  clearer static analysis and editor support.
+- Tightened error extraction typing to expect `aiohttp.ClientResponse` while
+  guarding the import so environments without aiohttp can still run tests.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

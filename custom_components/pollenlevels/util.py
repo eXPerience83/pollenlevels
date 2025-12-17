@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from aiohttp import ClientResponse
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:  # pragma: no cover - typing-only import
+    from aiohttp import ClientResponse
+else:  # pragma: no cover - runtime fallback for test environments without aiohttp
+    ClientResponse = Any
 
 
 async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
