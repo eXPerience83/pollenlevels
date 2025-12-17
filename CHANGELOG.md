@@ -33,6 +33,9 @@
   constant to simplify future tuning without touching request logic.
 - Tightened error extraction typing to expect `aiohttp.ClientResponse` while
   guarding the import so environments without aiohttp can still run tests.
+- Hardened the runtime pollen client with sanitized `Referer` headers,
+  normalized error parsing, and strict JSON validation to avoid leaking secrets
+  while surfacing consistent failures.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
