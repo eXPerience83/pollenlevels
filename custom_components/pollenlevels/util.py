@@ -15,13 +15,13 @@ async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
 
     message: str | None = None
     try:
-        json_obj = await resp.json()
+        json_obj = await resp.json(content_type=None)
         if isinstance(json_obj, dict):
             error = json_obj.get("error")
             if isinstance(error, dict):
                 raw_msg = error.get("message")
                 if isinstance(raw_msg, str):
-                    message = raw_msg.strip()
+                    message = raw_msg
     except Exception:  # noqa: BLE001
         message = None
 
@@ -29,14 +29,18 @@ async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
         try:
             text = await resp.text()
             if isinstance(text, str):
-                message = text.strip()
+                message = text
         except Exception:  # noqa: BLE001
             message = None
 
-    message = (message or "").strip() or default
-    if len(message) > 300:
-        message = message[:300]
-    return message
+    normalized = " ".join(
+        (message or "").replace("\r", " ").replace("\n", " ").split()
+    ).strip()
+
+    if len(normalized) > 300:
+        normalized = normalized[:300]
+
+    return normalized or default
 
 
 def redact_api_key(text: object, api_key: str | None) -> str:

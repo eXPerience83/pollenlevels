@@ -5,12 +5,17 @@ import logging
 import random
 from typing import Any
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
+from aiohttp import ClientError, ClientSession, ClientTimeout, ContentTypeError
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import MAX_RETRIES, POLLEN_API_TIMEOUT, is_invalid_api_key_message
+from .const import (
+    MAX_RETRIES,
+    POLLEN_API_TIMEOUT,
+    is_invalid_api_key_message,
+    normalize_http_referer,
+)
 from .util import extract_error_message, redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -87,11 +92,17 @@ class GooglePollenApiClient:
         )
 
         max_retries = MAX_RETRIES
+        headers: dict[str, str] | None = None
+        if self._http_referer:
+            try:
+                referer = normalize_http_referer(self._http_referer)
+                if referer:
+                    headers = {"Referer": referer}
+            except ValueError:
+                _LOGGER.warning("Ignoring http_referer containing newline characters")
+
         for attempt in range(0, max_retries + 1):
             try:
-                headers: dict[str, str] | None = None
-                if self._http_referer:
-                    headers = {"Referer": self._http_referer}
                 async with self._session.get(
                     url,
                     params=params,
@@ -99,13 +110,17 @@ class GooglePollenApiClient:
                     headers=headers,
                 ) as resp:
                     if resp.status == 401:
-                        raw_message = await extract_error_message(resp)
-                        message = _format_http_message(resp.status, raw_message)
+                        raw_message = redact_api_key(
+                            await extract_error_message(resp, default=""), self._api_key
+                        )
+                        message = _format_http_message(resp.status, raw_message or None)
                         raise ConfigEntryAuthFailed(message)
 
                     if resp.status == 403:
-                        raw_message = await extract_error_message(resp)
-                        message = _format_http_message(resp.status, raw_message)
+                        raw_message = redact_api_key(
+                            await extract_error_message(resp, default=""), self._api_key
+                        )
+                        message = _format_http_message(resp.status, raw_message or None)
                         if is_invalid_api_key_message(raw_message):
                             raise ConfigEntryAuthFailed(message)
                         raise UpdateFailed(message)
@@ -125,8 +140,10 @@ class GooglePollenApiClient:
                             )
                             await asyncio.sleep(delay)
                             continue
-                        raw_message = await extract_error_message(resp)
-                        message = _format_http_message(resp.status, raw_message)
+                        raw_message = redact_api_key(
+                            await extract_error_message(resp, default=""), self._api_key
+                        )
+                        message = _format_http_message(resp.status, raw_message or None)
                         raise UpdateFailed(message)
 
                     if 500 <= resp.status <= 599:
@@ -141,21 +158,39 @@ class GooglePollenApiClient:
                                 base_args=(resp.status,),
                             )
                             continue
-                        raw_message = await extract_error_message(resp)
-                        message = _format_http_message(resp.status, raw_message)
+                        raw_message = redact_api_key(
+                            await extract_error_message(resp, default=""), self._api_key
+                        )
+                        message = _format_http_message(resp.status, raw_message or None)
                         raise UpdateFailed(message)
 
                     if 400 <= resp.status < 500 and resp.status not in (403, 429):
-                        raw_message = await extract_error_message(resp)
-                        message = _format_http_message(resp.status, raw_message)
+                        raw_message = redact_api_key(
+                            await extract_error_message(resp, default=""), self._api_key
+                        )
+                        message = _format_http_message(resp.status, raw_message or None)
                         raise UpdateFailed(message)
 
                     if resp.status != 200:
-                        raw_message = await extract_error_message(resp)
-                        message = _format_http_message(resp.status, raw_message)
+                        raw_message = redact_api_key(
+                            await extract_error_message(resp, default=""), self._api_key
+                        )
+                        message = _format_http_message(resp.status, raw_message or None)
                         raise UpdateFailed(message)
 
-                    return await resp.json()
+                    try:
+                        payload = await resp.json(content_type=None)
+                    except (ContentTypeError, TypeError, ValueError) as err:
+                        raise UpdateFailed(
+                            "Unexpected API response: invalid JSON"
+                        ) from err
+
+                    if not isinstance(payload, dict):
+                        raise UpdateFailed(
+                            "Unexpected API response: expected JSON object"
+                        )
+
+                    return payload
 
             except ConfigEntryAuthFailed:
                 raise
@@ -189,6 +224,8 @@ class GooglePollenApiClient:
                     "Network error while calling the Google Pollen API"
                 )
                 raise UpdateFailed(msg) from err
+            except UpdateFailed:
+                raise
             except Exception as err:  # noqa: BLE001
                 msg = redact_api_key(err, self._api_key)
                 _LOGGER.error("Pollen API error: %s", msg)
