@@ -10,7 +10,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import POLLEN_API_TIMEOUT, is_invalid_api_key_message
+from .const import MAX_RETRIES, POLLEN_API_TIMEOUT, is_invalid_api_key_message
 from .util import extract_error_message, redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class GooglePollenApiClient:
             "Fetching forecast (days=%s, lang_set=%s)", days, bool(language_code)
         )
 
-        max_retries = 1
+        max_retries = MAX_RETRIES
         for attempt in range(0, max_retries + 1):
             try:
                 headers: dict[str, str] | None = None

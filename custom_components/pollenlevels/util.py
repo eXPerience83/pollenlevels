@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from aiohttp import ClientResponse
 
-async def extract_error_message(resp: object, default: str = "") -> str:
+
+async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
     """Extract and normalize an HTTP error message without secrets."""
 
     message: str | None = None

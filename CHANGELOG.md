@@ -29,6 +29,10 @@
   `invalid_forecast_days` error code for out-of-range values.
 - Consolidated numeric options validation in the options flow through a shared
   helper to reduce duplication for interval and forecast day checks.
+- Centralized the pollen client retry count into a shared `MAX_RETRIES`
+  constant to simplify future tuning without touching request logic.
+- Tightened error extraction typing to expect `aiohttp.ClientResponse` for
+  clearer static analysis and editor support.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
