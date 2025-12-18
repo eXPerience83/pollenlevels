@@ -435,6 +435,36 @@ def test_validate_input_invalid_language_key_mapping() -> None:
     assert normalized is None
 
 
+def test_validate_input_empty_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Blank or whitespace API keys should be rejected without HTTP calls."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    session_called = False
+
+    def _raise_session(hass):
+        nonlocal session_called
+        session_called = True
+        raise AssertionError("async_get_clientsession should not be called")
+
+    monkeypatch.setattr(cf, "async_get_clientsession", _raise_session)
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                CONF_API_KEY: "   ",
+                CONF_LOCATION: {CONF_LATITUDE: 1.0, CONF_LONGITUDE: 2.0},
+            },
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {CONF_API_KEY: "empty"}
+    assert normalized is None
+    assert session_called is False
+
+
 def test_language_error_to_form_key_mapping() -> None:
     """voluptuous error messages map to localized form keys."""
 

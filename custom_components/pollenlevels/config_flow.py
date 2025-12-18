@@ -266,6 +266,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized.pop(CONF_NAME, None)
         normalized.pop(CONF_LOCATION, None)
 
+        api_key = str(user_input.get(CONF_API_KEY, "")) if user_input else ""
+        api_key = api_key.strip()
+
+        if not api_key:
+            errors[CONF_API_KEY] = "empty"
+            return errors, None
+
         headers: dict[str, str] | None = None
         try:
             http_referer = normalize_http_referer(normalized.get(CONF_HTTP_REFERER))
@@ -344,9 +351,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception as err:  # defensive
                 _LOGGER.exception(
                     "Unique ID setup failed for coordinates (values redacted): %s",
-                    redact_api_key(err, user_input.get(CONF_API_KEY)),
+                    redact_api_key(err, api_key),
                 )
                 raise
+
+        normalized[CONF_API_KEY] = api_key
 
         try:
             # Allow blank language; if present, validate & normalize
@@ -357,7 +366,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             session = async_get_clientsession(self.hass)
             params = {
-                "key": user_input[CONF_API_KEY],
+                "key": api_key,
                 "location.latitude": f"{lat:.6f}",
                 "location.longitude": f"{lon:.6f}",
                 "days": 1,
@@ -413,7 +422,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.debug(
                         "Validation HTTP %s — %s",
                         status,
-                        redact_api_key(body_str, user_input.get(CONF_API_KEY)),
+                        redact_api_key(body_str, api_key),
                     )
                     try:
                         data = json.loads(body_str) if body_str else {}
@@ -445,11 +454,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.warning(
                 "Validation timeout (%ss): %s",
                 POLLEN_API_TIMEOUT,
-                redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, api_key),
             )
             errors["base"] = "cannot_connect"
             if placeholders is not None:
-                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
+                redacted = redact_api_key(err, api_key)
                 placeholders["error_message"] = (
                     redacted
                     or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
@@ -457,18 +466,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
-                redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, api_key),
             )
             errors["base"] = "cannot_connect"
             if placeholders is not None:
-                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
+                redacted = redact_api_key(err, api_key)
                 placeholders["error_message"] = (
                     redacted or "Network error while connecting to the pollen service."
                 )
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
-                redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, api_key),
             )
             errors["base"] = "unknown"
             if placeholders is not None:
