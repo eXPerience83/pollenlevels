@@ -38,6 +38,8 @@
   while surfacing consistent failures.
 - Reformatted the codebase with Black and Ruff to keep imports and styling
   consistent with repository standards.
+- Expanded translation coverage tests to include section titles and service
+  metadata keys, ensuring locales stay aligned with `en.json`.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
