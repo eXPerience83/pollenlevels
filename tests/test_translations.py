@@ -1,9 +1,12 @@
 """Translation coverage tests for the Pollen Levels integration.
 
-These tests parse ``config_flow.py`` with a simple AST walker to ensure every
-translation key used in the config/options flows exists in each locale file.
-If the flow code changes structure, update the helper below rather than
-changing the assertions to keep the guarantees intact.
+These tests ensure:
+- All locale files have the exact same keyset as en.json (en.json is the source of truth).
+- Translation keys referenced by config_flow.py (config + options flows) exist in en.json.
+- Translation keys referenced by sensor.py via entity/device translation_key exist in en.json.
+
+The config_flow extraction uses an AST walker. If config_flow.py changes structure in
+unexpected ways, the helpers should fail loudly so we don't silently lose coverage.
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ COMPONENT_DIR = PROJECT_ROOT / "custom_components" / INTEGRATION_DOMAIN
 TRANSLATIONS_DIR = COMPONENT_DIR / "translations"
 CONFIG_FLOW_PATH = COMPONENT_DIR / "config_flow.py"
 CONST_PATH = COMPONENT_DIR / "const.py"
+SENSOR_PATH = COMPONENT_DIR / "sensor.py"
 
 
 def _fail_unexpected_ast(context: str) -> None:
@@ -56,6 +60,104 @@ def _load_translation(path: Path) -> dict[str, Any]:
         return json.load(file)
 
 
+def _extract_sensor_translation_key_usage() -> tuple[set[str], set[str]]:
+    """Extract translation keys referenced by sensor entities and devices.
+
+    Entity keys:
+      - _attr_translation_key = "<key>"  -> entity.sensor.<key>.name
+
+    Device keys:
+      - "translation_key": "<key>" in a device_info dict literal
+      - values in a mapping like: translation_keys = {"type": "types", ...}
+      - default used in translation_keys.get(..., "<default>")
+
+    This stays intentionally narrow; unsupported AST changes should fail loudly.
+    """
+
+    if not SENSOR_PATH.is_file():
+        raise AssertionError(f"Missing sensor.py at {SENSOR_PATH}")
+
+    tree = ast.parse(SENSOR_PATH.read_text(encoding="utf-8"))
+
+    entity_keys: set[str] = set()
+    device_keys: set[str] = set()
+
+    # 1) Entity translation keys: _attr_translation_key = "<key>"
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+
+        if isinstance(node, ast.Assign):
+            if len(node.targets) != 1:
+                continue
+            target = node.targets[0]
+            value = node.value
+        else:
+            target = node.target
+            value = node.value
+
+        if (
+            isinstance(target, ast.Name)
+            and target.id == "_attr_translation_key"
+            and isinstance(value, ast.Constant)
+            and isinstance(value.value, str)
+        ):
+            entity_keys.add(value.value)
+
+    # 2) Device translation keys from explicit dict literals: {"translation_key": "<key>"}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Dict):
+            continue
+        for k, v in zip(node.keys, node.values, strict=False):
+            if (
+                isinstance(k, ast.Constant)
+                and k.value == "translation_key"
+                and isinstance(v, ast.Constant)
+                and isinstance(v.value, str)
+            ):
+                device_keys.add(v.value)
+
+    # 3) Device translation keys from a mapping: translation_keys = {...}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        if not (
+            isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == "translation_keys"
+        ):
+            continue
+        if not isinstance(node.value, ast.Dict):
+            _fail_unexpected_ast("sensor.py translation_keys assignment is not a dict")
+        for v in node.value.values:
+            if not (isinstance(v, ast.Constant) and isinstance(v.value, str)):
+                _fail_unexpected_ast(
+                    "sensor.py translation_keys dict contains non-string values"
+                )
+            device_keys.add(v.value)
+
+    # 4) Default device translation key: translation_keys.get(..., "<default>")
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not (isinstance(node.func, ast.Attribute) and node.func.attr == "get"):
+            continue
+        if not (
+            isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "translation_keys"
+        ):
+            continue
+        if len(node.args) >= 2:
+            default = node.args[1]
+            if isinstance(default, ast.Constant) and isinstance(default.value, str):
+                device_keys.add(default.value)
+            else:
+                _fail_unexpected_ast(
+                    "sensor.py translation_keys.get default is not a string literal"
+                )
+
+    return entity_keys, device_keys
+
+
 def test_translations_match_english_keyset() -> None:
     """Verify all locale files mirror the English translation keyset."""
 
@@ -71,9 +173,9 @@ def test_translations_match_english_keyset() -> None:
         extra = locale_keys - english_keys
         if missing or extra:
             problems.append(
-                f"{translation_path.name}: "
-                f"missing {sorted(missing)} extra {sorted(extra)}"
+                f"{translation_path.name}: missing {sorted(missing)} extra {sorted(extra)}"
             )
+
     assert not problems, "Translation keys mismatch: " + "; ".join(problems)
 
 
@@ -84,6 +186,41 @@ def test_config_flow_translation_keys_present() -> None:
     flow_keys = _extract_config_flow_keys()
     missing = flow_keys - english
     assert not missing, f"Missing config_flow translation keys: {sorted(missing)}"
+
+
+def test_config_flow_extractor_includes_helper_error_keys() -> None:
+    """Regression: helper-propagated errors must be detected by AST extraction."""
+
+    keys = _extract_config_flow_keys()
+    assert "config.error.invalid_update_interval" in keys
+    assert "options.error.invalid_update_interval" in keys
+    assert "config.error.invalid_forecast_days" in keys
+    assert "options.error.invalid_forecast_days" in keys
+
+
+def test_sensor_translation_keys_present() -> None:
+    """Ensure entity/device translation keys referenced by sensor.py exist in en.json."""
+
+    english = _flatten_keys(_load_translation(TRANSLATIONS_DIR / "en.json"))
+    entity_keys, device_keys = _extract_sensor_translation_key_usage()
+
+    assert entity_keys, "No _attr_translation_key values found in sensor.py"
+    assert device_keys, "No device translation_key values found in sensor.py"
+
+    missing: list[str] = []
+    for key in sorted(entity_keys):
+        tkey = f"entity.sensor.{key}.name"
+        if tkey not in english:
+            missing.append(tkey)
+
+    for key in sorted(device_keys):
+        tkey = f"device.{key}.name"
+        if tkey not in english:
+            missing.append(tkey)
+
+    assert not missing, "Missing sensor/device translation keys in en.json: " + ", ".join(
+        missing
+    )
 
 
 def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:
@@ -143,6 +280,7 @@ def _fields_from_schema_dict(
     for key_node, value_node in zip(schema_dict.keys, schema_dict.values, strict=False):
         if not isinstance(key_node, ast.Call):
             _fail_unexpected_ast("schema key wrapper")
+
         if isinstance(key_node.func, ast.Attribute) and key_node.func.attr in {
             "Required",
             "Optional",
@@ -196,14 +334,13 @@ def _extract_schema_fields(
             "_user_schema",
             "_options_schema",
         }:
-            returns = [
-                child for child in ast.walk(node) if isinstance(child, ast.Return)
-            ]
+            returns = [child for child in ast.walk(node) if isinstance(child, ast.Return)]
             for ret in returns:
                 if isinstance(ret.value, ast.Call):
                     fields.setdefault(node.name, set()).update(
                         _fields_from_schema_call(ret.value, mapping)
                     )
+
         if isinstance(node, ast.Assign):
             if (
                 isinstance(node.targets[0], ast.Name)
@@ -216,6 +353,34 @@ def _extract_schema_fields(
                     _fields_from_schema_call(node.value, mapping)
                 )
     return fields
+
+
+def _extract_helper_error_keys(tree: ast.AST) -> dict[str, set[str]]:
+    """Discover module-level helper functions that emit error keys via _parse_int_option(..., error_key=...)."""
+
+    helpers: dict[str, set[str]] = {}
+    for node in getattr(tree, "body", []):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+
+        emitted: set[str] = set()
+        for call in ast.walk(node):
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name)):
+                continue
+            if call.func.id != "_parse_int_option":
+                continue
+            for kw in call.keywords:
+                if kw.arg != "error_key":
+                    continue
+                if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                    emitted.add(kw.value.value)
+                else:
+                    _fail_unexpected_ast(
+                        f"error_key in {node.name} is not a string literal"
+                    )
+        if emitted:
+            helpers[node.name] = emitted
+    return helpers
 
 
 def _is_options_flow_class(name: str) -> bool:
@@ -268,6 +433,9 @@ def _extract_config_flow_keys() -> set[str]:
 
     schema_fields = _extract_schema_fields(config_tree, mapping)
 
+    # Helper functions can return error keys indirectly (e.g., interval_error/days_error).
+    helper_error_keys = _extract_helper_error_keys(config_tree)
+
     language_error_returns: set[str] = set()
 
     class _LanguageErrorVisitor(ast.NodeVisitor):
@@ -296,6 +464,15 @@ def _extract_config_flow_keys() -> set[str]:
             values.update(language_error_returns)
         return values
 
+    def _extract_error_key_kw(call: ast.Call) -> str | None:
+        for kw in call.keywords:
+            if kw.arg != "error_key":
+                continue
+            if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                return kw.value.value
+            _fail_unexpected_ast("error_key kwarg is not a string literal")
+        return None
+
     class _ScopedErrorsVisitor(ast.NodeVisitor):
         def __init__(self) -> None:
             self.class_stack: list[str | None] = []
@@ -313,6 +490,26 @@ def _extract_config_flow_keys() -> set[str]:
 
         def visit_AnnAssign(self, node: ast.AnnAssign) -> None:  # noqa: N802
             self._record_errors(node.target, node.value)
+            self.generic_visit(node)
+
+        def visit_Call(self, node: ast.Call) -> None:  # noqa: N802
+            # Collect helper-propagated errors used in a class scope, e.g.:
+            #   interval_value, interval_error = _parse_update_interval(...); errors[...] = interval_error
+            class_name = self.class_stack[-1] if self.class_stack else None
+            if class_name is None:
+                self.generic_visit(node)
+                return
+
+            if isinstance(node.func, ast.Name):
+                if node.func.id == "_parse_int_option":
+                    err = _extract_error_key_kw(node)
+                    if err:
+                        self.by_class.setdefault(class_name, set()).add(err)
+                elif node.func.id in helper_error_keys:
+                    self.by_class.setdefault(class_name, set()).update(
+                        helper_error_keys[node.func.id]
+                    )
+
             self.generic_visit(node)
 
         def _record_errors(self, target: ast.AST, value: ast.AST | None) -> None:
@@ -441,3 +638,4 @@ def _extract_config_flow_keys() -> set[str]:
     FlowVisitor().visit(config_tree)
 
     return keys
+
