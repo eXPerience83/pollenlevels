@@ -218,9 +218,9 @@ def test_sensor_translation_keys_present() -> None:
         if tkey not in english:
             missing.append(tkey)
 
-    assert not missing, "Missing sensor/device translation keys in en.json: " + ", ".join(
-        missing
-    )
+    assert (
+        not missing
+    ), "Missing sensor/device translation keys in en.json: " + ", ".join(missing)
 
 
 def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:
@@ -334,7 +334,9 @@ def _extract_schema_fields(
             "_user_schema",
             "_options_schema",
         }:
-            returns = [child for child in ast.walk(node) if isinstance(child, ast.Return)]
+            returns = [
+                child for child in ast.walk(node) if isinstance(child, ast.Return)
+            ]
             for ret in returns:
                 if isinstance(ret.value, ast.Call):
                     fields.setdefault(node.name, set()).update(
@@ -372,7 +374,9 @@ def _extract_helper_error_keys(tree: ast.AST) -> dict[str, set[str]]:
             for kw in call.keywords:
                 if kw.arg != "error_key":
                     continue
-                if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                if isinstance(kw.value, ast.Constant) and isinstance(
+                    kw.value.value, str
+                ):
                     emitted.add(kw.value.value)
                 else:
                     _fail_unexpected_ast(
@@ -638,4 +642,3 @@ def _extract_config_flow_keys() -> set[str]:
     FlowVisitor().visit(config_tree)
 
     return keys
-
