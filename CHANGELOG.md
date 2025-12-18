@@ -36,6 +36,8 @@
 - Hardened the runtime pollen client with sanitized `Referer` headers,
   normalized error parsing, and strict JSON validation to avoid leaking secrets
   while surfacing consistent failures.
+- Reformatted the codebase with Black and Ruff to keep imports and styling
+  consistent with repository standards.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
