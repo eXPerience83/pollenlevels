@@ -4,6 +4,8 @@ These tests ensure:
 - All locale files have the exact same keyset as en.json (en.json is the source of truth).
 - Translation keys referenced by config_flow.py (config + options flows) exist in en.json.
 - Translation keys referenced by sensor.py via entity/device translation_key exist in en.json.
+- Translation keys for sections (step.*.sections.*) are present if schema uses ``section(...)``.
+- Translation keys for services declared in services.yaml exist in en.json.
 
 The config_flow extraction uses an AST walker. If config_flow.py changes structure in
 unexpected ways, the helpers should fail loudly so we don't silently lose coverage.
@@ -13,6 +15,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +30,7 @@ TRANSLATIONS_DIR = COMPONENT_DIR / "translations"
 CONFIG_FLOW_PATH = COMPONENT_DIR / "config_flow.py"
 CONST_PATH = COMPONENT_DIR / "const.py"
 SENSOR_PATH = COMPONENT_DIR / "sensor.py"
+SERVICES_YAML_PATH = COMPONENT_DIR / "services.yaml"
 
 
 def _fail_unexpected_ast(context: str) -> None:
@@ -58,6 +62,26 @@ def _load_translation(path: Path) -> dict[str, Any]:
         raise AssertionError(f"Missing translation file: {path}")
     with path.open("r", encoding="utf-8") as file:
         return json.load(file)
+
+
+def _extract_services_from_services_yaml() -> set[str]:
+    """Extract top-level service names from services.yaml without requiring PyYAML."""
+
+    if not SERVICES_YAML_PATH.is_file():
+        return set()
+
+    services: set[str] = set()
+    for line in SERVICES_YAML_PATH.read_text(encoding="utf-8").splitlines():
+        raw = line.rstrip("\n")
+        if not raw or raw.lstrip().startswith("#"):
+            continue
+        if raw.startswith(" "):
+            continue
+        match = re.match(r"^([a-zA-Z0-9_]+):\s*$", raw)
+        if match:
+            services.add(match.group(1))
+
+    return services
 
 
 def _extract_sensor_translation_key_usage() -> tuple[set[str], set[str]]:
@@ -223,6 +247,26 @@ def test_sensor_translation_keys_present() -> None:
     ), "Missing sensor/device translation keys in en.json: " + ", ".join(missing)
 
 
+def test_services_translation_keys_present() -> None:
+    """Ensure services declared in services.yaml have translations in en.json."""
+
+    english = _flatten_keys(_load_translation(TRANSLATIONS_DIR / "en.json"))
+    service_names = _extract_services_from_services_yaml()
+    if not service_names:
+        return
+
+    missing: list[str] = []
+    for service in sorted(service_names):
+        for suffix in ("name", "description"):
+            key = f"services.{service}.{suffix}"
+            if key not in english:
+                missing.append(key)
+
+    assert not missing, "Missing service translation keys in en.json: " + ", ".join(
+        missing
+    )
+
+
 def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:
     """Collect string literal assignments from an AST.
 
@@ -259,8 +303,10 @@ def _resolve_name(name: str, mapping: dict[str, str]) -> str | None:
     return mapping.get(name)
 
 
-def _fields_from_section_value(value: ast.AST, mapping: dict[str, str]) -> set[str]:
-    """Extract fields from a section(...) value."""
+def _fields_from_section_value(
+    value: ast.AST, mapping: dict[str, str]
+) -> tuple[set[str], set[str]]:
+    """Extract fields and nested section IDs from a section(...) value."""
 
     if isinstance(value, ast.Dict):
         return _fields_from_schema_dict(value, mapping)
@@ -268,15 +314,16 @@ def _fields_from_section_value(value: ast.AST, mapping: dict[str, str]) -> set[s
         if isinstance(value.func, ast.Attribute) and value.func.attr == "Schema":
             return _fields_from_schema_call(value, mapping)
     _fail_unexpected_ast("unexpected section value AST")
-    return set()
+    return set(), set()
 
 
 def _fields_from_schema_dict(
     schema_dict: ast.Dict, mapping: dict[str, str]
-) -> set[str]:
-    """Extract field keys from an AST dict representing a schema."""
+) -> tuple[set[str], set[str]]:
+    """Extract field keys and section IDs from an AST dict representing a schema."""
 
     fields: set[str] = set()
+    sections: set[str] = set()
     for key_node, value_node in zip(schema_dict.keys, schema_dict.values, strict=False):
         if not isinstance(key_node, ast.Call):
             _fail_unexpected_ast("schema key wrapper")
@@ -298,19 +345,40 @@ def _fields_from_schema_dict(
                     _fail_unexpected_ast(f"unmapped selector {selector.id}")
             else:
                 _fail_unexpected_ast("selector type")
-        elif isinstance(key_node.func, ast.Name) and key_node.func.id == "section":
-            fields.update(_fields_from_section_value(value_node, mapping))
-        else:
-            _fail_unexpected_ast("unexpected schema call wrapper")
-    return fields
+            continue
+
+        if isinstance(key_node.func, ast.Name) and key_node.func.id == "section":
+            if not key_node.args:
+                _fail_unexpected_ast("section() missing section id")
+            section_id_node = key_node.args[0]
+            if isinstance(section_id_node, ast.Constant) and isinstance(
+                section_id_node.value, str
+            ):
+                sections.add(section_id_node.value)
+            elif isinstance(section_id_node, ast.Name):
+                resolved = _resolve_name(section_id_node.id, mapping)
+                if resolved:
+                    sections.add(resolved)
+                else:
+                    _fail_unexpected_ast(f"unmapped section id {section_id_node.id}")
+            else:
+                _fail_unexpected_ast("section id type")
+
+            section_fields, nested_sections = _fields_from_section_value(
+                value_node, mapping
+            )
+            fields.update(section_fields)
+            sections.update(nested_sections)
+            continue
+
+        _fail_unexpected_ast("unexpected schema call wrapper")
+    return fields, sections
 
 
-def _fields_from_schema_call(call: ast.Call, mapping: dict[str, str]) -> set[str]:
-    """Extract field keys from a vol.Schema(...) call.
-
-    Looks for patterns like:
-        vol.Schema({vol.Required(CONF_USERNAME): str, ...})
-    """
+def _fields_from_schema_call(
+    call: ast.Call, mapping: dict[str, str]
+) -> tuple[set[str], set[str]]:
+    """Extract field keys and section IDs from a vol.Schema(...) call."""
 
     if not call.args or not isinstance(call.args[0], ast.Dict):
         _fail_unexpected_ast("schema call arguments")
@@ -320,15 +388,10 @@ def _fields_from_schema_call(call: ast.Call, mapping: dict[str, str]) -> set[str
 
 def _extract_schema_fields(
     tree: ast.AST, mapping: dict[str, str]
-) -> dict[str, set[str]]:
-    """Map schema helper names to their field keys.
+) -> dict[str, tuple[set[str], set[str]]]:
+    """Map schema helper names to (fields, sections)."""
 
-    Collects:
-    - Functions like _user_schema / _options_schema returning vol.Schema(...)
-    - Top-level assignments like USER_SCHEMA = vol.Schema(...)
-    """
-
-    fields: dict[str, set[str]] = {}
+    schemas: dict[str, tuple[set[str], set[str]]] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name in {
             "_user_schema",
@@ -339,8 +402,11 @@ def _extract_schema_fields(
             ]
             for ret in returns:
                 if isinstance(ret.value, ast.Call):
-                    fields.setdefault(node.name, set()).update(
-                        _fields_from_schema_call(ret.value, mapping)
+                    fields, sections = _fields_from_schema_call(ret.value, mapping)
+                    prev_fields, prev_sections = schemas.get(node.name, (set(), set()))
+                    schemas[node.name] = (
+                        prev_fields | fields,
+                        prev_sections | sections,
                     )
 
         if isinstance(node, ast.Assign):
@@ -351,10 +417,13 @@ def _extract_schema_fields(
                 and node.value.func.attr == "Schema"
             ):
                 name = node.targets[0].id
-                fields.setdefault(name, set()).update(
-                    _fields_from_schema_call(node.value, mapping)
+                fields, sections = _fields_from_schema_call(node.value, mapping)
+                prev_fields, prev_sections = schemas.get(name, (set(), set()))
+                schemas[name] = (
+                    prev_fields | fields,
+                    prev_sections | sections,
                 )
-    return fields
+    return schemas
 
 
 def _extract_helper_error_keys(tree: ast.AST) -> dict[str, set[str]]:
@@ -407,6 +476,7 @@ def _extract_config_flow_keys() -> set[str]:
     - config.step.<step_id>.title
     - config.step.<step_id>.description
     - config.step.<step_id>.data.<field>
+    - config.step.<step_id>.sections.<section_id>
     - config.error.<code>
     - config.abort.<reason>
     And the equivalent options.* keys for options flows.
@@ -435,7 +505,7 @@ def _extract_config_flow_keys() -> set[str]:
         mapping.update(_extract_constant_assignments(const_tree))
     mapping.update(_extract_constant_assignments(config_tree))
 
-    schema_fields = _extract_schema_fields(config_tree, mapping)
+    schema_info = _extract_schema_fields(config_tree, mapping)
 
     # Helper functions can return error keys indirectly (e.g., interval_error/days_error).
     helper_error_keys = _extract_helper_error_keys(config_tree)
@@ -536,7 +606,9 @@ def _extract_config_flow_keys() -> set[str]:
     class FlowVisitor(ast.NodeVisitor):
         def __init__(self) -> None:
             self.class_stack: list[str] = []
-            self.local_schema_vars: dict[str, set[str]] = dict(schema_fields)
+            self.local_schema_vars: dict[str, tuple[set[str], set[str]]] = dict(
+                schema_info
+            )
 
         def visit_ClassDef(self, node: ast.ClassDef) -> None:  # noqa: N802
             self.class_stack.append(node.name)
@@ -576,6 +648,7 @@ def _extract_config_flow_keys() -> set[str]:
             step_id: str | None = None
             schema_name: str | None = None
             inline_schema_fields: set[str] = set()
+            inline_sections: set[str] = set()
 
             for kw in node.keywords:
                 if kw.arg == "step_id" and isinstance(kw.value, ast.Constant):
@@ -588,9 +661,11 @@ def _extract_config_flow_keys() -> set[str]:
                             isinstance(kw.value.func, ast.Attribute)
                             and kw.value.func.attr == "Schema"
                         ):
-                            inline_schema_fields.update(
-                                _fields_from_schema_call(kw.value, mapping)
+                            fields, sections = _fields_from_schema_call(
+                                kw.value, mapping
                             )
+                            inline_schema_fields.update(fields)
+                            inline_sections.update(sections)
                 if kw.arg == "errors":
                     if isinstance(kw.value, ast.Dict):
                         for err_value in kw.value.values:
@@ -624,11 +699,16 @@ def _extract_config_flow_keys() -> set[str]:
             keys.add(f"{prefix}.step.{step_id}.description")
 
             if schema_name and schema_name in self.local_schema_vars:
-                for field in self.local_schema_vars[schema_name]:
+                fields, sections = self.local_schema_vars[schema_name]
+                for field in fields:
                     keys.add(f"{prefix}.step.{step_id}.data.{field}")
+                for section_id in sections:
+                    keys.add(f"{prefix}.step.{step_id}.sections.{section_id}")
 
             for field in inline_schema_fields:
                 keys.add(f"{prefix}.step.{step_id}.data.{field}")
+            for section_id in inline_sections:
+                keys.add(f"{prefix}.step.{step_id}.sections.{section_id}")
 
         def _handle_abort(self, node: ast.Call, prefix: str) -> None:
             for kw in node.keywords:
