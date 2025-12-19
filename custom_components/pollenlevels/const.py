@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 # Define constants for Pollen Levels integration
@@ -34,7 +36,7 @@ RESTRICTING_API_KEYS_URL = (
 )
 
 # Allowed values for create_forecast_sensors selector
-FORECAST_SENSORS_CHOICES = ["none", "D+1", "D+1+2"]
+FORECAST_SENSORS_CHOICES: list[str] = ["none", "D+1", "D+1+2"]
 
 
 def is_invalid_api_key_message(message: str | None) -> bool:
