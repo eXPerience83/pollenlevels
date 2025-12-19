@@ -262,6 +262,9 @@ def _load_module(module_name: str, relative_path: str):
 
 
 const = _load_module("custom_components.pollenlevels.const", "const.py")
+coordinator_mod = _load_module(
+    "custom_components.pollenlevels.coordinator", "coordinator.py"
+)
 sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
 client_mod = importlib.import_module("custom_components.pollenlevels.client")
 
@@ -440,7 +443,7 @@ def test_type_sensor_preserves_source_with_single_day(
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -476,7 +479,7 @@ def test_coordinator_clamps_forecast_days_low() -> None:
     client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -503,7 +506,7 @@ def test_coordinator_clamps_forecast_days_negative() -> None:
     client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -530,7 +533,7 @@ def test_coordinator_clamps_forecast_days_high() -> None:
     client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -557,7 +560,7 @@ def test_coordinator_keeps_forecast_days_within_range() -> None:
     client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -630,7 +633,7 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -740,7 +743,7 @@ def test_plant_sensor_includes_forecast_attributes(
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -830,7 +833,7 @@ def test_coordinator_raises_auth_failed() -> None:
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="bad",
         lat=1.0,
@@ -859,7 +862,7 @@ def test_coordinator_handles_forbidden() -> None:
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="bad",
         lat=1.0,
@@ -889,7 +892,7 @@ def test_coordinator_invalid_key_message_triggers_reauth() -> None:
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="bad",
         lat=1.0,
@@ -941,7 +944,7 @@ def test_coordinator_retries_then_raises_on_rate_limit(
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -1000,7 +1003,7 @@ def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> N
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -1044,7 +1047,7 @@ def test_coordinator_retries_then_raises_on_server_errors(
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -1086,7 +1089,7 @@ def test_coordinator_retries_then_wraps_timeout(
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -1133,7 +1136,7 @@ def test_coordinator_retries_then_wraps_client_error(
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="secret",
         lat=1.0,
@@ -1204,7 +1207,7 @@ async def test_device_info_uses_default_title_when_blank(
 
     client = client_mod.GooglePollenApiClient(FakeSession({}), "key")
     clean_title = sensor.DEFAULT_ENTRY_TITLE
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
         lat=1.0,
@@ -1259,7 +1262,7 @@ async def test_device_info_trims_custom_title(
 
     client = client_mod.GooglePollenApiClient(FakeSession({}), "key")
     clean_title = config_entry.title.strip()
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
         lat=1.0,
