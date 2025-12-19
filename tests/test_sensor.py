@@ -368,7 +368,6 @@ class SequenceSession:
 class RegistryEntry(NamedTuple):
     """Entity registry entry stub."""
 
-    entry_id: str
     entity_id: str
     unique_id: str
     domain: str
@@ -816,21 +815,18 @@ def test_cleanup_per_day_entities_removes_disabled_days(
 
     entries = [
         RegistryEntry(
-            "entry_type_grass",
             "sensor.pollen_type_grass",
             "entry_type_grass",
             "sensor",
             sensor.DOMAIN,
         ),
         RegistryEntry(
-            "entry_type_grass_d1",
             "sensor.pollen_type_grass_d1",
             "entry_type_grass_d1",
             "sensor",
             sensor.DOMAIN,
         ),
         RegistryEntry(
-            "entry_type_grass_d2",
             "sensor.pollen_type_grass_d2",
             "entry_type_grass_d2",
             "sensor",
