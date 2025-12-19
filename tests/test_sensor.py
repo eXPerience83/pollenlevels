@@ -370,6 +370,9 @@ class RegistryEntry(NamedTuple):
 
     entry_id: str
     entity_id: str
+    unique_id: str
+    domain: str
+    platform: str
 
 
 class RegistryStub:
@@ -382,7 +385,15 @@ class RegistryStub:
 
     def async_entries_for_config_entry(self, _registry, entry_id: str):
         assert entry_id == self._entry_id
-        return [types.SimpleNamespace(entity_id=e.entity_id) for e in self._entries]
+        return [
+            types.SimpleNamespace(
+                entity_id=e.entity_id,
+                unique_id=e.unique_id,
+                domain=e.domain,
+                platform=e.platform,
+            )
+            for e in self._entries
+        ]
 
     async def async_remove(self, entity_id: str) -> None:
         self.removals.append(entity_id)
@@ -804,9 +815,27 @@ def test_cleanup_per_day_entities_removes_disabled_days(
     """D+1/D+2 entities are awaited and removed when disabled."""
 
     entries = [
-        RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
-        RegistryEntry("entry_type_grass_d1", "sensor.pollen_type_grass_d1"),
-        RegistryEntry("entry_type_grass_d2", "sensor.pollen_type_grass_d2"),
+        RegistryEntry(
+            "entry_type_grass",
+            "sensor.pollen_type_grass",
+            "entry_type_grass",
+            "sensor",
+            sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "entry_type_grass_d1",
+            "sensor.pollen_type_grass_d1",
+            "entry_type_grass_d1",
+            "sensor",
+            sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "entry_type_grass_d2",
+            "sensor.pollen_type_grass_d2",
+            "entry_type_grass_d2",
+            "sensor",
+            sensor.DOMAIN,
+        ),
     ]
     registry = _setup_registry_stub(monkeypatch, entries, entry_id="entry")
 
