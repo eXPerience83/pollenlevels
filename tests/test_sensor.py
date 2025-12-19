@@ -395,13 +395,14 @@ def _setup_registry_stub(
 
     registry = RegistryStub(entries, entry_id=entry_id)
 
+    # In Home Assistant, `async_remove()` is a method of the registry object returned by
+    # `entity_registry.async_get(hass)`, not a module-level function.
     monkeypatch.setattr(sensor.er, "async_get", lambda hass: registry)
     monkeypatch.setattr(
         sensor.er,
         "async_entries_for_config_entry",
         registry.async_entries_for_config_entry,
     )
-    monkeypatch.setattr(sensor.er, "async_remove", registry.async_remove)
 
     return registry
 
