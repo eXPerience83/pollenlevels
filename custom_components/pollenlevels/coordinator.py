@@ -290,7 +290,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             idx = pitem.get("indexInfo", {}) or {}
             desc = pitem.get("plantDescription", {}) or {}
             rgb = _rgb_from_api(idx.get("color"))
-            key = f"plants_{(code or '').lower()}"
+            key = f"plants_{code.lower()}"
             new_data[key] = {
                 "source": "plant",
                 "value": idx.get("value"),
