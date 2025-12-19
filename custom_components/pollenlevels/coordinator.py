@@ -241,6 +241,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         type_codes: set[str] = set()
         for day in daily:
             for item in day.get("pollenTypeInfo", []) or []:
+                if not isinstance(item, dict):
+                    continue
                 code = (item.get("code") or "").upper()
                 if code:
                     type_codes.add(code)
@@ -248,6 +250,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         def _find_type(day: dict, code: str) -> dict | None:
             """Find a pollen TYPE entry by code inside a day's 'pollenTypeInfo'."""
             for item in day.get("pollenTypeInfo", []) or []:
+                if not isinstance(item, dict):
+                    continue
                 if (item.get("code") or "").upper() == code:
                     return item
             return None
@@ -255,6 +259,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         def _find_plant(day: dict, code: str) -> dict | None:
             """Find a PLANT entry by code inside a day's 'plantInfo'."""
             for item in day.get("plantInfo", []) or []:
+                if not isinstance(item, dict):
+                    continue
                 if (item.get("code") or "") == code:
                     return item
             return None
@@ -262,7 +268,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         # Current-day TYPES
         for tcode in type_codes:
             titem = _find_type(first_day, tcode) or {}
-            idx = (titem.get("indexInfo") or {}) if isinstance(titem, dict) else {}
+            idx_raw = titem.get("indexInfo")
+            idx = idx_raw if isinstance(idx_raw, dict) else {}
             rgb = _rgb_from_api(idx.get("color"))
             key = f"type_{tcode.lower()}"
             new_data[key] = {
@@ -282,13 +289,17 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         # Current-day PLANTS
         for pitem in first_day.get("plantInfo", []) or []:
+            if not isinstance(pitem, dict):
+                continue
             code = pitem.get("code")
             # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
             # and silent overwrites. This is robust and avoids creating unstable entities.
             if not code:
                 continue
-            idx = pitem.get("indexInfo", {}) or {}
-            desc = pitem.get("plantDescription", {}) or {}
+            idx_raw = pitem.get("indexInfo")
+            idx = idx_raw if isinstance(idx_raw, dict) else {}
+            desc_raw = pitem.get("plantDescription")
+            desc = desc_raw if isinstance(desc_raw, dict) else {}
             rgb = _rgb_from_api(idx.get("color"))
             key = f"plants_{code.lower()}"
             new_data[key] = {
@@ -358,8 +369,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     break
                 date_str, _ = _extract_day_info(day)
                 item = _find_type(day, tcode) or {}
-                idx = item.get("indexInfo") if isinstance(item, dict) else None
-                has_index = isinstance(idx, dict)
+                idx_raw = item.get("indexInfo")
+                idx = idx_raw if isinstance(idx_raw, dict) else None
+                has_index = idx is not None
                 rgb = _rgb_from_api(idx.get("color")) if has_index else None
                 forecast_list.append(
                     {
@@ -451,8 +463,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     break
                 date_str, _ = _extract_day_info(day)
                 item = _find_plant(day, pcode) or {}
-                idx = item.get("indexInfo") if isinstance(item, dict) else None
-                has_index = isinstance(idx, dict)
+                idx_raw = item.get("indexInfo")
+                idx = idx_raw if isinstance(idx_raw, dict) else None
+                has_index = idx is not None
                 rgb = _rgb_from_api(idx.get("color")) if has_index else None
                 forecast_list.append(
                     {
