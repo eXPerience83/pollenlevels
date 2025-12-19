@@ -107,11 +107,18 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
                 options=FORECAST_SENSORS_CHOICES,
             )
         ),
-        section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): {
-            vol.Optional(CONF_HTTP_REFERER, default=""): TextSelector(
-                TextSelectorConfig(type=TextSelectorType.TEXT)
-            ),
-        },
+        # NOTE: HA's voluptuous serializer can't convert nested dict mappings directly.
+        # Wrap the section body in vol.Schema(...) to make it serializable and valid.
+        section(
+            SECTION_API_KEY_OPTIONS,
+            SectionConfig(collapsed=True),
+        ): vol.Schema(
+            {
+                vol.Optional(CONF_HTTP_REFERER, default=""): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.TEXT)
+                ),
+            }
+        ),
     }
 )
 
