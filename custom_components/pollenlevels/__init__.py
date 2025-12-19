@@ -36,8 +36,9 @@ from .const import (
     DOMAIN,
     normalize_http_referer,
 )
+from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
-from .sensor import ForecastSensorMode, PollenDataUpdateCoordinator
+from .sensor import ForecastSensorMode
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)

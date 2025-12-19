@@ -36,6 +36,8 @@
 - Hardened the runtime pollen client with sanitized `Referer` headers,
   normalized error parsing, and strict JSON validation to avoid leaking secrets
   while surfacing consistent failures.
+- Reduced debug log volume by summarizing coordinator refreshes and sensor
+  creation details instead of logging full payloads.
 - Reformatted the codebase with Black and Ruff to keep imports and styling
   consistent with repository standards.
 - Expanded translation coverage tests to include section titles and service
