@@ -297,6 +297,48 @@ def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:
     return constants
 
 
+def _extract_schema_key_aliases(
+    tree: ast.AST, mapping: dict[str, str]
+) -> dict[str, str]:
+    """Extract schema key wrapper aliases like location_field = vol.Required(CONF_LOCATION)."""
+
+    aliases: dict[str, str] = {}
+    for node in ast.walk(tree):
+        target: ast.AST | None = None
+        if isinstance(node, ast.Assign):
+            if len(node.targets) != 1:
+                continue
+            target = node.targets[0]
+        elif isinstance(node, ast.AnnAssign):
+            target = node.target
+
+        if not isinstance(target, ast.Name):
+            continue
+
+        value = node.value if hasattr(node, "value") else None
+        if not isinstance(value, ast.Call):
+            continue
+
+        if not (
+            isinstance(value.func, ast.Attribute)
+            and value.func.attr in {"Required", "Optional"}
+        ):
+            continue
+
+        if not value.args:
+            continue
+
+        selector = value.args[0]
+        if isinstance(selector, ast.Constant) and isinstance(selector.value, str):
+            aliases[target.id] = selector.value
+        elif isinstance(selector, ast.Name):
+            resolved = _resolve_name(selector.id, mapping)
+            if resolved:
+                aliases[target.id] = resolved
+
+    return aliases
+
+
 def _resolve_name(name: str, mapping: dict[str, str]) -> str | None:
     """Resolve a variable name to its string value if known."""
 
@@ -325,6 +367,12 @@ def _fields_from_schema_dict(
     fields: set[str] = set()
     sections: set[str] = set()
     for key_node, value_node in zip(schema_dict.keys, schema_dict.values, strict=False):
+        if isinstance(key_node, ast.Name):
+            resolved = _resolve_name(key_node.id, mapping)
+            if resolved:
+                fields.add(resolved)
+                continue
+            _fail_unexpected_ast(f"unmapped schema key {key_node.id}")
         if not isinstance(key_node, ast.Call):
             _fail_unexpected_ast("schema key wrapper")
 
@@ -506,6 +554,7 @@ def _extract_config_flow_keys() -> set[str]:
     if const_tree is not None:
         mapping.update(_extract_constant_assignments(const_tree))
     mapping.update(_extract_constant_assignments(config_tree))
+    mapping.update(_extract_schema_key_aliases(config_tree, mapping))
 
     schema_info = _extract_schema_fields(config_tree, mapping)
 
