@@ -238,6 +238,7 @@ sys.modules.setdefault(
 integration = importlib.import_module(
     "custom_components.pollenlevels.__init__"
 )  # noqa: E402
+const = importlib.import_module("custom_components.pollenlevels.const")  # noqa: E402
 
 
 class _FakeConfigEntries:
@@ -492,5 +493,5 @@ def test_migrate_entry_normalizes_invalid_mode() -> None:
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert (
         entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
-        == integration.FORECAST_SENSORS_CHOICES[0]
+        == const.FORECAST_SENSORS_CHOICES[0]
     )
