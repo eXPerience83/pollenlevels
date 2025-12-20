@@ -25,6 +25,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
+from homeassistant.data_entry_flow import SectionConfig, section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     LocationSelector,
@@ -38,7 +39,6 @@ from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
-    section,
 )
 
 from .const import (
@@ -117,6 +117,12 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     """Build the full step user schema without flattening nested sections."""
     user_input = user_input or {}
 
+    http_referer_default = user_input.get(CONF_HTTP_REFERER, "")
+    if not http_referer_default:
+        section_values = user_input.get(SECTION_API_KEY_OPTIONS)
+        if isinstance(section_values, dict):
+            http_referer_default = section_values.get(CONF_HTTP_REFERER, "")
+
     default_name = str(
         user_input.get(CONF_NAME)
         or getattr(hass.config, "location_name", "")
@@ -179,10 +185,10 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     options=FORECAST_SENSORS_CHOICES,
                 )
             ),
-            section(SECTION_API_KEY_OPTIONS): {
+            section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): {
                 vol.Optional(
                     CONF_HTTP_REFERER,
-                    default=user_input.get(CONF_HTTP_REFERER, ""),
+                    default=http_referer_default,
                 ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
             },
         }
