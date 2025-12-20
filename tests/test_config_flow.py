@@ -268,6 +268,7 @@ selector_mod.TextSelectorType = _TextSelectorType
 selector_mod.SelectSelector = _SelectSelector
 selector_mod.SelectSelectorConfig = _SelectSelectorConfig
 selector_mod.SelectSelectorMode = _SelectSelectorMode
+selector_mod.section = lambda key: key
 _force_module("homeassistant.helpers.selector", selector_mod)
 
 ha_mod.helpers = helpers_mod
