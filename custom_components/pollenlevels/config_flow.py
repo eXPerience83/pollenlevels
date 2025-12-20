@@ -751,7 +751,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = normalized_input[CONF_FORECAST_DAYS]
                 mode = normalized_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
-                    self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                    current_mode,
                 )
                 mode = normalize_sensor_mode(mode, _LOGGER)
                 normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
