@@ -13,6 +13,8 @@
   during migration to keep options consistent.
 - Versioned config entries to ensure the per-day sensor mode migration runs
   once and is not repeated on every restart.
+- Moved the optional API key section directly below the API key field in the
+  setup flow for improved visibility.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
