@@ -449,7 +449,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key)
             placeholders["error_message"] = (
-                redacted or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
+                redacted
+                or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
             )
         except aiohttp.ClientError as err:
             _LOGGER.error(
