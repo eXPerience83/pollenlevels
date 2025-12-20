@@ -263,6 +263,10 @@ class _FakeConfigEntries:
         self.unload_calls.append((entry, platforms))
         return self._unload_result
 
+    def async_update_entry(self, entry, **kwargs):
+        if "options" in kwargs:
+            entry.options = kwargs["options"]
+
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
         self.reload_calls.append(entry_id)
 
@@ -453,3 +457,40 @@ def test_force_update_requests_refresh_per_entry() -> None:
 
     assert entry1.runtime_data.coordinator.calls == ["refresh"]
     assert entry2.runtime_data.coordinator.calls == ["refresh"]
+
+
+def test_migrate_entry_moves_mode_to_options() -> None:
+    """Migration should copy per-day sensor mode from data to options."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+        options={},
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
+
+
+def test_migrate_entry_normalizes_invalid_mode() -> None:
+    """Migration should normalize invalid per-day sensor mode values."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "bad-value",
+        },
+        options={},
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert (
+        entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
+        == integration.FORECAST_SENSORS_CHOICES[0]
+    )

@@ -34,6 +34,7 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    FORECAST_SENSORS_CHOICES,
     normalize_http_referer,
 )
 from .coordinator import PollenDataUpdateCoordinator
@@ -46,6 +47,34 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 _LOGGER = logging.getLogger(__name__)
 
 # ---- Service -------------------------------------------------------------
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate config entry data to options when needed."""
+    try:
+        opt_mode = entry.options.get(CONF_CREATE_FORECAST_SENSORS)
+        if opt_mode is not None:
+            return True
+
+        data_mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
+        if data_mode is None:
+            return True
+
+        normalized_mode = data_mode
+        if normalized_mode not in FORECAST_SENSORS_CHOICES:
+            _LOGGER.warning(
+                "Invalid stored per-day sensor mode '%s'; defaulting to '%s'",
+                normalized_mode,
+                FORECAST_SENSORS_CHOICES[0],
+            )
+            normalized_mode = FORECAST_SENSORS_CHOICES[0]
+
+        new_options = {**entry.options, CONF_CREATE_FORECAST_SENSORS: normalized_mode}
+        hass.config_entries.async_update_entry(entry, options=new_options)
+        return True
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception("Failed to migrate per-day sensor mode to entry options")
+        return False
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:

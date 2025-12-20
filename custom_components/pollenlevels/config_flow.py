@@ -666,7 +666,17 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_FORECAST_DAYS,
             self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
-        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
+        current_mode = self.entry.options.get(
+            CONF_CREATE_FORECAST_SENSORS,
+            self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+        )
+        if current_mode not in FORECAST_SENSORS_CHOICES:
+            _LOGGER.warning(
+                "Invalid stored per-day sensor mode '%s'; defaulting to '%s'",
+                current_mode,
+                FORECAST_SENSORS_CHOICES[0],
+            )
+            current_mode = FORECAST_SENSORS_CHOICES[0]
 
         options_schema = vol.Schema(
             {
@@ -747,8 +757,19 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = normalized_input[CONF_FORECAST_DAYS]
                 mode = normalized_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
-                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                    self.entry.options.get(
+                        CONF_CREATE_FORECAST_SENSORS,
+                        self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                    ),
                 )
+                if mode not in FORECAST_SENSORS_CHOICES:
+                    _LOGGER.warning(
+                        "Invalid per-day sensor mode '%s'; defaulting to '%s'",
+                        mode,
+                        FORECAST_SENSORS_CHOICES[0],
+                    )
+                    mode = FORECAST_SENSORS_CHOICES[0]
+                    normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
                 needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
                 if days < needed:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"

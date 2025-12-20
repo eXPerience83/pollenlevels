@@ -1,4 +1,13 @@
 # Changelog
+## [1.9.0-alpha4] - 2025-12-20
+### Fixed
+- Fixed options flow to preserve the stored per-day sensor mode when no override
+  is set in entry options, preventing unintended resets to "none".
+- Normalized invalid stored per-day sensor mode values in the options flow to
+  avoid persisting unsupported selector choices.
+- Migrated per-day sensor mode to entry options when stored in entry data to
+  prevent option resets after upgrades.
+
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
 - Fixed config flow crash (500) caused by invalid section schema serialization;
