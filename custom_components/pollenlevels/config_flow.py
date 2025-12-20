@@ -25,7 +25,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
-from homeassistant.data_entry_flow import SectionConfig, section
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     LocationSelector,
@@ -187,13 +187,16 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     options=FORECAST_SENSORS_CHOICES,
                 )
             ),
-            section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_HTTP_REFERER,
-                        default=http_referer_default,
-                    ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
-                }
+            vol.Optional(SECTION_API_KEY_OPTIONS, default={}): section(
+                vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_HTTP_REFERER,
+                            default=http_referer_default,
+                        ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
+                    }
+                ),
+                {"collapsed": True},
             ),
         }
     )
@@ -239,9 +242,6 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     mode=SelectSelectorMode.DROPDOWN,
                     options=FORECAST_SENSORS_CHOICES,
                 )
-            ),
-            vol.Optional(CONF_HTTP_REFERER, default=http_referer_default): TextSelector(
-                TextSelectorConfig(type=TextSelectorType.TEXT)
             ),
         }
     )
@@ -562,10 +562,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             sanitized_input: dict[str, Any] = dict(user_input)
 
             # Backward/forward compatible extraction if the UI ever posts a section payload.
-            section_values = sanitized_input.get(SECTION_API_KEY_OPTIONS)
-            raw_http_referer = sanitized_input.get(CONF_HTTP_REFERER)
-            if raw_http_referer is None and isinstance(section_values, dict):
+            section_values = sanitized_input.get(SECTION_API_KEY_OPTIONS, {})
+            raw_http_referer = None
+            if isinstance(section_values, dict):
                 raw_http_referer = section_values.get(CONF_HTTP_REFERER)
+            if raw_http_referer is None:
+                raw_http_referer = sanitized_input.get(CONF_HTTP_REFERER)
             sanitized_input.pop(SECTION_API_KEY_OPTIONS, None)
 
             sanitized_input.pop(CONF_HTTP_REFERER, None)

@@ -383,16 +383,35 @@ def _fields_from_schema_dict(
             if not key_node.args:
                 _fail_unexpected_ast("schema key args")
             selector = key_node.args[0]
+            selector_value: str | None = None
             if isinstance(selector, ast.Constant) and isinstance(selector.value, str):
-                fields.add(selector.value)
+                selector_value = selector.value
             elif isinstance(selector, ast.Name):
-                resolved = _resolve_name(selector.id, mapping)
-                if resolved:
-                    fields.add(resolved)
-                else:
+                selector_value = _resolve_name(selector.id, mapping)
+                if selector_value is None:
                     _fail_unexpected_ast(f"unmapped selector {selector.id}")
             else:
                 _fail_unexpected_ast("selector type")
+
+            if (
+                isinstance(value_node, ast.Call)
+                and isinstance(value_node.func, ast.Name)
+                and value_node.func.id == "section"
+            ):
+                if selector_value is None:
+                    _fail_unexpected_ast("section selector missing")
+                sections.add(selector_value)
+                if not value_node.args:
+                    _fail_unexpected_ast("section() missing schema value")
+                section_fields, nested_sections = _fields_from_section_value(
+                    value_node.args[0], mapping
+                )
+                fields.update(section_fields)
+                sections.update(nested_sections)
+                continue
+
+            if selector_value is not None:
+                fields.add(selector_value)
             continue
 
         if isinstance(key_node.func, ast.Name) and key_node.func.id == "section":
