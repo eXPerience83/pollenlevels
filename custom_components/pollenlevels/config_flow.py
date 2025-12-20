@@ -562,7 +562,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             sanitized_input: dict[str, Any] = dict(user_input)
 
             # Backward/forward compatible extraction if the UI ever posts a section payload.
-            section_values = sanitized_input.get(SECTION_API_KEY_OPTIONS, {})
+            section_values = sanitized_input.get(SECTION_API_KEY_OPTIONS)
             raw_http_referer = None
             if isinstance(section_values, dict):
                 raw_http_referer = section_values.get(CONF_HTTP_REFERER)
