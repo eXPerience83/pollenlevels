@@ -3,6 +3,8 @@
 ### Fixed
 - Restored the optional API key options section in the config flow so the HTTP
   Referer field stays collapsed and avoids nested schema serialization errors.
+- Added a fallback error message when unexpected client exceptions are raised to
+  avoid empty UpdateFailed errors in the UI.
 
 ## [1.9.0-alpha2] - 2025-12-16
 ### Changed

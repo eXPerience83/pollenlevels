@@ -236,5 +236,7 @@ class GooglePollenApiClient:
                 raise
             except Exception as err:  # noqa: BLE001
                 msg = redact_api_key(err, self._api_key)
+                if not msg:
+                    msg = "Unexpected error while calling the Google Pollen API"
                 _LOGGER.error("Pollen API error: %s", msg)
                 raise UpdateFailed(msg) from err
