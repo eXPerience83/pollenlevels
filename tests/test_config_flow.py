@@ -145,6 +145,7 @@ def _longitude(value=None):
 config_validation_mod.latitude = _latitude
 config_validation_mod.longitude = _longitude
 config_validation_mod.string = lambda value=None: value
+config_validation_mod.custom_serializer = lambda *args, **kwargs: None
 _force_module("homeassistant.helpers.config_validation", config_validation_mod)
 
 aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
@@ -314,6 +315,10 @@ vol_mod.Coerce = lambda *args, **kwargs: None
 vol_mod.Range = lambda *args, **kwargs: None
 vol_mod.In = lambda *args, **kwargs: None
 _force_module("voluptuous", vol_mod)
+
+voluptuous_serialize_mod = ModuleType("voluptuous_serialize")
+voluptuous_serialize_mod.convert = lambda *args, **kwargs: {}
+_force_module("voluptuous_serialize", voluptuous_serialize_mod)
 
 from homeassistant.const import (
     CONF_LATITUDE,

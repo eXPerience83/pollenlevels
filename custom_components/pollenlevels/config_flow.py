@@ -143,9 +143,9 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     else:
         location_field = vol.Required(CONF_LOCATION)
 
-    return vol.Schema(
+    section_schema = vol.Schema(
         {
-            vol.Required(CONF_API_KEY, default=user_input.get(CONF_API_KEY, "")): str,
+            vol.Required(CONF_API_KEY): str,
             vol.Required(CONF_NAME, default=default_name): str,
             location_field: LocationSelector(LocationSelectorConfig(radius=False)),
             vol.Optional(
@@ -185,14 +185,72 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     options=FORECAST_SENSORS_CHOICES,
                 )
             ),
-            section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): {
-                vol.Optional(
-                    CONF_HTTP_REFERER,
-                    default=http_referer_default,
-                ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
-            },
+            section(SECTION_API_KEY_OPTIONS, SectionConfig(collapsed=True)): vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_HTTP_REFERER,
+                        default=http_referer_default,
+                    ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
+                }
+            ),
         }
     )
+
+    flat_schema = vol.Schema(
+        {
+            vol.Required(CONF_API_KEY): str,
+            vol.Required(CONF_NAME, default=default_name): str,
+            location_field: LocationSelector(LocationSelectorConfig(radius=False)),
+            vol.Optional(
+                CONF_UPDATE_INTERVAL,
+                default=user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    step=1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="h",
+                )
+            ),
+            vol.Optional(
+                CONF_LANGUAGE_CODE,
+                default=user_input.get(
+                    CONF_LANGUAGE_CODE, getattr(hass.config, "language", "")
+                ),
+            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
+            vol.Optional(
+                CONF_FORECAST_DAYS,
+                default=str(user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=FORECAST_DAYS_OPTIONS,
+                )
+            ),
+            vol.Optional(
+                CONF_CREATE_FORECAST_SENSORS,
+                default=user_input.get(
+                    CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0]
+                ),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=FORECAST_SENSORS_CHOICES,
+                )
+            ),
+            vol.Optional(CONF_HTTP_REFERER, default=http_referer_default): TextSelector(
+                TextSelectorConfig(type=TextSelectorType.TEXT)
+            ),
+        }
+    )
+
+    try:
+        from voluptuous_serialize import convert
+
+        convert(section_schema, custom_serializer=cv.custom_serializer)
+        return section_schema
+    except Exception:  # noqa: BLE001
+        return flat_schema
 
 
 def _validate_location_dict(

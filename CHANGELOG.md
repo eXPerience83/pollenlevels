@@ -3,6 +3,10 @@
 ### Fixed
 - Restored the optional API key options section in the config flow so the HTTP
   Referer field stays collapsed and avoids nested schema serialization errors.
+- Fixed a config flow crash (500) caused by nested schema serialization when
+  rendering the optional API key section.
+- Avoid pre-filling the API key field when the form is re-displayed after
+  validation errors.
 - Added a fallback error message when unexpected client exceptions are raised to
   avoid empty UpdateFailed errors in the UI.
 
