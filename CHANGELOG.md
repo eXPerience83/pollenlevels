@@ -42,8 +42,10 @@
   consistent with repository standards.
 - Expanded translation coverage tests to include section titles and service
   metadata keys, ensuring locales stay aligned with `en.json`.
-- Coordinator Module Extraction: The PollenDataUpdateCoordinator class and its associated helper functions have been moved from sensor.py to a new, dedicated coordinator.py module. This significantly improves modularity and separation of concerns within the component.
-- Reduced Debug Logging: Debug log volume has been reduced by summarizing coordinator refreshes and sensor creation details, rather than logging full payloads. This makes logs more concise and easier to review.
+- Coordinator Module Extraction: The PollenDataUpdateCoordinator class and its
+  associated helper functions have been moved from sensor.py to a new,
+  dedicated coordinator.py module. This significantly improves modularity and
+  separation of concerns within the component.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed
@@ -318,23 +320,25 @@
 
 ## [1.7.9] - 2025-09-06
 ### Fixed
-- **Date sensor**: Return a `datetime.date` object for `device_class: date` (was a string). Ensures
-  correct UI formatting and automation compatibility.
+- **Date sensor**: Return a `datetime.date` object for `device_class: date` (was
+  a string). Ensures correct UI formatting and automation compatibility.
 
 ## [1.7.8] - 2025-09-05
 ### Changed
-- **Date sensor**: Set `device_class: date` so Home Assistant treats the value as a calendar date
-  (UI semantics/formatting). No functional impact.
-- > Note: 1.7.8 set `device_class: date` but still returned a string. This was corrected in 1.7.9 to
-  return a proper `date` object.
+- **Date sensor**: Set `device_class: date` so Home Assistant treats the value
+  as a calendar date (UI semantics/formatting). No functional impact.
+- > Note: 1.7.8 set `device_class: date` but still returned a string. This was
+  corrected in 1.7.9 to return a proper `date` object.
 
 ## [1.7.7] - 2025-09-05
 ### Changed
 - **Performance/cleanup**: Precompute static attributes for metadata sensors:
-  - Set `_attr_unique_id` and `_attr_icon` in `RegionSensor`, `DateSensor`, and `LastUpdatedSensor`.
+  - Set `_attr_unique_id` and `_attr_icon` in `RegionSensor`, `DateSensor`, and
+    `LastUpdatedSensor`.
   - Set `_attr_device_info` once in `_BaseMetaSensor`.
   - Also set `_attr_unique_id` in `PollenSensor` for consistency.
-  These changes avoid repeated property calls and align with modern HA entity patterns. No functional impact.
+  These changes avoid repeated property calls and align with modern HA entity
+  patterns. No functional impact.
 
 ## [1.7.6] - 2025-09-05
 ### Changed
@@ -388,8 +392,9 @@
 
 ## [1.6.5] - 2025-08-26
 ### Fixed
-- Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  
-  On Python 3.14 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
+- Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.
+  On Python 3.14 this also covers `asyncio.TimeoutError`, so listing both is
+  unnecessary (and auto-removed by ruff/pyupgrade).
 - Added missing `options.error` translations across all locales so **Options Flow** errors display
   localized.
 - **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors)
@@ -405,11 +410,13 @@
 - Improved wording for `create_forecast_sensors` across all locales:
   - Field label now clarifies it’s the **range** for per-day TYPE sensors.
   - Step description explains each choice with plain language:
-    - **Only today (none)**, **Through tomorrow (D+1)**, **Through day after tomorrow (D+2)** (and local equivalents).
+    - **Only today (none)**, **Through tomorrow (D+1)**,
+      **Through day after tomorrow (D+2)** (and local equivalents).
 ### Changed
 - Minimal safe backoff in coordinator: single retry on transient failures (**TimeoutError**,
   `aiohttp.ClientError`, `5xx`).
-  For **429**, honor numeric `Retry-After` seconds (capped at **5s**) or fall back to ~**2s** plus small jitter.
+  For **429**, honor numeric `Retry-After` seconds (capped at **5s**) or fall
+  back to ~**2s** plus small jitter.
 
 ## [1.6.4] - 2025-08-22
 ### Fixed
