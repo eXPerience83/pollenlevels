@@ -496,6 +496,8 @@ def _extract_config_flow_keys() -> set[str]:
         "CONF_API_KEY": "api_key",
         "CONF_LATITUDE": "latitude",
         "CONF_LONGITUDE": "longitude",
+        "CONF_LOCATION": "location",
+        "CONF_NAME": "name",
         "CONF_LANGUAGE": "language",
         "CONF_SCAN_INTERVAL": "scan_interval",
     }
