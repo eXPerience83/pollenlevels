@@ -5,6 +5,8 @@
   is set in entry options, preventing unintended resets to "none".
 - Normalized invalid stored per-day sensor mode values in the options flow to
   avoid persisting unsupported selector choices.
+- Simplified the per-day sensor mode fallback during options submission to reuse
+  the normalized current mode and prevent regressions.
 - Migrated per-day sensor mode to entry options when stored in entry data to
   prevent option resets after upgrades.
 - Centralized per-day sensor mode normalization to avoid duplicate validation
@@ -13,6 +15,8 @@
   during migration to keep options consistent.
 - Versioned config entries to ensure the per-day sensor mode migration runs
   once and is not repeated on every restart.
+- Ensured unversioned entries run the per-day sensor mode migration and that
+  option presence is respected even when the stored value is None.
 - Moved the optional API key section directly below the API key field in the
   setup flow for improved visibility.
 
