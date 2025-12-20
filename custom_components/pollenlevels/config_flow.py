@@ -148,7 +148,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     section_schema = vol.Schema(
         {
             vol.Required(CONF_API_KEY): str,
-            vol.Optional(SECTION_API_KEY_OPTIONS, default={}): section(
+            vol.Optional(SECTION_API_KEY_OPTIONS): section(
                 vol.Schema(
                     {
                         vol.Optional(

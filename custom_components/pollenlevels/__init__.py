@@ -77,7 +77,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.config_entries.async_update_entry(entry, version=target_version)
         return True
     except Exception:  # noqa: BLE001
-        _LOGGER.exception("Failed to migrate per-day sensor mode to entry options")
+        _LOGGER.exception(
+            "Failed to migrate per-day sensor mode to entry options for entry %s "
+            "(version=%s)",
+            entry.entry_id,
+            getattr(entry, "version", None),
+        )
         return False
 
 
