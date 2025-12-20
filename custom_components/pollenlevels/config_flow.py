@@ -8,8 +8,9 @@ Notes:
   so catching `TimeoutError` is sufficient and preferred.
 
 IMPORTANT:
-- Some HA versions cannot serialize nested mapping schemas (e.g. sections) via voluptuous_serialize.
-  Keep http_referer as a flat field to avoid 500 errors when rendering the config flow form.
+- Some HA versions cannot serialize nested mapping schemas (e.g. sections) via
+  voluptuous_serialize when schemas are flattened and rebuilt. Construct the schema in
+  one pass so the section marker stays intact.
 """
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
+    section,
 )
 
 from .const import (
@@ -78,47 +80,6 @@ LANGUAGE_CODE_REGEX = re.compile(
 )
 
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_API_KEY): str,
-        vol.Optional(
-            CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL
-        ): NumberSelector(
-            NumberSelectorConfig(
-                min=1,
-                step=1,
-                mode=NumberSelectorMode.BOX,
-                unit_of_measurement="h",
-            )
-        ),
-        vol.Optional(CONF_LANGUAGE_CODE): TextSelector(
-            TextSelectorConfig(type=TextSelectorType.TEXT)
-        ),
-        vol.Optional(
-            CONF_FORECAST_DAYS, default=str(DEFAULT_FORECAST_DAYS)
-        ): SelectSelector(
-            SelectSelectorConfig(
-                mode=SelectSelectorMode.DROPDOWN,
-                options=FORECAST_DAYS_OPTIONS,
-            )
-        ),
-        vol.Optional(
-            CONF_CREATE_FORECAST_SENSORS, default=FORECAST_SENSORS_CHOICES[0]
-        ): SelectSelector(
-            SelectSelectorConfig(
-                mode=SelectSelectorMode.DROPDOWN,
-                options=FORECAST_SENSORS_CHOICES,
-            )
-        ),
-        # NOTE: Keep this flat (not inside a section) to avoid nested mapping schema
-        # serialization errors in some HA versions.
-        vol.Optional(CONF_HTTP_REFERER, default=""): TextSelector(
-            TextSelectorConfig(type=TextSelectorType.TEXT)
-        ),
-    }
-)
-
-
 def is_valid_language_code(value: str) -> str:
     """Validate language code format; return normalized (trimmed) value."""
     if not isinstance(value, str):
@@ -152,27 +113,78 @@ def _safe_coord(value: float | None, *, lat: bool) -> float | None:
         return None
 
 
-def _get_location_schema(hass: Any) -> vol.Schema:
-    """Return schema for name + location with defaults from HA config."""
-    default_name = getattr(hass.config, "location_name", "") or DEFAULT_ENTRY_TITLE
-    default_lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
-    default_lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol.Schema:
+    """Build the full step user schema without flattening nested sections."""
+    user_input = user_input or {}
 
-    if default_lat is not None and default_lon is not None:
-        location_field = vol.Required(
-            CONF_LOCATION,
-            default={
-                CONF_LATITUDE: default_lat,
-                CONF_LONGITUDE: default_lon,
-            },
-        )
+    default_name = str(
+        user_input.get(CONF_NAME)
+        or getattr(hass.config, "location_name", "")
+        or DEFAULT_ENTRY_TITLE
+    )
+
+    location_default = None
+    if isinstance(user_input.get(CONF_LOCATION), dict):
+        location_default = user_input[CONF_LOCATION]
+    else:
+        lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
+        lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+        if lat is not None and lon is not None:
+            location_default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
+
+    if location_default is not None:
+        location_field = vol.Required(CONF_LOCATION, default=location_default)
     else:
         location_field = vol.Required(CONF_LOCATION)
 
     return vol.Schema(
         {
+            vol.Required(CONF_API_KEY, default=user_input.get(CONF_API_KEY, "")): str,
             vol.Required(CONF_NAME, default=default_name): str,
             location_field: LocationSelector(LocationSelectorConfig(radius=False)),
+            vol.Optional(
+                CONF_UPDATE_INTERVAL,
+                default=user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    step=1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="h",
+                )
+            ),
+            vol.Optional(
+                CONF_LANGUAGE_CODE,
+                default=user_input.get(
+                    CONF_LANGUAGE_CODE, getattr(hass.config, "language", "")
+                ),
+            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
+            vol.Optional(
+                CONF_FORECAST_DAYS,
+                default=user_input.get(CONF_FORECAST_DAYS, str(DEFAULT_FORECAST_DAYS)),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=FORECAST_DAYS_OPTIONS,
+                )
+            ),
+            vol.Optional(
+                CONF_CREATE_FORECAST_SENSORS,
+                default=user_input.get(
+                    CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0]
+                ),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=FORECAST_SENSORS_CHOICES,
+                )
+            ),
+            section(SECTION_API_KEY_OPTIONS): {
+                vol.Optional(
+                    CONF_HTTP_REFERER,
+                    default=user_input.get(CONF_HTTP_REFERER, ""),
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
+            },
         }
     )
 
@@ -504,31 +516,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title = entry_name or DEFAULT_ENTRY_TITLE
                 return self.async_create_entry(title=title, data=normalized)
 
-        base_schema = STEP_USER_DATA_SCHEMA.schema.copy()
-        base_schema.update(_get_location_schema(self.hass).schema)
-
-        suggested_values = {
-            CONF_LANGUAGE_CODE: self.hass.config.language,
-            CONF_NAME: getattr(self.hass.config, "location_name", "")
-            or DEFAULT_ENTRY_TITLE,
-            CONF_FORECAST_DAYS: str(DEFAULT_FORECAST_DAYS),
-            CONF_CREATE_FORECAST_SENSORS: FORECAST_SENSORS_CHOICES[0],
-        }
-
-        lat = _safe_coord(getattr(self.hass.config, "latitude", None), lat=True)
-        lon = _safe_coord(getattr(self.hass.config, "longitude", None), lat=False)
-        if lat is not None and lon is not None:
-            suggested_values[CONF_LOCATION] = {
-                CONF_LATITUDE: lat,
-                CONF_LONGITUDE: lon,
-            }
-
         return self.async_show_form(
             step_id="user",
-            data_schema=self.add_suggested_values_to_schema(
-                vol.Schema(base_schema),
-                {**suggested_values, **(user_input or {})},
-            ),
+            data_schema=_build_step_user_schema(self.hass, user_input),
             errors=errors,
             description_placeholders=description_placeholders,
         )

@@ -1,4 +1,9 @@
 # Changelog
+## [1.9.0-alpha3] - 2025-12-20
+### Fixed
+- Restored the optional API key options section in the config flow so the HTTP
+  Referer field stays collapsed and avoids nested schema serialization errors.
+
 ## [1.9.0-alpha2] - 2025-12-16
 ### Changed
 - Enabled forecast day count and per-day sensor mode selection during initial

@@ -6,7 +6,7 @@
 
 [project]
 name = "pollenlevels"
-version = "1.9.0-alpha2"
+version = "1.9.0-alpha3"
 # Enforce the runtime floor aligned with upcoming HA Python 3.14 images.
 requires-python = ">=3.14"
 
