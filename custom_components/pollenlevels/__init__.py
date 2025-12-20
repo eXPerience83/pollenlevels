@@ -34,12 +34,12 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    FORECAST_SENSORS_CHOICES,
     normalize_http_referer,
 )
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .sensor import ForecastSensorMode
+from .util import normalize_sensor_mode
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -60,15 +60,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if data_mode is None:
             return True
 
-        normalized_mode = data_mode
-        if normalized_mode not in FORECAST_SENSORS_CHOICES:
-            _LOGGER.warning(
-                "Invalid stored per-day sensor mode '%s'; defaulting to '%s'",
-                normalized_mode,
-                FORECAST_SENSORS_CHOICES[0],
-            )
-            normalized_mode = FORECAST_SENSORS_CHOICES[0]
-
+        normalized_mode = normalize_sensor_mode(data_mode, _LOGGER)
         new_options = {**entry.options, CONF_CREATE_FORECAST_SENSORS: normalized_mode}
         hass.config_entries.async_update_entry(entry, options=new_options)
         return True

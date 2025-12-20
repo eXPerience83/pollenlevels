@@ -7,6 +7,8 @@
   avoid persisting unsupported selector choices.
 - Migrated per-day sensor mode to entry options when stored in entry data to
   prevent option resets after upgrades.
+- Centralized per-day sensor mode normalization to avoid duplicate validation
+  logic across migration and options handling.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed

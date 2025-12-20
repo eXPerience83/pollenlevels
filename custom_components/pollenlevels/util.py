@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
+
+from .const import FORECAST_SENSORS_CHOICES
 
 if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from aiohttp import ClientResponse
@@ -65,7 +68,27 @@ def redact_api_key(text: object, api_key: str | None) -> str:
     return s
 
 
+def normalize_sensor_mode(mode: str | None, logger: logging.Logger) -> str:
+    """Normalize sensor mode, defaulting and logging a warning if invalid."""
+    if mode in FORECAST_SENSORS_CHOICES:
+        return mode
+
+    default_mode = FORECAST_SENSORS_CHOICES[0]
+    if mode is not None:
+        logger.warning(
+            "Invalid stored per-day sensor mode '%s'; defaulting to '%s'",
+            mode,
+            default_mode,
+        )
+    return default_mode
+
+
 # Backwards-compatible alias for modules that still import the private helper name.
 _redact_api_key = redact_api_key
 
-__all__ = ["extract_error_message", "redact_api_key", "_redact_api_key"]
+__all__ = [
+    "extract_error_message",
+    "normalize_sensor_mode",
+    "redact_api_key",
+    "_redact_api_key",
+]

@@ -62,7 +62,7 @@ from .const import (
     is_invalid_api_key_message,
     normalize_http_referer,
 )
-from .util import extract_error_message, redact_api_key
+from .util import extract_error_message, normalize_sensor_mode, redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -670,13 +670,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_CREATE_FORECAST_SENSORS,
             self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none"),
         )
-        if current_mode not in FORECAST_SENSORS_CHOICES:
-            _LOGGER.warning(
-                "Invalid stored per-day sensor mode '%s'; defaulting to '%s'",
-                current_mode,
-                FORECAST_SENSORS_CHOICES[0],
-            )
-            current_mode = FORECAST_SENSORS_CHOICES[0]
+        current_mode = normalize_sensor_mode(current_mode, _LOGGER)
 
         options_schema = vol.Schema(
             {
@@ -762,14 +756,8 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                         self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none"),
                     ),
                 )
-                if mode not in FORECAST_SENSORS_CHOICES:
-                    _LOGGER.warning(
-                        "Invalid per-day sensor mode '%s'; defaulting to '%s'",
-                        mode,
-                        FORECAST_SENSORS_CHOICES[0],
-                    )
-                    mode = FORECAST_SENSORS_CHOICES[0]
-                    normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
+                mode = normalize_sensor_mode(mode, _LOGGER)
+                normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
                 needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
                 if days < needed:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
