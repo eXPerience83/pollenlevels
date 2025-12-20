@@ -9,6 +9,8 @@
   prevent option resets after upgrades.
 - Centralized per-day sensor mode normalization to avoid duplicate validation
   logic across migration and options handling.
+- Normalized invalid per-day sensor mode values already stored in entry options
+  during migration to keep options consistent.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
