@@ -6,6 +6,10 @@ Notes:
 - Redacts API keys in debug logs.
 - Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
   so catching `TimeoutError` is sufficient and preferred.
+
+IMPORTANT:
+- Some HA versions cannot serialize nested mapping schemas (e.g. sections) via voluptuous_serialize.
+  Keep http_referer as a flat field to avoid 500 errors when rendering the config flow form.
 """
 
 from __future__ import annotations
@@ -20,7 +24,6 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
-from homeassistant.data_entry_flow import SectionConfig, section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     LocationSelector,
@@ -107,17 +110,10 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
                 options=FORECAST_SENSORS_CHOICES,
             )
         ),
-        # NOTE: HA's voluptuous serializer can't convert nested dict mappings directly.
-        # Wrap the section body in vol.Schema(...) to make it serializable and valid.
-        section(
-            SECTION_API_KEY_OPTIONS,
-            SectionConfig(collapsed=True),
-        ): vol.Schema(
-            {
-                vol.Optional(CONF_HTTP_REFERER, default=""): TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.TEXT)
-                ),
-            }
+        # NOTE: Keep this flat (not inside a section) to avoid nested mapping schema
+        # serialization errors in some HA versions.
+        vol.Optional(CONF_HTTP_REFERER, default=""): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.TEXT)
         ),
     }
 )
@@ -138,7 +134,6 @@ def is_valid_language_code(value: str) -> str:
 
 def _language_error_to_form_key(error: vol.Invalid) -> str:
     """Convert voluptuous validation errors into form error keys."""
-
     message = getattr(error, "error_message", "")
     if message == "empty":
         return "empty"
@@ -149,7 +144,6 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
 
 def _safe_coord(value: float | None, *, lat: bool) -> float | None:
     """Return a validated latitude/longitude or None if unset/invalid."""
-
     try:
         if lat:
             return cv.latitude(value)
@@ -160,7 +154,6 @@ def _safe_coord(value: float | None, *, lat: bool) -> float | None:
 
 def _get_location_schema(hass: Any) -> vol.Schema:
     """Return schema for name + location with defaults from HA config."""
-
     default_name = getattr(hass.config, "location_name", "") or DEFAULT_ENTRY_TITLE
     default_lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
     default_lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
@@ -188,7 +181,6 @@ def _validate_location_dict(
     location: dict[str, Any] | None,
 ) -> tuple[float, float] | None:
     """Validate location dict and return (lat, lon) or None on error."""
-
     if not isinstance(location, dict):
         return None
 
@@ -216,7 +208,6 @@ def _parse_int_option(
     error_key: str | None = None,
 ) -> tuple[int, str | None]:
     """Parse a numeric option to int and enforce bounds."""
-
     try:
         parsed = int(float(value if value is not None else default))
     except (TypeError, ValueError):
@@ -233,7 +224,6 @@ def _parse_int_option(
 
 def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
     """Parse and validate the update interval in hours."""
-
     return _parse_int_option(
         value,
         default=default,
@@ -264,7 +254,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         description_placeholders: dict[str, Any] | None = None,
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
-
         placeholders = (
             description_placeholders if description_placeholders is not None else {}
         )
@@ -342,7 +331,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug(
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
-                # Legacy lat/lon path (e.g., reauth) has no CONF_LOCATION field on the form
                 errors["base"] = "invalid_coordinates"
                 return errors, None
 
@@ -365,7 +353,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_API_KEY] = api_key
 
         try:
-            # Allow blank language; if present, validate & normalize
             raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
             lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
             if lang:
@@ -383,10 +370,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             url = "https://pollen.googleapis.com/v1/forecast:lookup"
 
-            # SECURITY: Avoid logging URL+params (contains coordinates/key)
             _LOGGER.debug("Validating Pollen API (days=%s, lang_set=%s)", 1, bool(lang))
 
-            # Add explicit timeout to prevent UI hangs on provider issues
             async with session.get(
                 url,
                 params=params,
@@ -438,10 +423,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if not data.get("dailyInfo"):
                         _LOGGER.warning("Validation: 'dailyInfo' missing")
                         errors["base"] = "cannot_connect"
-                        if placeholders is not None:
-                            placeholders["error_message"] = (
-                                "API response missing expected pollen forecast information."
-                            )
+                        placeholders["error_message"] = (
+                            "API response missing expected pollen forecast information."
+                        )
 
             if errors:
                 return errors, None
@@ -457,38 +441,33 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
         except TimeoutError as err:
-            # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
             _LOGGER.warning(
                 "Validation timeout (%ss): %s",
                 POLLEN_API_TIMEOUT,
                 redact_api_key(err, api_key),
             )
             errors["base"] = "cannot_connect"
-            if placeholders is not None:
-                redacted = redact_api_key(err, api_key)
-                placeholders["error_message"] = (
-                    redacted
-                    or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
-                )
+            redacted = redact_api_key(err, api_key)
+            placeholders["error_message"] = (
+                redacted or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
+            )
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
                 redact_api_key(err, api_key),
             )
             errors["base"] = "cannot_connect"
-            if placeholders is not None:
-                redacted = redact_api_key(err, api_key)
-                placeholders["error_message"] = (
-                    redacted or "Network error while connecting to the pollen service."
-                )
+            redacted = redact_api_key(err, api_key)
+            placeholders["error_message"] = (
+                redacted or "Network error while connecting to the pollen service."
+            )
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
                 redact_api_key(err, api_key),
             )
             errors["base"] = "unknown"
-            if placeholders is not None:
-                placeholders.pop("error_message", None)
+            placeholders.pop("error_message", None)
 
         return errors, None
 
@@ -502,6 +481,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input:
             sanitized_input: dict[str, Any] = dict(user_input)
+
+            # Backward/forward compatible extraction if the UI ever posts a section payload.
             section_values = sanitized_input.get(SECTION_API_KEY_OPTIONS)
             raw_http_referer = sanitized_input.get(CONF_HTTP_REFERER)
             if raw_http_referer is None and isinstance(section_values, dict):
@@ -553,7 +534,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: dict[str, Any]):
         """Handle re-authentication when credentials become invalid."""
-
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         if entry is None:
             return self.async_abort(reason="reauth_failed")
@@ -563,7 +543,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
         """Prompt for a refreshed API key and validate it."""
-
         assert self._reauth_entry is not None
 
         errors: dict[str, str] = {}
@@ -597,7 +576,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
 
-        # Ensure the form posts back to this handler.
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=schema,
@@ -617,7 +595,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         placeholders = {"title": self.entry.title or DEFAULT_ENTRY_TITLE}
 
-        # Defaults: prefer options, fallback to data/HA config
         current_interval = self.entry.options.get(
             CONF_UPDATE_INTERVAL,
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
@@ -684,7 +661,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     description_placeholders=placeholders,
                 )
 
-            # Persist forecast_days as int, even though UI returns str.
             forecast_days, days_error = _parse_int_option(
                 normalized_input.get(CONF_FORECAST_DAYS, current_days),
                 current_days,
@@ -697,7 +673,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors[CONF_FORECAST_DAYS] = days_error
 
             try:
-                # Language: allow empty; if provided, validate & normalize.
                 raw_lang = normalized_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
@@ -708,12 +683,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
                 if lang:
                     lang = is_valid_language_code(lang)
-                normalized_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
+                normalized_input[CONF_LANGUAGE_CODE] = lang
 
-                # forecast_days within 1..5
                 days = normalized_input[CONF_FORECAST_DAYS]
-
-                # per-day sensors vs number of days
                 mode = normalized_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
                     self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
