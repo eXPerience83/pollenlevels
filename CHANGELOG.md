@@ -36,10 +36,14 @@
 - Hardened the runtime pollen client with sanitized `Referer` headers,
   normalized error parsing, and strict JSON validation to avoid leaking secrets
   while surfacing consistent failures.
+- Reduced debug log volume by summarizing coordinator refreshes and sensor
+  creation details instead of logging full payloads.
 - Reformatted the codebase with Black and Ruff to keep imports and styling
   consistent with repository standards.
 - Expanded translation coverage tests to include section titles and service
   metadata keys, ensuring locales stay aligned with `en.json`.
+- Coordinator Module Extraction: The PollenDataUpdateCoordinator class and its associated helper functions have been moved from sensor.py to a new, dedicated coordinator.py module. This significantly improves modularity and separation of concerns within the component.
+- Reduced Debug Logging: Debug log volume has been reduced by summarizing coordinator refreshes and sensor creation details, rather than logging full payloads. This makes logs more concise and easier to review.
 
 ## [1.9.0-alpha1] - 2025-12-11
 ### Changed

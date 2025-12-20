@@ -261,7 +261,10 @@ def _load_module(module_name: str, relative_path: str):
     return module
 
 
-_load_module("custom_components.pollenlevels.const", "const.py")
+const = _load_module("custom_components.pollenlevels.const", "const.py")
+coordinator_mod = _load_module(
+    "custom_components.pollenlevels.coordinator", "coordinator.py"
+)
 sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
 client_mod = importlib.import_module("custom_components.pollenlevels.client")
 
@@ -346,38 +349,50 @@ class SequenceSession:
         self.calls = 0
 
     def get(self, *_args, **_kwargs):
+        """Return the next fake response in the sequence."""
+
         if self.calls >= len(self.sequence):
             raise AssertionError(
-                "SequenceSession exhausted; no more responses "
-                f"(calls={self.calls}, sequence_len={len(self.sequence)})."
+                "SequenceSession exhausted; no more responses configured"
             )
+
         item = self.sequence[self.calls]
         self.calls += 1
 
         if isinstance(item, Exception):
             raise item
 
-        return FakeResponse(
-            item.payload, status=item.status, headers=item.headers or {}
-        )
+        return FakeResponse(item.payload, status=item.status, headers=item.headers)
 
 
-class RegistryEntry:
-    """Simple stub representing an Entity Registry entry."""
+class RegistryEntry(NamedTuple):
+    """Entity registry entry stub."""
 
-    def __init__(self, unique_id: str, entity_id: str) -> None:
-        self.unique_id = unique_id
-        self.entity_id = entity_id
-        self.domain = "sensor"
-        self.platform = sensor.DOMAIN
+    entity_id: str
+    unique_id: str
+    domain: str
+    platform: str
 
 
 class RegistryStub:
-    """Minimal async Entity Registry stub capturing removals."""
+    """Stubbed entity registry that records removals."""
 
-    def __init__(self, entries: list[RegistryEntry]) -> None:
-        self.entries = entries
+    def __init__(self, entries: list[RegistryEntry], entry_id: str) -> None:
+        self._entries = entries
+        self._entry_id = entry_id
         self.removals: list[str] = []
+
+    def async_entries_for_config_entry(self, _registry, entry_id: str):
+        assert entry_id == self._entry_id
+        return [
+            types.SimpleNamespace(
+                entity_id=e.entity_id,
+                unique_id=e.unique_id,
+                domain=e.domain,
+                platform=e.platform,
+            )
+            for e in self._entries
+        ]
 
     async def async_remove(self, entity_id: str) -> None:
         self.removals.append(entity_id)
@@ -389,13 +404,17 @@ def _setup_registry_stub(
     *,
     entry_id: str,
 ) -> RegistryStub:
-    registry = RegistryStub(entries)
+    """Patch the sensor module's entity registry helpers for cleanup tests."""
 
-    monkeypatch.setattr(sensor.er, "async_get", lambda _hass: registry)
+    registry = RegistryStub(entries, entry_id=entry_id)
+
+    # In Home Assistant, `async_remove()` is a method of the registry object returned by
+    # `entity_registry.async_get(hass)`, not a module-level function.
+    monkeypatch.setattr(sensor.er, "async_get", lambda hass: registry)
     monkeypatch.setattr(
         sensor.er,
         "async_entries_for_config_entry",
-        lambda reg, eid: entries if reg is registry and eid == entry_id else [],
+        registry.async_entries_for_config_entry,
     )
 
     return registry
@@ -430,11 +449,11 @@ def test_type_sensor_preserves_source_with_single_day(
     }
 
     fake_session = FakeSession(payload)
-    client = sensor.GooglePollenApiClient(fake_session, "test")
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -467,10 +486,10 @@ def test_coordinator_clamps_forecast_days_low() -> None:
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -486,7 +505,7 @@ def test_coordinator_clamps_forecast_days_low() -> None:
     finally:
         loop.close()
 
-    assert coordinator.forecast_days == sensor.MIN_FORECAST_DAYS
+    assert coordinator.forecast_days == const.MIN_FORECAST_DAYS
 
 
 def test_coordinator_clamps_forecast_days_negative() -> None:
@@ -494,10 +513,10 @@ def test_coordinator_clamps_forecast_days_negative() -> None:
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -513,7 +532,7 @@ def test_coordinator_clamps_forecast_days_negative() -> None:
     finally:
         loop.close()
 
-    assert coordinator.forecast_days == sensor.MIN_FORECAST_DAYS
+    assert coordinator.forecast_days == const.MIN_FORECAST_DAYS
 
 
 def test_coordinator_clamps_forecast_days_high() -> None:
@@ -521,10 +540,10 @@ def test_coordinator_clamps_forecast_days_high() -> None:
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -540,7 +559,7 @@ def test_coordinator_clamps_forecast_days_high() -> None:
     finally:
         loop.close()
 
-    assert coordinator.forecast_days == sensor.MAX_FORECAST_DAYS
+    assert coordinator.forecast_days == const.MAX_FORECAST_DAYS
 
 
 def test_coordinator_keeps_forecast_days_within_range() -> None:
@@ -548,10 +567,10 @@ def test_coordinator_keeps_forecast_days_within_range() -> None:
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    client = sensor.GooglePollenApiClient(FakeSession({}), "test")
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor.PollenDataUpdateCoordinator(
+        coordinator = coordinator_mod.PollenDataUpdateCoordinator(
             hass=hass,
             api_key="test",
             lat=1.0,
@@ -620,11 +639,11 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
     }
 
     fake_session = FakeSession(payload)
-    client = sensor.GooglePollenApiClient(fake_session, "test")
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -730,11 +749,11 @@ def test_plant_sensor_includes_forecast_attributes(
     }
 
     fake_session = FakeSession(payload)
-    client = sensor.GooglePollenApiClient(fake_session, "test")
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -795,9 +814,24 @@ def test_cleanup_per_day_entities_removes_disabled_days(
     """D+1/D+2 entities are awaited and removed when disabled."""
 
     entries = [
-        RegistryEntry("entry_type_grass", "sensor.pollen_type_grass"),
-        RegistryEntry("entry_type_grass_d1", "sensor.pollen_type_grass_d1"),
-        RegistryEntry("entry_type_grass_d2", "sensor.pollen_type_grass_d2"),
+        RegistryEntry(
+            "sensor.pollen_type_grass",
+            "entry_type_grass",
+            "sensor",
+            sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "sensor.pollen_type_grass_d1",
+            "entry_type_grass_d1",
+            "sensor",
+            sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "sensor.pollen_type_grass_d2",
+            "entry_type_grass_d2",
+            "sensor",
+            sensor.DOMAIN,
+        ),
     ]
     registry = _setup_registry_stub(monkeypatch, entries, entry_id="entry")
 
@@ -820,11 +854,11 @@ def test_coordinator_raises_auth_failed() -> None:
     """401 responses trigger ConfigEntryAuthFailed for re-auth flows."""
 
     fake_session = FakeSession({}, status=401)
-    client = sensor.GooglePollenApiClient(fake_session, "bad")
+    client = client_mod.GooglePollenApiClient(fake_session, "bad")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="bad",
         lat=1.0,
@@ -839,7 +873,7 @@ def test_coordinator_raises_auth_failed() -> None:
     )
 
     try:
-        with pytest.raises(sensor.ConfigEntryAuthFailed):
+        with pytest.raises(client_mod.ConfigEntryAuthFailed):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -849,11 +883,11 @@ def test_coordinator_handles_forbidden() -> None:
     """403 responses raise UpdateFailed without triggering re-auth."""
 
     fake_session = FakeSession({"error": {"message": "Forbidden"}}, status=403)
-    client = sensor.GooglePollenApiClient(fake_session, "bad")
+    client = client_mod.GooglePollenApiClient(fake_session, "bad")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="bad",
         lat=1.0,
@@ -868,7 +902,7 @@ def test_coordinator_handles_forbidden() -> None:
     )
 
     try:
-        with pytest.raises(sensor.UpdateFailed):
+        with pytest.raises(client_mod.UpdateFailed):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -879,11 +913,11 @@ def test_coordinator_invalid_key_message_triggers_reauth() -> None:
 
     payload = {"error": {"message": "API key not valid. Please pass a valid API key."}}
     fake_session = FakeSession(payload, status=403)
-    client = sensor.GooglePollenApiClient(fake_session, "bad")
+    client = client_mod.GooglePollenApiClient(fake_session, "bad")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="bad",
         lat=1.0,
@@ -898,7 +932,7 @@ def test_coordinator_invalid_key_message_triggers_reauth() -> None:
     )
 
     try:
-        with pytest.raises(sensor.ConfigEntryAuthFailed):
+        with pytest.raises(client_mod.ConfigEntryAuthFailed):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -928,14 +962,14 @@ def test_coordinator_retries_then_raises_on_rate_limit(
     async def _fast_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
-    client = sensor.GooglePollenApiClient(session, "test")
+    client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -950,7 +984,7 @@ def test_coordinator_retries_then_raises_on_rate_limit(
     )
 
     try:
-        with pytest.raises(sensor.UpdateFailed, match="Quota exceeded"):
+        with pytest.raises(client_mod.UpdateFailed, match="Quota exceeded"):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -982,7 +1016,7 @@ def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> N
     async def _fast_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
     monkeypatch.setattr(
         client_mod.dt_util,
@@ -990,11 +1024,11 @@ def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> N
         lambda: datetime.datetime(2025, 12, 10, 12, 0, 0, tzinfo=datetime.UTC),
     )
 
-    client = sensor.GooglePollenApiClient(session, "test")
+    client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -1009,7 +1043,7 @@ def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> N
     )
 
     try:
-        with pytest.raises(sensor.UpdateFailed, match="Quota exceeded"):
+        with pytest.raises(client_mod.UpdateFailed, match="Quota exceeded"):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -1031,14 +1065,14 @@ def test_coordinator_retries_then_raises_on_server_errors(
     async def _fast_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
-    client = sensor.GooglePollenApiClient(session, "test")
+    client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -1053,7 +1087,7 @@ def test_coordinator_retries_then_raises_on_server_errors(
     )
 
     try:
-        with pytest.raises(sensor.UpdateFailed, match="HTTP 502"):
+        with pytest.raises(client_mod.UpdateFailed, match="HTTP 502"):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -1073,14 +1107,14 @@ def test_coordinator_retries_then_wraps_timeout(
     async def _fast_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
-    client = sensor.GooglePollenApiClient(session, "test")
+    client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="test",
         lat=1.0,
@@ -1095,7 +1129,7 @@ def test_coordinator_retries_then_wraps_timeout(
     )
 
     try:
-        with pytest.raises(sensor.UpdateFailed, match="Timeout"):
+        with pytest.raises(client_mod.UpdateFailed, match="Timeout"):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -1120,14 +1154,14 @@ def test_coordinator_retries_then_wraps_client_error(
     async def _fast_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr(sensor.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.asyncio, "sleep", _fast_sleep)
     monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
 
-    client = sensor.GooglePollenApiClient(session, "secret")
+    client = client_mod.GooglePollenApiClient(session, "secret")
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="secret",
         lat=1.0,
@@ -1142,7 +1176,7 @@ def test_coordinator_retries_then_wraps_client_error(
     )
 
     try:
-        with pytest.raises(sensor.UpdateFailed, match="net down"):
+        with pytest.raises(client_mod.UpdateFailed, match="net down"):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
@@ -1196,9 +1230,9 @@ async def test_device_info_uses_default_title_when_blank(
     )
     config_entry.title = "   "
 
-    client = sensor.GooglePollenApiClient(FakeSession({}), "key")
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "key")
     clean_title = sensor.DEFAULT_ENTRY_TITLE
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
         lat=1.0,
@@ -1251,9 +1285,9 @@ async def test_device_info_trims_custom_title(
     )
     config_entry.title = "  My Location  "
 
-    client = sensor.GooglePollenApiClient(FakeSession({}), "key")
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "key")
     clean_title = config_entry.title.strip()
-    coordinator = sensor.PollenDataUpdateCoordinator(
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
         lat=1.0,

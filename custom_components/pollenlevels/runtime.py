@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 
 if TYPE_CHECKING:
     from .client import GooglePollenApiClient
-    from .sensor import PollenDataUpdateCoordinator
+    from .coordinator import PollenDataUpdateCoordinator
 
 
 @dataclass(slots=True)
