@@ -57,31 +57,24 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if current_version >= target_version:
             return True
 
-        if CONF_CREATE_FORECAST_SENSORS in entry.options:
-            opt_mode = entry.options.get(CONF_CREATE_FORECAST_SENSORS)
-            normalized_mode = normalize_sensor_mode(opt_mode, _LOGGER)
-            if normalized_mode != opt_mode:
-                new_options = {
-                    **entry.options,
-                    CONF_CREATE_FORECAST_SENSORS: normalized_mode,
-                }
-                hass.config_entries.async_update_entry(
-                    entry, options=new_options, version=target_version
-                )
-            else:
-                hass.config_entries.async_update_entry(entry, version=target_version)
-            return True
+        new_options = dict(entry.options)
+        if CONF_CREATE_FORECAST_SENSORS in new_options:
+            mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
+            normalized_mode = normalize_sensor_mode(mode, _LOGGER)
+            if normalized_mode != mode:
+                new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
+        else:
+            mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
+            if mode is not None:
+                normalized_mode = normalize_sensor_mode(mode, _LOGGER)
+                new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
 
-        data_mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
-        if data_mode is None:
+        if new_options != entry.options:
+            hass.config_entries.async_update_entry(
+                entry, options=new_options, version=target_version
+            )
+        else:
             hass.config_entries.async_update_entry(entry, version=target_version)
-            return True
-
-        normalized_mode = normalize_sensor_mode(data_mode, _LOGGER)
-        new_options = {**entry.options, CONF_CREATE_FORECAST_SENSORS: normalized_mode}
-        hass.config_entries.async_update_entry(
-            entry, options=new_options, version=target_version
-        )
         return True
     except Exception:  # noqa: BLE001
         _LOGGER.exception("Failed to migrate per-day sensor mode to entry options")
