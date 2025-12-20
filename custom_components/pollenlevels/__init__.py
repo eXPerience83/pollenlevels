@@ -52,6 +52,10 @@ _LOGGER = logging.getLogger(__name__)
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate config entry data to options when needed."""
     try:
+        target_version = 2
+        if getattr(entry, "version", target_version) >= target_version:
+            return True
+
         opt_mode = entry.options.get(CONF_CREATE_FORECAST_SENSORS)
         if opt_mode is not None:
             normalized_mode = normalize_sensor_mode(opt_mode, _LOGGER)
@@ -60,16 +64,23 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     **entry.options,
                     CONF_CREATE_FORECAST_SENSORS: normalized_mode,
                 }
-                hass.config_entries.async_update_entry(entry, options=new_options)
+                hass.config_entries.async_update_entry(
+                    entry, options=new_options, version=target_version
+                )
+            else:
+                hass.config_entries.async_update_entry(entry, version=target_version)
             return True
 
         data_mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
         if data_mode is None:
+            hass.config_entries.async_update_entry(entry, version=target_version)
             return True
 
         normalized_mode = normalize_sensor_mode(data_mode, _LOGGER)
         new_options = {**entry.options, CONF_CREATE_FORECAST_SENSORS: normalized_mode}
-        hass.config_entries.async_update_entry(entry, options=new_options)
+        hass.config_entries.async_update_entry(
+            entry, options=new_options, version=target_version
+        )
         return True
     except Exception:  # noqa: BLE001
         _LOGGER.exception("Failed to migrate per-day sensor mode to entry options")

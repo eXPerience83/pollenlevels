@@ -267,6 +267,8 @@ class _FakeConfigEntries:
     def async_update_entry(self, entry, **kwargs):
         if "options" in kwargs:
             entry.options = kwargs["options"]
+        if "version" in kwargs:
+            entry.version = kwargs["version"]
 
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
         self.reload_calls.append(entry_id)
@@ -287,6 +289,7 @@ class _FakeEntry:
         title: str = "Pollen Levels",
         data: dict | None = None,
         options: dict | None = None,
+        version: int = 1,
     ):
         self.entry_id = entry_id
         self.title = title
@@ -298,6 +301,7 @@ class _FakeEntry:
             integration.CONF_LONGITUDE: 2.0,
         }
         self.options = options or {}
+        self.version = version
         self.runtime_data = None
 
     def add_update_listener(self, listener):
@@ -470,11 +474,13 @@ def test_migrate_entry_moves_mode_to_options() -> None:
             integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
         },
         options={},
+        version=1,
     )
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
+    assert entry.version == 2
 
 
 def test_migrate_entry_normalizes_invalid_mode() -> None:
@@ -487,6 +493,7 @@ def test_migrate_entry_normalizes_invalid_mode() -> None:
             integration.CONF_CREATE_FORECAST_SENSORS: "bad-value",
         },
         options={},
+        version=1,
     )
     hass = _FakeHass(entries=[entry])
 
@@ -495,3 +502,16 @@ def test_migrate_entry_normalizes_invalid_mode() -> None:
         entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
         == const.FORECAST_SENSORS_CHOICES[0]
     )
+    assert entry.version == 2
+
+
+def test_migrate_entry_marks_version_when_no_changes() -> None:
+    """Migration should still bump the version when no changes are needed."""
+    entry = _FakeEntry(
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert entry.version == 2

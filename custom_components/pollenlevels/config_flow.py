@@ -313,7 +313,7 @@ def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow state."""

@@ -11,6 +11,8 @@
   logic across migration and options handling.
 - Normalized invalid per-day sensor mode values already stored in entry options
   during migration to keep options consistent.
+- Versioned config entries to ensure the per-day sensor mode migration runs
+  once and is not repeated on every restart.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
