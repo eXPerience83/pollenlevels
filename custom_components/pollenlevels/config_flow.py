@@ -167,7 +167,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
             vol.Optional(
                 CONF_FORECAST_DAYS,
-                default=user_input.get(CONF_FORECAST_DAYS, str(DEFAULT_FORECAST_DAYS)),
+                default=str(user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)),
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
