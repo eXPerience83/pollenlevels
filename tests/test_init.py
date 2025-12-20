@@ -505,6 +505,23 @@ def test_migrate_entry_normalizes_invalid_mode() -> None:
     assert entry.version == 2
 
 
+def test_migrate_entry_normalizes_invalid_mode_in_options() -> None:
+    """Migration should normalize invalid per-day sensor mode values in options."""
+    entry = _FakeEntry(
+        data={},
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "bad-value"},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert (
+        entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
+        == const.FORECAST_SENSORS_CHOICES[0]
+    )
+    assert entry.version == 2
+
+
 def test_migrate_entry_marks_version_when_no_changes() -> None:
     """Migration should still bump the version when no changes are needed."""
     entry = _FakeEntry(
