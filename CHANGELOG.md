@@ -23,6 +23,9 @@
   layout and updated setup guidance to mention forecast configuration.
 - Hardened HTTP client timeout handling and normalized non-string per-day sensor
   mode values defensively.
+- Added entry context to migration failure logs for easier debugging.
+- Removed a mutable default from the API key options schema to avoid shared
+  state across config flow instances.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
