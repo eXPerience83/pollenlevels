@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configuración de Niveles de Polen",
-        "description": "Introduce tu clave API de Google ([consíguela aquí]({api_key_url})) y revisa las buenas prácticas ([buenas prácticas]({restricting_api_keys_url})). Selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API. You can also set forecast days and per-day TYPE sensor range.",
+        "description": "Introduce tu clave API de Google ([consíguela aquí]({api_key_url})) y revisa las buenas prácticas ([buenas prácticas]({restricting_api_keys_url})). Selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API. También puedes configurar los días de previsión y el alcance de los sensores por día (TIPOS).",
         "data": {
           "api_key": "Clave API",
           "name": "Nombre",

@@ -37,7 +37,7 @@
           "forecast_days": "Vorhersagetage (1–5)",
           "create_forecast_sensors": "Bereich der Tagessensoren (TYPEN)"
         },
-        "description": "Gib deinen Google API-Schlüssel ein ([hier abrufen]({api_key_url})) und lies die Best Practices ([Best Practices]({restricting_api_keys_url})). Wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode der API-Antwort. You can also set forecast days and per-day TYPE sensor range.",
+        "description": "Gib deinen Google API-Schlüssel ein ([hier abrufen]({api_key_url})) und lies die Best Practices ([Best Practices]({restricting_api_keys_url})). Wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode der API-Antwort. Sie können auch Vorhersagetage und den Umfang der Tagessensoren (TYPEN) festlegen.",
         "title": "Pollen Levels – Konfiguration",
         "sections": {
           "api_key_options": {

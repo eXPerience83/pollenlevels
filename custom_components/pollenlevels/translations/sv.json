@@ -37,7 +37,7 @@
           "forecast_days": "Prognosdagar (1–5)",
           "create_forecast_sensors": "Omfång för sensorer per dag (TYPER)"
         },
-        "description": "Ange din Google API-nyckel ([hämta den här]({api_key_url})) och läs bästa praxis ([bästa praxis]({restricting_api_keys_url})). Välj din plats på kartan, uppdateringsintervallet (timmar) och språkkoden för API-svaret. You can also set forecast days and per-day TYPE sensor range.",
+        "description": "Ange din Google API-nyckel ([hämta den här]({api_key_url})) och läs bästa praxis ([bästa praxis]({restricting_api_keys_url})). Välj din plats på kartan, uppdateringsintervallet (timmar) och språkkoden för API-svaret. Du kan också ange prognosdagar och omfånget för sensorer per dag (TYPER).",
         "title": "Konfiguration av pollennivåer",
         "sections": {
           "api_key_options": {
