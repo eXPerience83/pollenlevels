@@ -37,7 +37,7 @@
           "forecast_days": "Dias de previsão (1–5)",
           "create_forecast_sensors": "Escopo dos sensores por dia (TIPOS)"
         },
-        "description": "Insira sua chave de API do Google ([obtenha aqui]({api_key_url})) e consulte as melhores práticas ([melhores práticas]({restricting_api_keys_url})). Selecione sua localização no mapa, o intervalo de atualização (horas) e o código de idioma da resposta da API.",
+        "description": "Insira sua chave de API do Google ([obtenha aqui]({api_key_url})) e consulte as melhores práticas ([melhores práticas]({restricting_api_keys_url})). Selecione sua localização no mapa, o intervalo de atualização (horas) e o código de idioma da resposta da API. You can also set forecast days and per-day TYPE sensor range.",
         "title": "Configuração dos Níveis de Pólen",
         "sections": {
           "api_key_options": {

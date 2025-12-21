@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configuració de Nivells de pol·len",
-        "description": "Introdueix la teva clau API de Google ([aconsegueix-la aquí]({api_key_url})) i revisa les bones pràctiques ([bones pràctiques]({restricting_api_keys_url})). Selecciona la ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API.",
+        "description": "Introdueix la teva clau API de Google ([aconsegueix-la aquí]({api_key_url})) i revisa les bones pràctiques ([bones pràctiques]({restricting_api_keys_url})). Selecciona la ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API. You can also set forecast days and per-day TYPE sensor range.",
         "data": {
           "api_key": "Clau API",
           "name": "Nom",

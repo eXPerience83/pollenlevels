@@ -37,7 +37,7 @@
           "forecast_days": "Előrejelzési napok (1–5)",
           "create_forecast_sensors": "Napi TÍPUS szenzorok tartománya"
         },
-        "description": "Add meg a Google API-kulcsodat ([itt szerezhető be]({api_key_url})) és nézd át a bevált gyakorlatokat ([bevált gyakorlatok]({restricting_api_keys_url})). Válaszd ki a helyszínt a térképen, a frissítési időközt (órában) és az API-válasz nyelvi kódját.",
+        "description": "Add meg a Google API-kulcsodat ([itt szerezhető be]({api_key_url})) és nézd át a bevált gyakorlatokat ([bevált gyakorlatok]({restricting_api_keys_url})). Válaszd ki a helyszínt a térképen, a frissítési időközt (órában) és az API-válasz nyelvi kódját. You can also set forecast days and per-day TYPE sensor range.",
         "title": "Pollen szintek – beállítás",
         "sections": {
           "api_key_options": {

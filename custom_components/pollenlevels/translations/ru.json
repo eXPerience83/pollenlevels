@@ -37,7 +37,7 @@
           "forecast_days": "Дни прогноза (1–5)",
           "create_forecast_sensors": "Диапазон дневных датчиков (ТИПЫ)"
         },
-        "description": "Введите ключ Google API ([получите его здесь]({api_key_url})) и изучите рекомендации ([лучшие практики]({restricting_api_keys_url})). Выберите местоположение на карте, интервал обновления (часы) и языковой код ответа API.",
+        "description": "Введите ключ Google API ([получите его здесь]({api_key_url})) и изучите рекомендации ([лучшие практики]({restricting_api_keys_url})). Выберите местоположение на карте, интервал обновления (часы) и языковой код ответа API. You can also set forecast days and per-day TYPE sensor range.",
         "title": "Настройка уровней пыльцы",
         "sections": {
           "api_key_options": {

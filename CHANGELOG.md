@@ -19,6 +19,8 @@
   option presence is respected even when the stored value is None.
 - Moved the optional API key section directly below the API key field in the
   setup flow for improved visibility.
+- Restored the HTTP Referer field when the setup schema falls back to the flat
+  layout and updated setup guidance to mention forecast configuration.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed

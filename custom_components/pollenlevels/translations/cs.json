@@ -37,7 +37,7 @@
           "forecast_days": "Dny předpovědi (1–5)",
           "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
         },
-        "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API.",
+        "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API. You can also set forecast days and per-day TYPE sensor range.",
         "title": "Konfigurace úrovní pylu",
         "sections": {
           "api_key_options": {

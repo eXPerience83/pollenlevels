@@ -243,6 +243,10 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     options=FORECAST_SENSORS_CHOICES,
                 )
             ),
+            vol.Optional(
+                CONF_HTTP_REFERER,
+                default=http_referer_default,
+            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
         }
     )
 

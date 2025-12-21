@@ -37,7 +37,7 @@
           "forecast_days": "Zile de prognoză (1–5)",
           "create_forecast_sensors": "Domeniul senzorilor pe zile (TIPURI)"
         },
-        "description": "Introdu cheia ta API Google ([obține-o aici]({api_key_url})) și consultă cele mai bune practici ([cele mai bune practici]({restricting_api_keys_url})). Selectează locația pe hartă, intervalul de actualizare (ore) și codul de limbă al răspunsului API.",
+        "description": "Introdu cheia ta API Google ([obține-o aici]({api_key_url})) și consultă cele mai bune practici ([cele mai bune practici]({restricting_api_keys_url})). Selectează locația pe hartă, intervalul de actualizare (ore) și codul de limbă al răspunsului API. You can also set forecast days and per-day TYPE sensor range.",
         "title": "Configurare Niveluri de Polen",
         "sections": {
           "api_key_options": {

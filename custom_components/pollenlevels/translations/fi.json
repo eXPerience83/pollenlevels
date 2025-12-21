@@ -37,7 +37,7 @@
           "forecast_days": "Ennustepäivät (1–5)",
           "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
         },
-        "description": "Syötä Google API -avaimesi ([hanki se täältä]({api_key_url})) ja tutustu parhaisiin käytäntöihin ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi.",
+        "description": "Syötä Google API -avaimesi ([hanki se täältä]({api_key_url})) ja tutustu parhaisiin käytäntöihin ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi. You can also set forecast days and per-day TYPE sensor range.",
         "title": "Siitepölytason asetukset",
         "sections": {
           "api_key_options": {
