@@ -114,7 +114,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             coordinator = getattr(runtime, "coordinator", None)
             if coordinator:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                refresh_coro = coordinator.async_request_refresh()
+                refresh_coro = coordinator.async_refresh()
                 tasks.append(refresh_coro)
                 task_entries.append(entry)
 

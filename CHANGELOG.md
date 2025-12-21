@@ -29,6 +29,8 @@
 - Normalized whitespace-only per-day sensor mode values and preserved fallback
   to entry data when options explicitly store None.
 - Removed redundant timeout handling in the HTTP client error path.
+- Fixed the force_update service to await coordinator refresh coroutines safely
+  without passing None into asyncio.gather.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
