@@ -26,6 +26,8 @@
 - Added entry context to migration failure logs for easier debugging.
 - Removed a mutable default from the API key options schema to avoid shared
   state across config flow instances.
+- Normalized whitespace-only per-day sensor mode values and preserved fallback
+  to entry data when options explicitly store None.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed

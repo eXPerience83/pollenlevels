@@ -53,7 +53,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate config entry data to options when needed."""
     try:
         target_version = 2
-        current_version = getattr(entry, "version", 1)
+        current_version_raw = getattr(entry, "version", 1)
+        current_version = (
+            current_version_raw if isinstance(current_version_raw, int) else 1
+        )
         if current_version >= target_version:
             return True
 
@@ -62,6 +65,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
             if mode is None:
                 new_options.pop(CONF_CREATE_FORECAST_SENSORS, None)
+                mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
+                if mode is not None:
+                    normalized_mode = normalize_sensor_mode(mode, _LOGGER)
+                    new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
             else:
                 normalized_mode = normalize_sensor_mode(mode, _LOGGER)
                 if normalized_mode != mode:
