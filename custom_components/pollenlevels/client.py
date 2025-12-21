@@ -218,22 +218,6 @@ class GooglePollenApiClient:
                 )
                 raise UpdateFailed(f"Timeout: {msg}") from err
             except ClientError as err:
-                if isinstance(err, asyncio.TimeoutError):
-                    if attempt < max_retries:
-                        await self._async_backoff(
-                            attempt=attempt,
-                            max_retries=max_retries,
-                            message=(
-                                "Pollen API timeout — retrying in %.2fs "
-                                "(attempt %d/%d)"
-                            ),
-                        )
-                        continue
-                    msg = (
-                        redact_api_key(err, self._api_key)
-                        or "Google Pollen API call timed out"
-                    )
-                    raise UpdateFailed(f"Timeout: {msg}") from err
                 if attempt < max_retries:
                     await self._async_backoff(
                         attempt=attempt,

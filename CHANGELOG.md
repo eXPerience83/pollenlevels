@@ -28,6 +28,7 @@
   state across config flow instances.
 - Normalized whitespace-only per-day sensor mode values and preserved fallback
   to entry data when options explicitly store None.
+- Removed redundant timeout handling in the HTTP client error path.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
