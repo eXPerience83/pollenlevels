@@ -68,16 +68,18 @@ def redact_api_key(text: object, api_key: str | None) -> str:
     return s
 
 
-def normalize_sensor_mode(mode: str | None, logger: logging.Logger) -> str:
+def normalize_sensor_mode(mode: Any, logger: logging.Logger) -> str:
     """Normalize sensor mode, defaulting and logging a warning if invalid."""
-    if mode in FORECAST_SENSORS_CHOICES:
-        return mode
+    raw_mode = getattr(mode, "value", mode)
+    mode_str = None if raw_mode is None else str(raw_mode)
+    if mode_str in FORECAST_SENSORS_CHOICES:
+        return mode_str
 
-    default_mode = FORECAST_SENSORS_CHOICES[0]
-    if mode is not None:
+    default_mode = FORECAST_SENSORS_CHOICES[0] if FORECAST_SENSORS_CHOICES else "none"
+    if mode_str is not None:
         logger.warning(
             "Invalid stored per-day sensor mode '%s'; defaulting to '%s'",
-            mode,
+            mode_str,
             default_mode,
         )
     return default_mode

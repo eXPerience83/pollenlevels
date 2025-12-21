@@ -21,6 +21,8 @@
   setup flow for improved visibility.
 - Restored the HTTP Referer field when the setup schema falls back to the flat
   layout and updated setup guidance to mention forecast configuration.
+- Hardened HTTP client timeout handling and normalized non-string per-day sensor
+  mode values defensively.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
