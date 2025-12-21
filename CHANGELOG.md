@@ -31,6 +31,12 @@
 - Removed redundant timeout handling in the HTTP client error path.
 - Fixed the force_update service to await coordinator refresh coroutines safely
   without passing None into asyncio.gather.
+- Hardened parsing of update interval and forecast days to tolerate malformed
+  stored values while keeping defaults intact.
+- Clamped forecast day handling in sensor setup to the supported 1–5 range for
+  consistent cleanup decisions.
+- Avoided treating empty indexInfo objects as valid forecast indices.
+- Added force_update service name/description for better UI discoverability.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed

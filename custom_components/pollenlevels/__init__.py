@@ -146,17 +146,26 @@ async def async_setup_entry(
     )
 
     options = entry.options or {}
-    hours = int(
+
+    def _safe_int(value: Any, default: int) -> int:
+        try:
+            return int(float(value if value is not None else default))
+        except (TypeError, ValueError):
+            return default
+
+    hours = _safe_int(
         options.get(
             CONF_UPDATE_INTERVAL,
             entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-        )
+        ),
+        DEFAULT_UPDATE_INTERVAL,
     )
-    forecast_days = int(
+    forecast_days = _safe_int(
         options.get(
             CONF_FORECAST_DAYS,
             entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-        )
+        ),
+        DEFAULT_FORECAST_DAYS,
     )
     language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
     raw_mode = options.get(

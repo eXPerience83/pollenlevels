@@ -46,6 +46,8 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
 )
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
@@ -153,7 +155,13 @@ async def async_setup_entry(
     coordinator = runtime.coordinator
 
     opts = config_entry.options or {}
-    forecast_days = int(opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days))
+    try:
+        forecast_days = int(
+            float(opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days))
+        )
+    except (TypeError, ValueError):
+        forecast_days = coordinator.forecast_days
+    forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
     create_d1 = coordinator.create_d1
     create_d2 = coordinator.create_d2
 
