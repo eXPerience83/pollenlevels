@@ -666,10 +666,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_FORECAST_DAYS,
             self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
-        current_mode = self.entry.options.get(
-            CONF_CREATE_FORECAST_SENSORS,
-            self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none"),
-        )
+        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS)
+        if current_mode is None:
+            current_mode = self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none")
         current_mode = normalize_sensor_mode(current_mode, _LOGGER)
 
         options_schema = vol.Schema(

@@ -60,9 +60,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_options = dict(entry.options)
         if CONF_CREATE_FORECAST_SENSORS in new_options:
             mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
-            normalized_mode = normalize_sensor_mode(mode, _LOGGER)
-            if normalized_mode != mode:
-                new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
+            if mode is None:
+                new_options.pop(CONF_CREATE_FORECAST_SENSORS, None)
+            else:
+                normalized_mode = normalize_sensor_mode(mode, _LOGGER)
+                if normalized_mode != mode:
+                    new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
         else:
             mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
             if mode is not None:
@@ -76,6 +79,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else:
             hass.config_entries.async_update_entry(entry, version=target_version)
         return True
+    except asyncio.CancelledError:
+        raise
     except Exception:  # noqa: BLE001
         _LOGGER.exception(
             "Failed to migrate per-day sensor mode to entry options for entry %s "
