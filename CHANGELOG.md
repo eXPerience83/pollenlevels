@@ -33,6 +33,7 @@
   without passing None into asyncio.gather.
 - Hardened parsing of update interval and forecast days to tolerate malformed
   stored values while keeping defaults intact.
+- Hardened numeric parsing to handle non-finite values without crashing setup.
 - Clamped forecast day handling in sensor setup to the supported 1–5 range for
   consistent cleanup decisions.
 - Avoided treating empty indexInfo objects as valid forecast indices.

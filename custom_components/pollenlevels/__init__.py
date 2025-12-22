@@ -149,8 +149,11 @@ async def async_setup_entry(
 
     def _safe_int(value: Any, default: int) -> int:
         try:
-            return int(float(value if value is not None else default))
-        except (TypeError, ValueError):
+            val = float(value if value is not None else default)
+            if val != val or val in (float("inf"), float("-inf")):
+                return default
+            return int(val)
+        except (TypeError, ValueError, OverflowError):
             return default
 
     hours = _safe_int(

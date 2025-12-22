@@ -156,10 +156,11 @@ async def async_setup_entry(
 
     opts = config_entry.options or {}
     try:
-        forecast_days = int(
-            float(opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days))
-        )
-    except (TypeError, ValueError):
+        val = float(opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days))
+        if val != val or val in (float("inf"), float("-inf")):
+            raise ValueError
+        forecast_days = int(val)
+    except (TypeError, ValueError, OverflowError):
         forecast_days = coordinator.forecast_days
     forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
     create_d1 = coordinator.create_d1
