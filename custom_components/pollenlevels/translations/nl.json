@@ -37,7 +37,7 @@
           "forecast_days": "Voorspellingsdagen (1–5)",
           "create_forecast_sensors": "Bereik van per-dag TYPE-sensoren"
         },
-        "description": "Voer je Google API-sleutel in ([haal hem hier]({api_key_url})) en bekijk de best practices ([best practices]({restricting_api_keys_url})). Selecteer je locatie op de kaart, het update-interval (uren) en de taalcode van de API-respons.",
+        "description": "Voer je Google API-sleutel in ([haal hem hier]({api_key_url})) en bekijk de best practices ([best practices]({restricting_api_keys_url})). Selecteer je locatie op de kaart, het update-interval (uren) en de taalcode van de API-respons. Je kunt ook voorspellingsdagen en het bereik van per-dag TYPE-sensoren instellen.",
         "title": "Pollen Levels – Configuratie",
         "sections": {
           "api_key_options": {

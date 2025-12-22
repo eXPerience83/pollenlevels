@@ -54,6 +54,7 @@ from .const import (
     DOMAIN,
     FORECAST_SENSORS_CHOICES,
     MAX_FORECAST_DAYS,
+    MAX_UPDATE_INTERVAL_HOURS,
     MIN_FORECAST_DAYS,
     POLLEN_API_KEY_URL,
     POLLEN_API_TIMEOUT,
@@ -62,7 +63,7 @@ from .const import (
     is_invalid_api_key_message,
     normalize_http_referer,
 )
-from .util import extract_error_message, redact_api_key
+from .util import extract_error_message, normalize_sensor_mode, redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,6 +149,17 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     section_schema = vol.Schema(
         {
             vol.Required(CONF_API_KEY): str,
+            vol.Optional(SECTION_API_KEY_OPTIONS): section(
+                vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_HTTP_REFERER,
+                            default=http_referer_default,
+                        ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
+                    }
+                ),
+                {"collapsed": True},
+            ),
             vol.Required(CONF_NAME, default=default_name): str,
             location_field: LocationSelector(LocationSelectorConfig(radius=False)),
             vol.Optional(
@@ -156,6 +168,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
+                    max=MAX_UPDATE_INTERVAL_HOURS,
                     step=1,
                     mode=NumberSelectorMode.BOX,
                     unit_of_measurement="h",
@@ -186,17 +199,6 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     mode=SelectSelectorMode.DROPDOWN,
                     options=FORECAST_SENSORS_CHOICES,
                 )
-            ),
-            vol.Optional(SECTION_API_KEY_OPTIONS, default={}): section(
-                vol.Schema(
-                    {
-                        vol.Optional(
-                            CONF_HTTP_REFERER,
-                            default=http_referer_default,
-                        ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
-                    }
-                ),
-                {"collapsed": True},
             ),
         }
     )
@@ -212,6 +214,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
+                    max=MAX_UPDATE_INTERVAL_HOURS,
                     step=1,
                     mode=NumberSelectorMode.BOX,
                     unit_of_measurement="h",
@@ -243,6 +246,10 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     options=FORECAST_SENSORS_CHOICES,
                 )
             ),
+            vol.Optional(
+                CONF_HTTP_REFERER,
+                default=http_referer_default,
+            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
         }
     )
 
@@ -313,7 +320,7 @@ def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow state."""
@@ -666,7 +673,10 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_FORECAST_DAYS,
             self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
-        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
+        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS)
+        if current_mode is None:
+            current_mode = self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none")
+        current_mode = normalize_sensor_mode(current_mode, _LOGGER)
 
         options_schema = vol.Schema(
             {
@@ -675,6 +685,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 ): NumberSelector(
                     NumberSelectorConfig(
                         min=1,
+                        max=MAX_UPDATE_INTERVAL_HOURS,
                         step=1,
                         mode=NumberSelectorMode.BOX,
                         unit_of_measurement="h",
@@ -747,8 +758,10 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 days = normalized_input[CONF_FORECAST_DAYS]
                 mode = normalized_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
-                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                    current_mode,
                 )
+                mode = normalize_sensor_mode(mode, _LOGGER)
+                normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
                 needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
                 if days < needed:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"

@@ -1,4 +1,46 @@
 # Changelog
+## [1.9.0-alpha4] - 2025-12-20
+### Fixed
+- Fixed options flow to preserve the stored per-day sensor mode when no override
+  is set in entry options, preventing unintended resets to "none".
+- Normalized invalid stored per-day sensor mode values in the options flow to
+  avoid persisting unsupported selector choices.
+- Simplified the per-day sensor mode fallback during options submission to reuse
+  the normalized current mode and prevent regressions.
+- Migrated per-day sensor mode to entry options when stored in entry data to
+  prevent option resets after upgrades.
+- Centralized per-day sensor mode normalization to avoid duplicate validation
+  logic across migration and options handling.
+- Normalized invalid per-day sensor mode values already stored in entry options
+  during migration to keep options consistent.
+- Versioned config entries to ensure the per-day sensor mode migration runs
+  once and is not repeated on every restart.
+- Ensured unversioned entries run the per-day sensor mode migration and that
+  option presence is respected even when the stored value is None.
+- Moved the optional API key section directly below the API key field in the
+  setup flow for improved visibility.
+- Restored the HTTP Referer field when the setup schema falls back to the flat
+  layout and updated setup guidance to mention forecast configuration.
+- Hardened HTTP client timeout handling and normalized non-string per-day sensor
+  mode values defensively.
+- Added entry context to migration failure logs for easier debugging.
+- Removed a mutable default from the API key options schema to avoid shared
+  state across config flow instances.
+- Normalized whitespace-only per-day sensor mode values and preserved fallback
+  to entry data when options explicitly store None.
+- Removed redundant timeout handling in the HTTP client error path.
+- Fixed the force_update service to await coordinator refresh coroutines safely
+  without passing None into asyncio.gather.
+- Hardened parsing of update interval and forecast days to tolerate malformed
+  stored values while keeping defaults intact.
+- Hardened numeric parsing to handle non-finite values without crashing setup.
+- Clamped update interval and forecast days in setup to supported ranges.
+- Limited update interval to a maximum of 24 hours in setup and options.
+- Clamped forecast day handling in sensor setup to the supported 1–5 range for
+  consistent cleanup decisions.
+- Avoided treating empty indexInfo objects as valid forecast indices.
+- Added force_update service name/description for better UI discoverability.
+
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed
 - Fixed config flow crash (500) caused by invalid section schema serialization;

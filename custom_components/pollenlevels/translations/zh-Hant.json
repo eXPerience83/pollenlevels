@@ -37,7 +37,7 @@
           "forecast_days": "預測天數（1–5）",
           "create_forecast_sensors": "逐日類型感測器範圍"
         },
-        "description": "輸入你的 Google API 金鑰（[在此取得]({api_key_url})) 並查看最佳實務（[最佳實務]({restricting_api_keys_url})). 在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
+        "description": "輸入你的 Google API 金鑰（[在此取得]({api_key_url})) 並查看最佳實務（[最佳實務]({restricting_api_keys_url})). 在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。 你也可以設定預測天數與逐日類型感測器的範圍。",
         "title": "花粉水平設定",
         "sections": {
           "api_key_options": {

@@ -37,7 +37,7 @@
           "forecast_days": "Giorni di previsione (1–5)",
           "create_forecast_sensors": "Ambito dei sensori per giorno (TIPI)"
         },
-        "description": "Inserisci la tua chiave API di Google ([ottienila qui]({api_key_url})) e consulta le best practice ([best practice]({restricting_api_keys_url})). Seleziona la posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua della risposta dell’API.",
+        "description": "Inserisci la tua chiave API di Google ([ottienila qui]({api_key_url})) e consulta le best practice ([best practice]({restricting_api_keys_url})). Seleziona la posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua della risposta dell’API. Puoi anche impostare i giorni di previsione e l'ambito dei sensori per giorno (TIPI).",
         "title": "Configurazione Livelli di polline",
         "sections": {
           "api_key_options": {

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Pollen Levels Configuration",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code.",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. You can also set forecast days and per-day TYPE sensor range.",
         "data": {
           "api_key": "API Key",
           "name": "Name",

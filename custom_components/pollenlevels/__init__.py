@@ -34,11 +34,15 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MAX_FORECAST_DAYS,
+    MAX_UPDATE_INTERVAL_HOURS,
+    MIN_FORECAST_DAYS,
     normalize_http_referer,
 )
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .sensor import ForecastSensorMode
+from .util import normalize_sensor_mode
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -46,6 +50,48 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 _LOGGER = logging.getLogger(__name__)
 
 # ---- Service -------------------------------------------------------------
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate config entry data to options when needed."""
+    try:
+        target_version = 2
+        current_version_raw = getattr(entry, "version", 1)
+        current_version = (
+            current_version_raw if isinstance(current_version_raw, int) else 1
+        )
+        if current_version >= target_version:
+            return True
+
+        new_options = dict(entry.options)
+        mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
+        if mode is None:
+            mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
+
+        if mode is not None:
+            normalized_mode = normalize_sensor_mode(mode, _LOGGER)
+            if new_options.get(CONF_CREATE_FORECAST_SENSORS) != normalized_mode:
+                new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
+        elif CONF_CREATE_FORECAST_SENSORS in new_options:
+            new_options.pop(CONF_CREATE_FORECAST_SENSORS)
+
+        if new_options != entry.options:
+            hass.config_entries.async_update_entry(
+                entry, options=new_options, version=target_version
+            )
+        else:
+            hass.config_entries.async_update_entry(entry, version=target_version)
+        return True
+    except asyncio.CancelledError:
+        raise
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception(
+            "Failed to migrate per-day sensor mode to entry options for entry %s "
+            "(version=%s)",
+            entry.entry_id,
+            getattr(entry, "version", None),
+        )
+        return False
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
@@ -64,7 +110,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             coordinator = getattr(runtime, "coordinator", None)
             if coordinator:
                 _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                refresh_coro = coordinator.async_request_refresh()
+                refresh_coro = coordinator.async_refresh()
                 tasks.append(refresh_coro)
                 task_entries.append(entry)
 
@@ -96,18 +142,32 @@ async def async_setup_entry(
     )
 
     options = entry.options or {}
-    hours = int(
+
+    def _safe_int(value: Any, default: int) -> int:
+        try:
+            val = float(value if value is not None else default)
+            if val != val or val in (float("inf"), float("-inf")):
+                return default
+            return int(val)
+        except (TypeError, ValueError, OverflowError):
+            return default
+
+    hours = _safe_int(
         options.get(
             CONF_UPDATE_INTERVAL,
             entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-        )
+        ),
+        DEFAULT_UPDATE_INTERVAL,
     )
-    forecast_days = int(
+    hours = max(1, min(MAX_UPDATE_INTERVAL_HOURS, hours))
+    forecast_days = _safe_int(
         options.get(
             CONF_FORECAST_DAYS,
             entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-        )
+        ),
+        DEFAULT_FORECAST_DAYS,
     )
+    forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
     language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
     raw_mode = options.get(
         CONF_CREATE_FORECAST_SENSORS,

@@ -371,7 +371,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 item = _find_type(day, tcode) or {}
                 idx_raw = item.get("indexInfo")
                 idx = idx_raw if isinstance(idx_raw, dict) else None
-                has_index = idx is not None
+                has_index = isinstance(idx_raw, dict) and bool(idx_raw)
                 rgb = _rgb_from_api(idx.get("color")) if has_index else None
                 forecast_list.append(
                     {
@@ -465,7 +465,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 item = _find_plant(day, pcode) or {}
                 idx_raw = item.get("indexInfo")
                 idx = idx_raw if isinstance(idx_raw, dict) else None
-                has_index = idx is not None
+                has_index = isinstance(idx_raw, dict) and bool(idx_raw)
                 rgb = _rgb_from_api(idx.get("color")) if has_index else None
                 forecast_list.append(
                     {

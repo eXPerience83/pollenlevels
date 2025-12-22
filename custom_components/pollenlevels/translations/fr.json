@@ -37,7 +37,7 @@
           "forecast_days": "Jours de prévision (1–5)",
           "create_forecast_sensors": "Portée des capteurs par jour (TYPES)"
         },
-        "description": "Saisissez votre clé API Google ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse de l’API.",
+        "description": "Saisissez votre clé API Google ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse de l’API. Vous pouvez aussi définir les jours de prévision et la portée des capteurs par jour (TYPES).",
         "title": "Pollen Levels – Configuration",
         "sections": {
           "api_key_options": {

@@ -238,6 +238,7 @@ sys.modules.setdefault(
 integration = importlib.import_module(
     "custom_components.pollenlevels.__init__"
 )  # noqa: E402
+const = importlib.import_module("custom_components.pollenlevels.const")  # noqa: E402
 
 
 class _FakeConfigEntries:
@@ -263,6 +264,12 @@ class _FakeConfigEntries:
         self.unload_calls.append((entry, platforms))
         return self._unload_result
 
+    def async_update_entry(self, entry, **kwargs):
+        if "options" in kwargs:
+            entry.options = kwargs["options"]
+        if "version" in kwargs:
+            entry.version = kwargs["version"]
+
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
         self.reload_calls.append(entry_id)
 
@@ -282,6 +289,7 @@ class _FakeEntry:
         title: str = "Pollen Levels",
         data: dict | None = None,
         options: dict | None = None,
+        version: int = 1,
     ):
         self.entry_id = entry_id
         self.title = title
@@ -293,6 +301,7 @@ class _FakeEntry:
             integration.CONF_LONGITUDE: 2.0,
         }
         self.options = options or {}
+        self.version = version
         self.runtime_data = None
 
     def add_update_listener(self, listener):
@@ -434,6 +443,9 @@ def test_force_update_requests_refresh_per_entry() -> None:
         async def _mark(self):
             self.calls.append("refresh")
 
+        async def async_refresh(self):
+            await self._mark()
+
         def async_request_refresh(self):
             return asyncio.create_task(self._mark())
 
@@ -453,3 +465,73 @@ def test_force_update_requests_refresh_per_entry() -> None:
 
     assert entry1.runtime_data.coordinator.calls == ["refresh"]
     assert entry2.runtime_data.coordinator.calls == ["refresh"]
+
+
+def test_migrate_entry_moves_mode_to_options() -> None:
+    """Migration should copy per-day sensor mode from data to options."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+        options={},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
+    assert entry.version == 2
+
+
+def test_migrate_entry_normalizes_invalid_mode() -> None:
+    """Migration should normalize invalid per-day sensor mode values."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "bad-value",
+        },
+        options={},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert (
+        entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
+        == const.FORECAST_SENSORS_CHOICES[0]
+    )
+    assert entry.version == 2
+
+
+def test_migrate_entry_normalizes_invalid_mode_in_options() -> None:
+    """Migration should normalize invalid per-day sensor mode values in options."""
+    entry = _FakeEntry(
+        data={},
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "bad-value"},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert (
+        entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
+        == const.FORECAST_SENSORS_CHOICES[0]
+    )
+    assert entry.version == 2
+
+
+def test_migrate_entry_marks_version_when_no_changes() -> None:
+    """Migration should still bump the version when no changes are needed."""
+    entry = _FakeEntry(
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert entry.version == 2
