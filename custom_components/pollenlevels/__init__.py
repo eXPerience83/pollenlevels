@@ -34,6 +34,8 @@ from .const import (
     DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
     normalize_http_referer,
 )
 from .coordinator import PollenDataUpdateCoordinator
@@ -156,6 +158,7 @@ async def async_setup_entry(
         ),
         DEFAULT_UPDATE_INTERVAL,
     )
+    hours = max(1, hours)
     forecast_days = _safe_int(
         options.get(
             CONF_FORECAST_DAYS,
@@ -163,6 +166,7 @@ async def async_setup_entry(
         ),
         DEFAULT_FORECAST_DAYS,
     )
+    forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
     language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
     raw_mode = options.get(
         CONF_CREATE_FORECAST_SENSORS,
