@@ -3,6 +3,8 @@
 ### Fixed
 - Fixed options flow to preserve the stored per-day sensor mode when no override
   is set in entry options, preventing unintended resets to "none".
+- Sanitized update interval defaults in setup and options forms to clamp
+  malformed stored values within supported bounds.
 - Normalized invalid stored per-day sensor mode values in the options flow to
   avoid persisting unsupported selector choices.
 - Simplified the per-day sensor mode fallback during options submission to reuse

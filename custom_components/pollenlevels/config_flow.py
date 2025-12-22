@@ -146,6 +146,13 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     else:
         location_field = vol.Required(CONF_LOCATION)
 
+    update_interval_raw = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    interval_default, _ = _parse_update_interval(
+        update_interval_raw,
+        DEFAULT_UPDATE_INTERVAL,
+    )
+    interval_default = max(1, min(MAX_UPDATE_INTERVAL_HOURS, interval_default))
+
     section_schema = vol.Schema(
         {
             vol.Required(CONF_API_KEY): str,
@@ -164,7 +171,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             location_field: LocationSelector(LocationSelectorConfig(radius=False)),
             vol.Optional(
                 CONF_UPDATE_INTERVAL,
-                default=user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                default=interval_default,
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
@@ -210,7 +217,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             location_field: LocationSelector(LocationSelectorConfig(radius=False)),
             vol.Optional(
                 CONF_UPDATE_INTERVAL,
-                default=user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+                default=interval_default,
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
@@ -661,10 +668,15 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         placeholders = {"title": self.entry.title or DEFAULT_ENTRY_TITLE}
 
-        current_interval = self.entry.options.get(
+        current_interval_raw = self.entry.options.get(
             CONF_UPDATE_INTERVAL,
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
+        current_interval, _ = _parse_update_interval(
+            current_interval_raw,
+            DEFAULT_UPDATE_INTERVAL,
+        )
+        current_interval = max(1, min(MAX_UPDATE_INTERVAL_HOURS, current_interval))
         current_lang = self.entry.options.get(
             CONF_LANGUAGE_CODE,
             self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),

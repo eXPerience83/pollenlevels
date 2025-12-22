@@ -15,6 +15,8 @@ from custom_components.pollenlevels.const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
+    MAX_UPDATE_INTERVAL_HOURS,
 )
 from tests import test_config_flow as base
 
@@ -166,3 +168,33 @@ def test_options_flow_invalid_update_interval_short_circuits() -> None:
     )
 
     assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("not-a-number", DEFAULT_UPDATE_INTERVAL),
+        (0, 1),
+        (999, MAX_UPDATE_INTERVAL_HOURS),
+    ],
+)
+def test_options_schema_update_interval_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: object,
+    expected: int,
+) -> None:
+    """Options form should clamp invalid update interval defaults."""
+
+    captured_defaults: list[int | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_UPDATE_INTERVAL:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(base.cf.vol, "Optional", _capture_optional)
+
+    flow = _flow(options={CONF_UPDATE_INTERVAL: raw_value})
+    asyncio.run(flow.async_step_init(user_input=None))
+
+    assert captured_defaults == [expected]

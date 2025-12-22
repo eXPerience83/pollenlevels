@@ -338,6 +338,8 @@ from custom_components.pollenlevels.const import (
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
+    DEFAULT_UPDATE_INTERVAL,
+    MAX_UPDATE_INTERVAL_HOURS,
     normalize_http_referer,
 )
 
@@ -618,6 +620,38 @@ def test_async_step_user_persists_http_referer() -> None:
     result = asyncio.run(flow.async_step_user(user_input))
 
     assert result["data"][CONF_HTTP_REFERER] == "https://example.com"
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("not-a-number", DEFAULT_UPDATE_INTERVAL),
+        (0, 1),
+        (999, MAX_UPDATE_INTERVAL_HOURS),
+    ],
+)
+def test_setup_schema_update_interval_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: object,
+    expected: int,
+) -> None:
+    """Update interval defaults should be sanitized for form rendering."""
+
+    captured_defaults: list[int | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_UPDATE_INTERVAL:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+    cf._build_step_user_schema(hass, {CONF_UPDATE_INTERVAL: raw_value})
+
+    assert captured_defaults == [expected, expected]
 
 
 def test_async_step_user_drops_blank_http_referer() -> None:
