@@ -35,6 +35,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     MAX_FORECAST_DAYS,
+    MAX_UPDATE_INTERVAL_HOURS,
     MIN_FORECAST_DAYS,
     normalize_http_referer,
 )
@@ -158,7 +159,7 @@ async def async_setup_entry(
         ),
         DEFAULT_UPDATE_INTERVAL,
     )
-    hours = max(1, hours)
+    hours = max(1, min(MAX_UPDATE_INTERVAL_HOURS, hours))
     forecast_days = _safe_int(
         options.get(
             CONF_FORECAST_DAYS,
