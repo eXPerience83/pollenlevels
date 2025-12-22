@@ -5,6 +5,7 @@
   is set in entry options, preventing unintended resets to "none".
 - Sanitized update interval defaults in setup and options forms to clamp
   malformed stored values within supported bounds.
+- Rejected update interval submissions above 24 hours to match selector limits.
 - Normalized invalid stored per-day sensor mode values in the options flow to
   avoid persisting unsupported selector choices.
 - Simplified the per-day sensor mode fallback during options submission to reuse

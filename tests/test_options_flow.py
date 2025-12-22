@@ -170,6 +170,25 @@ def test_options_flow_invalid_update_interval_short_circuits() -> None:
     assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
 
 
+def test_options_flow_update_interval_above_max_sets_error() -> None:
+    """Over-max update intervals should raise a field error."""
+
+    flow = _flow()
+
+    result = asyncio.run(
+        flow.async_step_init(
+            {
+                CONF_LANGUAGE_CODE: "en",
+                CONF_FORECAST_DAYS: 2,
+                CONF_CREATE_FORECAST_SENSORS: "none",
+                CONF_UPDATE_INTERVAL: 999,
+            }
+        )
+    )
+
+    assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+
+
 @pytest.mark.parametrize(
     ("raw_value", "expected"),
     [

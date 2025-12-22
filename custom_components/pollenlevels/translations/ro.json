@@ -15,7 +15,7 @@
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "quota_exceeded": "Cota depășită\n\n{error_message}",
       "unknown": "Eroare necunoscută",
-      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră.",
+      "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore.",
       "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5."
     },
     "step": {
@@ -80,7 +80,7 @@
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "unknown": "Eroare necunoscută",
-      "invalid_update_interval": "Intervalul de actualizare trebuie să fie de cel puțin 1 oră.",
+      "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore.",
       "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5."
     },
     "step": {

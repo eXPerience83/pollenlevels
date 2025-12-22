@@ -316,6 +316,7 @@ def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
         value,
         default=default,
         min_value=1,
+        max_value=MAX_UPDATE_INTERVAL_HOURS,
         error_key="invalid_update_interval",
     )
 

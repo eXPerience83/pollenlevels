@@ -15,7 +15,7 @@
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "quota_exceeded": "Quota excedida\n\n{error_message}",
       "unknown": "Erro desconhecido",
-      "invalid_update_interval": "O intervalo de atualização deve ser de pelo menos 1 hora.",
+      "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
       "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5."
     },
     "step": {
@@ -80,7 +80,7 @@
       "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "unknown": "Erro desconhecido",
-      "invalid_update_interval": "O intervalo de atualização deve ser de pelo menos 1 hora.",
+      "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
       "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5."
     },
     "step": {
