@@ -147,11 +147,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
         location_field = vol.Required(CONF_LOCATION)
 
     update_interval_raw = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-    interval_default, _ = _parse_update_interval(
-        update_interval_raw,
-        DEFAULT_UPDATE_INTERVAL,
-    )
-    interval_default = max(1, min(MAX_UPDATE_INTERVAL_HOURS, interval_default))
+    interval_default = _sanitize_update_interval_for_default(update_interval_raw)
 
     section_schema = vol.Schema(
         {
@@ -322,6 +318,12 @@ def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
         min_value=1,
         error_key="invalid_update_interval",
     )
+
+
+def _sanitize_update_interval_for_default(raw_value: Any) -> int:
+    """Parse and clamp an update interval value to be used as a UI default."""
+    parsed, _ = _parse_update_interval(raw_value, DEFAULT_UPDATE_INTERVAL)
+    return max(1, min(MAX_UPDATE_INTERVAL_HOURS, parsed))
 
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -672,11 +674,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_UPDATE_INTERVAL,
             self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
-        current_interval, _ = _parse_update_interval(
-            current_interval_raw,
-            DEFAULT_UPDATE_INTERVAL,
-        )
-        current_interval = max(1, min(MAX_UPDATE_INTERVAL_HOURS, current_interval))
+        current_interval = _sanitize_update_interval_for_default(current_interval_raw)
         current_lang = self.entry.options.get(
             CONF_LANGUAGE_CODE,
             self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
