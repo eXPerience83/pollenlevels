@@ -443,6 +443,9 @@ def test_force_update_requests_refresh_per_entry() -> None:
         async def _mark(self):
             self.calls.append("refresh")
 
+        async def async_refresh(self):
+            await self._mark()
+
         def async_request_refresh(self):
             return asyncio.create_task(self._mark())
 
