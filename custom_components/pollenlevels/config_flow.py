@@ -214,6 +214,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=1,
+                    max=MAX_UPDATE_INTERVAL_HOURS,
                     step=1,
                     mode=NumberSelectorMode.BOX,
                     unit_of_measurement="h",
