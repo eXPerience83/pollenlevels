@@ -15,7 +15,7 @@
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "quota_exceeded": "超出配額\n\n{error_message}",
       "unknown": "未知錯誤",
-      "invalid_update_interval": "更新間隔必須至少為 1 小時。",
+      "invalid_update_interval": "更新間隔必須在 1 到 24 小時之間。",
       "invalid_forecast_days": "預測天數必須在 1 到 5 之間。"
     },
     "step": {
@@ -80,7 +80,7 @@
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "unknown": "未知錯誤",
-      "invalid_update_interval": "更新間隔必須至少為 1 小時。",
+      "invalid_update_interval": "更新間隔必須在 1 到 24 小時之間。",
       "invalid_forecast_days": "預測天數必須在 1 到 5 之間。"
     },
     "step": {

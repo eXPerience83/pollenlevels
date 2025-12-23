@@ -15,7 +15,7 @@
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
       "quota_exceeded": "配额已用尽\n\n{error_message}",
       "unknown": "未知错误",
-      "invalid_update_interval": "更新间隔必须至少为 1 小时。",
+      "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
       "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
     },
     "step": {
@@ -80,7 +80,7 @@
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
       "unknown": "未知错误",
-      "invalid_update_interval": "更新间隔必须至少为 1 小时。",
+      "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
       "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
     },
     "step": {

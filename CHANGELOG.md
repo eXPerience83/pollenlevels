@@ -1,8 +1,13 @@
 # Changelog
-## [1.9.0-alpha4] - 2025-12-20
+## [1.9.0-alpha4] - 2025-12-23
 ### Fixed
 - Fixed options flow to preserve the stored per-day sensor mode when no override
   is set in entry options, preventing unintended resets to "none".
+- Sanitized update interval defaults in setup and options forms to clamp
+  malformed stored values within supported bounds.
+- Rejected update interval submissions above 24 hours to match selector limits.
+- Sanitized setup and options defaults for forecast days and per-day sensor mode
+  selectors to keep UI defaults within supported choices.
 - Normalized invalid stored per-day sensor mode values in the options flow to
   avoid persisting unsupported selector choices.
 - Simplified the per-day sensor mode fallback during options submission to reuse
@@ -36,10 +41,14 @@
 - Hardened numeric parsing to handle non-finite values without crashing setup.
 - Clamped update interval and forecast days in setup to supported ranges.
 - Limited update interval to a maximum of 24 hours in setup and options.
+- Rejected HTTP Referer values containing whitespace to prevent invalid headers.
 - Clamped forecast day handling in sensor setup to the supported 1–5 range for
   consistent cleanup decisions.
 - Avoided treating empty indexInfo objects as valid forecast indices.
 - Added force_update service name/description for better UI discoverability.
+
+### Changed
+- Documented the 1–24 update interval range in the README options list.
 
 ## [1.9.0-alpha3] - 2025-12-20
 ### Fixed

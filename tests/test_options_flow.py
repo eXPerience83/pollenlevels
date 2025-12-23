@@ -15,6 +15,12 @@ from custom_components.pollenlevels.const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
+    FORECAST_SENSORS_CHOICES,
+    MAX_FORECAST_DAYS,
+    MAX_UPDATE_INTERVAL_HOURS,
+    MIN_FORECAST_DAYS,
 )
 from tests import test_config_flow as base
 
@@ -166,3 +172,102 @@ def test_options_flow_invalid_update_interval_short_circuits() -> None:
     )
 
     assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+
+
+def test_options_flow_update_interval_above_max_sets_error() -> None:
+    """Over-max update intervals should raise a field error."""
+
+    flow = _flow()
+
+    result = asyncio.run(
+        flow.async_step_init(
+            {
+                CONF_LANGUAGE_CODE: "en",
+                CONF_FORECAST_DAYS: 2,
+                CONF_CREATE_FORECAST_SENSORS: "none",
+                CONF_UPDATE_INTERVAL: 999,
+            }
+        )
+    )
+
+    assert result["errors"] == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("not-a-number", DEFAULT_UPDATE_INTERVAL),
+        (0, 1),
+        (999, MAX_UPDATE_INTERVAL_HOURS),
+    ],
+)
+def test_options_schema_update_interval_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: object,
+    expected: int,
+) -> None:
+    """Options form should clamp invalid update interval defaults."""
+
+    captured_defaults: list[int | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_UPDATE_INTERVAL:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(base.cf.vol, "Optional", _capture_optional)
+
+    flow = _flow(options={CONF_UPDATE_INTERVAL: raw_value})
+    asyncio.run(flow.async_step_init(user_input=None))
+
+    assert captured_defaults == [expected]
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        (0, str(MIN_FORECAST_DAYS)),
+        (999, str(MAX_FORECAST_DAYS)),
+        ("abc", str(DEFAULT_FORECAST_DAYS)),
+    ],
+)
+def test_options_schema_forecast_days_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: object,
+    expected: str,
+) -> None:
+    """Options form should clamp invalid forecast day defaults."""
+
+    captured_defaults: list[str | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_FORECAST_DAYS:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(base.cf.vol, "Optional", _capture_optional)
+
+    flow = _flow(options={CONF_FORECAST_DAYS: raw_value})
+    asyncio.run(flow.async_step_init(user_input=None))
+
+    assert captured_defaults == [expected]
+
+
+def test_options_schema_sensor_mode_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Options form should fall back to a valid sensor mode default."""
+
+    captured_defaults: list[str | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_CREATE_FORECAST_SENSORS:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(base.cf.vol, "Optional", _capture_optional)
+
+    flow = _flow(options={CONF_CREATE_FORECAST_SENSORS: "bad"})
+    asyncio.run(flow.async_step_init(user_input=None))
+
+    assert captured_defaults == [FORECAST_SENSORS_CHOICES[0]]

@@ -41,7 +41,7 @@
       "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error",
       "invalid_http_referrer": "Invalid value for HTTP Referer. It must not contain newline characters.",
-      "invalid_update_interval": "Update interval must be at least 1 hour.",
+      "invalid_update_interval": "Update interval must be between 1 and 24 hours.",
       "invalid_forecast_days": "Forecast days must be between 1 and 5."
     },
     "abort": {
@@ -68,7 +68,7 @@
       "empty": "This field cannot be empty",
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "unknown": "Unknown error",
-      "invalid_update_interval": "Update interval must be at least 1 hour.",
+      "invalid_update_interval": "Update interval must be between 1 and 24 hours.",
       "invalid_forecast_days": "Forecast days must be between 1 and 5."
     }
   },

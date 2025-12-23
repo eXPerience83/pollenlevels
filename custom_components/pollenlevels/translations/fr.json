@@ -15,7 +15,7 @@
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "quota_exceeded": "Quota dépassé\n\n{error_message}",
       "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure.",
+      "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
       "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
     },
     "step": {
@@ -80,7 +80,7 @@
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être d’au moins 1 heure.",
+      "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
       "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
     },
     "step": {

@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    ATTRIBUTION,
     CONF_API_KEY,
     CONF_FORECAST_DAYS,
     CONF_LATITUDE,
@@ -262,7 +263,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         attrs = {
             "category": info.get("category"),
             # Always include explicit public attribution on all pollen sensors.
-            ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API",
+            ATTR_ATTRIBUTION: ATTRIBUTION,
         }
 
         for k in (
@@ -403,7 +404,7 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
         This mirrors PollenSensor's attribution so *all* sensors in this
         integration consistently show the data source.
         """
-        return {ATTR_ATTRIBUTION: "Data provided by Google Maps Pollen API"}
+        return {ATTR_ATTRIBUTION: ATTRIBUTION}
 
 
 class RegionSensor(_BaseMetaSensor):

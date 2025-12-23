@@ -56,7 +56,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 You can change:
 
-- **Update interval (hours)**
+- **Update interval (hours)** (1–24)
 - **API response language code**
 - **Forecast days** (`1–5`) for pollen TYPES
 - **Per-day TYPE sensors** via `create_forecast_sensors`:

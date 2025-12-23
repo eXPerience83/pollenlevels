@@ -41,7 +41,7 @@
       "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
       "unknown": "Error desconocido",
       "invalid_http_referrer": "Valor de HTTP Referer no válido. No debe contener saltos de línea.",
-      "invalid_update_interval": "El intervalo de actualización debe ser de al menos 1 hora.",
+      "invalid_update_interval": "El intervalo de actualización debe estar entre 1 y 24 horas.",
       "invalid_forecast_days": "Los días de previsión deben estar entre 1 y 5."
     },
     "abort": {
@@ -68,7 +68,7 @@
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
       "unknown": "Error desconocido",
-      "invalid_update_interval": "El intervalo de actualización debe ser de al menos 1 hora.",
+      "invalid_update_interval": "El intervalo de actualización debe estar entre 1 y 24 horas.",
       "invalid_forecast_days": "Los días de previsión deben estar entre 1 y 5."
     }
   },

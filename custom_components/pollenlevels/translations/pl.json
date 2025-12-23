@@ -15,7 +15,7 @@
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę.",
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
       "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
     },
     "step": {
@@ -80,7 +80,7 @@
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić co najmniej 1 godzinę.",
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
       "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
     },
     "step": {

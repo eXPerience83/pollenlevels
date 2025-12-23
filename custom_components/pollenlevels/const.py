@@ -22,6 +22,7 @@ SECTION_API_KEY_OPTIONS = "api_key_options"
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 6
+MIN_UPDATE_INTERVAL_HOURS = 1
 MAX_UPDATE_INTERVAL_HOURS = 24
 DEFAULT_FORECAST_DAYS = 2  # today + 1 (tomorrow)
 DEFAULT_ENTRY_TITLE = "Pollen Levels"
@@ -38,6 +39,7 @@ RESTRICTING_API_KEYS_URL = (
 
 # Allowed values for create_forecast_sensors selector
 FORECAST_SENSORS_CHOICES: list[str] = ["none", "D+1", "D+1+2"]
+ATTRIBUTION = "Data provided by Google Maps Pollen API"
 
 
 def is_invalid_api_key_message(message: str | None) -> bool:
@@ -66,6 +68,9 @@ def normalize_http_referer(value: Any) -> str | None:
     text = str(value).strip()
     if not text:
         return None
+
+    if any(ch.isspace() for ch in text):
+        raise ValueError("invalid http referer")
 
     if "\r" in text or "\n" in text:
         raise ValueError("invalid http referer")
