@@ -56,6 +56,7 @@ from .const import (
     MAX_FORECAST_DAYS,
     MAX_UPDATE_INTERVAL_HOURS,
     MIN_FORECAST_DAYS,
+    MIN_UPDATE_INTERVAL_HOURS,
     POLLEN_API_KEY_URL,
     POLLEN_API_TIMEOUT,
     RESTRICTING_API_KEYS_URL,
@@ -170,7 +171,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                 default=interval_default,
             ): NumberSelector(
                 NumberSelectorConfig(
-                    min=1,
+                    min=MIN_UPDATE_INTERVAL_HOURS,
                     max=MAX_UPDATE_INTERVAL_HOURS,
                     step=1,
                     mode=NumberSelectorMode.BOX,
@@ -216,7 +217,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                 default=interval_default,
             ): NumberSelector(
                 NumberSelectorConfig(
-                    min=1,
+                    min=MIN_UPDATE_INTERVAL_HOURS,
                     max=MAX_UPDATE_INTERVAL_HOURS,
                     step=1,
                     mode=NumberSelectorMode.BOX,
@@ -315,7 +316,7 @@ def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
     return _parse_int_option(
         value,
         default=default,
-        min_value=1,
+        min_value=MIN_UPDATE_INTERVAL_HOURS,
         max_value=MAX_UPDATE_INTERVAL_HOURS,
         error_key="invalid_update_interval",
     )
@@ -324,7 +325,7 @@ def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
 def _sanitize_update_interval_for_default(raw_value: Any) -> int:
     """Parse and clamp an update interval value to be used as a UI default."""
     parsed, _ = _parse_update_interval(raw_value, DEFAULT_UPDATE_INTERVAL)
-    return max(1, min(MAX_UPDATE_INTERVAL_HOURS, parsed))
+    return max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, parsed))
 
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -695,7 +696,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     CONF_UPDATE_INTERVAL, default=current_interval
                 ): NumberSelector(
                     NumberSelectorConfig(
-                        min=1,
+                        min=MIN_UPDATE_INTERVAL_HOURS,
                         max=MAX_UPDATE_INTERVAL_HOURS,
                         step=1,
                         mode=NumberSelectorMode.BOX,
