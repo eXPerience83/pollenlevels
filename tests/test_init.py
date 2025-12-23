@@ -535,3 +535,13 @@ def test_migrate_entry_marks_version_when_no_changes() -> None:
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert entry.version == 2
+
+
+@pytest.mark.parametrize("version", [None, "x"])
+def test_migrate_entry_handles_non_int_version(version: object) -> None:
+    """Migration should normalize non-integer versions before bumping."""
+    entry = _FakeEntry(options={}, version=version)
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert entry.version == 2

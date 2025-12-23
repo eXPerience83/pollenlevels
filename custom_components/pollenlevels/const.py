@@ -39,6 +39,7 @@ RESTRICTING_API_KEYS_URL = (
 
 # Allowed values for create_forecast_sensors selector
 FORECAST_SENSORS_CHOICES: list[str] = ["none", "D+1", "D+1+2"]
+ATTRIBUTION = "Data provided by Google Maps Pollen API"
 
 
 def is_invalid_api_key_message(message: str | None) -> bool:
@@ -67,6 +68,9 @@ def normalize_http_referer(value: Any) -> str | None:
     text = str(value).strip()
     if not text:
         return None
+
+    if any(ch.isspace() for ch in text):
+        raise ValueError("invalid http referer")
 
     if "\r" in text or "\n" in text:
         raise ValueError("invalid http referer")
