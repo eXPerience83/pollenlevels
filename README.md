@@ -89,9 +89,10 @@ You need a valid Google Cloud API key with access to the **Maps Pollen API**.
 4. Go to **APIs & Services → Credentials → Create credentials → API key**.  
 5. **Restrict your key** (recommended):  
    - **API restrictions** → **Restrict key** → select **Maps Pollen API** only.  
-   - **Application restrictions** (optional but recommended):  
-     - **HTTP referrers** (for frontend usages) or  
-     - **IP addresses** (for server-side usage, e.g. your HA host).  
+   - **Application restrictions** (optional):  
+     - Prefer **IP addresses** for server-side usage (your HA host).  
+     - If your IP is dynamic, consider **no application restriction** and rely on
+       the API restriction above.  
 6. **Copy** the key and paste it in the integration setup.
 
 The setup form also links directly to the Google documentation for obtaining
@@ -99,18 +100,14 @@ an API key and best-practice restrictions.
 
 👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to avoid exhausting your free tier.
 
-### Optional HTTP Referrer header
-
-If your API key is restricted by HTTP referrers (website origins), you can add
-an optional **HTTP Referrer** value in the advanced section of the config
-flow. When set, the integration sends it as the `Referer` header on API
-requests. Leave it blank for unrestricted or IP-restricted keys.
+HTTP referrer (website) restrictions are intended for browser-based apps and
+are not supported by this integration.
 
 ### Troubleshooting 403 errors
 
 403 responses during setup or updates now include the API’s reason (when
 available). They often indicate billing is disabled, the Pollen API is not
-enabled, or referrer restrictions are blocking the request.
+enabled, or your key restrictions do not match your Home Assistant host.
 
 ---
 

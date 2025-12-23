@@ -10,17 +10,8 @@
           "location": "Location",
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",
-          "http_referer": "HTTP Referer",
           "forecast_days": "Forecast days (1–5)",
           "create_forecast_sensors": "Per-day TYPE sensors range"
-        },
-        "sections": {
-          "api_key_options": {
-            "name": "Optional API key options"
-          }
-        },
-        "data_description": {
-          "http_referer": "Only needed if your API key uses a [website restriction]({restricting_api_keys_url}) (HTTP Referer)."
         }
       },
       "reauth_confirm": {
@@ -40,7 +31,6 @@
       "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error",
-      "invalid_http_referrer": "Invalid value for HTTP Referer. It must not contain newline characters.",
       "invalid_update_interval": "Update interval must be between 1 and 24 hours.",
       "invalid_forecast_days": "Forecast days must be between 1 and 5."
     },

@@ -9,7 +9,6 @@ import asyncio
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import Any
 
 import pytest
 
@@ -46,22 +45,6 @@ ha_mod = ModuleType("homeassistant")
 _force_module("homeassistant", ha_mod)
 
 config_entries_mod = ModuleType("homeassistant.config_entries")
-
-data_entry_flow_mod = ModuleType("homeassistant.data_entry_flow")
-
-
-class _SectionConfig:
-    def __init__(self, collapsed: bool | None = None):
-        self.collapsed = collapsed
-
-
-def section(key: str, config: _SectionConfig):  # noqa: ARG001
-    return key
-
-
-data_entry_flow_mod.SectionConfig = _SectionConfig
-data_entry_flow_mod.section = section
-_force_module("homeassistant.data_entry_flow", data_entry_flow_mod)
 
 
 class _StubConfigFlow:
@@ -145,7 +128,6 @@ def _longitude(value=None):
 config_validation_mod.latitude = _latitude
 config_validation_mod.longitude = _longitude
 config_validation_mod.string = lambda value=None: value
-config_validation_mod.custom_serializer = lambda *args, **kwargs: None
 _force_module("homeassistant.helpers.config_validation", config_validation_mod)
 
 aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
@@ -274,7 +256,6 @@ _force_module("homeassistant.helpers.selector", selector_mod)
 
 ha_mod.helpers = helpers_mod
 ha_mod.config_entries = config_entries_mod
-ha_mod.data_entry_flow = data_entry_flow_mod
 
 aiohttp_mod = ModuleType("aiohttp")
 
@@ -316,10 +297,6 @@ vol_mod.Range = lambda *args, **kwargs: None
 vol_mod.In = lambda *args, **kwargs: None
 _force_module("voluptuous", vol_mod)
 
-voluptuous_serialize_mod = ModuleType("voluptuous_serialize")
-voluptuous_serialize_mod.convert = lambda *args, **kwargs: {}
-_force_module("voluptuous_serialize", voluptuous_serialize_mod)
-
 from homeassistant.const import (
     CONF_LATITUDE,
     CONF_LOCATION,
@@ -336,7 +313,6 @@ from custom_components.pollenlevels.const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
-    CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
@@ -346,7 +322,6 @@ from custom_components.pollenlevels.const import (
     MAX_FORECAST_DAYS,
     MAX_UPDATE_INTERVAL_HOURS,
     MIN_FORECAST_DAYS,
-    normalize_http_referer,
 )
 
 
@@ -592,42 +567,6 @@ def _base_user_input() -> dict:
     }
 
 
-def test_async_step_user_persists_http_referer() -> None:
-    """HTTP referrer should be trimmed and persisted when provided."""
-
-    flow = PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
-    )
-
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
-        http_referer = normalize_http_referer(user_input.get(CONF_HTTP_REFERER))
-        assert http_referer == "https://example.com"
-        normalized = {
-            CONF_API_KEY: user_input[CONF_API_KEY],
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
-            CONF_LANGUAGE_CODE: "en",
-            CONF_HTTP_REFERER: http_referer,
-        }
-        return {}, normalized
-
-    flow._async_validate_input = fake_validate  # type: ignore[assignment]
-
-    user_input = {
-        **_base_user_input(),
-        CONF_UPDATE_INTERVAL: 6,
-        CONF_LANGUAGE_CODE: "en",
-        CONF_HTTP_REFERER: " https://example.com ",
-    }
-
-    result = asyncio.run(flow.async_step_user(user_input))
-
-    assert result["data"][CONF_HTTP_REFERER] == "https://example.com"
-
-
 @pytest.mark.parametrize(
     ("raw_value", "expected"),
     [
@@ -657,7 +596,7 @@ def test_setup_schema_update_interval_default_is_sanitized(
     )
     cf._build_step_user_schema(hass, {CONF_UPDATE_INTERVAL: raw_value})
 
-    assert captured_defaults == [expected, expected]
+    assert captured_defaults == [expected]
 
 
 @pytest.mark.parametrize(
@@ -689,7 +628,7 @@ def test_setup_schema_forecast_days_default_is_sanitized(
     )
     cf._build_step_user_schema(hass, {CONF_FORECAST_DAYS: raw_value})
 
-    assert captured_defaults == [expected, expected]
+    assert captured_defaults == [expected]
 
 
 def test_setup_schema_sensor_mode_default_is_sanitized(
@@ -711,93 +650,7 @@ def test_setup_schema_sensor_mode_default_is_sanitized(
     )
     cf._build_step_user_schema(hass, {CONF_CREATE_FORECAST_SENSORS: "bad"})
 
-    assert captured_defaults == [FORECAST_SENSORS_CHOICES[0]] * 2
-
-
-def test_async_step_user_drops_blank_http_referer() -> None:
-    """Blank HTTP referrer values should not be persisted."""
-
-    flow = PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
-    )
-
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
-        http_referer = normalize_http_referer(user_input.get(CONF_HTTP_REFERER))
-        assert http_referer is None
-        normalized = {
-            CONF_API_KEY: user_input[CONF_API_KEY],
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
-            CONF_LANGUAGE_CODE: "en",
-        }
-        return {}, normalized
-
-    flow._async_validate_input = fake_validate  # type: ignore[assignment]
-
-    user_input = {
-        **_base_user_input(),
-        CONF_UPDATE_INTERVAL: 6,
-        CONF_LANGUAGE_CODE: "en",
-        CONF_HTTP_REFERER: "   ",
-    }
-
-    result = asyncio.run(flow.async_step_user(user_input))
-
-    assert CONF_HTTP_REFERER not in result["data"]
-
-
-def test_async_step_user_invalid_http_referer_sets_field_error() -> None:
-    """Newlines in HTTP referrer should surface a field-level error."""
-
-    flow = PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
-    )
-
-    captured: dict[str, Any] = {}
-
-    def fake_show_form(*args, **kwargs):
-        captured.update(kwargs)
-        return kwargs
-
-    flow.async_show_form = fake_show_form  # type: ignore[assignment]
-
-    user_input = {
-        **_base_user_input(),
-        CONF_UPDATE_INTERVAL: 6,
-        CONF_LANGUAGE_CODE: "en",
-        CONF_HTTP_REFERER: "http://example.com/\npath",
-    }
-
-    asyncio.run(flow.async_step_user(user_input))
-
-    assert captured.get("errors") == {CONF_HTTP_REFERER: "invalid_http_referrer"}
-
-
-def test_validate_input_sends_referer_header(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Validation should forward the Referer header when provided."""
-
-    session = _patch_client_session(
-        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"indexInfo": []}]}')
-    )
-
-    flow = PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace()
-
-    user_input = {**_base_user_input(), CONF_HTTP_REFERER: "https://example.com"}
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(user_input, check_unique_id=False)
-    )
-
-    assert errors == {}
-    assert normalized is not None
-    assert session.calls
-    _, kwargs = session.calls[0]
-    assert kwargs.get("headers") == {"Referer": "https://example.com"}
+    assert captured_defaults == [FORECAST_SENSORS_CHOICES[0]]
 
 
 def test_validate_input_update_interval_below_min_sets_error(

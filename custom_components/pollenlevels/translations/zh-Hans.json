@@ -1,105 +1,95 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "该位置已配置。",
-      "reauth_failed": "重新验证失败。请重试。",
-      "reauth_successful": "重新验证已成功完成。"
+    "step": {
+      "user": {
+        "title": "花粉水平配置",
+        "description": "输入你的 Google API 密钥（[在此获取]({api_key_url})）并查看最佳实践（[最佳实践]({restricting_api_keys_url})). 在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。 你还可以设置预测天数以及逐日类型传感器的范围。",
+        "data": {
+          "api_key": "API 密钥",
+          "name": "名称",
+          "location": "位置",
+          "update_interval": "更新间隔（小时）",
+          "language_code": "API 响应语言代码",
+          "forecast_days": "预测天数（1–5）",
+          "create_forecast_sensors": "逐日类型传感器范围"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新验证 Pollen Levels",
+        "description": "{latitude},{longitude} 的 API 密钥已失效。请输入新的密钥以恢复更新。",
+        "data": {
+          "api_key": "API 密钥"
+        }
+      }
     },
     "error": {
-      "cannot_connect": "无法连接到服务\n\n{error_message}",
-      "empty": "此字段不能为空",
       "invalid_auth": "无效的 API 密钥\n\n{error_message}",
-      "invalid_coordinates": "请在地图上选择有效的位置。",
-      "invalid_http_referrer": "HTTP Referer 的值无效。它不能包含换行符。",
-      "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
-      "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
+      "cannot_connect": "无法连接到服务\n\n{error_message}",
       "quota_exceeded": "配额已用尽\n\n{error_message}",
+      "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
+      "empty": "此字段不能为空",
+      "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
+      "invalid_coordinates": "请在地图上选择有效的位置。",
       "unknown": "未知错误",
       "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
       "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
     },
+    "abort": {
+      "already_configured": "该位置已配置。",
+      "reauth_successful": "重新验证已成功完成。",
+      "reauth_failed": "重新验证失败。请重试。"
+    }
+  },
+  "options": {
     "step": {
-      "reauth_confirm": {
+      "init": {
+        "title": "Pollen Levels – 选项",
+        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今日（none）、至明日（D+1）、至后日（D+1+2）。",
         "data": {
-          "api_key": "API 密钥"
-        },
-        "description": "{latitude},{longitude} 的 API 密钥已失效。请输入新的密钥以恢复更新。",
-        "title": "重新验证 Pollen Levels"
-      },
-      "user": {
-        "data": {
-          "api_key": "API 密钥",
-          "language_code": "API 响应语言代码",
-          "location": "位置",
-          "name": "名称",
           "update_interval": "更新间隔（小时）",
-          "http_referer": "HTTP Referer",
+          "language_code": "API 响应语言代码",
           "forecast_days": "预测天数（1–5）",
           "create_forecast_sensors": "逐日类型传感器范围"
-        },
-        "description": "输入你的 Google API 密钥（[在此获取]({api_key_url})）并查看最佳实践（[最佳实践]({restricting_api_keys_url})). 在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。 你还可以设置预测天数以及逐日类型传感器的范围。",
-        "title": "花粉水平配置",
-        "sections": {
-          "api_key_options": {
-            "name": "可选的 API 密钥选项"
-          }
-        },
-        "data_description": {
-          "http_referer": "仅在你的 API 密钥启用了[网站限制]({restricting_api_keys_url})（HTTP Referer）时需要。"
         }
       }
+    },
+    "error": {
+      "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
+      "empty": "此字段不能为空",
+      "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
+      "unknown": "未知错误",
+      "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
+      "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
     }
   },
   "device": {
-    "info": {
-      "name": "{title} - 花粉信息 ({latitude},{longitude})"
+    "types": {
+      "name": "{title} - 花粉类型 ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - 植物 ({latitude},{longitude})"
     },
-    "types": {
-      "name": "{title} - 花粉类型 ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - 花粉信息 ({latitude},{longitude})"
+    }
+  },
+  "services": {
+    "force_update": {
+      "name": "强制更新",
+      "description": "为所有已配置的位置手动刷新花粉数据。"
     }
   },
   "entity": {
     "sensor": {
+      "region": {
+        "name": "地区"
+      },
       "date": {
         "name": "日期"
       },
       "last_updated": {
         "name": "上次更新时间"
-      },
-      "region": {
-        "name": "地区"
       }
-    }
-  },
-  "options": {
-    "error": {
-      "empty": "此字段不能为空",
-      "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
-      "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
-      "unknown": "未知错误",
-      "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
-      "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
-    },
-    "step": {
-      "init": {
-        "data": {
-          "create_forecast_sensors": "逐日类型传感器范围",
-          "forecast_days": "预测天数（1–5）",
-          "language_code": "API 响应语言代码",
-          "update_interval": "更新间隔（小时）"
-        },
-        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今日（none）、至明日（D+1）、至后日（D+1+2）。",
-        "title": "Pollen Levels – 选项"
-      }
-    }
-  },
-  "services": {
-    "force_update": {
-      "description": "为所有已配置的位置手动刷新花粉数据。",
-      "name": "强制更新"
     }
   }
 }

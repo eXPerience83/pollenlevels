@@ -8,9 +8,7 @@ Notes:
   so catching `TimeoutError` is sufficient and preferred.
 
 IMPORTANT:
-- Some HA versions cannot serialize nested mapping schemas (e.g. sections) via
-  voluptuous_serialize when schemas are flattened and rebuilt. Construct the schema in
-  one pass so the section marker stays intact.
+- Keep schema construction centralized so defaults are applied consistently.
 """
 
 from __future__ import annotations
@@ -25,7 +23,6 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
-from homeassistant.data_entry_flow import section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     LocationSelector,
@@ -45,7 +42,6 @@ from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
-    CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
@@ -60,9 +56,7 @@ from .const import (
     POLLEN_API_KEY_URL,
     POLLEN_API_TIMEOUT,
     RESTRICTING_API_KEYS_URL,
-    SECTION_API_KEY_OPTIONS,
     is_invalid_api_key_message,
-    normalize_http_referer,
 )
 from .util import extract_error_message, normalize_sensor_mode, redact_api_key
 
@@ -119,14 +113,6 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     """Build the full step user schema without flattening nested sections."""
     user_input = user_input or {}
 
-    http_referer_default = user_input.get(CONF_HTTP_REFERER)
-    if http_referer_default is None:
-        section_values = user_input.get(SECTION_API_KEY_OPTIONS)
-        if isinstance(section_values, dict):
-            http_referer_default = section_values.get(CONF_HTTP_REFERER, "")
-        else:
-            http_referer_default = ""
-
     default_name = str(
         user_input.get(CONF_NAME)
         or getattr(hass.config, "location_name", "")
@@ -156,62 +142,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
         user_input.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
     )
 
-    section_schema = vol.Schema(
-        {
-            vol.Required(CONF_API_KEY): str,
-            vol.Optional(SECTION_API_KEY_OPTIONS): section(
-                vol.Schema(
-                    {
-                        vol.Optional(
-                            CONF_HTTP_REFERER,
-                            default=http_referer_default,
-                        ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
-                    }
-                ),
-                {"collapsed": True},
-            ),
-            vol.Required(CONF_NAME, default=default_name): str,
-            location_field: LocationSelector(LocationSelectorConfig(radius=False)),
-            vol.Optional(
-                CONF_UPDATE_INTERVAL,
-                default=interval_default,
-            ): NumberSelector(
-                NumberSelectorConfig(
-                    min=MIN_UPDATE_INTERVAL_HOURS,
-                    max=MAX_UPDATE_INTERVAL_HOURS,
-                    step=1,
-                    mode=NumberSelectorMode.BOX,
-                    unit_of_measurement="h",
-                )
-            ),
-            vol.Optional(
-                CONF_LANGUAGE_CODE,
-                default=user_input.get(
-                    CONF_LANGUAGE_CODE, getattr(hass.config, "language", "")
-                ),
-            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
-            vol.Optional(
-                CONF_FORECAST_DAYS,
-                default=forecast_days_default,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    mode=SelectSelectorMode.DROPDOWN,
-                    options=FORECAST_DAYS_OPTIONS,
-                )
-            ),
-            vol.Optional(
-                CONF_CREATE_FORECAST_SENSORS,
-                default=sensor_mode_default,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    mode=SelectSelectorMode.DROPDOWN,
-                    options=FORECAST_SENSORS_CHOICES,
-                )
-            ),
-        }
-    )
-
-    flat_schema = vol.Schema(
+    schema = vol.Schema(
         {
             vol.Required(CONF_API_KEY): str,
             vol.Required(CONF_NAME, default=default_name): str,
@@ -252,20 +183,9 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     options=FORECAST_SENSORS_CHOICES,
                 )
             ),
-            vol.Optional(
-                CONF_HTTP_REFERER,
-                default=http_referer_default,
-            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
         }
     )
-
-    try:
-        from voluptuous_serialize import convert
-
-        convert(section_schema, custom_serializer=cv.custom_serializer)
-        return section_schema
-    except Exception:  # noqa: BLE001
-        return flat_schema
+    return schema
 
 
 def _validate_location_dict(
@@ -388,19 +308,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors[CONF_API_KEY] = "empty"
             return errors, None
 
-        headers: dict[str, str] | None = None
-        try:
-            http_referer = normalize_http_referer(normalized.get(CONF_HTTP_REFERER))
-        except ValueError:
-            errors[CONF_HTTP_REFERER] = "invalid_http_referrer"
-            return errors, None
-
-        if http_referer:
-            headers = {"Referer": http_referer}
-            normalized[CONF_HTTP_REFERER] = http_referer
-        else:
-            normalized.pop(CONF_HTTP_REFERER, None)
-
         interval_value, interval_error = _parse_update_interval(
             normalized.get(CONF_UPDATE_INTERVAL),
             default=DEFAULT_UPDATE_INTERVAL,
@@ -494,7 +401,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             async with session.get(
                 url,
                 params=params,
-                headers=headers,
                 timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
@@ -601,19 +507,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input:
             sanitized_input: dict[str, Any] = dict(user_input)
-
-            # Backward/forward compatible extraction if the UI ever posts a section payload.
-            section_values = sanitized_input.get(SECTION_API_KEY_OPTIONS)
-            raw_http_referer = None
-            if isinstance(section_values, dict):
-                raw_http_referer = section_values.get(CONF_HTTP_REFERER)
-            if raw_http_referer is None:
-                raw_http_referer = sanitized_input.get(CONF_HTTP_REFERER)
-            sanitized_input.pop(SECTION_API_KEY_OPTIONS, None)
-
-            sanitized_input.pop(CONF_HTTP_REFERER, None)
-            if raw_http_referer:
-                sanitized_input[CONF_HTTP_REFERER] = raw_http_referer
 
             errors, normalized = await self._async_validate_input(
                 sanitized_input,

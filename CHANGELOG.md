@@ -1,4 +1,8 @@
 # Changelog
+## [1.9.0-alpha5] - 2025-12-30
+### Removed
+- Removed optional HTTP Referer (website restriction) support and related config UI.
+
 ## [1.9.0-alpha4] - 2025-12-23
 ### Fixed
 - Fixed options flow to preserve the stored per-day sensor mode when no override
