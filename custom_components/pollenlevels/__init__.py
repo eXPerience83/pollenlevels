@@ -67,7 +67,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_options = dict(entry.options)
         mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
         if mode is None:
-            mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
+            mode = new_data.pop(CONF_CREATE_FORECAST_SENSORS, None)
 
         if mode is not None:
             normalized_mode = normalize_sensor_mode(mode, _LOGGER)
