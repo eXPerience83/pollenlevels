@@ -149,6 +149,12 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
 
     update_interval_raw = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     interval_default = _sanitize_update_interval_for_default(update_interval_raw)
+    forecast_days_default = _sanitize_forecast_days_for_default(
+        user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
+    )
+    sensor_mode_default = _sanitize_sensor_mode_for_default(
+        user_input.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
+    )
 
     section_schema = vol.Schema(
         {
@@ -186,7 +192,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
             vol.Optional(
                 CONF_FORECAST_DAYS,
-                default=str(user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)),
+                default=forecast_days_default,
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
@@ -195,9 +201,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ),
             vol.Optional(
                 CONF_CREATE_FORECAST_SENSORS,
-                default=user_input.get(
-                    CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0]
-                ),
+                default=sensor_mode_default,
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
@@ -232,7 +236,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
             vol.Optional(
                 CONF_FORECAST_DAYS,
-                default=str(user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)),
+                default=forecast_days_default,
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
@@ -241,9 +245,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
             ),
             vol.Optional(
                 CONF_CREATE_FORECAST_SENSORS,
-                default=user_input.get(
-                    CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0]
-                ),
+                default=sensor_mode_default,
             ): SelectSelector(
                 SelectSelectorConfig(
                     mode=SelectSelectorMode.DROPDOWN,
@@ -326,6 +328,26 @@ def _sanitize_update_interval_for_default(raw_value: Any) -> int:
     """Parse and clamp an update interval value to be used as a UI default."""
     parsed, _ = _parse_update_interval(raw_value, DEFAULT_UPDATE_INTERVAL)
     return max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, parsed))
+
+
+def _sanitize_forecast_days_for_default(raw_value: Any) -> str:
+    """Parse and clamp forecast days to be used as a UI default."""
+    parsed, _ = _parse_int_option(
+        raw_value,
+        DEFAULT_FORECAST_DAYS,
+        min_value=MIN_FORECAST_DAYS,
+        max_value=MAX_FORECAST_DAYS,
+    )
+    parsed = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, parsed))
+    return str(parsed)
+
+
+def _sanitize_sensor_mode_for_default(raw_value: Any) -> str:
+    """Normalize sensor mode to be used as a UI default."""
+    mode = normalize_sensor_mode(raw_value, _LOGGER)
+    if mode in FORECAST_SENSORS_CHOICES:
+        return mode
+    return FORECAST_SENSORS_CHOICES[0]
 
 
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -681,10 +703,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             CONF_LANGUAGE_CODE,
             self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
         )
-        current_days = self.entry.options.get(
+        current_days_raw = self.entry.options.get(
             CONF_FORECAST_DAYS,
             self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
+        current_days_default = _sanitize_forecast_days_for_default(current_days_raw)
+        current_days = int(current_days_default)
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS)
         if current_mode is None:
             current_mode = self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none")
@@ -707,7 +731,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     TextSelectorConfig(type=TextSelectorType.TEXT)
                 ),
                 vol.Optional(
-                    CONF_FORECAST_DAYS, default=str(current_days)
+                    CONF_FORECAST_DAYS, default=current_days_default
                 ): SelectSelector(
                     SelectSelectorConfig(
                         mode=SelectSelectorMode.DROPDOWN,

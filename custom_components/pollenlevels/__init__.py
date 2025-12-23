@@ -37,6 +37,7 @@ from .const import (
     MAX_FORECAST_DAYS,
     MAX_UPDATE_INTERVAL_HOURS,
     MIN_FORECAST_DAYS,
+    MIN_UPDATE_INTERVAL_HOURS,
     normalize_http_referer,
 )
 from .coordinator import PollenDataUpdateCoordinator
@@ -159,7 +160,7 @@ async def async_setup_entry(
         ),
         DEFAULT_UPDATE_INTERVAL,
     )
-    hours = max(1, min(MAX_UPDATE_INTERVAL_HOURS, hours))
+    hours = max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, hours))
     forecast_days = _safe_int(
         options.get(
             CONF_FORECAST_DAYS,

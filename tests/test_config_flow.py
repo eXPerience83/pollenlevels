@@ -334,12 +334,18 @@ from custom_components.pollenlevels.config_flow import (
 )
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
     CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
+    DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
+    FORECAST_SENSORS_CHOICES,
+    MAX_FORECAST_DAYS,
     MAX_UPDATE_INTERVAL_HOURS,
+    MIN_FORECAST_DAYS,
     normalize_http_referer,
 )
 
@@ -652,6 +658,60 @@ def test_setup_schema_update_interval_default_is_sanitized(
     cf._build_step_user_schema(hass, {CONF_UPDATE_INTERVAL: raw_value})
 
     assert captured_defaults == [expected, expected]
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("999", str(MAX_FORECAST_DAYS)),
+        (-5, str(MIN_FORECAST_DAYS)),
+        ("abc", str(DEFAULT_FORECAST_DAYS)),
+    ],
+)
+def test_setup_schema_forecast_days_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: object,
+    expected: str,
+) -> None:
+    """Forecast days defaults should be sanitized for form rendering."""
+
+    captured_defaults: list[str | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_FORECAST_DAYS:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+    cf._build_step_user_schema(hass, {CONF_FORECAST_DAYS: raw_value})
+
+    assert captured_defaults == [expected, expected]
+
+
+def test_setup_schema_sensor_mode_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Per-day sensor defaults should fall back to a valid selector choice."""
+
+    captured_defaults: list[str | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_CREATE_FORECAST_SENSORS:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+    cf._build_step_user_schema(hass, {CONF_CREATE_FORECAST_SENSORS: "bad"})
+
+    assert captured_defaults == [FORECAST_SENSORS_CHOICES[0]] * 2
 
 
 def test_async_step_user_drops_blank_http_referer() -> None:
