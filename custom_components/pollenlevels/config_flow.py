@@ -152,7 +152,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     forecast_days_default = _sanitize_forecast_days_for_default(
         user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
     )
-    sensor_mode_default = _sanitize_sensor_mode_for_default(
+    sensor_mode_default = _sanitize_forecast_mode_for_default(
         user_input.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
     )
 
@@ -337,13 +337,14 @@ def _sanitize_forecast_days_for_default(raw_value: Any) -> str:
         DEFAULT_FORECAST_DAYS,
         min_value=MIN_FORECAST_DAYS,
         max_value=MAX_FORECAST_DAYS,
+        error_key="invalid_forecast_days",
     )
     parsed = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, parsed))
     return str(parsed)
 
 
-def _sanitize_sensor_mode_for_default(raw_value: Any) -> str:
-    """Normalize sensor mode to be used as a UI default."""
+def _sanitize_forecast_mode_for_default(raw_value: Any) -> str:
+    """Normalize forecast sensor mode to be used as a UI default."""
     mode = normalize_sensor_mode(raw_value, _LOGGER)
     if mode in FORECAST_SENSORS_CHOICES:
         return mode
@@ -712,7 +713,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS)
         if current_mode is None:
             current_mode = self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none")
-        current_mode = normalize_sensor_mode(current_mode, _LOGGER)
+        current_mode = _sanitize_forecast_mode_for_default(current_mode)
 
         options_schema = vol.Schema(
             {
