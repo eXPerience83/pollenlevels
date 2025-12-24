@@ -1,4 +1,12 @@
 # Changelog
+## [1.9.0-alpha6] - 2025-12-31
+### Fixed
+- Ensured migrations clean up legacy keys even when entries are already at the
+  target version.
+- Always removed per-day sensor mode from entry data during migration to avoid
+  duplicated settings.
+- Corrected Chinese setup description punctuation in zh-Hans and zh-Hant.
+
 ## [1.9.0-alpha5] - 2025-12-30
 ### Removed
 - Removed optional HTTP Referer (website restriction) support and related config UI.
