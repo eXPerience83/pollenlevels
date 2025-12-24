@@ -564,6 +564,26 @@ def test_migrate_entry_cleans_legacy_keys_when_version_current() -> None:
     assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
+def test_migrate_entry_does_not_downgrade_version() -> None:
+    """Migration should preserve versions newer than the target."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            "http_referer": "https://legacy.example.com",
+        },
+        options={"http_referer": "https://legacy.example.com"},
+        version=integration.TARGET_ENTRY_VERSION + 1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert "http_referer" not in entry.data
+    assert "http_referer" not in entry.options
+    assert entry.version == integration.TARGET_ENTRY_VERSION + 1
+
+
 @pytest.mark.parametrize("version", [None, "x"])
 def test_migrate_entry_handles_non_int_version(version: object) -> None:
     """Migration should normalize non-integer versions before bumping."""

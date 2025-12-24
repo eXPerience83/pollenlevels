@@ -61,16 +61,16 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             current_version_raw if isinstance(current_version_raw, int) else 1
         )
         legacy_key = "http_referer"
-        if (
-            current_version >= target_version
-            and legacy_key not in entry.data
-            and legacy_key not in entry.options
-            and CONF_CREATE_FORECAST_SENSORS not in entry.data
-        ):
+        cleanup_needed = (
+            legacy_key in entry.data
+            or legacy_key in entry.options
+            or CONF_CREATE_FORECAST_SENSORS in entry.data
+        )
+        if current_version >= target_version and not cleanup_needed:
             return True
 
         new_data = dict(entry.data)
-        new_options = dict(entry.options)
+        new_options = dict(entry.options or {})
         mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
         if mode is None:
             mode = new_data.get(CONF_CREATE_FORECAST_SENSORS)
@@ -86,12 +86,13 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_data.pop(legacy_key, None)
         new_options.pop(legacy_key, None)
 
+        new_version = max(current_version, target_version)
         if new_data != entry.data or new_options != entry.options:
             hass.config_entries.async_update_entry(
-                entry, data=new_data, options=new_options, version=target_version
+                entry, data=new_data, options=new_options, version=new_version
             )
         else:
-            hass.config_entries.async_update_entry(entry, version=target_version)
+            hass.config_entries.async_update_entry(entry, version=new_version)
         return True
     except asyncio.CancelledError:
         raise
