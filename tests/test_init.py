@@ -485,6 +485,7 @@ def test_migrate_entry_moves_mode_to_options() -> None:
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
     assert "http_referer" not in entry.data
     assert "http_referer" not in entry.options
     assert entry.version == 3
@@ -539,6 +540,28 @@ def test_migrate_entry_marks_version_when_no_changes() -> None:
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert entry.version == 3
+
+
+def test_migrate_entry_cleans_legacy_keys_when_version_current() -> None:
+    """Migration should remove legacy keys even if already at target version."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            "http_referer": "https://legacy.example.com",
+        },
+        options={"http_referer": "https://legacy.example.com"},
+        version=integration.TARGET_ENTRY_VERSION,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert "http_referer" not in entry.data
+    assert "http_referer" not in entry.options
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
 @pytest.mark.parametrize("version", [None, "x"])

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "花粉水平配置",
-        "description": "输入你的 Google API 密钥（[在此获取]({api_key_url})）并查看最佳实践（[最佳实践]({restricting_api_keys_url})). 在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。 你还可以设置预测天数以及逐日类型传感器的范围。",
+        "description": "输入你的 Google API 密钥（[在此获取]({api_key_url}）并查看最佳实践（[最佳实践]({restricting_api_keys_url}））。在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。你还可以设置预测天数以及逐日类型传感器的范围。",
         "data": {
           "api_key": "API 密钥",
           "name": "名称",
