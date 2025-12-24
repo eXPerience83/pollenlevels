@@ -61,11 +61,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             current_version_raw if isinstance(current_version_raw, int) else 1
         )
         legacy_key = "http_referer"
+        existing_options = entry.options or {}
         cleanup_needed = (
             legacy_key in entry.data
-            or legacy_key in (entry.options or {})
+            or legacy_key in existing_options
             or CONF_CREATE_FORECAST_SENSORS in entry.data
         )
+        if not cleanup_needed and CONF_CREATE_FORECAST_SENSORS in existing_options:
+            stored_mode = existing_options.get(CONF_CREATE_FORECAST_SENSORS)
+            stored_mode_raw = getattr(stored_mode, "value", stored_mode)
+            cleanup_needed = (
+                normalize_sensor_mode(stored_mode, _LOGGER) != stored_mode_raw
+            )
         if current_version >= target_version and not cleanup_needed:
             return True
 
@@ -87,7 +94,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_options.pop(legacy_key, None)
 
         new_version = max(current_version, target_version)
-        if new_data != entry.data or new_options != entry.options:
+        if new_data != entry.data or new_options != existing_options:
             hass.config_entries.async_update_entry(
                 entry, data=new_data, options=new_options, version=new_version
             )
