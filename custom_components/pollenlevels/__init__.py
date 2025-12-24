@@ -63,7 +63,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         legacy_key = "http_referer"
         cleanup_needed = (
             legacy_key in entry.data
-            or legacy_key in entry.options
+            or legacy_key in (entry.options or {})
             or CONF_CREATE_FORECAST_SENSORS in entry.data
         )
         if current_version >= target_version and not cleanup_needed:
