@@ -584,6 +584,25 @@ def test_migrate_entry_does_not_downgrade_version() -> None:
     assert entry.version == integration.TARGET_ENTRY_VERSION + 1
 
 
+def test_migrate_entry_removes_mode_from_data_when_in_options() -> None:
+    """Migration should remove per-day sensor mode from data when already in options."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
+
+
 @pytest.mark.parametrize("version", [None, "x"])
 def test_migrate_entry_handles_non_int_version(version: object) -> None:
     """Migration should normalize non-integer versions before bumping."""
