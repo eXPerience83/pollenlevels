@@ -70,9 +70,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not cleanup_needed and CONF_CREATE_FORECAST_SENSORS in existing_options:
             stored_mode = existing_options.get(CONF_CREATE_FORECAST_SENSORS)
             stored_mode_raw = getattr(stored_mode, "value", stored_mode)
-            cleanup_needed = (
-                normalize_sensor_mode(stored_mode, _LOGGER) != stored_mode_raw
-            )
+            if stored_mode_raw is not None:
+                cleanup_needed = (
+                    normalize_sensor_mode(stored_mode_raw, _LOGGER) != stored_mode_raw
+                )
         if current_version >= target_version and not cleanup_needed:
             return True
 
