@@ -1,105 +1,95 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Это местоположение уже настроено.",
-      "reauth_failed": "Повторная аутентификация не удалась. Повторите попытку.",
-      "reauth_successful": "Повторная аутентификация выполнена успешно."
+    "step": {
+      "user": {
+        "title": "Настройка уровней пыльцы",
+        "description": "Введите ключ Google API ([получите его здесь]({api_key_url})) и изучите рекомендации ([лучшие практики]({restricting_api_keys_url})). Выберите местоположение на карте, интервал обновления (часы) и языковой код ответа API. Вы также можете настроить дни прогноза и диапазон дневных датчиков (ТИПЫ).",
+        "data": {
+          "api_key": "Ключ API",
+          "name": "Имя",
+          "location": "Местоположение",
+          "update_interval": "Интервал обновления (в часах)",
+          "language_code": "Код языка ответа API",
+          "forecast_days": "Дни прогноза (1–5)",
+          "create_forecast_sensors": "Диапазон дневных датчиков (ТИПЫ)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Повторная аутентификация Pollen Levels",
+        "description": "Ключ API для {latitude},{longitude} больше не действителен. Введите новый ключ, чтобы возобновить обновления.",
+        "data": {
+          "api_key": "Ключ API"
+        }
+      }
     },
     "error": {
-      "cannot_connect": "Не удаётся подключиться к сервису\n\n{error_message}",
-      "empty": "Это поле не может быть пустым",
       "invalid_auth": "Неверный ключ API\n\n{error_message}",
-      "invalid_coordinates": "Выберите корректное местоположение на карте.",
-      "invalid_http_referrer": "Неверное значение для HTTP Referer. Оно не должно содержать символы новой строки.",
-      "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
-      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
+      "cannot_connect": "Не удаётся подключиться к сервису\n\n{error_message}",
       "quota_exceeded": "Превышен лимит запросов\n\n{error_message}",
+      "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
+      "empty": "Это поле не может быть пустым",
+      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
+      "invalid_coordinates": "Выберите корректное местоположение на карте.",
       "unknown": "Неизвестная ошибка",
       "invalid_update_interval": "Интервал обновления должен быть от 1 до 24 часов.",
       "invalid_forecast_days": "Дни прогноза должны быть от 1 до 5."
     },
+    "abort": {
+      "already_configured": "Это местоположение уже настроено.",
+      "reauth_successful": "Повторная аутентификация выполнена успешно.",
+      "reauth_failed": "Повторная аутентификация не удалась. Повторите попытку."
+    }
+  },
+  "options": {
     "step": {
-      "reauth_confirm": {
+      "init": {
+        "title": "Pollen Levels – Параметры",
+        "description": "Измените интервал обновления, язык ответа API, дни прогноза и дневные датчики для ТИПОВ для {title}.\nВарианты дневных датчиков (ТИПЫ): Только сегодня (none), До завтра (D+1), До послезавтра (D+1+2).",
         "data": {
-          "api_key": "Ключ API"
-        },
-        "description": "Ключ API для {latitude},{longitude} больше не действителен. Введите новый ключ, чтобы возобновить обновления.",
-        "title": "Повторная аутентификация Pollen Levels"
-      },
-      "user": {
-        "data": {
-          "api_key": "Ключ API",
-          "language_code": "Код языка ответа API",
-          "location": "Местоположение",
-          "name": "Имя",
           "update_interval": "Интервал обновления (в часах)",
-          "http_referer": "HTTP Referer",
+          "language_code": "Код языка ответа API",
           "forecast_days": "Дни прогноза (1–5)",
           "create_forecast_sensors": "Диапазон дневных датчиков (ТИПЫ)"
-        },
-        "description": "Введите ключ Google API ([получите его здесь]({api_key_url})) и изучите рекомендации ([лучшие практики]({restricting_api_keys_url})). Выберите местоположение на карте, интервал обновления (часы) и языковой код ответа API. Вы также можете настроить дни прогноза и диапазон дневных датчиков (ТИПЫ).",
-        "title": "Настройка уровней пыльцы",
-        "sections": {
-          "api_key_options": {
-            "name": "Дополнительные параметры ключа API"
-          }
-        },
-        "data_description": {
-          "http_referer": "Нужно только если ваш ключ API имеет [ограничение по веб‑сайту]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
+    },
+    "error": {
+      "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
+      "empty": "Это поле не может быть пустым",
+      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
+      "unknown": "Неизвестная ошибка",
+      "invalid_update_interval": "Интервал обновления должен быть от 1 до 24 часов.",
+      "invalid_forecast_days": "Дни прогноза должны быть от 1 до 5."
     }
   },
   "device": {
-    "info": {
-      "name": "{title} - Информация о пыльце ({latitude},{longitude})"
+    "types": {
+      "name": "{title} - Типы пыльцы ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Растения ({latitude},{longitude})"
     },
-    "types": {
-      "name": "{title} - Типы пыльцы ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Информация о пыльце ({latitude},{longitude})"
+    }
+  },
+  "services": {
+    "force_update": {
+      "name": "Принудительное обновление",
+      "description": "Вручную обновить данные о пыльце для всех настроенных местоположений."
     }
   },
   "entity": {
     "sensor": {
+      "region": {
+        "name": "Регион"
+      },
       "date": {
         "name": "Дата"
       },
       "last_updated": {
         "name": "Последнее обновление"
-      },
-      "region": {
-        "name": "Регион"
       }
-    }
-  },
-  "options": {
-    "error": {
-      "empty": "Это поле не может быть пустым",
-      "invalid_language_format": "Используйте канонический код BCP-47, например \"en\" или \"es-ES\".",
-      "invalid_option_combo": "Увеличьте «Дни прогноза», чтобы охватить выбранные датчики по дням.",
-      "unknown": "Неизвестная ошибка",
-      "invalid_update_interval": "Интервал обновления должен быть от 1 до 24 часов.",
-      "invalid_forecast_days": "Дни прогноза должны быть от 1 до 5."
-    },
-    "step": {
-      "init": {
-        "data": {
-          "create_forecast_sensors": "Диапазон дневных датчиков (ТИПЫ)",
-          "forecast_days": "Дни прогноза (1–5)",
-          "language_code": "Код языка ответа API",
-          "update_interval": "Интервал обновления (в часах)"
-        },
-        "description": "Измените интервал обновления, язык ответа API, дни прогноза и дневные датчики для ТИПОВ для {title}.\nВарианты дневных датчиков (ТИПЫ): Только сегодня (none), До завтра (D+1), До послезавтра (D+1+2).",
-        "title": "Pollen Levels – Параметры"
-      }
-    }
-  },
-  "services": {
-    "force_update": {
-      "description": "Вручную обновить данные о пыльце для всех настроенных местоположений.",
-      "name": "Принудительное обновление"
     }
   }
 }

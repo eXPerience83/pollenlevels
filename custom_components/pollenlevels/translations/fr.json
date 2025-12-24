@@ -1,105 +1,95 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Cet emplacement est déjà configuré.",
-      "reauth_failed": "La réauthentification a échoué. Veuillez réessayer.",
-      "reauth_successful": "La réauthentification a réussi."
+    "step": {
+      "user": {
+        "title": "Pollen Levels – Configuration",
+        "description": "Saisissez votre clé API Google ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse de l’API. Vous pouvez aussi définir les jours de prévision et la portée des capteurs par jour (TYPES).",
+        "data": {
+          "api_key": "Clé API",
+          "name": "Nom",
+          "location": "Emplacement",
+          "update_interval": "Intervalle de mise à jour (heures)",
+          "language_code": "Code de langue pour la réponse de l’API",
+          "forecast_days": "Jours de prévision (1–5)",
+          "create_forecast_sensors": "Portée des capteurs par jour (TYPES)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Réauthentifier Pollen Levels",
+        "description": "La clé API pour {latitude},{longitude} n’est plus valide. Saisissez une nouvelle clé pour reprendre les mises à jour.",
+        "data": {
+          "api_key": "Clé API"
+        }
+      }
     },
     "error": {
-      "cannot_connect": "Impossible de se connecter au service\n\n{error_message}",
-      "empty": "Ce champ ne peut pas être vide",
       "invalid_auth": "Clé API invalide\n\n{error_message}",
-      "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
-      "invalid_http_referrer": "Valeur pour HTTP Referer invalide. Elle ne doit pas contenir de retours à la ligne.",
-      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
-      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
+      "cannot_connect": "Impossible de se connecter au service\n\n{error_message}",
       "quota_exceeded": "Quota dépassé\n\n{error_message}",
+      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
+      "empty": "Ce champ ne peut pas être vide",
+      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
+      "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
       "unknown": "Erreur inconnue",
       "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
       "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
     },
+    "abort": {
+      "already_configured": "Cet emplacement est déjà configuré.",
+      "reauth_successful": "La réauthentification a réussi.",
+      "reauth_failed": "La réauthentification a échoué. Veuillez réessayer."
+    }
+  },
+  "options": {
     "step": {
-      "reauth_confirm": {
+      "init": {
+        "title": "Pollen Levels – Options",
+        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+1+2).",
         "data": {
-          "api_key": "Clé API"
-        },
-        "description": "La clé API pour {latitude},{longitude} n’est plus valide. Saisissez une nouvelle clé pour reprendre les mises à jour.",
-        "title": "Réauthentifier Pollen Levels"
-      },
-      "user": {
-        "data": {
-          "api_key": "Clé API",
-          "language_code": "Code de langue pour la réponse de l’API",
-          "location": "Emplacement",
-          "name": "Nom",
           "update_interval": "Intervalle de mise à jour (heures)",
-          "http_referer": "HTTP Referer",
+          "language_code": "Code de langue pour la réponse de l’API",
           "forecast_days": "Jours de prévision (1–5)",
           "create_forecast_sensors": "Portée des capteurs par jour (TYPES)"
-        },
-        "description": "Saisissez votre clé API Google ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse de l’API. Vous pouvez aussi définir les jours de prévision et la portée des capteurs par jour (TYPES).",
-        "title": "Pollen Levels – Configuration",
-        "sections": {
-          "api_key_options": {
-            "name": "Options facultatives de la clé API"
-          }
-        },
-        "data_description": {
-          "http_referer": "Renseignez ceci uniquement si votre clé API a une [restriction de site web]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
+    },
+    "error": {
+      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
+      "empty": "Ce champ ne peut pas être vide",
+      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
+      "unknown": "Erreur inconnue",
+      "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
+      "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
     }
   },
   "device": {
-    "info": {
-      "name": "{title} - Info pollen ({latitude},{longitude})"
+    "types": {
+      "name": "{title} - Types de pollen ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Plantes ({latitude},{longitude})"
     },
-    "types": {
-      "name": "{title} - Types de pollen ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Info pollen ({latitude},{longitude})"
+    }
+  },
+  "services": {
+    "force_update": {
+      "name": "Forcer la mise à jour",
+      "description": "Actualise manuellement les données de pollen pour tous les emplacements configurés."
     }
   },
   "entity": {
     "sensor": {
+      "region": {
+        "name": "Région"
+      },
       "date": {
         "name": "Date"
       },
       "last_updated": {
         "name": "Dernière mise à jour"
-      },
-      "region": {
-        "name": "Région"
       }
-    }
-  },
-  "options": {
-    "error": {
-      "empty": "Ce champ ne peut pas être vide",
-      "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
-      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
-      "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
-      "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
-    },
-    "step": {
-      "init": {
-        "data": {
-          "create_forecast_sensors": "Portée des capteurs par jour (TYPES)",
-          "forecast_days": "Jours de prévision (1–5)",
-          "language_code": "Code de langue pour la réponse de l’API",
-          "update_interval": "Intervalle de mise à jour (heures)"
-        },
-        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+1+2).",
-        "title": "Pollen Levels – Options"
-      }
-    }
-  },
-  "services": {
-    "force_update": {
-      "description": "Actualise manuellement les données de pollen pour tous les emplacements configurés.",
-      "name": "Forcer la mise à jour"
     }
   }
 }

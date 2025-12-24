@@ -1,116 +1,5 @@
 # Changelog
-## [1.9.0-alpha4] - 2025-12-23
-### Fixed
-- Fixed options flow to preserve the stored per-day sensor mode when no override
-  is set in entry options, preventing unintended resets to "none".
-- Sanitized update interval defaults in setup and options forms to clamp
-  malformed stored values within supported bounds.
-- Rejected update interval submissions above 24 hours to match selector limits.
-- Sanitized setup and options defaults for forecast days and per-day sensor mode
-  selectors to keep UI defaults within supported choices.
-- Normalized invalid stored per-day sensor mode values in the options flow to
-  avoid persisting unsupported selector choices.
-- Simplified the per-day sensor mode fallback during options submission to reuse
-  the normalized current mode and prevent regressions.
-- Migrated per-day sensor mode to entry options when stored in entry data to
-  prevent option resets after upgrades.
-- Centralized per-day sensor mode normalization to avoid duplicate validation
-  logic across migration and options handling.
-- Normalized invalid per-day sensor mode values already stored in entry options
-  during migration to keep options consistent.
-- Versioned config entries to ensure the per-day sensor mode migration runs
-  once and is not repeated on every restart.
-- Ensured unversioned entries run the per-day sensor mode migration and that
-  option presence is respected even when the stored value is None.
-- Moved the optional API key section directly below the API key field in the
-  setup flow for improved visibility.
-- Restored the HTTP Referer field when the setup schema falls back to the flat
-  layout and updated setup guidance to mention forecast configuration.
-- Hardened HTTP client timeout handling and normalized non-string per-day sensor
-  mode values defensively.
-- Added entry context to migration failure logs for easier debugging.
-- Removed a mutable default from the API key options schema to avoid shared
-  state across config flow instances.
-- Normalized whitespace-only per-day sensor mode values and preserved fallback
-  to entry data when options explicitly store None.
-- Removed redundant timeout handling in the HTTP client error path.
-- Fixed the force_update service to await coordinator refresh coroutines safely
-  without passing None into asyncio.gather.
-- Hardened parsing of update interval and forecast days to tolerate malformed
-  stored values while keeping defaults intact.
-- Hardened numeric parsing to handle non-finite values without crashing setup.
-- Clamped update interval and forecast days in setup to supported ranges.
-- Limited update interval to a maximum of 24 hours in setup and options.
-- Rejected HTTP Referer values containing whitespace to prevent invalid headers.
-- Clamped forecast day handling in sensor setup to the supported 1–5 range for
-  consistent cleanup decisions.
-- Avoided treating empty indexInfo objects as valid forecast indices.
-- Added force_update service name/description for better UI discoverability.
-
-### Changed
-- Documented the 1–24 update interval range in the README options list.
-
-## [1.9.0-alpha3] - 2025-12-20
-### Fixed
-- Fixed config flow crash (500) caused by invalid section schema serialization;
-  HTTP Referer is now correctly placed inside a collapsed 'API key options'
-  section.
-- Preserved empty HTTP Referer values when the form re-renders to avoid
-  accidentally overriding explicit empty input with section defaults.
-- Avoid pre-filling the API key field when the form is re-displayed after
-  validation errors.
-- Added a fallback error message when unexpected client exceptions are raised to
-  avoid empty UpdateFailed errors in the UI.
-
-## [1.9.0-alpha2] - 2025-12-16
-### Changed
-- Enabled forecast day count and per-day sensor mode selection during initial
-  setup using dropdown selectors shared with the options flow to keep
-  validation consistent.
-- Added stable constants for HTTP referrer support and API key helper URLs to
-  support upcoming flow updates.
-- Modernized the config flow with selectors, API key guidance links, and a
-  collapsed API key options section including an optional HTTP referrer field
-  stored flat in entry data.
-- Enhanced setup validation to surface HTTP 401/403 API messages safely via the
-  form error placeholders without exposing secrets.
-- Updated the options flow to use selectors while normalizing numeric fields to
-  integers and keeping existing validation rules and defaults intact.
-- Clarified HTTP referrer validation with a dedicated error to avoid confusing
-  connection-failure messaging when the input contains newline characters.
-- Added optional HTTP referrer support that sends a sanitized `Referer` header
-  when configured while preserving the default behavior for unrestricted keys.
-- Runtime HTTP 403 responses now surface detailed messages without triggering
-  reauthentication, keeping setup and update behavior aligned.
-- Deduplicated HTTP error message extraction into a shared helper used by
-  config validation and the runtime client to keep diagnostics consistent.
-- Standardized translation locales for HTTP Referer wording, quota-exceeded
-  details, and invalid update interval errors to keep UI feedback aligned.
-- Simplified HTTP Referer handling during validation/runtime and finalized
-  locale wording, including corrected Chinese setup descriptions.
-- Updated the options flow regression test to expect the new
-  `invalid_forecast_days` error code for out-of-range values.
-- Consolidated numeric options validation in the options flow through a shared
-  helper to reduce duplication for interval and forecast day checks.
-- Centralized the pollen client retry count into a shared `MAX_RETRIES`
-  constant to simplify future tuning without touching request logic.
-- Tightened error extraction typing to expect `aiohttp.ClientResponse` while
-  guarding the import so environments without aiohttp can still run tests.
-- Hardened the runtime pollen client with sanitized `Referer` headers,
-  normalized error parsing, and strict JSON validation to avoid leaking secrets
-  while surfacing consistent failures.
-- Reduced debug log volume by summarizing coordinator refreshes and sensor
-  creation details instead of logging full payloads.
-- Reformatted the codebase with Black and Ruff to keep imports and styling
-  consistent with repository standards.
-- Expanded translation coverage tests to include section titles and service
-  metadata keys, ensuring locales stay aligned with `en.json`.
-- Coordinator Module Extraction: The PollenDataUpdateCoordinator class and its
-  associated helper functions have been moved from sensor.py to a new,
-  dedicated coordinator.py module. This significantly improves modularity and
-  separation of concerns within the component.
-
-## [1.9.0-alpha1] - 2025-12-11
+## [1.9.0-rc1] - 2025-12-31
 ### Changed
 - Moved runtime state to config entry `runtime_data` with a shared
   `GooglePollenApiClient` per entry while keeping existing sensor behaviour and
@@ -131,6 +20,90 @@
   runtime data.
 - Cleared config entry `runtime_data` after unload to drop stale coordinator
   references and keep teardown tidy.
+- Enabled forecast day count and per-day sensor mode selection during initial
+  setup using dropdown selectors shared with the options flow to keep
+  validation consistent.
+- Enhanced setup validation to surface HTTP 401/403 API messages safely via the
+  form error placeholders without exposing secrets.
+- Updated the options flow to use selectors while normalizing numeric fields to
+  integers and keeping existing validation rules and defaults intact.
+- Runtime HTTP 403 responses now surface detailed messages without triggering
+  reauthentication, keeping setup and update behavior aligned.
+- Deduplicated HTTP error message extraction into a shared helper used by
+  config validation and the runtime client to keep diagnostics consistent.
+- Updated the options flow regression test to expect the new
+  `invalid_forecast_days` error code for out-of-range values.
+- Consolidated numeric options validation in the options flow through a shared
+  helper to reduce duplication for interval and forecast day checks.
+- Centralized the pollen client retry count into a shared `MAX_RETRIES`
+  constant to simplify future tuning without touching request logic.
+- Tightened error extraction typing to expect `aiohttp.ClientResponse` while
+  guarding the import so environments without aiohttp can still run tests.
+- Reduced debug log volume by summarizing coordinator refreshes and sensor
+  creation details instead of logging full payloads.
+- Reformatted the codebase with Black and Ruff to keep imports and styling
+  consistent with repository standards.
+- Expanded translation coverage tests to include section titles and service
+  metadata keys, ensuring locales stay aligned with `en.json`.
+- Coordinator Module Extraction: The PollenDataUpdateCoordinator class and its
+  associated helper functions have been moved from sensor.py to a new,
+  dedicated coordinator.py module. This significantly improves modularity and
+  separation of concerns within the component.
+- Removed optional HTTP Referer (website restriction) support to simplify configuration, as it is not suitable for server-side integrations.
+- Documented the 1–24 update interval range in the README options list.
+
+### Fixed
+- Avoid pre-filling the API key field when the form is re-displayed after
+  validation errors.
+- Added a fallback error message when unexpected client exceptions are raised to
+  avoid empty UpdateFailed errors in the UI.
+- Fixed options flow to preserve the stored per-day sensor mode when no override
+  is set in entry options, preventing unintended resets to "none".
+- Sanitized update interval defaults in setup and options forms to clamp
+  malformed stored values within supported bounds.
+- Rejected update interval submissions above 24 hours to match selector limits.
+- Sanitized setup and options defaults for forecast days and per-day sensor mode
+  selectors to keep UI defaults within supported choices.
+- Normalized invalid stored per-day sensor mode values in the options flow to
+  avoid persisting unsupported selector choices.
+- Simplified the per-day sensor mode fallback during options submission to reuse
+  the normalized current mode and prevent regressions.
+- Migrated per-day sensor mode to entry options when stored in entry data to
+  prevent option resets after upgrades.
+- Centralized per-day sensor mode normalization to avoid duplicate validation
+  logic across migration and options handling.
+- Normalized invalid stored per-day sensor mode values already stored in entry
+  options during migration to keep options consistent.
+- Versioned config entries to ensure the per-day sensor mode migration runs once
+  and is not repeated on every restart.
+- Ensured unversioned entries run the per-day sensor mode migration and that
+  option presence is respected even when the stored value is None.
+- Moved the optional API key section directly below the API key field in the
+  setup flow for improved visibility.
+- Hardened HTTP client timeout handling and normalized non-string per-day sensor
+  mode values defensively.
+- Added entry context to migration failure logs for easier debugging.
+- Removed a mutable default from the API key options schema to avoid shared
+  state across config flow instances.
+- Normalized whitespace-only per-day sensor mode values and preserved fallback
+  to entry data when options explicitly store None.
+- Removed redundant timeout handling in the HTTP client error path.
+- Fixed the force_update service to await coordinator refresh coroutines safely
+  without passing None into asyncio.gather.
+- Hardened parsing of update interval and forecast days to tolerate malformed
+  stored values while keeping defaults intact.
+- Hardened numeric parsing to handle non-finite values without crashing setup.
+- Clamped update interval and forecast days in setup to supported ranges.
+- Limited update interval to a maximum of 24 hours in setup and options.
+- Clamped forecast day handling in sensor setup to the supported 1–5 range for
+  consistent cleanup decisions.
+- Avoided treating empty indexInfo objects as valid forecast indices.
+- Added force_update service name/description for better UI discoverability.
+- Ensured migrations clean up legacy keys even when entries are already at the
+  target version.
+- Always removed per-day sensor mode from entry data during migration to avoid
+  duplicated settings.
+- Corrected Chinese setup description punctuation in zh-Hans and zh-Hant.
 
 ## [1.8.6] - 2025-12-09
 ### Changed

@@ -10,17 +10,8 @@
           "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API",
-          "http_referer": "HTTP Referer",
           "forecast_days": "Dies de previsió (1–5)",
           "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)"
-        },
-        "sections": {
-          "api_key_options": {
-            "name": "Opcions opcionals de la clau API"
-          }
-        },
-        "data_description": {
-          "http_referer": "Especifica això només si la teva clau API té una [restricció d’aplicació del lloc web]({restricting_api_keys_url}) (HTTP Referer)."
         }
       },
       "reauth_confirm": {
@@ -40,7 +31,6 @@
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
       "unknown": "Error desconegut",
-      "invalid_http_referrer": "Valor de HTTP Referer no vàlid. No pot contenir salts de línia.",
       "invalid_update_interval": "L’interval d’actualització ha d’estar entre 1 i 24 hores.",
       "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5."
     },

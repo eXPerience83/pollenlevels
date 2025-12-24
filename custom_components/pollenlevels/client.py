@@ -15,12 +15,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    MAX_RETRIES,
-    POLLEN_API_TIMEOUT,
-    is_invalid_api_key_message,
-    normalize_http_referer,
-)
+from .const import MAX_RETRIES, POLLEN_API_TIMEOUT, is_invalid_api_key_message
 from .util import extract_error_message, redact_api_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,12 +32,9 @@ def _format_http_message(status: int, raw_message: str | None) -> str:
 class GooglePollenApiClient:
     """Thin async client wrapper for the Google Pollen API."""
 
-    def __init__(
-        self, session: ClientSession, api_key: str, http_referer: str | None = None
-    ) -> None:
+    def __init__(self, session: ClientSession, api_key: str) -> None:
         self._session = session
         self._api_key = api_key
-        self._http_referer = http_referer
 
     def _parse_retry_after(self, retry_after_raw: str) -> float:
         """Translate a Retry-After header into a delay in seconds."""
@@ -97,22 +89,12 @@ class GooglePollenApiClient:
         )
 
         max_retries = MAX_RETRIES
-        headers: dict[str, str] | None = None
-        if self._http_referer:
-            try:
-                referer = normalize_http_referer(self._http_referer)
-                if referer:
-                    headers = {"Referer": referer}
-            except ValueError:
-                _LOGGER.warning("Ignoring http_referer containing newline characters")
-
         for attempt in range(0, max_retries + 1):
             try:
                 async with self._session.get(
                     url,
                     params=params,
                     timeout=ClientTimeout(total=POLLEN_API_TIMEOUT),
-                    headers=headers,
                 ) as resp:
                     if resp.status == 401:
                         raw_message = redact_api_key(

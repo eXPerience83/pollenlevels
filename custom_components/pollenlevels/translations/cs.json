@@ -1,105 +1,95 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Toto umístění je již nakonfigurováno.",
-      "reauth_failed": "Opětovné ověření se nezdařilo. Zkuste to znovu.",
-      "reauth_successful": "Opětovné ověření proběhlo úspěšně."
+    "step": {
+      "user": {
+        "title": "Konfigurace úrovní pylu",
+        "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API. Můžete také nastavit dny předpovědi a rozsah senzorů po dnech (TYPY).",
+        "data": {
+          "api_key": "Klíč API",
+          "name": "Název",
+          "location": "Poloha",
+          "update_interval": "Interval aktualizace (hodiny)",
+          "language_code": "Kód jazyka odpovědi API",
+          "forecast_days": "Dny předpovědi (1–5)",
+          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Znovu ověřte Pollen Levels",
+        "description": "Klíč API pro {latitude},{longitude} již není platný. Zadejte nový klíč, aby se obnovily aktualizace.",
+        "data": {
+          "api_key": "Klíč API"
+        }
+      }
     },
     "error": {
-      "cannot_connect": "Nelze se připojit ke službě\n\n{error_message}",
-      "empty": "Toto pole nemůže být prázdné",
       "invalid_auth": "Neplatný klíč API\n\n{error_message}",
-      "invalid_coordinates": "Vyberte platné umístění na mapě.",
-      "invalid_http_referrer": "Neplatná hodnota HTTP Referer. Nesmí obsahovat znaky nového řádku.",
-      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
-      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
+      "cannot_connect": "Nelze se připojit ke službě\n\n{error_message}",
       "quota_exceeded": "Překročena kvóta\n\n{error_message}",
+      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
+      "empty": "Toto pole nemůže být prázdné",
+      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
+      "invalid_coordinates": "Vyberte platné umístění na mapě.",
       "unknown": "Neznámá chyba",
       "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
       "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5."
     },
+    "abort": {
+      "already_configured": "Toto umístění je již nakonfigurováno.",
+      "reauth_successful": "Opětovné ověření proběhlo úspěšně.",
+      "reauth_failed": "Opětovné ověření se nezdařilo. Zkuste to znovu."
+    }
+  },
+  "options": {
     "step": {
-      "reauth_confirm": {
+      "init": {
+        "title": "Pollen Levels – Možnosti",
+        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+1+2).",
         "data": {
-          "api_key": "Klíč API"
-        },
-        "description": "Klíč API pro {latitude},{longitude} již není platný. Zadejte nový klíč, aby se obnovily aktualizace.",
-        "title": "Znovu ověřte Pollen Levels"
-      },
-      "user": {
-        "data": {
-          "api_key": "Klíč API",
-          "language_code": "Kód jazyka odpovědi API",
-          "location": "Poloha",
-          "name": "Název",
           "update_interval": "Interval aktualizace (hodiny)",
-          "http_referer": "HTTP Referer",
+          "language_code": "Kód jazyka odpovědi API",
           "forecast_days": "Dny předpovědi (1–5)",
           "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
-        },
-        "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API. Můžete také nastavit dny předpovědi a rozsah senzorů po dnech (TYPY).",
-        "title": "Konfigurace úrovní pylu",
-        "sections": {
-          "api_key_options": {
-            "name": "Volitelné možnosti API klíče"
-          }
-        },
-        "data_description": {
-          "http_referer": "Potřebné pouze pokud má váš API klíč [omezení webu]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
+    },
+    "error": {
+      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
+      "empty": "Toto pole nemůže být prázdné",
+      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
+      "unknown": "Neznámá chyba",
+      "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
+      "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5."
     }
   },
   "device": {
-    "info": {
-      "name": "{title} - Informace o pylu ({latitude},{longitude})"
+    "types": {
+      "name": "{title} - Typy pylu ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Rostliny ({latitude},{longitude})"
     },
-    "types": {
-      "name": "{title} - Typy pylu ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informace o pylu ({latitude},{longitude})"
+    }
+  },
+  "services": {
+    "force_update": {
+      "name": "Vynutit aktualizaci",
+      "description": "Ručně obnoví údaje o pylu pro všechna nastavená místa."
     }
   },
   "entity": {
     "sensor": {
+      "region": {
+        "name": "Oblast"
+      },
       "date": {
         "name": "Datum"
       },
       "last_updated": {
         "name": "Poslední aktualizace"
-      },
-      "region": {
-        "name": "Oblast"
       }
-    }
-  },
-  "options": {
-    "error": {
-      "empty": "Toto pole nemůže být prázdné",
-      "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
-      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "unknown": "Neznámá chyba",
-      "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
-      "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5."
-    },
-    "step": {
-      "init": {
-        "data": {
-          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)",
-          "forecast_days": "Dny předpovědi (1–5)",
-          "language_code": "Kód jazyka odpovědi API",
-          "update_interval": "Interval aktualizace (hodiny)"
-        },
-        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+1+2).",
-        "title": "Pollen Levels – Možnosti"
-      }
-    }
-  },
-  "services": {
-    "force_update": {
-      "description": "Ručně obnoví údaje o pylu pro všechna nastavená místa.",
-      "name": "Vynutit aktualizaci"
     }
   }
 }

@@ -265,6 +265,8 @@ class _FakeConfigEntries:
         return self._unload_result
 
     def async_update_entry(self, entry, **kwargs):
+        if "data" in kwargs:
+            entry.data = kwargs["data"]
         if "options" in kwargs:
             entry.options = kwargs["options"]
         if "version" in kwargs:
@@ -385,10 +387,9 @@ def test_setup_entry_success_and_unload() -> None:
     entry = _FakeEntry()
 
     class _StubClient:
-        def __init__(self, _session, _api_key, _http_referer=None):
+        def __init__(self, _session, _api_key):
             self.session = _session
             self.api_key = _api_key
-            self.http_referer = _http_referer
 
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
@@ -475,15 +476,19 @@ def test_migrate_entry_moves_mode_to_options() -> None:
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
             integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            "http_referer": "https://legacy.example.com",
         },
-        options={},
+        options={"http_referer": "https://legacy.example.com"},
         version=1,
     )
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
-    assert entry.version == 2
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert "http_referer" not in entry.data
+    assert "http_referer" not in entry.options
+    assert entry.version == 3
 
 
 def test_migrate_entry_normalizes_invalid_mode() -> None:
@@ -505,7 +510,7 @@ def test_migrate_entry_normalizes_invalid_mode() -> None:
         entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
         == const.FORECAST_SENSORS_CHOICES[0]
     )
-    assert entry.version == 2
+    assert entry.version == 3
 
 
 def test_migrate_entry_normalizes_invalid_mode_in_options() -> None:
@@ -522,7 +527,7 @@ def test_migrate_entry_normalizes_invalid_mode_in_options() -> None:
         entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
         == const.FORECAST_SENSORS_CHOICES[0]
     )
-    assert entry.version == 2
+    assert entry.version == 3
 
 
 def test_migrate_entry_marks_version_when_no_changes() -> None:
@@ -534,7 +539,68 @@ def test_migrate_entry_marks_version_when_no_changes() -> None:
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert entry.version == 2
+    assert entry.version == 3
+
+
+def test_migrate_entry_cleans_legacy_keys_when_version_current() -> None:
+    """Migration should remove legacy keys even if already at target version."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            "http_referer": "https://legacy.example.com",
+        },
+        options={"http_referer": "https://legacy.example.com"},
+        version=integration.TARGET_ENTRY_VERSION,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert "http_referer" not in entry.data
+    assert "http_referer" not in entry.options
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert entry.version == integration.TARGET_ENTRY_VERSION
+
+
+def test_migrate_entry_does_not_downgrade_version() -> None:
+    """Migration should preserve versions newer than the target."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            "http_referer": "https://legacy.example.com",
+        },
+        options={"http_referer": "https://legacy.example.com"},
+        version=integration.TARGET_ENTRY_VERSION + 1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert "http_referer" not in entry.data
+    assert "http_referer" not in entry.options
+    assert entry.version == integration.TARGET_ENTRY_VERSION + 1
+
+
+def test_migrate_entry_removes_mode_from_data_when_in_options() -> None:
+    """Migration should remove per-day sensor mode from data when already in options."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        version=1,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
 
 
 @pytest.mark.parametrize("version", [None, "x"])
@@ -544,4 +610,4 @@ def test_migrate_entry_handles_non_int_version(version: object) -> None:
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert entry.version == 2
+    assert entry.version == 3

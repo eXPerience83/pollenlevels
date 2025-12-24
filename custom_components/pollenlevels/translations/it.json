@@ -1,105 +1,95 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Questa posizione è già configurata.",
-      "reauth_failed": "La ri-autenticazione non è riuscita. Riprova.",
-      "reauth_successful": "La ri-autenticazione è stata completata con successo."
+    "step": {
+      "user": {
+        "title": "Configurazione Livelli di polline",
+        "description": "Inserisci la tua chiave API di Google ([ottienila qui]({api_key_url})) e consulta le best practice ([best practice]({restricting_api_keys_url})). Seleziona la posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua della risposta dell’API. Puoi anche impostare i giorni di previsione e l'ambito dei sensori per giorno (TIPI).",
+        "data": {
+          "api_key": "Chiave API",
+          "name": "Nome",
+          "location": "Posizione",
+          "update_interval": "Intervallo di aggiornamento (ore)",
+          "language_code": "Codice lingua per la risposta dell'API",
+          "forecast_days": "Giorni di previsione (1–5)",
+          "create_forecast_sensors": "Ambito dei sensori per giorno (TIPI)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ri-autentica Pollen Levels",
+        "description": "La chiave API per {latitude},{longitude} non è più valida. Inserisci una nuova chiave per riprendere gli aggiornamenti.",
+        "data": {
+          "api_key": "Chiave API"
+        }
+      }
     },
     "error": {
-      "cannot_connect": "Impossibile connettersi al servizio\n\n{error_message}",
-      "empty": "Questo campo non può essere vuoto",
       "invalid_auth": "Chiave API non valida\n\n{error_message}",
-      "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
-      "invalid_http_referrer": "Valore per HTTP Referer non valido. Non deve contenere caratteri di nuova riga.",
-      "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
-      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
+      "cannot_connect": "Impossibile connettersi al servizio\n\n{error_message}",
       "quota_exceeded": "Quota superata\n\n{error_message}",
+      "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
+      "empty": "Questo campo non può essere vuoto",
+      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
+      "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
       "unknown": "Errore sconosciuto",
       "invalid_update_interval": "L’intervallo di aggiornamento deve essere compreso tra 1 e 24 ore.",
       "invalid_forecast_days": "I giorni di previsione devono essere compresi tra 1 e 5."
     },
+    "abort": {
+      "already_configured": "Questa posizione è già configurata.",
+      "reauth_successful": "La ri-autenticazione è stata completata con successo.",
+      "reauth_failed": "La ri-autenticazione non è riuscita. Riprova."
+    }
+  },
+  "options": {
     "step": {
-      "reauth_confirm": {
+      "init": {
+        "title": "Pollen Levels – Opzioni",
+        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI per {title}.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+1+2).",
         "data": {
-          "api_key": "Chiave API"
-        },
-        "description": "La chiave API per {latitude},{longitude} non è più valida. Inserisci una nuova chiave per riprendere gli aggiornamenti.",
-        "title": "Ri-autentica Pollen Levels"
-      },
-      "user": {
-        "data": {
-          "api_key": "Chiave API",
-          "language_code": "Codice lingua per la risposta dell'API",
-          "location": "Posizione",
-          "name": "Nome",
           "update_interval": "Intervallo di aggiornamento (ore)",
-          "http_referer": "HTTP Referer",
+          "language_code": "Codice lingua per la risposta dell'API",
           "forecast_days": "Giorni di previsione (1–5)",
           "create_forecast_sensors": "Ambito dei sensori per giorno (TIPI)"
-        },
-        "description": "Inserisci la tua chiave API di Google ([ottienila qui]({api_key_url})) e consulta le best practice ([best practice]({restricting_api_keys_url})). Seleziona la posizione sulla mappa, l’intervallo di aggiornamento (ore) e il codice lingua della risposta dell’API. Puoi anche impostare i giorni di previsione e l'ambito dei sensori per giorno (TIPI).",
-        "title": "Configurazione Livelli di polline",
-        "sections": {
-          "api_key_options": {
-            "name": "Opzioni facoltative della chiave API"
-          }
-        },
-        "data_description": {
-          "http_referer": "Necessario solo se la tua chiave API ha una [restrizione per siti web]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
+    },
+    "error": {
+      "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
+      "empty": "Questo campo non può essere vuoto",
+      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
+      "unknown": "Errore sconosciuto",
+      "invalid_update_interval": "L’intervallo di aggiornamento deve essere compreso tra 1 e 24 ore.",
+      "invalid_forecast_days": "I giorni di previsione devono essere compresi tra 1 e 5."
     }
   },
   "device": {
-    "info": {
-      "name": "{title} - Informazioni sul polline ({latitude},{longitude})"
+    "types": {
+      "name": "{title} - Tipi di polline ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Piante ({latitude},{longitude})"
     },
-    "types": {
-      "name": "{title} - Tipi di polline ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informazioni sul polline ({latitude},{longitude})"
+    }
+  },
+  "services": {
+    "force_update": {
+      "name": "Forza aggiornamento",
+      "description": "Aggiorna manualmente i dati dei pollini per tutte le località configurate."
     }
   },
   "entity": {
     "sensor": {
+      "region": {
+        "name": "Regione"
+      },
       "date": {
         "name": "Data"
       },
       "last_updated": {
         "name": "Ultimo aggiornamento"
-      },
-      "region": {
-        "name": "Regione"
       }
-    }
-  },
-  "options": {
-    "error": {
-      "empty": "Questo campo non può essere vuoto",
-      "invalid_language_format": "Usa un codice BCP-47 canonico come \"en\" o \"es-ES\".",
-      "invalid_option_combo": "Aumenta 'Giorni di previsione' per coprire i sensori giornalieri selezionati.",
-      "unknown": "Errore sconosciuto",
-      "invalid_update_interval": "L’intervallo di aggiornamento deve essere compreso tra 1 e 24 ore.",
-      "invalid_forecast_days": "I giorni di previsione devono essere compresi tra 1 e 5."
-    },
-    "step": {
-      "init": {
-        "data": {
-          "create_forecast_sensors": "Ambito dei sensori per giorno (TIPI)",
-          "forecast_days": "Giorni di previsione (1–5)",
-          "language_code": "Codice lingua per la risposta dell'API",
-          "update_interval": "Intervallo di aggiornamento (ore)"
-        },
-        "description": "Modifica l’intervallo di aggiornamento, la lingua della risposta dell’API, i giorni di previsione e i sensori giornalieri per i TIPI per {title}.\nOpzioni dei sensori giornalieri (TIPI): Solo oggi (none), Fino a domani (D+1), Fino a dopodomani (D+1+2).",
-        "title": "Pollen Levels – Opzioni"
-      }
-    }
-  },
-  "services": {
-    "force_update": {
-      "description": "Aggiorna manualmente i dati dei pollini per tutte le località configurate.",
-      "name": "Forza aggiornamento"
     }
   }
 }

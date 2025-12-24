@@ -1,105 +1,95 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Ta lokalizacja jest już skonfigurowana.",
-      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie.",
-      "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie."
+    "step": {
+      "user": {
+        "title": "Konfiguracja poziomów pyłku",
+        "description": "Wprowadź swój klucz Google API ([uzyskaj go tutaj]({api_key_url})) i zapoznaj się z dobrymi praktykami ([dobre praktyki]({restricting_api_keys_url})). Wybierz lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API. Możesz także ustawić dni prognozy oraz zakres czujników dziennych (TYPY).",
+        "data": {
+          "api_key": "Klucz API",
+          "name": "Nazwa",
+          "location": "Lokalizacja",
+          "update_interval": "Interwał aktualizacji (godziny)",
+          "language_code": "Kod języka odpowiedzi API",
+          "forecast_days": "Dni prognozy (1–5)",
+          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponownie uwierzytelnij Pollen Levels",
+        "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",
+        "data": {
+          "api_key": "Klucz API"
+        }
+      }
     },
     "error": {
-      "cannot_connect": "Brak połączenia z usługą\n\n{error_message}",
-      "empty": "To pole nie może być puste",
       "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
-      "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
-      "invalid_http_referrer": "Nieprawidłowa wartość dla HTTP Referer. Nie może zawierać znaków nowej linii.",
-      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "cannot_connect": "Brak połączenia z usługą\n\n{error_message}",
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
+      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
+      "empty": "To pole nie może być puste",
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
       "unknown": "Nieznany błąd",
       "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
       "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
     },
+    "abort": {
+      "already_configured": "Ta lokalizacja jest już skonfigurowana.",
+      "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie.",
+      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie."
+    }
+  },
+  "options": {
     "step": {
-      "reauth_confirm": {
+      "init": {
+        "title": "Pollen Levels – Opcje",
+        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+1+2).",
         "data": {
-          "api_key": "Klucz API"
-        },
-        "description": "Klucz API dla {latitude},{longitude} jest już nieważny. Wprowadź nowy klucz, aby wznowić aktualizacje.",
-        "title": "Ponownie uwierzytelnij Pollen Levels"
-      },
-      "user": {
-        "data": {
-          "api_key": "Klucz API",
-          "language_code": "Kod języka odpowiedzi API",
-          "location": "Lokalizacja",
-          "name": "Nazwa",
           "update_interval": "Interwał aktualizacji (godziny)",
-          "http_referer": "HTTP Referer",
+          "language_code": "Kod języka odpowiedzi API",
           "forecast_days": "Dni prognozy (1–5)",
           "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
-        },
-        "description": "Wprowadź swój klucz Google API ([uzyskaj go tutaj]({api_key_url})) i zapoznaj się z dobrymi praktykami ([dobre praktyki]({restricting_api_keys_url})). Wybierz lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API. Możesz także ustawić dni prognozy oraz zakres czujników dziennych (TYPY).",
-        "title": "Konfiguracja poziomów pyłku",
-        "sections": {
-          "api_key_options": {
-            "name": "Opcjonalne opcje klucza API"
-          }
-        },
-        "data_description": {
-          "http_referer": "Wymagane tylko, jeśli Twój klucz API ma [ograniczenie witryny]({restricting_api_keys_url}) (HTTP Referer)."
         }
       }
+    },
+    "error": {
+      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
+      "empty": "To pole nie może być puste",
+      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
+      "unknown": "Nieznany błąd",
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
+      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
     }
   },
   "device": {
-    "info": {
-      "name": "{title} - Informacje o pyłkach ({latitude},{longitude})"
+    "types": {
+      "name": "{title} - Typy pyłków ({latitude},{longitude})"
     },
     "plants": {
       "name": "{title} - Rośliny ({latitude},{longitude})"
     },
-    "types": {
-      "name": "{title} - Typy pyłków ({latitude},{longitude})"
+    "info": {
+      "name": "{title} - Informacje o pyłkach ({latitude},{longitude})"
+    }
+  },
+  "services": {
+    "force_update": {
+      "name": "Wymuś aktualizację",
+      "description": "Ręcznie odśwież dane o pyłkach dla wszystkich skonfigurowanych lokalizacji."
     }
   },
   "entity": {
     "sensor": {
+      "region": {
+        "name": "Region"
+      },
       "date": {
         "name": "Data"
       },
       "last_updated": {
         "name": "Ostatnia aktualizacja"
-      },
-      "region": {
-        "name": "Region"
       }
-    }
-  },
-  "options": {
-    "error": {
-      "empty": "To pole nie może być puste",
-      "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
-      "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
-      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
-    },
-    "step": {
-      "init": {
-        "data": {
-          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)",
-          "forecast_days": "Dni prognozy (1–5)",
-          "language_code": "Kod języka odpowiedzi API",
-          "update_interval": "Interwał aktualizacji (godziny)"
-        },
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+1+2).",
-        "title": "Pollen Levels – Opcje"
-      }
-    }
-  },
-  "services": {
-    "force_update": {
-      "description": "Ręcznie odśwież dane o pyłkach dla wszystkich skonfigurowanych lokalizacji.",
-      "name": "Wymuś aktualizację"
     }
   }
 }

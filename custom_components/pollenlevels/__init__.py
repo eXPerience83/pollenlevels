@@ -25,7 +25,6 @@ from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
-    CONF_HTTP_REFERER,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -38,7 +37,6 @@ from .const import (
     MAX_UPDATE_INTERVAL_HOURS,
     MIN_FORECAST_DAYS,
     MIN_UPDATE_INTERVAL_HOURS,
-    normalize_http_referer,
 )
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
@@ -49,6 +47,7 @@ from .util import normalize_sensor_mode
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
+TARGET_ENTRY_VERSION = 3
 
 # ---- Service -------------------------------------------------------------
 
@@ -56,18 +55,34 @@ _LOGGER = logging.getLogger(__name__)
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate config entry data to options when needed."""
     try:
-        target_version = 2
+        target_version = TARGET_ENTRY_VERSION
         current_version_raw = getattr(entry, "version", 1)
         current_version = (
             current_version_raw if isinstance(current_version_raw, int) else 1
         )
-        if current_version >= target_version:
+        legacy_key = "http_referer"
+        existing_options = entry.options or {}
+        cleanup_needed = (
+            legacy_key in entry.data
+            or legacy_key in existing_options
+            or CONF_CREATE_FORECAST_SENSORS in entry.data
+        )
+        if not cleanup_needed and CONF_CREATE_FORECAST_SENSORS in existing_options:
+            stored_mode = existing_options.get(CONF_CREATE_FORECAST_SENSORS)
+            stored_mode_raw = getattr(stored_mode, "value", stored_mode)
+            if stored_mode_raw is not None:
+                cleanup_needed = (
+                    normalize_sensor_mode(stored_mode_raw, _LOGGER) != stored_mode_raw
+                )
+        if current_version >= target_version and not cleanup_needed:
             return True
 
-        new_options = dict(entry.options)
+        new_data = dict(entry.data)
+        new_options = dict(entry.options or {})
         mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
         if mode is None:
-            mode = entry.data.get(CONF_CREATE_FORECAST_SENSORS)
+            mode = new_data.get(CONF_CREATE_FORECAST_SENSORS)
+        new_data.pop(CONF_CREATE_FORECAST_SENSORS, None)
 
         if mode is not None:
             normalized_mode = normalize_sensor_mode(mode, _LOGGER)
@@ -76,12 +91,16 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif CONF_CREATE_FORECAST_SENSORS in new_options:
             new_options.pop(CONF_CREATE_FORECAST_SENSORS)
 
-        if new_options != entry.options:
+        new_data.pop(legacy_key, None)
+        new_options.pop(legacy_key, None)
+
+        new_version = max(current_version, target_version)
+        if new_data != entry.data or new_options != existing_options:
             hass.config_entries.async_update_entry(
-                entry, options=new_options, version=target_version
+                entry, data=new_data, options=new_options, version=new_version
             )
         else:
-            hass.config_entries.async_update_entry(entry, version=target_version)
+            hass.config_entries.async_update_entry(entry, version=new_version)
         return True
     except asyncio.CancelledError:
         raise
@@ -185,20 +204,11 @@ async def async_setup_entry(
     if not api_key:
         raise ConfigEntryAuthFailed("Missing API key")
 
-    http_referer: str | None = None
-    try:
-        http_referer = normalize_http_referer(entry.data.get(CONF_HTTP_REFERER))
-    except ValueError:
-        _LOGGER.warning(
-            "Ignoring http_referer for entry %s because it contains newline characters",
-            entry.entry_id,
-        )
-
     raw_title = entry.title or ""
     clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
 
     session = async_get_clientsession(hass)
-    client = GooglePollenApiClient(session, api_key, http_referer)
+    client = GooglePollenApiClient(session, api_key)
 
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
