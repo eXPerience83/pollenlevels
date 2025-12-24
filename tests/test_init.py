@@ -530,6 +530,26 @@ def test_migrate_entry_normalizes_invalid_mode_in_options() -> None:
     assert entry.version == 3
 
 
+def test_migrate_entry_normalizes_invalid_mode_in_options_when_version_current() -> (
+    None
+):
+    """Migration should normalize invalid mode values even at the target version."""
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "invalid-value"},
+        version=integration.TARGET_ENTRY_VERSION,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "none"
+    assert entry.version == integration.TARGET_ENTRY_VERSION
+
+
 def test_migrate_entry_marks_version_when_no_changes() -> None:
     """Migration should still bump the version when no changes are needed."""
     entry = _FakeEntry(
