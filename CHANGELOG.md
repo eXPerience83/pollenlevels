@@ -49,6 +49,7 @@
   associated helper functions have been moved from sensor.py to a new,
   dedicated coordinator.py module. This significantly improves modularity and
   separation of concerns within the component.
+- Removed optional HTTP Referer (website restriction) support to simplify configuration, as it is not suitable for server-side integrations.
 - Documented the 1–24 update interval range in the README options list.
 
 ### Fixed
