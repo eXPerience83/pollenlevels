@@ -7,14 +7,16 @@
   to prevent secrets from appearing in setup errors.
 - Cleared stale setup error placeholders when per-day sensor options are
   incompatible with the selected forecast days.
-- Ensured diagnostics redaction is awaited so exports return the final redacted
-  payload rather than a coroutine.
+- Ensured diagnostics redaction returns the final redacted payload without
+  attempting to await the synchronous helper.
 - Trimmed diagnostics payloads to avoid listing all data keys and to hide precise
   coordinates while keeping rounded location context for support.
 
 ### Changed
 - **Breaking change:** removed the `color_raw` attribute from pollen sensors to
   reduce state size; use `color_hex` or `color_rgb` instead.
+- Refactored config flow HTTP validation to reduce duplicated error handling
+  logic without changing behavior.
 
 ## [1.9.0-rc1] - 2025-12-31
 ### Changed
