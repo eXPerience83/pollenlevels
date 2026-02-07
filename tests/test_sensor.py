@@ -479,6 +479,66 @@ def test_type_sensor_preserves_source_with_single_day(
     assert entry["forecast"] == []
     assert entry["tomorrow_has_index"] is False
     assert entry["tomorrow_value"] is None
+    assert entry["color_raw"] == {"red": 30, "green": 160, "blue": 40}
+
+
+def test_coordinator_preserves_last_data_when_dailyinfo_missing() -> None:
+    """Missing dailyInfo keeps the last successful data instead of clearing."""
+
+    payload = {
+        "regionCode": "us_ca_san_francisco",
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 5, "day": 9},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+            }
+        ],
+    }
+
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=payload),
+            ResponseSpec(status=200, payload={}),
+        ]
+    )
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        first_updated = coordinator.last_updated
+        second_data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert first_data["type_grass"]["value"] == 2
+    assert second_data == first_data
+    assert coordinator.last_updated == first_updated
 
 
 def test_coordinator_clamps_forecast_days_low() -> None:
@@ -506,6 +566,37 @@ def test_coordinator_clamps_forecast_days_low() -> None:
         loop.close()
 
     assert coordinator.forecast_days == const.MIN_FORECAST_DAYS
+
+
+def test_coordinator_first_refresh_missing_dailyinfo_raises() -> None:
+    """Missing dailyInfo on the first refresh should raise UpdateFailed."""
+
+    session = SequenceSession([ResponseSpec(status=200, payload={})])
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        with pytest.raises(client_mod.UpdateFailed, match="dailyInfo"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert coordinator.data == {}
 
 
 def test_coordinator_clamps_forecast_days_negative() -> None:

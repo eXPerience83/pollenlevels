@@ -31,14 +31,10 @@ from .runtime import PollenLevelsRuntimeData
 from .util import redact_api_key
 
 # Redact potentially sensitive values from diagnostics.
-# NOTE: Also redact the "location.*" variants used in the request example to avoid
-# leaking coordinates in exported diagnostics.
 TO_REDACT = {
     CONF_API_KEY,
     CONF_LATITUDE,
     CONF_LONGITUDE,
-    "location.latitude",
-    "location.longitude",
 }
 
 
@@ -96,8 +92,9 @@ async def async_get_config_entry_diagnostics(
     params_example: dict[str, Any] = {
         # Explicitly mask the API key example
         "key": redact_api_key(data.get(CONF_API_KEY), data.get(CONF_API_KEY)) or "***",
-        "location.latitude": data.get(CONF_LATITUDE),
-        "location.longitude": data.get(CONF_LONGITUDE),
+        # Use rounded coordinates to avoid exposing precise location data.
+        "location.latitude": _rounded(data.get(CONF_LATITUDE)),
+        "location.longitude": _rounded(data.get(CONF_LONGITUDE)),
         "days": days_effective,
     }
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
@@ -116,8 +113,12 @@ async def async_get_config_entry_diagnostics(
             "create_d1": getattr(coordinator, "create_d1", None),
             "create_d2": getattr(coordinator, "create_d2", None),
             "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
-            "data_keys": list((getattr(coordinator, "data", {}) or {}).keys()),
+            "data_keys_total": 0,
+            "data_keys": [],
         }
+        all_keys = list((getattr(coordinator, "data", {}) or {}).keys())
+        coord_info["data_keys_total"] = len(all_keys)
+        coord_info["data_keys"] = all_keys[:50]
 
         # ---------- Forecast summaries (TYPES & PLANTS) ----------
         data_map: dict[str, Any] = getattr(coordinator, "data", {}) or {}
@@ -184,8 +185,6 @@ async def async_get_config_entry_diagnostics(
                 CONF_CREATE_FORECAST_SENSORS: options.get(CONF_CREATE_FORECAST_SENSORS),
             },
             "data": {
-                CONF_LATITUDE: data.get(CONF_LATITUDE),
-                CONF_LONGITUDE: data.get(CONF_LONGITUDE),
                 CONF_LANGUAGE_CODE: data.get(CONF_LANGUAGE_CODE),
             },
         },
@@ -196,4 +195,4 @@ async def async_get_config_entry_diagnostics(
     }
 
     # Redact secrets and return
-    return async_redact_data(diag, TO_REDACT)
+    return await async_redact_data(diag, TO_REDACT)

@@ -315,6 +315,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_UPDATE_INTERVAL] = interval_value
         if interval_error:
             errors[CONF_UPDATE_INTERVAL] = interval_error
+            placeholders.pop("error_message", None)
             return errors, None
 
         forecast_days, days_error = _parse_int_option(
@@ -327,6 +328,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_FORECAST_DAYS] = forecast_days
         if days_error:
             errors[CONF_FORECAST_DAYS] = days_error
+            placeholders.pop("error_message", None)
             return errors, None
 
         mode = normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
@@ -336,6 +338,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
         if forecast_days < needed:
             errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+            placeholders.pop("error_message", None)
             return errors, None
         normalized[CONF_CREATE_FORECAST_SENSORS] = mode
 
@@ -347,6 +350,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
                 errors[CONF_LOCATION] = "invalid_coordinates"
+                placeholders.pop("error_message", None)
                 return errors, None
         else:
             try:
@@ -358,6 +362,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
                 errors["base"] = "invalid_coordinates"
+                placeholders.pop("error_message", None)
                 return errors, None
 
         lat, lon = latlon
@@ -407,29 +412,26 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if status == 401:
                     _LOGGER.debug("Validation HTTP 401 (body omitted)")
                     errors["base"] = "invalid_auth"
-                    placeholders["error_message"] = await extract_error_message(
-                        resp, "HTTP 401"
-                    )
+                    raw_msg = await extract_error_message(resp, "HTTP 401")
+                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
                 elif status == 403:
                     _LOGGER.debug("Validation HTTP 403 (body omitted)")
-                    error_message = await extract_error_message(resp, "HTTP 403")
-                    if is_invalid_api_key_message(error_message):
+                    raw_msg = await extract_error_message(resp, "HTTP 403")
+                    if is_invalid_api_key_message(raw_msg):
                         errors["base"] = "invalid_auth"
                     else:
                         errors["base"] = "cannot_connect"
-                    placeholders["error_message"] = error_message
+                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
                 elif status == 429:
                     _LOGGER.debug("Validation HTTP 429 (body omitted)")
                     errors["base"] = "quota_exceeded"
-                    placeholders["error_message"] = await extract_error_message(
-                        resp, "HTTP 429"
-                    )
+                    raw_msg = await extract_error_message(resp, "HTTP 429")
+                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
                 elif status != 200:
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
                     errors["base"] = "cannot_connect"
-                    placeholders["error_message"] = await extract_error_message(
-                        resp, f"HTTP {status}"
-                    )
+                    raw_msg = await extract_error_message(resp, f"HTTP {status}")
+                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
                 else:
                     raw = await resp.read()
                     try:
@@ -465,6 +467,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ve,
             )
             errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
+            placeholders.pop("error_message", None)
         except TimeoutError as err:
             _LOGGER.warning(
                 "Validation timeout (%ss): %s",

@@ -125,6 +125,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.create_d1 = create_d1
         self.create_d2 = create_d2
         self._client = client
+        self._missing_dailyinfo_warned = False
 
         self.data: dict[str, dict] = {}
         self.last_updated = None
@@ -224,9 +225,15 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         daily: list[dict] = payload.get("dailyInfo") or []
         if not daily:
-            self.data = new_data
-            self.last_updated = dt_util.utcnow()
-            return self.data
+            if self.data:
+                if not self._missing_dailyinfo_warned:
+                    _LOGGER.warning(
+                        "API response missing dailyInfo; keeping last successful data"
+                    )
+                    self._missing_dailyinfo_warned = True
+                return self.data
+            raise UpdateFailed("API response missing dailyInfo")
+        self._missing_dailyinfo_warned = False
 
         # date (today)
         first_day = daily[0]

@@ -1,4 +1,21 @@
 # Changelog
+## [1.9.1] - 2026-01-10
+### Fixed
+- Preserved the last successful coordinator data when the API response omits
+  `dailyInfo`, avoiding empty entities after transient API glitches.
+- Redacted API keys from config flow error placeholders derived from API responses
+  to prevent secrets from appearing in setup errors.
+- Cleared stale setup error placeholders when per-day sensor options are
+  incompatible with the selected forecast days.
+- Ensured diagnostics redaction is awaited so exports return the final redacted
+  payload rather than a coroutine.
+- Trimmed diagnostics payloads to avoid listing all data keys and to hide precise
+  coordinates while keeping rounded location context for support.
+
+### Changed
+- **Breaking change:** removed the `color_raw` attribute from pollen sensors to
+  reduce state size; use `color_hex` or `color_rgb` instead.
+
 ## [1.9.0-rc1] - 2025-12-31
 ### Changed
 - Moved runtime state to config entry `runtime_data` with a shared

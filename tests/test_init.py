@@ -20,7 +20,9 @@ import tests.test_config_flow  # noqa: E402,F401  # pylint: disable=unused-impor
 # Provide the additional stubs required by __init__.
 sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
 
-core_mod = types.ModuleType("homeassistant.core")
+core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
+    "homeassistant.core"
+)
 
 
 class _StubHomeAssistant:  # pragma: no cover - structure only
@@ -33,7 +35,7 @@ class _StubServiceCall:  # pragma: no cover - structure only
 
 core_mod.HomeAssistant = _StubHomeAssistant
 core_mod.ServiceCall = _StubServiceCall
-sys.modules.setdefault("homeassistant.core", core_mod)
+sys.modules["homeassistant.core"] = core_mod
 
 ha_components_mod = sys.modules.get("homeassistant.components") or types.ModuleType(
     "homeassistant.components"
