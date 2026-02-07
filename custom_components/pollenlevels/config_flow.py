@@ -409,29 +409,21 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
-                if status == 401:
-                    _LOGGER.debug("Validation HTTP 401 (body omitted)")
-                    errors["base"] = "invalid_auth"
-                    raw_msg = await extract_error_message(resp, "HTTP 401")
-                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
-                elif status == 403:
-                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
-                    raw_msg = await extract_error_message(resp, "HTTP 403")
-                    if is_invalid_api_key_message(raw_msg):
-                        errors["base"] = "invalid_auth"
-                    else:
-                        errors["base"] = "cannot_connect"
-                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
-                elif status == 429:
-                    _LOGGER.debug("Validation HTTP 429 (body omitted)")
-                    errors["base"] = "quota_exceeded"
-                    raw_msg = await extract_error_message(resp, "HTTP 429")
-                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
-                elif status != 200:
+                if status != 200:
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
-                    errors["base"] = "cannot_connect"
                     raw_msg = await extract_error_message(resp, f"HTTP {status}")
                     placeholders["error_message"] = redact_api_key(raw_msg, api_key)
+                    if status == 401:
+                        errors["base"] = "invalid_auth"
+                    elif status == 403:
+                        if is_invalid_api_key_message(raw_msg):
+                            errors["base"] = "invalid_auth"
+                        else:
+                            errors["base"] = "cannot_connect"
+                    elif status == 429:
+                        errors["base"] = "quota_exceeded"
+                    else:
+                        errors["base"] = "cannot_connect"
                 else:
                     raw = await resp.read()
                     try:
