@@ -195,4 +195,4 @@ async def async_get_config_entry_diagnostics(
     }
 
     # Redact secrets and return
-    return await async_redact_data(diag, TO_REDACT)
+    return async_redact_data(diag, TO_REDACT)

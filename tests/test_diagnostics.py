@@ -18,7 +18,7 @@ components_mod = ModuleType("homeassistant.components")
 diagnostics_mod = ModuleType("homeassistant.components.diagnostics")
 
 
-async def _async_redact_data(data: dict[str, Any], _redact: set[str]) -> dict[str, Any]:
+def _async_redact_data(data: dict[str, Any], _redact: set[str]) -> dict[str, Any]:
     return data
 
 
