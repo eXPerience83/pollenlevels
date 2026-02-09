@@ -17,6 +17,8 @@
   reduce state size; use `color_hex` or `color_rgb` instead.
 - Refactored config flow HTTP validation to reduce duplicated error handling
   logic without changing behavior.
+- Updated README attributes list to remove `color_raw` now that it is no longer
+  exposed by sensors.
 
 ## [1.9.0-rc1] - 2025-12-31
 ### Changed
