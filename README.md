@@ -38,7 +38,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Configurable updates** — Change update interval, language, forecast days, and per-day sensors without reinstalling.  
 - **Manual refresh** — Call `pollenlevels.force_update` to trigger an immediate update and reset the timer.
 - **Last Updated sensor** — Shows timestamp of last successful update.
-- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`, `color_hex`, `color_rgb`, `color_raw`, and plant details.
+- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`,
+  `color_hex`, `color_rgb`, and plant details.
 - **Resilient startup** — Retries setup automatically when the first API response lacks daily pollen info (`dailyInfo` types/plants), ensuring entities appear once data is ready.
 
 ---
