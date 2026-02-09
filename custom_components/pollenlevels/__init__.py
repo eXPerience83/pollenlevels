@@ -124,8 +124,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
     async def handle_force_update_service(call: ServiceCall) -> None:
         """Refresh pollen data for all entries."""
-        # Added: top-level log to confirm manual trigger for easier debugging.
-        _LOGGER.info("Executing force_update service for all Pollen Levels entries")
+        _LOGGER.debug("Executing force_update service for all Pollen Levels entries")
         entries = list(hass.config_entries.async_entries(DOMAIN))
         tasks: list[Awaitable[None]] = []
         task_entries: list[ConfigEntry] = []
@@ -133,20 +132,26 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             runtime = getattr(entry, "runtime_data", None)
             coordinator = getattr(runtime, "coordinator", None)
             if coordinator:
-                _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                refresh_coro = coordinator.async_refresh()
-                tasks.append(refresh_coro)
+                tasks.append(coordinator.async_request_refresh())
                 task_entries.append(entry)
+            else:
+                _LOGGER.debug(
+                    "Skipping force_update for entry %s (no coordinator)",
+                    entry.entry_id,
+                )
 
-        if tasks:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for entry, result in zip(task_entries, results, strict=False):
-                if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Manual refresh failed for entry %s: %r",
-                        entry.entry_id,
-                        result,
-                    )
+        if not tasks:
+            _LOGGER.debug("No coordinators available for force_update")
+            return
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for entry, result in zip(task_entries, results, strict=False):
+            if isinstance(result, Exception):
+                _LOGGER.warning(
+                    "Manual refresh failed for entry %s: %r",
+                    entry.entry_id,
+                    result,
+                )
 
     # Enforce empty payload for the service; reject unknown fields for clearer errors.
     hass.services.async_register(

@@ -442,15 +442,14 @@ def test_force_update_requests_refresh_per_entry() -> None:
     class _StubCoordinator:
         def __init__(self):
             self.calls: list[str] = []
+            self.done = asyncio.Event()
 
         async def _mark(self):
             self.calls.append("refresh")
+            self.done.set()
 
-        async def async_refresh(self):
+        async def async_request_refresh(self):
             await self._mark()
-
-        def async_request_refresh(self):
-            return asyncio.create_task(self._mark())
 
     entry1 = _FakeEntry(entry_id="entry-1")
     entry1.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
@@ -468,6 +467,8 @@ def test_force_update_requests_refresh_per_entry() -> None:
 
     assert entry1.runtime_data.coordinator.calls == ["refresh"]
     assert entry2.runtime_data.coordinator.calls == ["refresh"]
+    assert entry1.runtime_data.coordinator.done.is_set()
+    assert entry2.runtime_data.coordinator.done.is_set()
 
 
 def test_migrate_entry_moves_mode_to_options() -> None:

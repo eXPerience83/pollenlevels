@@ -11,6 +11,8 @@
   attempting to await the synchronous helper.
 - Trimmed diagnostics payloads to avoid listing all data keys and to hide precise
   coordinates while keeping rounded location context for support.
+- Updated the `pollenlevels.force_update` service to request a coordinator
+  refresh and wait for completion before returning.
 
 ### Changed
 - **Breaking change:** removed the `color_raw` attribute from pollen sensors to
