@@ -15,6 +15,8 @@
   refresh and wait for completion before returning.
 - Sanitized `pollenlevels.force_update` failure logging to avoid exposing raw
   exception details in warnings.
+- Re-raised coordinator `CancelledError` during updates so shutdown/reload
+  cancellations are not wrapped as `UpdateFailed`.
 
 ### Changed
 - **Breaking change:** removed the `color_raw` attribute from pollen sensors to
@@ -23,6 +25,8 @@
   logic without changing behavior.
 - Updated README attributes list to remove `color_raw` now that it is no longer
   exposed by sensors.
+- Clarified diagnostics coordinator access when `runtime_data` is missing,
+  without changing diagnostics output.
 
 ## [1.9.0-rc1] - 2025-12-31
 ### Changed
