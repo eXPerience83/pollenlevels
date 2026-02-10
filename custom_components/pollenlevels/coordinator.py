@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
@@ -211,6 +212,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         except ConfigEntryAuthFailed:
             raise
         except UpdateFailed:
+            raise
+        except asyncio.CancelledError:
             raise
         except Exception as err:  # Keep previous behavior for unexpected errors
             msg = redact_api_key(err, self.api_key)
