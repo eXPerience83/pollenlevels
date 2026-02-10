@@ -54,7 +54,7 @@ async def async_get_config_entry_diagnostics(
     NOTE: This function must not perform any network I/O.
     """
     runtime = cast(PollenLevelsRuntimeData | None, getattr(entry, "runtime_data", None))
-    coordinator = getattr(runtime, "coordinator", None)
+    coordinator = getattr(runtime, "coordinator", None) if runtime else None
     options: dict[str, Any] = dict(entry.options or {})
     data: dict[str, Any] = dict(entry.data or {})
 
