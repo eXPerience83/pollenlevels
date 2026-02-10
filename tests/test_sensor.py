@@ -479,7 +479,7 @@ def test_type_sensor_preserves_source_with_single_day(
     assert entry["forecast"] == []
     assert entry["tomorrow_has_index"] is False
     assert entry["tomorrow_value"] is None
-    assert entry["color_raw"] == {"red": 30, "green": 160, "blue": 40}
+    assert "color_raw" not in entry
 
 
 def test_coordinator_preserves_last_data_when_dailyinfo_missing() -> None:

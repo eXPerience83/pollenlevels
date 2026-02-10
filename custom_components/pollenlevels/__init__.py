@@ -146,6 +146,12 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for entry, result in zip(task_entries, results, strict=False):
+            if isinstance(result, asyncio.CancelledError):
+                _LOGGER.debug(
+                    "Manual refresh cancelled for entry %s",
+                    entry.entry_id,
+                )
+                continue
             if isinstance(result, Exception):
                 api_key = (entry.data or {}).get(CONF_API_KEY)
                 safe_message = redact_api_key(result, api_key)

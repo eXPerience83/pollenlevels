@@ -292,9 +292,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": titem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": (
-                    idx.get("color") if isinstance(idx.get("color"), dict) else None
-                ),
             }
 
         # Current-day PLANTS
@@ -327,9 +324,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": pitem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": (
-                    idx.get("color") if isinstance(idx.get("color"), dict) else None
-                ),
                 "picture": desc.get("picture"),
                 "picture_closeup": desc.get("pictureCloseup"),
             }
@@ -362,7 +356,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "description": None,
                     "color_hex": None,
                     "color_rgb": None,
-                    "color_raw": None,
                 }
 
                 candidate = None
@@ -396,11 +389,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
                         "color_rgb": (
                             list(rgb) if (has_index and rgb is not None) else None
-                        ),
-                        "color_raw": (
-                            idx.get("color")
-                            if has_index and isinstance(idx.get("color"), dict)
-                            else None
                         ),
                     }
                 )
@@ -448,7 +436,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "advice": day_advice,
                     "color_hex": f.get("color_hex"),
                     "color_rgb": f.get("color_rgb"),
-                    "color_raw": f.get("color_raw"),
                     "date": f.get("date"),
                     "has_index": f.get("has_index"),
                 }
@@ -490,11 +477,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
                         "color_rgb": (
                             list(rgb) if (has_index and rgb is not None) else None
-                        ),
-                        "color_raw": (
-                            idx.get("color")
-                            if has_index and isinstance(idx.get("color"), dict)
-                            else None
                         ),
                     }
                 )

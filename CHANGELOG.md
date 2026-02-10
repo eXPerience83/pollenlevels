@@ -15,6 +15,8 @@
   refresh and wait for completion before returning.
 - Sanitized `pollenlevels.force_update` failure logging to avoid exposing raw
   exception details in warnings.
+- Handled cancelled `force_update` refresh results explicitly to keep service
+  logging and control flow consistent during shutdown/reload paths.
 - Re-raised coordinator `CancelledError` during updates so shutdown/reload
   cancellations are not wrapped as `UpdateFailed`.
 
@@ -25,6 +27,8 @@
   logic without changing behavior.
 - Updated README attributes list to remove `color_raw` now that it is no longer
   exposed by sensors.
+- Removed unused internal `color_raw` coordinator payload fields to reduce
+  update payload size while keeping `color_hex`/`color_rgb` behavior unchanged.
 - Clarified diagnostics coordinator access when `runtime_data` is missing,
   without changing diagnostics output.
 
