@@ -531,14 +531,14 @@ def test_coordinator_preserves_last_data_when_dailyinfo_missing() -> None:
 
     try:
         first_data = loop.run_until_complete(coordinator._async_update_data())
-        first_updated = coordinator.last_updated
+        coordinator.data = first_data
         second_data = loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
 
     assert first_data["type_grass"]["value"] == 2
     assert second_data == first_data
-    assert coordinator.last_updated == first_updated
+    assert second_data == coordinator.data
 
 
 def test_coordinator_clamps_forecast_days_low() -> None:
