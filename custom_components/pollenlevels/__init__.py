@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Awaitable
-from typing import Any, cast
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol  # Service schema validation
@@ -222,6 +222,18 @@ async def async_setup_entry(
     if not api_key:
         raise ConfigEntryAuthFailed("Missing API key")
 
+    raw_lat = entry.data.get(CONF_LATITUDE)
+    raw_lon = entry.data.get(CONF_LONGITUDE)
+    try:
+        lat = float(raw_lat)
+        lon = float(raw_lon)
+    except (TypeError, ValueError) as err:
+        _LOGGER.warning(
+            "Invalid config entry coordinates for entry %s",
+            entry.entry_id,
+        )
+        raise ConfigEntryNotReady from err
+
     raw_title = entry.title or ""
     clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
 
@@ -231,8 +243,8 @@ async def async_setup_entry(
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
         api_key=api_key,
-        lat=cast(float, entry.data[CONF_LATITUDE]),
-        lon=cast(float, entry.data[CONF_LONGITUDE]),
+        lat=lat,
+        lon=lon,
         hours=hours,
         language=language,
         entry_id=entry.entry_id,

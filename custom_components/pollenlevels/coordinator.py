@@ -257,27 +257,30 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if code:
                     type_codes.add(code)
 
-        def _find_type(day: dict, code: str) -> dict | None:
-            """Find a pollen TYPE entry by code inside a day's 'pollenTypeInfo'."""
+        type_by_day_code: list[dict[str, dict[str, Any]]] = []
+        plant_by_day_code: list[dict[str, dict[str, Any]]] = []
+        for day in daily:
+            day_types: dict[str, dict[str, Any]] = {}
             for item in day.get("pollenTypeInfo", []) or []:
                 if not isinstance(item, dict):
                     continue
-                if (item.get("code") or "").upper() == code:
-                    return item
-            return None
+                code = (item.get("code") or "").upper()
+                if code:
+                    day_types[code] = item
+            type_by_day_code.append(day_types)
 
-        def _find_plant(day: dict, code: str) -> dict | None:
-            """Find a PLANT entry by code inside a day's 'plantInfo'."""
+            day_plants: dict[str, dict[str, Any]] = {}
             for item in day.get("plantInfo", []) or []:
                 if not isinstance(item, dict):
                     continue
-                if (item.get("code") or "") == code:
-                    return item
-            return None
+                code = item.get("code") or ""
+                if code:
+                    day_plants[code] = item
+            plant_by_day_code.append(day_plants)
 
         # Current-day TYPES
         for tcode in type_codes:
-            titem = _find_type(first_day, tcode) or {}
+            titem = type_by_day_code[0].get(tcode) or {}
             idx_raw = titem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
             rgb = _rgb_from_api(idx.get("color"))
@@ -359,8 +362,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 }
 
                 candidate = None
-                for day_data in daily:
-                    candidate = _find_type(day_data, tcode)
+                for day_idx, _day_data in enumerate(daily):
+                    candidate = type_by_day_code[day_idx].get(tcode)
                     if isinstance(candidate, dict):
                         base["displayName"] = candidate.get("displayName", tcode)
                         base["inSeason"] = candidate.get("inSeason")
@@ -371,7 +374,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if offset >= self.forecast_days:
                     break
                 date_str, _ = _extract_day_info(day)
-                item = _find_type(day, tcode) or {}
+                item = type_by_day_code[offset].get(tcode) or {}
                 idx_raw = item.get("indexInfo")
                 idx = idx_raw if isinstance(idx_raw, dict) else None
                 has_index = isinstance(idx_raw, dict) and bool(idx_raw)
@@ -415,7 +418,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     day_obj = daily[off]
                 except (IndexError, TypeError):
                     day_obj = None
-                day_item = _find_type(day_obj, _tcode) if day_obj else None
+                day_item = type_by_day_code[off].get(_tcode) if day_obj else None
                 day_in_season = (
                     day_item.get("inSeason") if isinstance(day_item, dict) else None
                 )
@@ -459,7 +462,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if offset >= self.forecast_days:
                     break
                 date_str, _ = _extract_day_info(day)
-                item = _find_plant(day, pcode) or {}
+                item = plant_by_day_code[offset].get(pcode) or {}
                 idx_raw = item.get("indexInfo")
                 idx = idx_raw if isinstance(idx_raw, dict) else None
                 has_index = isinstance(idx_raw, dict) and bool(idx_raw)

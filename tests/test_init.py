@@ -369,6 +369,22 @@ def test_setup_entry_missing_api_key_raises_auth_failed() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+def test_setup_entry_invalid_coordinates_raise_not_ready() -> None:
+    """Invalid coordinates should trigger ConfigEntryNotReady."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: "not-a-number",
+            integration.CONF_LONGITUDE: 2.0,
+        }
+    )
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+
 def test_setup_entry_wraps_generic_error() -> None:
     """Unexpected errors convert to ConfigEntryNotReady for retries."""
 
