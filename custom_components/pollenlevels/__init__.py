@@ -1,7 +1,7 @@
 """Initialize Pollen Levels integration.
 
 Notes:
-- Adds a top-level INFO log when the force_update service is invoked to aid debugging.
+- Adds a top-level DEBUG log when the force_update service is invoked to aid debugging.
 - Registers an options update listener to reload the entry so interval/language changes
   take effect immediately without reinstalling.
 """
