@@ -41,7 +41,7 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .sensor import ForecastSensorMode
-from .util import normalize_sensor_mode
+from .util import normalize_sensor_mode, redact_api_key
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -147,10 +147,13 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for entry, result in zip(task_entries, results, strict=False):
             if isinstance(result, Exception):
+                api_key = (entry.data or {}).get(CONF_API_KEY)
+                safe_message = redact_api_key(result, api_key)
                 _LOGGER.warning(
-                    "Manual refresh failed for entry %s: %r",
+                    "Manual refresh failed for entry %s (%s): %s",
                     entry.entry_id,
-                    result,
+                    type(result).__name__,
+                    safe_message or "no error details",
                 )
 
     # Enforce empty payload for the service; reject unknown fields for clearer errors.

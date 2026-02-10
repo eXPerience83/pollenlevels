@@ -13,6 +13,8 @@
   coordinates while keeping rounded location context for support.
 - Updated the `pollenlevels.force_update` service to request a coordinator
   refresh and wait for completion before returning.
+- Sanitized `pollenlevels.force_update` failure logging to avoid exposing raw
+  exception details in warnings.
 
 ### Changed
 - **Breaking change:** removed the `color_raw` attribute from pollen sensors to
