@@ -200,5 +200,7 @@ async def async_get_config_entry_diagnostics(
         "request_params_example": params_example,
     }
 
+    # NOTE: Home Assistant's `async_redact_data` is a synchronous callback helper
+    # despite its `async_` prefix. Do not `await` it.
     # Redact secrets and return
     return async_redact_data(diag, TO_REDACT)

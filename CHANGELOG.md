@@ -37,8 +37,9 @@
   to prevent secrets from appearing in setup errors.
 - Cleared stale setup error placeholders when per-day sensor options are
   incompatible with the selected forecast days.
-- Ensured diagnostics redaction returns the final redacted payload without
-  attempting to await the synchronous helper.
+- Clarified diagnostics redaction flow: `async_redact_data` is a synchronous
+  helper in HA Core (despite the name), ensuring diagnostics return the final
+  redacted payload.
 - Trimmed diagnostics payloads to avoid listing all data keys and to hide precise
   coordinates while keeping rounded location context for support.
 - Updated the `pollenlevels.force_update` service to request a coordinator
