@@ -81,6 +81,13 @@ def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
     return f"#{r:02X}{g:02X}{b:02X}"
 
 
+def _normalize_plant_code(code: Any) -> str:
+    """Normalize plant code for cross-day map lookups."""
+    if code is None:
+        return ""
+    return str(code).strip().upper()
+
+
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with forecast support for TYPES and PLANTS."""
 
@@ -265,7 +272,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             for item in day.get("plantInfo", []) or []:
                 if not isinstance(item, dict):
                     continue
-                code = item.get("code") or ""
+                code = _normalize_plant_code(item.get("code"))
                 if code:
                     day_plants[code] = item
             plant_by_day_code.append(day_plants)
@@ -290,16 +297,17 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             }
 
         # Current-day PLANTS
-        for code, pitem in plant_by_day_code[0].items():
+        for norm_code, pitem in plant_by_day_code[0].items():
             # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
             # and silent overwrites. This is robust and avoids creating unstable entities.
-            if not code:
+            if not norm_code:
                 continue
             idx_raw = pitem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
             desc_raw = pitem.get("plantDescription")
             desc = desc_raw if isinstance(desc_raw, dict) else {}
             rgb = _rgb_from_api(idx.get("color"))
+            code = _normalize_plant_code(pitem.get("code")) or norm_code
             key = f"plants_{code.lower()}"
             new_data[key] = {
                 "source": "plant",
@@ -441,7 +449,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         for key, base in list(new_data.items()):
             if base.get("source") != "plant":
                 continue
-            pcode = base.get("code")
+            pcode = _normalize_plant_code(base.get("code"))
             if not pcode:
                 # Safety: skip if for some reason code is missing
                 continue

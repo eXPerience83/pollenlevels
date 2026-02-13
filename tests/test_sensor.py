@@ -883,6 +883,64 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["expected_peak"]["value"] == 4
 
 
+def test_plant_forecast_matches_codes_case_insensitively() -> None:
+    """Plant forecast should match even when code casing varies by day."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 6, "day": 1},
+                "plantInfo": [
+                    {
+                        "code": "ragweed",
+                        "displayName": "Ragweed",
+                        "indexInfo": {"value": 2, "category": "LOW"},
+                    }
+                ],
+            },
+            {
+                "date": {"year": 2025, "month": 6, "day": 2},
+                "plantInfo": [
+                    {
+                        "code": "RAGWEED",
+                        "displayName": "Ragweed",
+                        "indexInfo": {"value": 4, "category": "HIGH"},
+                    }
+                ],
+            },
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=3,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    entry = data["plants_ragweed"]
+    assert entry["code"] == "RAGWEED"
+    assert entry["tomorrow_has_index"] is True
+    assert entry["tomorrow_value"] == 4
+
+
 def test_coordinator_type_keys_are_deterministic_sorted() -> None:
     """Type sensor keys are emitted in stable sorted order."""
 

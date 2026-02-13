@@ -11,6 +11,10 @@
   in a single pass and reusing them across forecast extraction.
 - Reused cached day-0 plant maps for current-day plant sensors and sorted type-code
   processing for deterministic sensor key ordering.
+- Normalized plant-code matching across days to keep plant forecast attributes
+  populated even when API casing differs between days.
+- Clamped diagnostics `request_params_example.days` to supported forecast ranges
+  and handled non-finite values defensively.
 
 ## [1.9.1] - 2026-01-10
 ### Fixed

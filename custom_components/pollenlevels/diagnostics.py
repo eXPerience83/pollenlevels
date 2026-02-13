@@ -11,6 +11,7 @@ No network I/O is performed.
 
 from __future__ import annotations
 
+import math
 from typing import Any, cast
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -26,6 +27,8 @@ from .const import (
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
 )
 from .runtime import PollenLevelsRuntimeData
 from .util import redact_api_key
@@ -75,19 +78,19 @@ async def async_get_config_entry_diagnostics(
     # --- Build a safe params example (no network I/O) ----------------------
     # Use DEFAULT_FORECAST_DAYS from const.py to avoid config drift.
     try:
-        days_effective = int(
-            options.get(
-                CONF_FORECAST_DAYS,
-                data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-            )
+        days_raw = options.get(
+            CONF_FORECAST_DAYS,
+            data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
-    except Exception:
+        days_float = float(days_raw)
+        if not math.isfinite(days_float):
+            raise ValueError
+        days_effective = int(days_float)
+    except (TypeError, ValueError, OverflowError):
         # Defensive fallback
         days_effective = DEFAULT_FORECAST_DAYS
 
-    # Clamp days to a sensible minimum (avoid 0 or negative in diagnostics)
-    if days_effective < 1:
-        days_effective = 1
+    days_effective = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, days_effective))
 
     params_example: dict[str, Any] = {
         # Explicitly mask the API key example
