@@ -25,6 +25,9 @@
   decimal inputs consistently.
 - Strengthened diagnostics tests with active redaction behavior checks for secret
   fields in support payloads.
+- Aligned runtime integer parsing with config-flow rules (reject non-integer
+  numeric values) and reduced coordinator forecast overhead by reusing offset
+  maps and plant-key lists during attribute enrichment.
 
 ## [1.9.1] - 2026-01-10
 ### Fixed

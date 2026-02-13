@@ -159,9 +159,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         Does NOT touch per-day TYPE sensor creation (kept elsewhere).
         """
         base["forecast"] = forecast_list
+        forecast_by_offset = {item.get("offset"): item for item in forecast_list}
 
         def _set_convenience(prefix: str, off: int) -> None:
-            f = next((d for d in forecast_list if d["offset"] == off), None)
+            f = forecast_by_offset.get(off)
             base[f"{prefix}_has_index"] = f.get("has_index") if f else False
             base[f"{prefix}_value"] = (
                 f.get("value") if f and f.get("has_index") else None
@@ -299,6 +300,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "color_rgb": list(rgb) if rgb is not None else None,
             }
 
+        plant_keys: list[str] = []
+
         # Current-day PLANTS
         for norm_code, pitem in plant_by_day_code[0].items():
             # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
@@ -333,6 +336,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "picture": desc.get("picture"),
                 "picture_closeup": desc.get("pictureCloseup"),
             }
+            plant_keys.append(key)
 
         # Forecast for TYPES
         def _extract_day_info(day: dict) -> tuple[str | None, dict | None]:
@@ -452,9 +456,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 _add_day_sensor(2)
 
         # Forecast for PLANTS (attributes only; no per-day plant sensors)
-        for key, base in list(new_data.items()):
-            if base.get("source") != "plant":
-                continue
+        for key in plant_keys:
+            base = new_data.get(key) or {}
             pcode = _normalize_plant_code(base.get("code"))
             if not pcode:
                 # Safety: skip if for some reason code is missing

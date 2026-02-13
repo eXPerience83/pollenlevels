@@ -183,9 +183,10 @@ async def async_setup_entry(
     options = entry.options or {}
 
     def _safe_int(value: Any, default: int) -> int:
+        """Parse integer settings defensively, rejecting non-finite/decimal input."""
         try:
             val = float(value if value is not None else default)
-            if val != val or val in (float("inf"), float("-inf")):
+            if not math.isfinite(val) or not val.is_integer():
                 return default
             return int(val)
         except (TypeError, ValueError, OverflowError):

@@ -425,6 +425,44 @@ def test_setup_entry_boundary_coordinates_are_allowed() -> None:
         assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
 
+def test_setup_entry_decimal_numeric_options_fallback_to_defaults() -> None:
+    """Decimal options should not be truncated silently during setup."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        options={
+            integration.CONF_UPDATE_INTERVAL: 2.5,
+            integration.CONF_FORECAST_DAYS: 3.1,
+        },
+    )
+
+    seen: dict[str, int] = {}
+
+    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+        def __init__(self, *args, **kwargs):
+            seen["hours"] = kwargs["hours"]
+            seen["forecast_days"] = kwargs["forecast_days"]
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    orig_coordinator = integration.PollenDataUpdateCoordinator
+    integration.PollenDataUpdateCoordinator = _StubCoordinator
+
+    try:
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+        assert seen["hours"] == integration.DEFAULT_UPDATE_INTERVAL
+        assert seen["forecast_days"] == integration.DEFAULT_FORECAST_DAYS
+    finally:
+        integration.PollenDataUpdateCoordinator = orig_coordinator
+
+
 def test_setup_entry_wraps_generic_error() -> None:
     """Unexpected errors convert to ConfigEntryNotReady for retries."""
 
