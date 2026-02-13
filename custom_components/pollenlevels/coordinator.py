@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -34,7 +35,9 @@ def _normalize_channel(v: Any) -> int | None:
     """
     try:
         f = float(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(f):
         return None
     if 0.0 <= f <= 1.0:
         f *= 255.0

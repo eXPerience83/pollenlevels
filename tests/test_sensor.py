@@ -941,6 +941,56 @@ def test_plant_forecast_matches_codes_case_insensitively() -> None:
     assert entry["tomorrow_value"] == 4
 
 
+def test_coordinator_ignores_nonfinite_color_channels() -> None:
+    """Non-finite color channel values should not crash or emit invalid colors."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "color": {"red": float("inf"), "green": float("nan")},
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert data["type_grass"]["color_hex"] is None
+    assert data["type_grass"]["color_rgb"] is None
+
+
 def test_coordinator_type_keys_are_deterministic_sorted() -> None:
     """Type sensor keys are emitted in stable sorted order."""
 

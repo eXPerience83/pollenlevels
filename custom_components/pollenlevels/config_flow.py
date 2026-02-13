@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from typing import Any
 
@@ -220,8 +221,11 @@ def _parse_int_option(
 ) -> tuple[int, str | None]:
     """Parse a numeric option to int and enforce bounds."""
     try:
-        parsed = int(float(value if value is not None else default))
-    except (TypeError, ValueError):
+        parsed_float = float(value if value is not None else default)
+        if not math.isfinite(parsed_float):
+            return default, error_key
+        parsed = int(parsed_float)
+    except (TypeError, ValueError, OverflowError):
         return default, error_key
 
     if min_value is not None and parsed < min_value:

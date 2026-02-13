@@ -1171,3 +1171,19 @@ def test_async_step_user_defaults_entry_name() -> None:
 
     assert result["title"] == DEFAULT_ENTRY_TITLE
     assert result["data"] == normalized
+
+
+@pytest.mark.parametrize("raw", ["inf", "-inf", "nan"])
+def test_parse_int_option_non_finite_returns_error(raw: str) -> None:
+    """Non-finite numeric values should be rejected safely."""
+
+    parsed, err = cf._parse_int_option(
+        raw,
+        default=cf.DEFAULT_UPDATE_INTERVAL,
+        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        error_key="invalid_update_interval",
+    )
+
+    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert err == "invalid_update_interval"

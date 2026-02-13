@@ -146,3 +146,37 @@ async def test_diagnostics_clamps_request_days(
     diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
 
     assert diagnostics["request_params_example"]["days"] == expected_days
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples() -> None:
+    """Rounded coordinate helpers should drop non-finite values."""
+
+    data = {
+        CONF_LATITUDE: "nan",
+        CONF_LONGITUDE: float("inf"),
+        CONF_LANGUAGE_CODE: "en",
+    }
+    options = {CONF_FORECAST_DAYS: 2}
+
+    entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
+
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        forecast_days=2,
+        language="en",
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        data={"type_grass": {"source": "type"}},
+    )
+    entry.runtime_data = PollenLevelsRuntimeData(
+        coordinator=coordinator, client=object()
+    )
+
+    diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
+
+    assert diagnostics["approximate_location"]["latitude_rounded"] is None
+    assert diagnostics["approximate_location"]["longitude_rounded"] is None
+    assert diagnostics["request_params_example"]["location.latitude"] is None
+    assert diagnostics["request_params_example"]["location.longitude"] is None

@@ -65,9 +65,12 @@ async def async_get_config_entry_diagnostics(
     # coordinates. This should not be redacted.
     def _rounded(value: Any) -> float | None:
         try:
-            return round(float(value), 1)
-        except (TypeError, ValueError):
+            f = float(value)
+        except (TypeError, ValueError, OverflowError):
             return None
+        if not math.isfinite(f):
+            return None
+        return round(f, 1)
 
     approx_location = {
         "label": "approximate_location (rounded)",

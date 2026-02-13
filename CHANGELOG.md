@@ -15,6 +15,10 @@
   populated even when API casing differs between days.
 - Clamped diagnostics `request_params_example.days` to supported forecast ranges
   and handled non-finite values defensively.
+- Hardened numeric parsing guards for config/options inputs and color channels
+  to safely reject non-finite values without raising runtime errors.
+- Dropped non-finite rounded coordinates in diagnostics request examples to keep
+  support payloads consistent and safe.
 
 ## [1.9.1] - 2026-01-10
 ### Fixed
