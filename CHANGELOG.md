@@ -9,6 +9,8 @@
 ### Changed
 - Reduced coordinator parsing overhead by building per-day type/plant lookup maps
   in a single pass and reusing them across forecast extraction.
+- Reused cached day-0 plant maps for current-day plant sensors and sorted type-code
+  processing for deterministic sensor key ordering.
 
 ## [1.9.1] - 2026-01-10
 ### Fixed

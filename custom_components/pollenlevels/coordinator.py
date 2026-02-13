@@ -271,7 +271,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             plant_by_day_code.append(day_plants)
 
         # Current-day TYPES
-        for tcode in type_codes:
+        for tcode in sorted(type_codes):
             titem = type_by_day_code[0].get(tcode) or {}
             idx_raw = titem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
@@ -290,10 +290,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             }
 
         # Current-day PLANTS
-        for pitem in first_day.get("plantInfo", []) or []:
-            if not isinstance(pitem, dict):
-                continue
-            code = pitem.get("code")
+        for code, pitem in plant_by_day_code[0].items():
             # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
             # and silent overwrites. This is robust and avoids creating unstable entities.
             if not code:
@@ -330,7 +327,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 return None, None
             return f"{d['year']:04d}-{d['month']:02d}-{d['day']:02d}", d
 
-        for tcode in type_codes:
+        for tcode in sorted(type_codes):
             type_key = f"type_{tcode.lower()}"
             existing = new_data.get(type_key)
             needs_skeleton = not existing or (

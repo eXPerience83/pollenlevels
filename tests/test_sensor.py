@@ -883,6 +883,63 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["expected_peak"]["value"] == 4
 
 
+def test_coordinator_type_keys_are_deterministic_sorted() -> None:
+    """Type sensor keys are emitted in stable sorted order."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "WEED",
+                        "displayName": "Weed",
+                        "indexInfo": {"value": 2, "category": "LOW"},
+                    },
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {"value": 1, "category": "LOW"},
+                    },
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    type_keys = [
+        k
+        for k, v in data.items()
+        if isinstance(v, dict)
+        and v.get("source") == "type"
+        and not k.endswith(("_d1", "_d2"))
+    ]
+    assert type_keys == sorted(type_keys)
+
+
 @pytest.mark.parametrize(
     (
         "allow_d1",
