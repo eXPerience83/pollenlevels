@@ -385,6 +385,46 @@ def test_setup_entry_invalid_coordinates_raise_not_ready() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+def test_setup_entry_nonfinite_or_out_of_range_coordinates_raise_not_ready() -> None:
+    """Non-finite or out-of-range coordinates should trigger ConfigEntryNotReady."""
+
+    bad_pairs = [
+        (float("inf"), 2.0),
+        (1.0, float("nan")),
+        (91.0, 2.0),
+        (1.0, 181.0),
+    ]
+
+    for lat, lon in bad_pairs:
+        hass = _FakeHass()
+        entry = _FakeEntry(
+            data={
+                integration.CONF_API_KEY: "key",
+                integration.CONF_LATITUDE: lat,
+                integration.CONF_LONGITUDE: lon,
+            }
+        )
+
+        with pytest.raises(integration.ConfigEntryNotReady):
+            asyncio.run(integration.async_setup_entry(hass, entry))
+
+
+def test_setup_entry_boundary_coordinates_are_allowed() -> None:
+    """Coordinate values on valid boundaries should still set up successfully."""
+
+    for lat, lon in [(-90.0, -180.0), (90.0, 180.0)]:
+        hass = _FakeHass()
+        entry = _FakeEntry(
+            data={
+                integration.CONF_API_KEY: "key",
+                integration.CONF_LATITUDE: lat,
+                integration.CONF_LONGITUDE: lon,
+            }
+        )
+
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+
 def test_setup_entry_wraps_generic_error() -> None:
     """Unexpected errors convert to ConfigEntryNotReady for retries."""
 

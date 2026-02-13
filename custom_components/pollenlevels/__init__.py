@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Awaitable
 from typing import Any
 
@@ -233,6 +234,18 @@ async def async_setup_entry(
             entry.entry_id,
         )
         raise ConfigEntryNotReady from err
+
+    if (
+        not math.isfinite(lat)
+        or not math.isfinite(lon)
+        or not (-90.0 <= lat <= 90.0)
+        or not (-180.0 <= lon <= 180.0)
+    ):
+        _LOGGER.warning(
+            "Out-of-range or non-finite coordinates for entry %s",
+            entry.entry_id,
+        )
+        raise ConfigEntryNotReady
 
     raw_title = entry.title or ""
     clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE

@@ -247,16 +247,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "value": f"{date_obj['year']:04d}-{date_obj['month']:02d}-{date_obj['day']:02d}",
             }
 
-        # collect type codes found in any day
         type_codes: set[str] = set()
-        for day in daily:
-            for item in day.get("pollenTypeInfo", []) or []:
-                if not isinstance(item, dict):
-                    continue
-                code = (item.get("code") or "").upper()
-                if code:
-                    type_codes.add(code)
-
         type_by_day_code: list[dict[str, dict[str, Any]]] = []
         plant_by_day_code: list[dict[str, dict[str, Any]]] = []
         for day in daily:
@@ -267,6 +258,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 code = (item.get("code") or "").upper()
                 if code:
                     day_types[code] = item
+                    type_codes.add(code)
             type_by_day_code.append(day_types)
 
             day_plants: dict[str, dict[str, Any]] = {}

@@ -3,6 +3,12 @@
 ### Fixed
 - Re-raised `asyncio.CancelledError` during coordinator updates to avoid wrapping
   shutdown/reload cancellations as `UpdateFailed`.
+- Validated config-entry coordinates as finite and in-range values before setup
+  to avoid malformed requests and retry with `ConfigEntryNotReady` when invalid.
+
+### Changed
+- Reduced coordinator parsing overhead by building per-day type/plant lookup maps
+  in a single pass and reusing them across forecast extraction.
 
 ## [1.9.1] - 2026-01-10
 ### Fixed
