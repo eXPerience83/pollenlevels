@@ -1,4 +1,9 @@
 # Changelog
+## [1.9.2] - 2026-02-13
+### Fixed
+- Re-raised `asyncio.CancelledError` during coordinator updates to avoid wrapping
+  shutdown/reload cancellations as `UpdateFailed`.
+
 ## [1.9.1] - 2026-01-10
 ### Fixed
 - Preserved the last successful coordinator data when the API response omits
