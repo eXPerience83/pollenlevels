@@ -19,6 +19,12 @@
   to safely reject non-finite values without raising runtime errors.
 - Dropped non-finite rounded coordinates in diagnostics request examples to keep
   support payloads consistent and safe.
+- Kept plant `code` attributes in their day-0 API form while using normalized
+  keys internally for cross-day forecast matching stability.
+- Enforced integer-only parsing for numeric config/options fields to reject
+  decimal inputs consistently.
+- Strengthened diagnostics tests with active redaction behavior checks for secret
+  fields in support payloads.
 
 ## [1.9.1] - 2026-01-10
 ### Fixed

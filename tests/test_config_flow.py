@@ -1187,3 +1187,19 @@ def test_parse_int_option_non_finite_returns_error(raw: str) -> None:
 
     assert parsed == cf.DEFAULT_UPDATE_INTERVAL
     assert err == "invalid_update_interval"
+
+
+@pytest.mark.parametrize("raw", ["2.9", 2.1])
+def test_parse_int_option_decimal_returns_error(raw: object) -> None:
+    """Decimal values should be rejected for integer-only options."""
+
+    parsed, err = cf._parse_int_option(
+        raw,
+        default=cf.DEFAULT_UPDATE_INTERVAL,
+        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        error_key="invalid_update_interval",
+    )
+
+    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert err == "invalid_update_interval"

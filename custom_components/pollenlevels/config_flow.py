@@ -224,6 +224,8 @@ def _parse_int_option(
         parsed_float = float(value if value is not None else default)
         if not math.isfinite(parsed_float):
             return default, error_key
+        if not parsed_float.is_integer():
+            return default, error_key
         parsed = int(parsed_float)
     except (TypeError, ValueError, OverflowError):
         return default, error_key

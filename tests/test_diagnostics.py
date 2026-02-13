@@ -19,7 +19,17 @@ diagnostics_mod = ModuleType("homeassistant.components.diagnostics")
 
 
 def _async_redact_data(data: dict[str, Any], _redact: set[str]) -> dict[str, Any]:
-    return data
+    def _walk(value):
+        if isinstance(value, dict):
+            return {
+                k: ("**REDACTED**" if k in _redact else _walk(v))
+                for k, v in value.items()
+            }
+        if isinstance(value, list):
+            return [_walk(v) for v in value]
+        return value
+
+    return _walk(data)
 
 
 diagnostics_mod.async_redact_data = _async_redact_data
@@ -60,6 +70,7 @@ _force_module("homeassistant.core", core_mod)
 
 from custom_components.pollenlevels import diagnostics as diag  # noqa: E402
 from custom_components.pollenlevels.const import (  # noqa: E402
+    CONF_API_KEY,
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
@@ -76,6 +87,7 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys() -> None:
     """Diagnostics should use rounded coordinates and limit data_keys length."""
 
     data = {
+        CONF_API_KEY: "secret-token",
         CONF_LATITUDE: 12.3456,
         CONF_LONGITUDE: 78.9876,
         CONF_LANGUAGE_CODE: "en",
@@ -99,6 +111,7 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys() -> None:
 
     diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
 
+    assert diagnostics["request_params_example"]["key"] == "***"
     assert CONF_LATITUDE not in diagnostics["entry"]["data"]
     assert CONF_LONGITUDE not in diagnostics["entry"]["data"]
     assert diagnostics["request_params_example"]["location.latitude"] == 12.3

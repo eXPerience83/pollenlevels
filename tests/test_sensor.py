@@ -936,7 +936,7 @@ def test_plant_forecast_matches_codes_case_insensitively() -> None:
         loop.close()
 
     entry = data["plants_ragweed"]
-    assert entry["code"] == "RAGWEED"
+    assert entry["code"] == "ragweed"
     assert entry["tomorrow_has_index"] is True
     assert entry["tomorrow_value"] == 4
 

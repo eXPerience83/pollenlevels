@@ -310,7 +310,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             desc_raw = pitem.get("plantDescription")
             desc = desc_raw if isinstance(desc_raw, dict) else {}
             rgb = _rgb_from_api(idx.get("color"))
-            code = _normalize_plant_code(pitem.get("code")) or norm_code
+            raw_code = pitem.get("code")
+            code = str(raw_code).strip() if raw_code is not None else ""
+            if not code:
+                code = norm_code
             key = f"plants_{code.lower()}"
             new_data[key] = {
                 "source": "plant",
