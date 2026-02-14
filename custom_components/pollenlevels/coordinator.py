@@ -306,8 +306,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         for norm_code, pitem in sorted(plant_by_day_code[0].items()):
             # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
             # and silent overwrites. This is robust and avoids creating unstable entities.
-            if not norm_code:
-                continue
             idx_raw = pitem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
             desc_raw = pitem.get("plantDescription")
@@ -315,8 +313,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             rgb = _rgb_from_api(idx.get("color"))
             raw_code = pitem.get("code")
             code = str(raw_code).strip() if raw_code is not None else ""
-            if not code:
-                code = norm_code
             key = f"plants_{code.lower()}"
             new_data[key] = {
                 "source": "plant",
