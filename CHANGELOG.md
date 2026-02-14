@@ -1,4 +1,11 @@
 # Changelog
+## [1.9.3] - 2026-02-14
+### Fixed
+- Ensured deterministic current-day plant sensor creation by sorting plant codes.
+
+### Changed
+- Simplified plant parsing by removing redundant code checks (non-empty by construction).
+- 
 ## [1.9.2] - 2026-02-13
 ### Fixed
 - Re-raised `asyncio.CancelledError` during coordinator updates to avoid wrapping
