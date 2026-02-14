@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import math
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -33,7 +35,9 @@ def _normalize_channel(v: Any) -> int | None:
     """
     try:
         f = float(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(f):
         return None
     if 0.0 <= f <= 1.0:
         f *= 255.0
@@ -78,6 +82,13 @@ def _rgb_to_hex_triplet(rgb: tuple[int, int, int] | None) -> str | None:
         return None
     r, g, b = rgb
     return f"#{r:02X}{g:02X}{b:02X}"
+
+
+def _normalize_plant_code(code: Any) -> str:
+    """Normalize plant code for cross-day map lookups."""
+    if code is None:
+        return ""
+    return str(code).strip().upper()
 
 
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
@@ -125,6 +136,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.create_d1 = create_d1
         self.create_d2 = create_d2
         self._client = client
+        self._missing_dailyinfo_warned = False
 
         self.data: dict[str, dict] = {}
         self.last_updated = None
@@ -147,9 +159,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         Does NOT touch per-day TYPE sensor creation (kept elsewhere).
         """
         base["forecast"] = forecast_list
+        forecast_by_offset = {item.get("offset"): item for item in forecast_list}
 
         def _set_convenience(prefix: str, off: int) -> None:
-            f = next((d for d in forecast_list if d["offset"] == off), None)
+            f = forecast_by_offset.get(off)
             base[f"{prefix}_has_index"] = f.get("has_index") if f else False
             base[f"{prefix}_value"] = (
                 f.get("value") if f and f.get("has_index") else None
@@ -211,6 +224,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             raise
         except UpdateFailed:
             raise
+        except asyncio.CancelledError:
+            raise
         except Exception as err:  # Keep previous behavior for unexpected errors
             msg = redact_api_key(err, self.api_key)
             _LOGGER.error("Pollen API error: %s", msg)
@@ -224,9 +239,15 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         daily: list[dict] = payload.get("dailyInfo") or []
         if not daily:
-            self.data = new_data
-            self.last_updated = dt_util.utcnow()
-            return self.data
+            if self.data:
+                if not self._missing_dailyinfo_warned:
+                    _LOGGER.warning(
+                        "API response missing dailyInfo; keeping last successful data"
+                    )
+                    self._missing_dailyinfo_warned = True
+                return self.data
+            raise UpdateFailed("API response missing dailyInfo")
+        self._missing_dailyinfo_warned = False
 
         # date (today)
         first_day = daily[0]
@@ -237,37 +258,32 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "value": f"{date_obj['year']:04d}-{date_obj['month']:02d}-{date_obj['day']:02d}",
             }
 
-        # collect type codes found in any day
         type_codes: set[str] = set()
+        type_by_day_code: list[dict[str, dict[str, Any]]] = []
+        plant_by_day_code: list[dict[str, dict[str, Any]]] = []
         for day in daily:
+            day_types: dict[str, dict[str, Any]] = {}
             for item in day.get("pollenTypeInfo", []) or []:
                 if not isinstance(item, dict):
                     continue
                 code = (item.get("code") or "").upper()
                 if code:
+                    day_types[code] = item
                     type_codes.add(code)
+            type_by_day_code.append(day_types)
 
-        def _find_type(day: dict, code: str) -> dict | None:
-            """Find a pollen TYPE entry by code inside a day's 'pollenTypeInfo'."""
-            for item in day.get("pollenTypeInfo", []) or []:
-                if not isinstance(item, dict):
-                    continue
-                if (item.get("code") or "").upper() == code:
-                    return item
-            return None
-
-        def _find_plant(day: dict, code: str) -> dict | None:
-            """Find a PLANT entry by code inside a day's 'plantInfo'."""
+            day_plants: dict[str, dict[str, Any]] = {}
             for item in day.get("plantInfo", []) or []:
                 if not isinstance(item, dict):
                     continue
-                if (item.get("code") or "") == code:
-                    return item
-            return None
+                code = _normalize_plant_code(item.get("code"))
+                if code:
+                    day_plants[code] = item
+            plant_by_day_code.append(day_plants)
 
         # Current-day TYPES
-        for tcode in type_codes:
-            titem = _find_type(first_day, tcode) or {}
+        for tcode in sorted(type_codes):
+            titem = type_by_day_code[0].get(tcode) or {}
             idx_raw = titem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
             rgb = _rgb_from_api(idx.get("color"))
@@ -282,25 +298,25 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": titem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": (
-                    idx.get("color") if isinstance(idx.get("color"), dict) else None
-                ),
             }
 
+        plant_keys: list[str] = []
+
         # Current-day PLANTS
-        for pitem in first_day.get("plantInfo", []) or []:
-            if not isinstance(pitem, dict):
-                continue
-            code = pitem.get("code")
+        for norm_code, pitem in plant_by_day_code[0].items():
             # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
             # and silent overwrites. This is robust and avoids creating unstable entities.
-            if not code:
+            if not norm_code:
                 continue
             idx_raw = pitem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
             desc_raw = pitem.get("plantDescription")
             desc = desc_raw if isinstance(desc_raw, dict) else {}
             rgb = _rgb_from_api(idx.get("color"))
+            raw_code = pitem.get("code")
+            code = str(raw_code).strip() if raw_code is not None else ""
+            if not code:
+                code = norm_code
             key = f"plants_{code.lower()}"
             new_data[key] = {
                 "source": "plant",
@@ -317,12 +333,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 "advice": pitem.get("healthRecommendations"),
                 "color_hex": _rgb_to_hex_triplet(rgb),
                 "color_rgb": list(rgb) if rgb is not None else None,
-                "color_raw": (
-                    idx.get("color") if isinstance(idx.get("color"), dict) else None
-                ),
                 "picture": desc.get("picture"),
                 "picture_closeup": desc.get("pictureCloseup"),
             }
+            plant_keys.append(key)
 
         # Forecast for TYPES
         def _extract_day_info(day: dict) -> tuple[str | None, dict | None]:
@@ -331,7 +345,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 return None, None
             return f"{d['year']:04d}-{d['month']:02d}-{d['day']:02d}", d
 
-        for tcode in type_codes:
+        for tcode in sorted(type_codes):
             type_key = f"type_{tcode.lower()}"
             existing = new_data.get(type_key)
             needs_skeleton = not existing or (
@@ -352,12 +366,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "description": None,
                     "color_hex": None,
                     "color_rgb": None,
-                    "color_raw": None,
                 }
 
                 candidate = None
-                for day_data in daily:
-                    candidate = _find_type(day_data, tcode)
+                for day_idx, _day_data in enumerate(daily):
+                    candidate = type_by_day_code[day_idx].get(tcode)
                     if isinstance(candidate, dict):
                         base["displayName"] = candidate.get("displayName", tcode)
                         base["inSeason"] = candidate.get("inSeason")
@@ -368,7 +381,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if offset >= self.forecast_days:
                     break
                 date_str, _ = _extract_day_info(day)
-                item = _find_type(day, tcode) or {}
+                item = type_by_day_code[offset].get(tcode) or {}
                 idx_raw = item.get("indexInfo")
                 idx = idx_raw if isinstance(idx_raw, dict) else None
                 has_index = isinstance(idx_raw, dict) and bool(idx_raw)
@@ -386,11 +399,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
                         "color_rgb": (
                             list(rgb) if (has_index and rgb is not None) else None
-                        ),
-                        "color_raw": (
-                            idx.get("color")
-                            if has_index and isinstance(idx.get("color"), dict)
-                            else None
                         ),
                     }
                 )
@@ -417,7 +425,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     day_obj = daily[off]
                 except (IndexError, TypeError):
                     day_obj = None
-                day_item = _find_type(day_obj, _tcode) if day_obj else None
+                day_item = type_by_day_code[off].get(_tcode) if day_obj else None
                 day_in_season = (
                     day_item.get("inSeason") if isinstance(day_item, dict) else None
                 )
@@ -438,7 +446,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "advice": day_advice,
                     "color_hex": f.get("color_hex"),
                     "color_rgb": f.get("color_rgb"),
-                    "color_raw": f.get("color_raw"),
                     "date": f.get("date"),
                     "has_index": f.get("has_index"),
                 }
@@ -449,10 +456,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 _add_day_sensor(2)
 
         # Forecast for PLANTS (attributes only; no per-day plant sensors)
-        for key, base in list(new_data.items()):
-            if base.get("source") != "plant":
-                continue
-            pcode = base.get("code")
+        for key in plant_keys:
+            base = new_data.get(key) or {}
+            pcode = _normalize_plant_code(base.get("code"))
             if not pcode:
                 # Safety: skip if for some reason code is missing
                 continue
@@ -462,7 +468,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 if offset >= self.forecast_days:
                     break
                 date_str, _ = _extract_day_info(day)
-                item = _find_plant(day, pcode) or {}
+                item = plant_by_day_code[offset].get(pcode) or {}
                 idx_raw = item.get("indexInfo")
                 idx = idx_raw if isinstance(idx_raw, dict) else None
                 has_index = isinstance(idx_raw, dict) and bool(idx_raw)
@@ -480,11 +486,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
                         "color_rgb": (
                             list(rgb) if (has_index and rgb is not None) else None
-                        ),
-                        "color_raw": (
-                            idx.get("color")
-                            if has_index and isinstance(idx.get("color"), dict)
-                            else None
                         ),
                     }
                 )

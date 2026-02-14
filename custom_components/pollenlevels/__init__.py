@@ -1,7 +1,7 @@
 """Initialize Pollen Levels integration.
 
 Notes:
-- Adds a top-level INFO log when the force_update service is invoked to aid debugging.
+- Adds a top-level DEBUG log when the force_update service is invoked to aid debugging.
 - Registers an options update listener to reload the entry so interval/language changes
   take effect immediately without reinstalling.
 """
@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Awaitable
-from typing import Any, cast
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol  # Service schema validation
@@ -41,7 +42,7 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .sensor import ForecastSensorMode
-from .util import normalize_sensor_mode
+from .util import normalize_sensor_mode, redact_api_key
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -124,8 +125,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
     async def handle_force_update_service(call: ServiceCall) -> None:
         """Refresh pollen data for all entries."""
-        # Added: top-level log to confirm manual trigger for easier debugging.
-        _LOGGER.info("Executing force_update service for all Pollen Levels entries")
+        _LOGGER.debug("Executing force_update service for all Pollen Levels entries")
         entries = list(hass.config_entries.async_entries(DOMAIN))
         tasks: list[Awaitable[None]] = []
         task_entries: list[ConfigEntry] = []
@@ -133,20 +133,35 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             runtime = getattr(entry, "runtime_data", None)
             coordinator = getattr(runtime, "coordinator", None)
             if coordinator:
-                _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                refresh_coro = coordinator.async_refresh()
-                tasks.append(refresh_coro)
+                tasks.append(coordinator.async_request_refresh())
                 task_entries.append(entry)
+            else:
+                _LOGGER.debug(
+                    "Skipping force_update for entry %s (no coordinator)",
+                    entry.entry_id,
+                )
 
-        if tasks:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for entry, result in zip(task_entries, results, strict=False):
-                if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Manual refresh failed for entry %s: %r",
-                        entry.entry_id,
-                        result,
-                    )
+        if not tasks:
+            _LOGGER.debug("No coordinators available for force_update")
+            return
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for entry, result in zip(task_entries, results, strict=False):
+            if isinstance(result, asyncio.CancelledError):
+                _LOGGER.debug(
+                    "Manual refresh cancelled for entry %s",
+                    entry.entry_id,
+                )
+                continue
+            if isinstance(result, Exception):
+                api_key = (entry.data or {}).get(CONF_API_KEY)
+                safe_message = redact_api_key(result, api_key)
+                _LOGGER.warning(
+                    "Manual refresh failed for entry %s (%s): %s",
+                    entry.entry_id,
+                    type(result).__name__,
+                    safe_message or "no error details",
+                )
 
     # Enforce empty payload for the service; reject unknown fields for clearer errors.
     hass.services.async_register(
@@ -168,9 +183,10 @@ async def async_setup_entry(
     options = entry.options or {}
 
     def _safe_int(value: Any, default: int) -> int:
+        """Parse integer settings defensively, rejecting non-finite/decimal input."""
         try:
             val = float(value if value is not None else default)
-            if val != val or val in (float("inf"), float("-inf")):
+            if not math.isfinite(val) or not val.is_integer():
                 return default
             return int(val)
         except (TypeError, ValueError, OverflowError):
@@ -208,6 +224,30 @@ async def async_setup_entry(
     if not api_key:
         raise ConfigEntryAuthFailed("Missing API key")
 
+    raw_lat = entry.data.get(CONF_LATITUDE)
+    raw_lon = entry.data.get(CONF_LONGITUDE)
+    try:
+        lat = float(raw_lat)
+        lon = float(raw_lon)
+    except (TypeError, ValueError) as err:
+        _LOGGER.warning(
+            "Invalid config entry coordinates for entry %s",
+            entry.entry_id,
+        )
+        raise ConfigEntryNotReady from err
+
+    if (
+        not math.isfinite(lat)
+        or not math.isfinite(lon)
+        or not (-90.0 <= lat <= 90.0)
+        or not (-180.0 <= lon <= 180.0)
+    ):
+        _LOGGER.warning(
+            "Out-of-range or non-finite coordinates for entry %s",
+            entry.entry_id,
+        )
+        raise ConfigEntryNotReady
+
     raw_title = entry.title or ""
     clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
 
@@ -217,8 +257,8 @@ async def async_setup_entry(
     coordinator = PollenDataUpdateCoordinator(
         hass=hass,
         api_key=api_key,
-        lat=cast(float, entry.data[CONF_LATITUDE]),
-        lon=cast(float, entry.data[CONF_LONGITUDE]),
+        lat=lat,
+        lon=lon,
         hours=hours,
         language=language,
         entry_id=entry.entry_id,

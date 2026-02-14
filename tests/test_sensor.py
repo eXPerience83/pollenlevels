@@ -479,6 +479,66 @@ def test_type_sensor_preserves_source_with_single_day(
     assert entry["forecast"] == []
     assert entry["tomorrow_has_index"] is False
     assert entry["tomorrow_value"] is None
+    assert "color_raw" not in entry
+
+
+def test_coordinator_preserves_last_data_when_dailyinfo_missing() -> None:
+    """Missing dailyInfo keeps the last successful data instead of clearing."""
+
+    payload = {
+        "regionCode": "us_ca_san_francisco",
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 5, "day": 9},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+            }
+        ],
+    }
+
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=payload),
+            ResponseSpec(status=200, payload={}),
+        ]
+    )
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        coordinator.data = first_data
+        second_data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert first_data["type_grass"]["value"] == 2
+    assert second_data == first_data
+    assert second_data == coordinator.data
 
 
 def test_coordinator_clamps_forecast_days_low() -> None:
@@ -506,6 +566,37 @@ def test_coordinator_clamps_forecast_days_low() -> None:
         loop.close()
 
     assert coordinator.forecast_days == const.MIN_FORECAST_DAYS
+
+
+def test_coordinator_first_refresh_missing_dailyinfo_raises() -> None:
+    """Missing dailyInfo on the first refresh should raise UpdateFailed."""
+
+    session = SequenceSession([ResponseSpec(status=200, payload={})])
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        with pytest.raises(client_mod.UpdateFailed, match="dailyInfo"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert coordinator.data == {}
 
 
 def test_coordinator_clamps_forecast_days_negative() -> None:
@@ -790,6 +881,171 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["trend"] == "up"
     assert entry["expected_peak"]["offset"] == 1
     assert entry["expected_peak"]["value"] == 4
+
+
+def test_plant_forecast_matches_codes_case_insensitively() -> None:
+    """Plant forecast should match even when code casing varies by day."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 6, "day": 1},
+                "plantInfo": [
+                    {
+                        "code": "ragweed",
+                        "displayName": "Ragweed",
+                        "indexInfo": {"value": 2, "category": "LOW"},
+                    }
+                ],
+            },
+            {
+                "date": {"year": 2025, "month": 6, "day": 2},
+                "plantInfo": [
+                    {
+                        "code": "RAGWEED",
+                        "displayName": "Ragweed",
+                        "indexInfo": {"value": 4, "category": "HIGH"},
+                    }
+                ],
+            },
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=3,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    entry = data["plants_ragweed"]
+    assert entry["code"] == "ragweed"
+    assert entry["tomorrow_has_index"] is True
+    assert entry["tomorrow_value"] == 4
+
+
+def test_coordinator_ignores_nonfinite_color_channels() -> None:
+    """Non-finite color channel values should not crash or emit invalid colors."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "color": {"red": float("inf"), "green": float("nan")},
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert data["type_grass"]["color_hex"] is None
+    assert data["type_grass"]["color_rgb"] is None
+
+
+def test_coordinator_type_keys_are_deterministic_sorted() -> None:
+    """Type sensor keys are emitted in stable sorted order."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "WEED",
+                        "displayName": "Weed",
+                        "indexInfo": {"value": 2, "category": "LOW"},
+                    },
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {"value": 1, "category": "LOW"},
+                    },
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    type_keys = [
+        k
+        for k, v in data.items()
+        if isinstance(v, dict)
+        and v.get("source") == "type"
+        and not k.endswith(("_d1", "_d2"))
+    ]
+    assert type_keys == sorted(type_keys)
 
 
 @pytest.mark.parametrize(

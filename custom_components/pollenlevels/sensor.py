@@ -272,7 +272,6 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "advice",
             "color_hex",
             "color_rgb",
-            "color_raw",
             "date",
             "has_index",
         ):

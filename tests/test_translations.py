@@ -84,6 +84,34 @@ def _extract_services_from_services_yaml() -> set[str]:
     return services
 
 
+def _extract_service_labels_from_services_yaml() -> dict[str, dict[str, str]]:
+    """Extract service name/description values from services.yaml without PyYAML."""
+
+    if not SERVICES_YAML_PATH.is_file():
+        return {}
+
+    services: dict[str, dict[str, str]] = {}
+    current: str | None = None
+    for line in SERVICES_YAML_PATH.read_text(encoding="utf-8").splitlines():
+        raw = line.rstrip("\n")
+        if not raw or raw.lstrip().startswith("#"):
+            continue
+        if not raw.startswith(" "):
+            match = re.match(r"^([a-zA-Z0-9_]+):\s*$", raw)
+            current = match.group(1) if match else None
+            if current is not None:
+                services.setdefault(current, {})
+            continue
+        if current is None:
+            continue
+        match = re.match(r"^\s+(name|description):\s*(.+)\s*$", raw)
+        if match:
+            key, value = match.groups()
+            services[current][key] = value.strip().strip('"').strip("'")
+
+    return services
+
+
 def _extract_sensor_translation_key_usage() -> tuple[set[str], set[str]]:
     """Extract translation keys referenced by sensor entities and devices.
 
@@ -265,6 +293,28 @@ def test_services_translation_keys_present() -> None:
     assert not missing, "Missing service translation keys in en.json: " + ", ".join(
         missing
     )
+
+
+def test_services_yaml_labels_match_translations() -> None:
+    """Ensure services.yaml labels match en.json translations."""
+
+    services = _extract_service_labels_from_services_yaml()
+    if not services:
+        return
+
+    en_data = _load_translation(TRANSLATIONS_DIR / "en.json")
+    en_services = en_data.get("services", {})
+
+    for service_name, labels in services.items():
+        translations = en_services.get(service_name, {})
+        for key in ("name", "description"):
+            value = labels.get(key)
+            if value is None:
+                continue
+            expected = translations.get(key)
+            assert (
+                value == expected
+            ), f"Service {service_name} {key} mismatch: {value!r} != {expected!r}"
 
 
 def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:

@@ -20,7 +20,9 @@ import tests.test_config_flow  # noqa: E402,F401  # pylint: disable=unused-impor
 # Provide the additional stubs required by __init__.
 sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
 
-core_mod = types.ModuleType("homeassistant.core")
+core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
+    "homeassistant.core"
+)
 
 
 class _StubHomeAssistant:  # pragma: no cover - structure only
@@ -33,7 +35,7 @@ class _StubServiceCall:  # pragma: no cover - structure only
 
 core_mod.HomeAssistant = _StubHomeAssistant
 core_mod.ServiceCall = _StubServiceCall
-sys.modules.setdefault("homeassistant.core", core_mod)
+sys.modules["homeassistant.core"] = core_mod
 
 ha_components_mod = sys.modules.get("homeassistant.components") or types.ModuleType(
     "homeassistant.components"
@@ -367,6 +369,100 @@ def test_setup_entry_missing_api_key_raises_auth_failed() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+def test_setup_entry_invalid_coordinates_raise_not_ready() -> None:
+    """Invalid coordinates should trigger ConfigEntryNotReady."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: "not-a-number",
+            integration.CONF_LONGITUDE: 2.0,
+        }
+    )
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+
+def test_setup_entry_nonfinite_or_out_of_range_coordinates_raise_not_ready() -> None:
+    """Non-finite or out-of-range coordinates should trigger ConfigEntryNotReady."""
+
+    bad_pairs = [
+        (float("inf"), 2.0),
+        (1.0, float("nan")),
+        (91.0, 2.0),
+        (1.0, 181.0),
+    ]
+
+    for lat, lon in bad_pairs:
+        hass = _FakeHass()
+        entry = _FakeEntry(
+            data={
+                integration.CONF_API_KEY: "key",
+                integration.CONF_LATITUDE: lat,
+                integration.CONF_LONGITUDE: lon,
+            }
+        )
+
+        with pytest.raises(integration.ConfigEntryNotReady):
+            asyncio.run(integration.async_setup_entry(hass, entry))
+
+
+def test_setup_entry_boundary_coordinates_are_allowed() -> None:
+    """Coordinate values on valid boundaries should still set up successfully."""
+
+    for lat, lon in [(-90.0, -180.0), (90.0, 180.0)]:
+        hass = _FakeHass()
+        entry = _FakeEntry(
+            data={
+                integration.CONF_API_KEY: "key",
+                integration.CONF_LATITUDE: lat,
+                integration.CONF_LONGITUDE: lon,
+            }
+        )
+
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+
+def test_setup_entry_decimal_numeric_options_fallback_to_defaults() -> None:
+    """Decimal options should not be truncated silently during setup."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        options={
+            integration.CONF_UPDATE_INTERVAL: 2.5,
+            integration.CONF_FORECAST_DAYS: 3.1,
+        },
+    )
+
+    seen: dict[str, int] = {}
+
+    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+        def __init__(self, *args, **kwargs):
+            seen["hours"] = kwargs["hours"]
+            seen["forecast_days"] = kwargs["forecast_days"]
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    orig_coordinator = integration.PollenDataUpdateCoordinator
+    integration.PollenDataUpdateCoordinator = _StubCoordinator
+
+    try:
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+        assert seen["hours"] == integration.DEFAULT_UPDATE_INTERVAL
+        assert seen["forecast_days"] == integration.DEFAULT_FORECAST_DAYS
+    finally:
+        integration.PollenDataUpdateCoordinator = orig_coordinator
+
+
 def test_setup_entry_wraps_generic_error() -> None:
     """Unexpected errors convert to ConfigEntryNotReady for retries."""
 
@@ -440,15 +536,14 @@ def test_force_update_requests_refresh_per_entry() -> None:
     class _StubCoordinator:
         def __init__(self):
             self.calls: list[str] = []
+            self.done = asyncio.Event()
 
         async def _mark(self):
             self.calls.append("refresh")
+            self.done.set()
 
-        async def async_refresh(self):
+        async def async_request_refresh(self):
             await self._mark()
-
-        def async_request_refresh(self):
-            return asyncio.create_task(self._mark())
 
     entry1 = _FakeEntry(entry_id="entry-1")
     entry1.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
@@ -466,6 +561,8 @@ def test_force_update_requests_refresh_per_entry() -> None:
 
     assert entry1.runtime_data.coordinator.calls == ["refresh"]
     assert entry2.runtime_data.coordinator.calls == ["refresh"]
+    assert entry1.runtime_data.coordinator.done.is_set()
+    assert entry2.runtime_data.coordinator.done.is_set()
 
 
 def test_migrate_entry_moves_mode_to_options() -> None:

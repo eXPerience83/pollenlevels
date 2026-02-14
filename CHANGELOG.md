@@ -1,4 +1,68 @@
 # Changelog
+## [1.9.2] - 2026-02-13
+### Fixed
+- Re-raised `asyncio.CancelledError` during coordinator updates to avoid wrapping
+  shutdown/reload cancellations as `UpdateFailed`.
+- Validated config-entry coordinates as finite and in-range values before setup
+  to avoid malformed requests and retry with `ConfigEntryNotReady` when invalid.
+
+### Changed
+- Reduced coordinator parsing overhead by building per-day type/plant lookup maps
+  in a single pass and reusing them across forecast extraction.
+- Reused cached day-0 plant maps for current-day plant sensors and sorted type-code
+  processing for deterministic sensor key ordering.
+- Normalized plant-code matching across days to keep plant forecast attributes
+  populated even when API casing differs between days.
+- Clamped diagnostics `request_params_example.days` to supported forecast ranges
+  and handled non-finite values defensively.
+- Hardened numeric parsing guards for config/options inputs and color channels
+  to safely reject non-finite values without raising runtime errors.
+- Dropped non-finite rounded coordinates in diagnostics request examples to keep
+  support payloads consistent and safe.
+- Kept plant `code` attributes in their day-0 API form while using normalized
+  keys internally for cross-day forecast matching stability.
+- Enforced integer-only parsing for numeric config/options fields to reject
+  decimal inputs consistently.
+- Strengthened diagnostics tests with active redaction behavior checks for secret
+  fields in support payloads.
+- Aligned runtime integer parsing with config-flow rules (reject non-integer
+  numeric values) and reduced coordinator forecast overhead by reusing offset
+  maps and plant-key lists during attribute enrichment.
+
+## [1.9.1] - 2026-01-10
+### Fixed
+- Preserved the last successful coordinator data when the API response omits
+  `dailyInfo`, avoiding empty entities after transient API glitches.
+- Redacted API keys from config flow error placeholders derived from API responses
+  to prevent secrets from appearing in setup errors.
+- Cleared stale setup error placeholders when per-day sensor options are
+  incompatible with the selected forecast days.
+- Clarified diagnostics redaction flow: `async_redact_data` is a synchronous
+  helper in HA Core (despite the name), ensuring diagnostics return the final
+  redacted payload.
+- Trimmed diagnostics payloads to avoid listing all data keys and to hide precise
+  coordinates while keeping rounded location context for support.
+- Updated the `pollenlevels.force_update` service to request a coordinator
+  refresh and wait for completion before returning.
+- Sanitized `pollenlevels.force_update` failure logging to avoid exposing raw
+  exception details in warnings.
+- Handled cancelled `force_update` refresh results explicitly to keep service
+  logging and control flow consistent during shutdown/reload paths.
+- Re-raised coordinator `CancelledError` during updates so shutdown/reload
+  cancellations are not wrapped as `UpdateFailed`.
+
+### Changed
+- **Breaking change:** removed the `color_raw` attribute from pollen sensors to
+  reduce state size; use `color_hex` or `color_rgb` instead.
+- Refactored config flow HTTP validation to reduce duplicated error handling
+  logic without changing behavior.
+- Updated README attributes list to remove `color_raw` now that it is no longer
+  exposed by sensors.
+- Removed unused internal `color_raw` coordinator payload fields to reduce
+  update payload size while keeping `color_hex`/`color_rgb` behavior unchanged.
+- Clarified diagnostics coordinator access when `runtime_data` is missing,
+  without changing diagnostics output.
+
 ## [1.9.0-rc1] - 2025-12-31
 ### Changed
 - Moved runtime state to config entry `runtime_data` with a shared

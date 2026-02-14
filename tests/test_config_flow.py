@@ -808,6 +808,88 @@ def test_validate_input_http_500_sets_error_message_placeholder(
     assert placeholders.get("error_message")
 
 
+def test_validate_input_clears_error_message_placeholder_on_validation_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Field-level validation errors should clear stale error_message placeholders."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(500))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message")
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {**_base_user_input(), CONF_LANGUAGE_CODE: "bad code"},
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert errors == {CONF_LANGUAGE_CODE: "invalid_language_format"}
+    assert normalized is None
+    assert "error_message" not in placeholders
+
+
+def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """invalid_option_combo should clear stale error_message placeholders."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(500))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message")
+
+    _patch_client_session(
+        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"day": "D0"}]}')
+    )
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                **_base_user_input(),
+                CONF_FORECAST_DAYS: 1,
+                CONF_CREATE_FORECAST_SENSORS: "D+1",
+            },
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert errors == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
+    assert normalized is None
+    assert "error_message" not in placeholders
+
+
 def test_validate_input_http_403_sets_error_message_placeholder(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -858,6 +940,37 @@ def test_validate_input_http_403_invalid_key_maps_to_invalid_auth(
     assert errors == {"base": "invalid_auth"}
     assert normalized is None
     assert "api key not valid" in placeholders.get("error_message", "").lower()
+
+
+def test_validate_input_redacts_api_key_in_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Error placeholders should redact API keys returned by the service."""
+
+    body = b'{"error": {"message": "API key test-key not valid"}}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=401, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    user_input = _base_user_input()
+    user_input[cf.CONF_API_KEY] = "test-key"
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            user_input,
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "invalid_auth"}
+    assert normalized is None
+    error_message = placeholders.get("error_message", "")
+    assert "test-key" not in error_message
+    assert "***" in error_message
 
 
 def test_validate_input_unexpected_exception_sets_unknown(
@@ -1058,3 +1171,35 @@ def test_async_step_user_defaults_entry_name() -> None:
 
     assert result["title"] == DEFAULT_ENTRY_TITLE
     assert result["data"] == normalized
+
+
+@pytest.mark.parametrize("raw", ["inf", "-inf", "nan"])
+def test_parse_int_option_non_finite_returns_error(raw: str) -> None:
+    """Non-finite numeric values should be rejected safely."""
+
+    parsed, err = cf._parse_int_option(
+        raw,
+        default=cf.DEFAULT_UPDATE_INTERVAL,
+        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        error_key="invalid_update_interval",
+    )
+
+    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert err == "invalid_update_interval"
+
+
+@pytest.mark.parametrize("raw", ["2.9", 2.1])
+def test_parse_int_option_decimal_returns_error(raw: object) -> None:
+    """Decimal values should be rejected for integer-only options."""
+
+    parsed, err = cf._parse_int_option(
+        raw,
+        default=cf.DEFAULT_UPDATE_INTERVAL,
+        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        error_key="invalid_update_interval",
+    )
+
+    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert err == "invalid_update_interval"

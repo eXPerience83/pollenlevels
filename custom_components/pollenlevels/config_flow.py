@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from typing import Any
 
@@ -220,8 +221,13 @@ def _parse_int_option(
 ) -> tuple[int, str | None]:
     """Parse a numeric option to int and enforce bounds."""
     try:
-        parsed = int(float(value if value is not None else default))
-    except (TypeError, ValueError):
+        parsed_float = float(value if value is not None else default)
+        if not math.isfinite(parsed_float):
+            return default, error_key
+        if not parsed_float.is_integer():
+            return default, error_key
+        parsed = int(parsed_float)
+    except (TypeError, ValueError, OverflowError):
         return default, error_key
 
     if min_value is not None and parsed < min_value:
@@ -274,7 +280,7 @@ def _sanitize_forecast_mode_for_default(raw_value: Any) -> str:
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
-    VERSION = 2
+    VERSION = 3
 
     def __init__(self) -> None:
         """Initialize the config flow state."""
@@ -315,6 +321,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_UPDATE_INTERVAL] = interval_value
         if interval_error:
             errors[CONF_UPDATE_INTERVAL] = interval_error
+            placeholders.pop("error_message", None)
             return errors, None
 
         forecast_days, days_error = _parse_int_option(
@@ -327,6 +334,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_FORECAST_DAYS] = forecast_days
         if days_error:
             errors[CONF_FORECAST_DAYS] = days_error
+            placeholders.pop("error_message", None)
             return errors, None
 
         mode = normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
@@ -336,6 +344,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
         if forecast_days < needed:
             errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+            placeholders.pop("error_message", None)
             return errors, None
         normalized[CONF_CREATE_FORECAST_SENSORS] = mode
 
@@ -347,6 +356,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
                 errors[CONF_LOCATION] = "invalid_coordinates"
+                placeholders.pop("error_message", None)
                 return errors, None
         else:
             try:
@@ -358,6 +368,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
                 errors["base"] = "invalid_coordinates"
+                placeholders.pop("error_message", None)
                 return errors, None
 
         lat, lon = latlon
@@ -404,32 +415,21 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
-                if status == 401:
-                    _LOGGER.debug("Validation HTTP 401 (body omitted)")
-                    errors["base"] = "invalid_auth"
-                    placeholders["error_message"] = await extract_error_message(
-                        resp, "HTTP 401"
-                    )
-                elif status == 403:
-                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
-                    error_message = await extract_error_message(resp, "HTTP 403")
-                    if is_invalid_api_key_message(error_message):
+                if status != 200:
+                    _LOGGER.debug("Validation HTTP %s (body omitted)", status)
+                    raw_msg = await extract_error_message(resp, f"HTTP {status}")
+                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
+                    if status == 401:
                         errors["base"] = "invalid_auth"
+                    elif status == 403:
+                        if is_invalid_api_key_message(raw_msg):
+                            errors["base"] = "invalid_auth"
+                        else:
+                            errors["base"] = "cannot_connect"
+                    elif status == 429:
+                        errors["base"] = "quota_exceeded"
                     else:
                         errors["base"] = "cannot_connect"
-                    placeholders["error_message"] = error_message
-                elif status == 429:
-                    _LOGGER.debug("Validation HTTP 429 (body omitted)")
-                    errors["base"] = "quota_exceeded"
-                    placeholders["error_message"] = await extract_error_message(
-                        resp, "HTTP 429"
-                    )
-                elif status != 200:
-                    _LOGGER.debug("Validation HTTP %s (body omitted)", status)
-                    errors["base"] = "cannot_connect"
-                    placeholders["error_message"] = await extract_error_message(
-                        resp, f"HTTP {status}"
-                    )
                 else:
                     raw = await resp.read()
                     try:
@@ -465,6 +465,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ve,
             )
             errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
+            placeholders.pop("error_message", None)
         except TimeoutError as err:
             _LOGGER.warning(
                 "Validation timeout (%ss): %s",
