@@ -303,7 +303,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         plant_keys: list[str] = []
 
         # Current-day PLANTS
-        for norm_code, pitem in plant_by_day_code[0].items():
+        for norm_code, pitem in sorted(plant_by_day_code[0].items()):
             # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
             # and silent overwrites. This is robust and avoids creating unstable entities.
             if not norm_code:
