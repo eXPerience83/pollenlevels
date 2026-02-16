@@ -304,8 +304,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         # Current-day PLANTS
         for _norm_code, pitem in sorted(plant_by_day_code[0].items()):
-            # Safety: skip plants without a stable 'code' to avoid duplicate 'plants_' keys
-            # and silent overwrites. This is robust and avoids creating unstable entities.
+            # NOTE: plant_by_day_code[0] is built using normalized, non-empty plant codes as keys,
+            # so `_norm_code` is guaranteed to be a stable non-empty identifier.
+            # We still derive `code` from the raw API field (stripped) for attributes, while
+            # using lowercased `code` for the sensor key to keep entity creation deterministic.
             idx_raw = pitem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
             desc_raw = pitem.get("plantDescription")
