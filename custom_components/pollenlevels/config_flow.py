@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import re
 from typing import Any
 
@@ -59,7 +58,12 @@ from .const import (
     RESTRICTING_API_KEYS_URL,
     is_invalid_api_key_message,
 )
-from .util import extract_error_message, normalize_sensor_mode, redact_api_key
+from .util import (
+    extract_error_message,
+    normalize_sensor_mode,
+    redact_api_key,
+    safe_parse_int,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -220,14 +224,8 @@ def _parse_int_option(
     error_key: str | None = None,
 ) -> tuple[int, str | None]:
     """Parse a numeric option to int and enforce bounds."""
-    try:
-        parsed_float = float(value if value is not None else default)
-        if not math.isfinite(parsed_float):
-            return default, error_key
-        if not parsed_float.is_integer():
-            return default, error_key
-        parsed = int(parsed_float)
-    except (TypeError, ValueError, OverflowError):
+    parsed = safe_parse_int(value if value is not None else default)
+    if parsed is None:
         return default, error_key
 
     if min_value is not None and parsed < min_value:

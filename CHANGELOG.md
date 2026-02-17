@@ -5,6 +5,8 @@
 
 ### Changed
 - Simplified plant parsing by removing redundant code checks (non-empty by construction).
+- Deduplicated defensive integer parsing into a shared utility and aligned diagnostics
+  with runtime/config-flow rules to reject non-finite or decimal values consistently.
 
 ## [1.9.2] - 2026-02-13
 ### Fixed
