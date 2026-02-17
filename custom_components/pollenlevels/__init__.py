@@ -42,7 +42,7 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .sensor import ForecastSensorMode
-from .util import normalize_sensor_mode, redact_api_key
+from .util import normalize_sensor_mode, redact_api_key, safe_parse_int
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -182,30 +182,24 @@ async def async_setup_entry(
 
     options = entry.options or {}
 
-    def _safe_int(value: Any, default: int) -> int:
-        """Parse integer settings defensively, rejecting non-finite/decimal input."""
-        try:
-            val = float(value if value is not None else default)
-            if not math.isfinite(val) or not val.is_integer():
-                return default
-            return int(val)
-        except (TypeError, ValueError, OverflowError):
-            return default
-
-    hours = _safe_int(
+    parsed_hours = safe_parse_int(
         options.get(
             CONF_UPDATE_INTERVAL,
             entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-        ),
-        DEFAULT_UPDATE_INTERVAL,
+        )
     )
+    hours = parsed_hours if parsed_hours is not None else DEFAULT_UPDATE_INTERVAL
     hours = max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, hours))
-    forecast_days = _safe_int(
+    parsed_forecast_days = safe_parse_int(
         options.get(
             CONF_FORECAST_DAYS,
             entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-        ),
-        DEFAULT_FORECAST_DAYS,
+        )
+    )
+    forecast_days = (
+        parsed_forecast_days
+        if parsed_forecast_days is not None
+        else DEFAULT_FORECAST_DAYS
     )
     forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
     language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))

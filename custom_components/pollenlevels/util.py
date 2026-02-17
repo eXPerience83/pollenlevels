@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import TYPE_CHECKING, Any
 
 from .const import FORECAST_SENSORS_CHOICES
@@ -92,6 +93,22 @@ def normalize_sensor_mode(mode: Any, logger: logging.Logger) -> str:
     return default_mode
 
 
+def safe_parse_int(value: Any) -> int | None:
+    """Parse an integer-like value, rejecting non-finite and decimal numbers."""
+    if value is None:
+        return None
+
+    try:
+        parsed_float = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+    if not math.isfinite(parsed_float) or not parsed_float.is_integer():
+        return None
+
+    return int(parsed_float)
+
+
 # Backwards-compatible alias for modules that still import the private helper name.
 _redact_api_key = redact_api_key
 
@@ -99,5 +116,6 @@ __all__ = [
     "extract_error_message",
     "normalize_sensor_mode",
     "redact_api_key",
+    "safe_parse_int",
     "_redact_api_key",
 ]

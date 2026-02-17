@@ -31,7 +31,7 @@ from .const import (
     MIN_FORECAST_DAYS,
 )
 from .runtime import PollenLevelsRuntimeData
-from .util import redact_api_key
+from .util import redact_api_key, safe_parse_int
 
 # Redact potentially sensitive values from diagnostics.
 TO_REDACT = {
@@ -80,18 +80,16 @@ async def async_get_config_entry_diagnostics(
 
     # --- Build a safe params example (no network I/O) ----------------------
     # Use DEFAULT_FORECAST_DAYS from const.py to avoid config drift.
-    try:
-        days_raw = options.get(
-            CONF_FORECAST_DAYS,
-            data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-        )
-        days_float = float(days_raw)
-        if not math.isfinite(days_float):
-            raise ValueError
-        days_effective = int(days_float)
-    except (TypeError, ValueError, OverflowError):
+    days_raw = options.get(
+        CONF_FORECAST_DAYS,
+        data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+    )
+    parsed_days = safe_parse_int(days_raw)
+    if parsed_days is None:
         # Defensive fallback
         days_effective = DEFAULT_FORECAST_DAYS
+    else:
+        days_effective = parsed_days
 
     days_effective = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, days_effective))
 
