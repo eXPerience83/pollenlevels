@@ -369,6 +369,22 @@ def test_setup_entry_missing_api_key_raises_auth_failed() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+def test_setup_entry_whitespace_api_key_raises_auth_failed() -> None:
+    """Whitespace-only API key should trigger ConfigEntryAuthFailed."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "   ",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        }
+    )
+
+    with pytest.raises(integration.ConfigEntryAuthFailed):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+
 def test_setup_entry_invalid_coordinates_raise_not_ready() -> None:
     """Invalid coordinates should trigger ConfigEntryNotReady."""
 

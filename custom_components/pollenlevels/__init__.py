@@ -215,8 +215,9 @@ async def async_setup_entry(
     create_d2 = mode == ForecastSensorMode.D1_D2
 
     api_key = entry.data.get(CONF_API_KEY)
-    if not api_key:
+    if not isinstance(api_key, str) or not api_key.strip():
         raise ConfigEntryAuthFailed("Missing API key")
+    api_key = api_key.strip()
 
     raw_lat = entry.data.get(CONF_LATITUDE)
     raw_lon = entry.data.get(CONF_LONGITUDE)

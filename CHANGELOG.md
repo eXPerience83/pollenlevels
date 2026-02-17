@@ -2,6 +2,8 @@
 ## [1.9.3] - 2026-02-14
 ### Fixed
 - Ensured deterministic current-day plant sensor creation by sorting plant codes.
+- Reject whitespace-only API keys at setup (defensive validation).
+- Mask API key input fields in config flow (password selector).
 
 ### Changed
 - Simplified plant parsing by removing redundant code checks (non-empty by construction).

@@ -218,6 +218,7 @@ class _TextSelectorConfig:
 
 class _TextSelectorType:
     TEXT = "TEXT"
+    PASSWORD = "PASSWORD"
 
 
 class _TextSelector:
@@ -651,6 +652,56 @@ def test_setup_schema_sensor_mode_default_is_sanitized(
     cf._build_step_user_schema(hass, {CONF_CREATE_FORECAST_SENSORS: "bad"})
 
     assert captured_defaults == [FORECAST_SENSORS_CHOICES[0]]
+
+
+def test_step_user_schema_masks_api_key_field() -> None:
+    """Initial setup form should render API key as a password selector."""
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+
+    schema = cf._build_step_user_schema(hass, {})
+    api_selector = schema.schema[CONF_API_KEY]
+
+    assert isinstance(api_selector, cf.TextSelector)
+    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
+
+
+def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default() -> None:
+    """Reauth form should mask API key input and avoid prefilling secrets."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+        },
+        entry_id="entry-id",
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
+    flow.context = {"entry_id": "entry-id"}
+    flow._reauth_entry = entry
+
+    captured: dict[str, object] = {}
+
+    def _capture_show_form(*, step_id=None, data_schema=None, **kwargs):
+        captured["step_id"] = step_id
+        captured["schema"] = data_schema
+        return {"step_id": step_id}
+
+    flow.async_show_form = _capture_show_form  # type: ignore[method-assign]
+
+    result = asyncio.run(flow.async_step_reauth_confirm())
+
+    assert result == {"step_id": "reauth_confirm"}
+    schema = captured["schema"]
+    assert hasattr(schema, "schema")
+    api_selector = schema.schema[CONF_API_KEY]
+    assert isinstance(api_selector, cf.TextSelector)
+    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
 
 
 def test_validate_input_update_interval_below_min_sets_error(
