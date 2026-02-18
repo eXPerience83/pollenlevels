@@ -149,7 +149,9 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
 
     schema = vol.Schema(
         {
-            vol.Required(CONF_API_KEY): str,
+            vol.Required(CONF_API_KEY): TextSelector(
+                TextSelectorConfig(type=TextSelectorType.PASSWORD)
+            ),
             vol.Required(CONF_NAME, default=default_name): str,
             location_field: LocationSelector(LocationSelectorConfig(radius=False)),
             vol.Optional(
@@ -563,8 +565,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(
                     CONF_API_KEY,
-                    default=self._reauth_entry.data.get(CONF_API_KEY, ""),
-                ): str
+                    default="",
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
             }
         )
 
