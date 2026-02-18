@@ -668,8 +668,20 @@ def test_step_user_schema_masks_api_key_field() -> None:
     assert api_selector.config.type == cf.TextSelectorType.PASSWORD
 
 
-def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default() -> None:
+def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Reauth form should mask API key input and avoid prefilling secrets."""
+
+    captured_default: dict[str, object] = {}
+    orig_required = cf.vol.Required
+
+    def _capture_required(key, **kwargs):
+        if key == CONF_API_KEY:
+            captured_default["api_key"] = kwargs.get("default")
+        return orig_required(key, **kwargs)
+
+    monkeypatch.setattr(cf.vol, "Required", _capture_required)
 
     entry = cf.config_entries.ConfigEntry(
         data={
@@ -697,6 +709,7 @@ def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default() -> None:
     result = asyncio.run(flow.async_step_reauth_confirm())
 
     assert result == {"step_id": "reauth_confirm"}
+    assert captured_default["api_key"] == ""
     schema = captured["schema"]
     assert hasattr(schema, "schema")
     api_selector = schema.schema[CONF_API_KEY]

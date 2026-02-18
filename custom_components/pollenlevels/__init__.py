@@ -216,7 +216,7 @@ async def async_setup_entry(
 
     api_key = entry.data.get(CONF_API_KEY)
     if not isinstance(api_key, str) or not api_key.strip():
-        raise ConfigEntryAuthFailed("Missing API key")
+        raise ConfigEntryAuthFailed("Invalid API key")
     api_key = api_key.strip()
 
     raw_lat = entry.data.get(CONF_LATITUDE)
