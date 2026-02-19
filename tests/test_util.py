@@ -32,6 +32,8 @@ def test_redact_api_key_returns_empty_string_for_none():
         (3.0, 3),
         ("3", 3),
         ("3.0", 3),
+        (True, None),
+        (False, None),
         (None, None),
         ("3.5", None),
         (3.5, None),

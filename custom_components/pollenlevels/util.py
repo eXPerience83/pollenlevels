@@ -95,7 +95,7 @@ def normalize_sensor_mode(mode: Any, logger: logging.Logger) -> str:
 
 def safe_parse_int(value: Any) -> int | None:
     """Parse an integer-like value, rejecting non-finite and decimal numbers."""
-    if value is None:
+    if value is None or isinstance(value, bool):
         return None
 
     try:

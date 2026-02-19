@@ -44,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Change the update interval, API language, forecast days and per-day TYPE sensors for {title}.\nOptions for per-day TYPE sensors: Only today (none), Through tomorrow (D+1), Through day after tomorrow (D+1+2).",
+        "description": "Change the update interval, API language, forecast days and per-day TYPE sensors for {title}.\nOptions for per-day TYPE sensors: Only today (none), Through tomorrow (D+1), Through day after tomorrow (D+2; creates both D+1 and D+2 sensors).",
         "data": {
           "update_interval": "Update interval (hours)",
           "language_code": "API response language code",

@@ -19,7 +19,7 @@ from .const import (
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
 )
-from .util import redact_api_key
+from .util import redact_api_key, safe_parse_int
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -130,9 +130,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.entry_id = entry_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
         # Clamp defensively for legacy/manual entries to supported range.
-        self.forecast_days = max(
-            MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, int(forecast_days))
-        )
+        parsed_days = safe_parse_int(forecast_days)
+        if parsed_days is None:
+            parsed_days = MIN_FORECAST_DAYS
+        self.forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, parsed_days))
         self.create_d1 = create_d1
         self.create_d2 = create_d2
         self._client = client
