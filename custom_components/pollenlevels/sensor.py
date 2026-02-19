@@ -159,6 +159,13 @@ async def async_setup_entry(
     opts = config_entry.options or {}
     raw_days = opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days)
     parsed = safe_parse_int(raw_days)
+    if parsed is None:
+        _LOGGER.warning(
+            "Invalid forecast_days '%s' for entry %s; defaulting to %s",
+            raw_days,
+            config_entry.entry_id,
+            coordinator.forecast_days,
+        )
     forecast_days = parsed if parsed is not None else coordinator.forecast_days
     forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
     create_d1 = coordinator.create_d1
