@@ -1,14 +1,17 @@
-# Changelog
 ## [1.9.3] - 2026-02-14
 ### Fixed
 - Ensured deterministic current-day plant sensor creation by sorting plant codes.
-- Reject whitespace-only API keys at setup (defensive validation).
+- Reject whitespace-only API keys at setup (defensive validation) and raise `ConfigEntryAuthFailed` with a clearer "Invalid API key" message.
 - Mask API key input fields in config flow (password selector).
+- Cleared entry runtime data when platform forwarding fails to avoid leaving a partially initialized state.
+- Hardened `forecast_days` parsing during coordinator and sensor setup to tolerate malformed stored values without crashing.
+- Improved test isolation by avoiding unconditional replacement of the global `aiohttp` module stub.
 
 ### Changed
 - Simplified plant parsing by removing redundant code checks (non-empty by construction).
 - Deduplicated defensive integer parsing into a shared utility and aligned diagnostics
   with runtime/config-flow rules to reject non-finite or decimal values consistently.
+- Clarified the per-day TYPE sensor range option text (D+2 creates both D+1 and D+2 sensors) across translations.
 
 ## [1.9.2] - 2026-02-13
 ### Fixed
