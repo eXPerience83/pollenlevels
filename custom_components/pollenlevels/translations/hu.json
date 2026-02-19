@@ -44,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Beállítások",
-        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+1+2).",
+        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2; létrehozza a D+1 és D+2 szenzorokat is).",
         "data": {
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja",

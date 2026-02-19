@@ -228,7 +228,8 @@ util_mod = types.ModuleType("homeassistant.util")
 util_mod.dt = dt_mod
 sys.modules.setdefault("homeassistant.util", util_mod)
 
-aiohttp_mod = sys.modules.get("aiohttp") or types.ModuleType("aiohttp")
+aiohttp_existing = sys.modules.get("aiohttp")
+aiohttp_mod = aiohttp_existing or types.ModuleType("aiohttp")
 
 
 class _StubClientError(Exception):
@@ -244,10 +245,14 @@ class _StubClientTimeout:
         self.total = total
 
 
-aiohttp_mod.ClientError = _StubClientError
-aiohttp_mod.ClientSession = _StubClientSession
-aiohttp_mod.ClientTimeout = _StubClientTimeout
-sys.modules["aiohttp"] = aiohttp_mod
+if not hasattr(aiohttp_mod, "ClientError"):
+    aiohttp_mod.ClientError = _StubClientError
+if not hasattr(aiohttp_mod, "ClientSession"):
+    aiohttp_mod.ClientSession = _StubClientSession
+if not hasattr(aiohttp_mod, "ClientTimeout"):
+    aiohttp_mod.ClientTimeout = _StubClientTimeout
+if aiohttp_existing is None:
+    sys.modules["aiohttp"] = aiohttp_mod
 
 
 def _load_module(module_name: str, relative_path: str):

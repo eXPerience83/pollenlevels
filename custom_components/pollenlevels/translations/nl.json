@@ -44,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opties",
-        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+1+2).",
+        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2; maakt zowel D+1- als D+2-sensoren aan).",
         "data": {
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons",

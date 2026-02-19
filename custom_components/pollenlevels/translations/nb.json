@@ -44,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Innstillinger",
-        "description": "Endre oppdateringsintervall, API-språk, prognosedager og sensorer per dag for {title}.\nAlternativer for sensorer per dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med i overmorgen (D+1+2).",
+        "description": "Endre oppdateringsintervall, API-språk, prognosedager og sensorer per dag for {title}.\nAlternativer for sensorer per dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med i overmorgen (D+2; oppretter både D+1- og D+2-sensorer).",
         "data": {
           "update_interval": "Oppdateringsintervall (timer)",
           "language_code": "Språkkode for API-svar",

@@ -354,6 +354,45 @@ def test_setup_entry_propagates_auth_failed() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+def test_setup_entry_clears_runtime_data_on_forward_auth_failed() -> None:
+    """runtime_data is cleared when forwarding raises ConfigEntryAuthFailed."""
+
+    hass = _FakeHass(forward_exception=integration.ConfigEntryAuthFailed("bad key"))
+    entry = _FakeEntry()
+
+    with pytest.raises(integration.ConfigEntryAuthFailed):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert entry.runtime_data is None
+
+
+def test_setup_entry_clears_runtime_data_on_forward_not_ready() -> None:
+    """runtime_data is cleared when forwarding raises ConfigEntryNotReady."""
+
+    hass = _FakeHass(forward_exception=integration.ConfigEntryNotReady("retry"))
+    entry = _FakeEntry()
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert entry.runtime_data is None
+
+
+def test_setup_entry_clears_runtime_data_on_forward_generic_error() -> None:
+    """runtime_data is cleared when forwarding raises an unexpected exception."""
+
+    class _Boom(Exception):
+        pass
+
+    hass = _FakeHass(forward_exception=_Boom("boom"))
+    entry = _FakeEntry()
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert entry.runtime_data is None
+
+
 def test_setup_entry_missing_api_key_raises_auth_failed() -> None:
     """Missing API key should trigger ConfigEntryAuthFailed."""
 

@@ -278,11 +278,11 @@ async def async_setup_entry(
 
     try:
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-    except ConfigEntryAuthFailed:
-        raise
-    except ConfigEntryNotReady:
+    except (ConfigEntryAuthFailed, ConfigEntryNotReady):
+        entry.runtime_data = None
         raise
     except Exception as err:
+        entry.runtime_data = None
         _LOGGER.exception("Error forwarding entry setups: %s", err)
         raise ConfigEntryNotReady from err
 
