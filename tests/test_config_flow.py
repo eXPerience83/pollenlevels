@@ -1037,6 +1037,46 @@ def test_validate_input_redacts_api_key_in_error_message(
     assert "***" in error_message
 
 
+def test_validate_input_http_200_non_list_dailyinfo_sets_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-list dailyInfo in HTTP 200 should be treated as invalid."""
+
+    body = b'{"dailyInfo": "invalid"}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=200, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+
+
+def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dailyInfo list with non-dict items should be treated as invalid."""
+
+    body = b'{"dailyInfo": ["invalid-item"]}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=200, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+
+
 def test_validate_input_unexpected_exception_sets_unknown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1064,7 +1104,8 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     """Successful validation should normalize data and set unique ID."""
 
     body = b'{"dailyInfo": [{"day": "D0"}]}'
-    session = _patch_client_session(monkeypatch, _StubResponse(200, body))
+    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
 
     class _TrackingFlow(PollenLevelsConfigFlow):
         def __init__(self) -> None:
@@ -1102,6 +1143,55 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     assert normalized[CONF_LANGUAGE_CODE] == "es"
     assert flow.unique_ids == ["1.0000_2.0000"]
     assert flow.abort_calls == 1
+
+
+def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unique-id format should match legacy 4-decimal duplicate detection."""
+
+    body = b'{"dailyInfo": [{"day": "D0"}]}'
+    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
+
+    class _TrackingFlow(PollenLevelsConfigFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.unique_ids: list[str] = []
+
+        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
+            self.unique_ids.append(uid)
+            return None
+
+        def _abort_if_unique_id_configured(self):
+            return None
+
+    flow = _TrackingFlow()
+    flow.hass = SimpleNamespace(config=SimpleNamespace())
+
+    first = {
+        **_base_user_input(),
+        CONF_LOCATION: {CONF_LATITUDE: "1.0000044", CONF_LONGITUDE: "2.0000044"},
+    }
+    second = {
+        **_base_user_input(),
+        CONF_LOCATION: {CONF_LATITUDE: "1.0000046", CONF_LONGITUDE: "2.0000046"},
+    }
+
+    first_errors, first_normalized = asyncio.run(
+        flow._async_validate_input(first, check_unique_id=True)
+    )
+    second_errors, second_normalized = asyncio.run(
+        flow._async_validate_input(second, check_unique_id=True)
+    )
+
+    assert session.calls
+    assert first_errors == {}
+    assert second_errors == {}
+    assert first_normalized is not None
+    assert second_normalized is not None
+    assert len(flow.unique_ids) == 2
+    assert flow.unique_ids[0] == flow.unique_ids[1] == "1.0000_2.0000"
 
 
 def test_reauth_confirm_updates_and_reloads_entry() -> None:

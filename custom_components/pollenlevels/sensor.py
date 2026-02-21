@@ -189,8 +189,12 @@ async def async_setup_entry(
     )
 
     sensors: list[CoordinatorEntity] = []
-    for code in coordinator.data:
+    for code in data:
         if code in ("region", "date"):
+            continue
+        if code.endswith("_d1") and not allow_d1:
+            continue
+        if code.endswith("_d2") and not allow_d2:
             continue
         sensors.append(PollenSensor(coordinator, code))
 

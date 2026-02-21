@@ -376,6 +376,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_LONGITUDE] = lon
 
         if check_unique_id:
+            # Keep unique_id formatting aligned with legacy entries for
+            # duplicate detection compatibility across upgrades.
             uid = f"{lat:.4f}_{lon:.4f}"
             try:
                 await self.async_set_unique_id(uid, raise_on_progress=False)
@@ -445,8 +447,18 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data = json.loads(body_str) if body_str else {}
                     except Exception:
                         data = {}
-                    if not data.get("dailyInfo"):
-                        _LOGGER.warning("Validation: 'dailyInfo' missing")
+
+                    daily_info = (
+                        data.get("dailyInfo") if isinstance(data, dict) else None
+                    )
+                    daily_is_valid = isinstance(daily_info, list) and bool(daily_info)
+                    if daily_is_valid:
+                        daily_is_valid = all(
+                            isinstance(item, dict) for item in daily_info
+                        )
+
+                    if not daily_is_valid:
+                        _LOGGER.warning("Validation: 'dailyInfo' missing or invalid")
                         errors["base"] = "cannot_connect"
                         placeholders["error_message"] = (
                             "API response missing expected pollen forecast information."

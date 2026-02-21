@@ -1,5 +1,16 @@
 ## [1.9.3] - 2026-02-14
 ### Fixed
+- Aligned config-flow API validation with runtime parsing by requiring `dailyInfo`
+  to be a non-empty list of objects during setup validation.
+- Prevented test cross-contamination in setup tests by using scoped monkeypatching
+  for coordinator/client stubs instead of persistent module reassignment.
+- Prevented disabled per-day sensors from being re-created during sensor setup by
+  skipping `*_d1`/`*_d2` keys when effective forecast options disable them.
+- Hardened coordinator parsing for malformed `dailyInfo` payloads by treating
+  non-list/non-dict structures as invalid and preserving the last successful
+  dataset when available.
+- Normalized stored forecast sensor mode values during integration setup so
+  legacy or whitespace-padded values no longer degrade silently to `none`.
 - Ensured deterministic current-day plant sensor creation by sorting plant codes.
 - Reject whitespace-only API keys at setup (defensive validation) and raise `ConfigEntryAuthFailed` with a clearer "Invalid API key" message.
 - Mask API key input fields in config flow (password selector).
@@ -8,6 +19,13 @@
 - Improved test isolation by avoiding unconditional replacement of the global `aiohttp` module stub.
 
 ### Changed
+- Switched sensor setup iteration to use a validated local data snapshot for
+  clearer and more consistent entity creation flow.
+- Preserved legacy 4-decimal coordinate unique-id formatting to keep existing
+  duplicate-location detection behavior stable across upgrades.
+- Expanded regression coverage for disabled per-day sensor creation, malformed
+  `dailyInfo` handling, setup mode normalization, and legacy duplicate
+  detection behavior for coordinate-based unique IDs.
 - Simplified plant parsing by removing redundant code checks (non-empty by construction).
 - Deduplicated defensive integer parsing into a shared utility and aligned diagnostics
   with runtime/config-flow rules to reject non-finite or decimal values consistently.
