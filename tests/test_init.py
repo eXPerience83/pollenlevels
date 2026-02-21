@@ -480,7 +480,9 @@ def test_setup_entry_boundary_coordinates_are_allowed() -> None:
         assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
 
-def test_setup_entry_decimal_numeric_options_fallback_to_defaults() -> None:
+def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Decimal options should not be truncated silently during setup."""
 
     hass = _FakeHass()
@@ -507,15 +509,11 @@ def test_setup_entry_decimal_numeric_options_fallback_to_defaults() -> None:
         async def async_config_entry_first_refresh(self):
             return None
 
-    orig_coordinator = integration.PollenDataUpdateCoordinator
-    integration.PollenDataUpdateCoordinator = _StubCoordinator
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
-    try:
-        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
-        assert seen["hours"] == integration.DEFAULT_UPDATE_INTERVAL
-        assert seen["forecast_days"] == integration.DEFAULT_FORECAST_DAYS
-    finally:
-        integration.PollenDataUpdateCoordinator = orig_coordinator
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+    assert seen["hours"] == integration.DEFAULT_UPDATE_INTERVAL
+    assert seen["forecast_days"] == integration.DEFAULT_FORECAST_DAYS
 
 
 def test_setup_entry_wraps_generic_error() -> None:
@@ -531,7 +529,9 @@ def test_setup_entry_wraps_generic_error() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
-def test_setup_entry_success_and_unload() -> None:
+def test_setup_entry_success_and_unload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Happy path should forward setup, register listener, and unload cleanly."""
 
     hass = _FakeHass()
@@ -565,8 +565,8 @@ def test_setup_entry_success_and_unload() -> None:
         async def async_refresh(self):
             return None
 
-    integration.GooglePollenApiClient = _StubClient
-    integration.PollenDataUpdateCoordinator = _StubCoordinator
+    monkeypatch.setattr(integration, "GooglePollenApiClient", _StubClient)
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
@@ -583,6 +583,89 @@ def test_setup_entry_success_and_unload() -> None:
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
     assert hass.config_entries.unload_calls == [(entry, ["sensor"])]
     assert entry.runtime_data is None
+
+
+def test_setup_entry_normalizes_forecast_sensor_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should normalize stored forecast mode values before coordinator flags."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(options={integration.CONF_CREATE_FORECAST_SENSORS: " D+1 "})
+
+    class _StubClient:
+        def __init__(self, _session, _api_key):
+            self.session = _session
+            self.api_key = _api_key
+
+        async def async_fetch_pollen_data(self, **_kwargs):
+            return {"region": {"source": "meta"}, "dailyInfo": []}
+
+    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+        def __init__(self, *args, **kwargs):
+            self.create_d1 = kwargs["create_d1"]
+            self.create_d2 = kwargs["create_d2"]
+            self.entry_id = kwargs["entry_id"]
+            self.entry_title = kwargs.get("entry_title")
+            self.lat = kwargs["lat"]
+            self.lon = kwargs["lon"]
+            self.last_updated = None
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    monkeypatch.setattr(integration, "GooglePollenApiClient", _StubClient)
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+    assert entry.runtime_data is not None
+    assert entry.runtime_data.coordinator.create_d1 is True
+    assert entry.runtime_data.coordinator.create_d2 is False
+
+
+def test_setup_entry_disables_d1_when_forecast_days_is_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should disable D+1/D+2 creation when forecast days disallow them."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        options={
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+            integration.CONF_FORECAST_DAYS: 1,
+        }
+    )
+
+    class _StubClient:
+        def __init__(self, _session, _api_key):
+            self.session = _session
+            self.api_key = _api_key
+
+        async def async_fetch_pollen_data(self, **_kwargs):
+            return {"region": {"source": "meta"}, "dailyInfo": []}
+
+    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+        def __init__(self, *args, **kwargs):
+            self.create_d1 = kwargs["create_d1"]
+            self.create_d2 = kwargs["create_d2"]
+            self.entry_id = kwargs["entry_id"]
+            self.entry_title = kwargs.get("entry_title")
+            self.lat = kwargs["lat"]
+            self.lon = kwargs["lon"]
+            self.last_updated = None
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    monkeypatch.setattr(integration, "GooglePollenApiClient", _StubClient)
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+    assert entry.runtime_data is not None
+    assert entry.runtime_data.coordinator.create_d1 is False
+    assert entry.runtime_data.coordinator.create_d2 is False
 
 
 def test_force_update_requests_refresh_per_entry() -> None:

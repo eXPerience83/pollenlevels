@@ -238,16 +238,23 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         if region := payload.get("regionCode"):
             new_data["region"] = {"source": "meta", "value": region}
 
-        daily: list[dict] = payload.get("dailyInfo") or []
+        daily_raw = payload.get("dailyInfo")
+        daily = daily_raw if isinstance(daily_raw, list) else None
+        # Keep day offsets stable: if any element is invalid, treat the payload as
+        # malformed instead of compacting/reindexing list positions.
+        if daily is not None and any(not isinstance(item, dict) for item in daily):
+            daily = None
+
         if not daily:
             if self.data:
                 if not self._missing_dailyinfo_warned:
                     _LOGGER.warning(
-                        "API response missing dailyInfo; keeping last successful data"
+                        "API response missing or invalid dailyInfo; "
+                        "keeping last successful data"
                     )
                     self._missing_dailyinfo_warned = True
                 return self.data
-            raise UpdateFailed("API response missing dailyInfo")
+            raise UpdateFailed("API response missing or invalid dailyInfo")
         self._missing_dailyinfo_warned = False
 
         # date (today)

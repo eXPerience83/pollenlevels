@@ -604,6 +604,153 @@ def test_coordinator_first_refresh_missing_dailyinfo_raises() -> None:
     assert coordinator.data == {}
 
 
+def test_coordinator_first_refresh_invalid_dailyinfo_type_raises() -> None:
+    """Non-list dailyInfo payload should raise UpdateFailed on first refresh."""
+
+    session = SequenceSession([ResponseSpec(status=200, payload={"dailyInfo": {}})])
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        with pytest.raises(client_mod.UpdateFailed, match="dailyInfo"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+
+def test_coordinator_invalid_dailyinfo_items_keep_last_data() -> None:
+    """Invalid dailyInfo items should preserve previous successful coordinator data."""
+
+    session = SequenceSession(
+        [
+            ResponseSpec(
+                status=200,
+                payload={
+                    "dailyInfo": [
+                        {
+                            "date": {"year": 2025, "month": 5, "day": 9},
+                            "pollenTypeInfo": [
+                                {
+                                    "code": "GRASS",
+                                    "displayName": "Grass",
+                                    "indexInfo": {"value": 2, "category": "LOW"},
+                                }
+                            ],
+                        }
+                    ]
+                },
+            ),
+            ResponseSpec(status=200, payload={"dailyInfo": ["bad-item"]}),
+        ]
+    )
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        coordinator.data = first_data
+        second_data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert first_data["type_grass"]["value"] == 2
+    assert second_data == first_data
+
+
+def test_coordinator_mixed_dailyinfo_items_keep_last_data() -> None:
+    """Mixed valid/invalid dailyInfo items are treated as invalid payload."""
+
+    session = SequenceSession(
+        [
+            ResponseSpec(
+                status=200,
+                payload={
+                    "dailyInfo": [
+                        {
+                            "date": {"year": 2025, "month": 5, "day": 9},
+                            "pollenTypeInfo": [
+                                {
+                                    "code": "GRASS",
+                                    "displayName": "Grass",
+                                    "indexInfo": {"value": 2, "category": "LOW"},
+                                }
+                            ],
+                        }
+                    ]
+                },
+            ),
+            ResponseSpec(
+                status=200,
+                payload={
+                    "dailyInfo": [
+                        {
+                            "date": {"year": 2025, "month": 5, "day": 10},
+                            "pollenTypeInfo": [],
+                        },
+                        "bad-item",
+                    ]
+                },
+            ),
+        ]
+    )
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=2,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        coordinator.data = first_data
+        second_data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert second_data == first_data
+
+
 def test_coordinator_clamps_forecast_days_negative() -> None:
     """Negative forecast days are clamped to minimum."""
 
@@ -1470,6 +1617,67 @@ def test_async_setup_entry_raises_not_ready_if_runtime_data_missing() -> None:
             )
     finally:
         loop.close()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_skips_disabled_d1_d2_sensors() -> None:
+    """Setup does not recreate D+1/D+2 sensors when forecast days disable them."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        options={sensor.CONF_FORECAST_DAYS: 1},
+        entry_id="entry",
+    )
+
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "key")
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="key",
+        lat=1.0,
+        lon=2.0,
+        hours=sensor.DEFAULT_UPDATE_INTERVAL,
+        language=None,
+        entry_id="entry",
+        entry_title=sensor.DEFAULT_ENTRY_TITLE,
+        forecast_days=3,
+        create_d1=True,
+        create_d2=True,
+        client=client,
+    )
+    coordinator.data = {
+        "date": {"source": "meta"},
+        "region": {"source": "meta"},
+        "type_grass": {"source": "type", "name": "Grass"},
+        "type_grass_d1": {"source": "type", "name": "Grass D+1"},
+        "type_grass_d2": {"source": "type", "name": "Grass D+2"},
+    }
+    config_entry.runtime_data = sensor.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=client
+    )
+
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    await sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    unique_ids = {
+        entity.unique_id
+        for entity in captured
+        if getattr(entity, "unique_id", None) is not None
+    }
+
+    assert "entry_type_grass" in unique_ids
+    assert all(not uid.endswith("_d1") for uid in unique_ids)
+    assert all(not uid.endswith("_d2") for uid in unique_ids)
 
 
 @pytest.mark.asyncio

@@ -207,12 +207,15 @@ async def async_setup_entry(
         CONF_CREATE_FORECAST_SENSORS,
         entry.data.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE),
     )
+    normalized_mode = normalize_sensor_mode(raw_mode, _LOGGER)
     try:
-        mode = ForecastSensorMode(raw_mode)
+        mode = ForecastSensorMode(normalized_mode)
     except (ValueError, TypeError):
         mode = ForecastSensorMode.NONE
-    create_d1 = mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2)
-    create_d2 = mode == ForecastSensorMode.D1_D2
+    create_d1 = (
+        mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2) and forecast_days >= 2
+    )
+    create_d2 = mode == ForecastSensorMode.D1_D2 and forecast_days >= 3
 
     api_key = entry.data.get(CONF_API_KEY)
     if not isinstance(api_key, str) or not api_key.strip():
