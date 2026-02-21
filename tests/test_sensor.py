@@ -399,7 +399,7 @@ class RegistryStub:
             for e in self._entries
         ]
 
-    async def async_remove(self, entity_id: str) -> None:
+    def async_remove(self, entity_id: str) -> None:
         self.removals.append(entity_id)
 
 
