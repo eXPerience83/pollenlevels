@@ -1141,14 +1141,14 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     assert normalized[CONF_LATITUDE] == pytest.approx(1.0)
     assert normalized[CONF_LONGITUDE] == pytest.approx(2.0)
     assert normalized[CONF_LANGUAGE_CODE] == "es"
-    assert flow.unique_ids == ["1.000000_2.000000"]
+    assert flow.unique_ids == ["1.0000_2.0000"]
     assert flow.abort_calls == 1
 
 
-def test_validate_input_unique_id_distinguishes_nearby_locations(
+def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Unique-id precision should not collapse nearby distinct coordinates."""
+    """Unique-id format should match legacy 4-decimal duplicate detection."""
 
     body = b'{"dailyInfo": [{"day": "D0"}]}'
     session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
@@ -1191,7 +1191,7 @@ def test_validate_input_unique_id_distinguishes_nearby_locations(
     assert first_normalized is not None
     assert second_normalized is not None
     assert len(flow.unique_ids) == 2
-    assert flow.unique_ids[0] != flow.unique_ids[1]
+    assert flow.unique_ids[0] == flow.unique_ids[1] == "1.0000_2.0000"
 
 
 def test_reauth_confirm_updates_and_reloads_entry() -> None:

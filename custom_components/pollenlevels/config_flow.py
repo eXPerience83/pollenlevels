@@ -376,9 +376,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_LONGITUDE] = lon
 
         if check_unique_id:
-            # Keep a stable coordinate-based unique_id with enough precision to
-            # reduce accidental collisions for nearby locations.
-            uid = f"{lat:.6f}_{lon:.6f}"
+            # Keep unique_id formatting aligned with legacy entries for
+            # duplicate detection compatibility across upgrades.
+            uid = f"{lat:.4f}_{lon:.4f}"
             try:
                 await self.async_set_unique_id(uid, raise_on_progress=False)
                 self._abort_if_unique_id_configured()

@@ -21,11 +21,11 @@
 ### Changed
 - Switched sensor setup iteration to use a validated local data snapshot for
   clearer and more consistent entity creation flow.
-- Increased config-flow coordinate unique-id precision from 4 to 6 decimals to
-  reduce accidental collisions for nearby locations.
+- Preserved legacy 4-decimal coordinate unique-id formatting to keep existing
+  duplicate-location detection behavior stable across upgrades.
 - Expanded regression coverage for disabled per-day sensor creation, malformed
-  `dailyInfo` handling, setup mode normalization, and nearby-coordinate
-  unique-id behavior.
+  `dailyInfo` handling, setup mode normalization, and legacy duplicate
+  detection behavior for coordinate-based unique IDs.
 - Simplified plant parsing by removing redundant code checks (non-empty by construction).
 - Deduplicated defensive integer parsing into a shared utility and aligned diagnostics
   with runtime/config-flow rules to reject non-finite or decimal values consistently.
