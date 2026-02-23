@@ -58,3 +58,4 @@ jobs:
         with:
           files: pollenlevels.zip
           overwrite_files: true
+          fail_on_unmatched_files: true
