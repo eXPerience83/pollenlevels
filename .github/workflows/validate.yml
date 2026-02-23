@@ -8,15 +8,14 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: read
+# No checkout needed; HACS action validates repo metadata remotely
+permissions: {}
 
 jobs:
   validate-hacs:
-    runs-on: ubuntu-latest
+    runs-on: "ubuntu-latest"
     steps:
       - name: HACS validation
-        uses: hacs/action@main
+        uses: "hacs/action@main"
         with:
-          category: integration
-          comment: false
+          category: "integration"
