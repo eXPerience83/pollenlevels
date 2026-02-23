@@ -1,0 +1,64 @@
+name: Release Asset
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build release ZIP
+        run: |
+          set -euo pipefail
+          rm -f pollenlevels.zip
+          zip -r pollenlevels.zip custom_components/pollenlevels
+
+      - name: Validate ZIP structure
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import zipfile
+
+          zip_path = "pollenlevels.zip"
+          required_files = {
+              "custom_components/pollenlevels/manifest.json",
+              "custom_components/pollenlevels/__init__.py",
+          }
+
+          with zipfile.ZipFile(zip_path) as archive:
+              names = archive.namelist()
+
+          if not names:
+              raise SystemExit("ZIP is empty")
+
+          bad_paths = [
+              name
+              for name in names
+              if name and not name.startswith("custom_components/")
+          ]
+          if bad_paths:
+              raise SystemExit(
+                  "ZIP contains entries outside custom_components/: "
+                  + ", ".join(sorted(bad_paths)[:10])
+              )
+
+          missing = sorted(required_files.difference(names))
+          if missing:
+              raise SystemExit("ZIP missing required files: " + ", ".join(missing))
+
+          print("ZIP structure validated.")
+          PY
+
+      - name: Upload ZIP to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pollenlevels.zip
+          overwrite_files: true
