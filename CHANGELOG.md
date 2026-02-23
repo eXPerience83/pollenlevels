@@ -17,6 +17,11 @@
 - Cleared entry runtime data when platform forwarding fails to avoid leaving a partially initialized state.
 - Hardened `forecast_days` parsing during coordinator and sensor setup to tolerate malformed stored values without crashing.
 - Improved test isolation by avoiding unconditional replacement of the global `aiohttp` module stub.
+- Accepted numeric-string RGB channels from API color payloads by relying on shared
+  channel normalization, while still ignoring non-numeric strings.
+- Hardened HTTP 429 backoff by validating `Retry-After` values (rejecting non-finite,
+  negative, and stale date-based delays) and clamping retry sleep to a safe bounded
+  range.
 
 ### Changed
 - Switched sensor setup iteration to use a validated local data snapshot for

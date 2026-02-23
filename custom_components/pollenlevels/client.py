@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import random
 from typing import Any
 
@@ -40,12 +41,15 @@ class GooglePollenApiClient:
         """Translate a Retry-After header into a delay in seconds."""
 
         try:
-            return float(retry_after_raw)
+            parsed = float(retry_after_raw)
+            if math.isfinite(parsed) and parsed > 0:
+                return parsed
+            return 2.0
         except (TypeError, ValueError):
             retry_at = dt_util.parse_http_date(retry_after_raw)
             if retry_at is not None:
                 delay = (retry_at - dt_util.utcnow()).total_seconds()
-                if delay > 0:
+                if math.isfinite(delay) and delay > 0:
                     return delay
 
         return 2.0
@@ -118,7 +122,8 @@ class GooglePollenApiClient:
                             delay = 2.0
                             if retry_after_raw:
                                 delay = self._parse_retry_after(retry_after_raw)
-                            delay = min(delay, 5.0) + random.uniform(0.0, 0.4)
+                            delay = delay + random.uniform(0.0, 0.4)
+                            delay = max(0.0, min(delay, 5.0))
                             _LOGGER.warning(
                                 "Pollen API 429 — retrying in %.2fs (attempt %d/%d)",
                                 delay,
