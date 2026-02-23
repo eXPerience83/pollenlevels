@@ -1093,6 +1093,106 @@ def test_plant_forecast_matches_codes_case_insensitively() -> None:
     assert entry["tomorrow_value"] == 4
 
 
+def test_coordinator_accepts_numeric_string_color_channels() -> None:
+    """Numeric string channels should be normalized into RGB/hex values."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "color": {"red": "1", "green": "0", "blue": "0"},
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert data["type_grass"]["color_hex"] == "#FF0000"
+    assert data["type_grass"]["color_rgb"] == [255, 0, 0]
+
+
+def test_coordinator_ignores_invalid_string_color_channels() -> None:
+    """Non-numeric string channels should not emit RGB/hex values."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "color": {"red": "foo"},
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert data["type_grass"]["color_hex"] is None
+    assert data["type_grass"]["color_rgb"] is None
+
+
 def test_coordinator_ignores_nonfinite_color_channels() -> None:
     """Non-finite color channel values should not crash or emit invalid colors."""
 
@@ -1458,6 +1558,81 @@ def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> N
 
     assert session.calls == 2
     assert delays == [5.0]
+
+
+@pytest.mark.parametrize(
+    ("retry_after", "now"),
+    [
+        ("-10", None),
+        ("nan", None),
+        ("inf", None),
+        (
+            "Wed, 10 Dec 2025 12:00:00 GMT",
+            datetime.datetime(2025, 12, 10, 12, 0, 5, tzinfo=datetime.UTC),
+        ),
+    ],
+)
+def test_coordinator_retry_after_invalid_values_use_safe_default(
+    monkeypatch: pytest.MonkeyPatch,
+    retry_after: str,
+    now: datetime.datetime | None,
+) -> None:
+    """Invalid Retry-After values should fall back to a safe finite delay."""
+
+    session = SequenceSession(
+        [
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": retry_after},
+            ),
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": retry_after},
+            ),
+        ]
+    )
+    delays: list[float] = []
+
+    async def _fast_sleep(delay: float) -> None:
+        assert isinstance(delay, float)
+        assert delay == delay
+        assert delay != float("inf")
+        assert delay != float("-inf")
+        delays.append(delay)
+
+    monkeypatch.setattr(client_mod.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
+    if now is not None:
+        monkeypatch.setattr(client_mod.dt_util, "utcnow", lambda: now)
+
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+
+    try:
+        with pytest.raises(client_mod.UpdateFailed, match="Quota exceeded"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert session.calls == 2
+    assert delays == [2.0]
 
 
 def test_coordinator_retries_then_raises_on_server_errors(

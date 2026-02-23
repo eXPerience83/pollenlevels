@@ -48,20 +48,13 @@ def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
     """Build an (R, G, B) tuple from API color dict.
 
     Rules:
-    - If color is not a dict, or an empty dict, or has no numeric channels at all,
-      return None (meaning "no color provided by API").
+    - If color is not a dict, or an empty dict, return None
+      (meaning "no color provided by API").
     - If only some channels are present, missing ones are treated as 0 (black baseline)
       but ONLY when at least one channel exists. This preserves partial colors like
       {green, blue} without inventing a color for {}.
     """
     if not isinstance(color, dict) or not color:
-        return None
-
-    # Check if any of the channels is actually provided as numeric
-    has_any_channel = any(
-        isinstance(color.get(k), (int, float)) for k in ("red", "green", "blue")
-    )
-    if not has_any_channel:
         return None
 
     r = _normalize_channel(color.get("red"))
