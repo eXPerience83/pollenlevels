@@ -28,7 +28,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
   - `forecast` list with `{offset, date, has_index, value, category, description, color_*}`
   - Convenience: `tomorrow_*` and `d2_*`
   - Derived: `trend` and `expected_peak`
-  - **Per-day sensors:** remain **TYPES-only** (optional `D+1` / `D+2`).  
+  - **Per-day sensors:** remain **TYPES-only** with selector options `none`, `D+1`,
+    or `D+1+2` (creates both `(D+1)` and `(D+2)` sensors).
     **PLANTS** expose forecast **as attributes only** (no extra entities).
 - **Smart grouping** — Organizes sensors into:
   - **Pollen Types** (Grass / Tree / Weed)
@@ -37,7 +38,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Configurable updates** — Change update interval, language, forecast days, and per-day sensors without reinstalling.  
 - **Manual refresh** — Call `pollenlevels.force_update` to trigger an immediate update and reset the timer.
 - **Last Updated sensor** — Shows timestamp of last successful update.
-- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`, `color_hex`, `color_rgb`, `color_raw`, and plant details.
+- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`,
+  `color_hex`, `color_rgb`, and plant details.
 - **Resilient startup** — Retries setup automatically when the first API response lacks daily pollen info (`dailyInfo` types/plants), ensuring entities appear once data is ready.
 
 ---
@@ -55,7 +57,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 You can change:
 
-- **Update interval (hours)**
+- **Update interval (hours)** (1–24)
 - **API response language code**
 - **Forecast days** (`1–5`) for pollen TYPES
 - **Per-day TYPE sensors** via `create_forecast_sensors`:
@@ -66,6 +68,10 @@ You can change:
 > **Validation rules:**
 > - `D+1` requires `forecast_days ≥ 2`
 > - `D+1+2` requires `forecast_days ≥ 3`
+
+The config and options flows use modern Home Assistant selectors and include
+links to Google’s API key setup and security best practices so you can follow
+the recommended restrictions.
 
 > **After saving Options:** if per-day sensors are disabled or `forecast_days` becomes insufficient, the integration **removes** any stale D+1/D+2 entities from the **Entity Registry** automatically. No manual cleanup needed.
 
@@ -84,12 +90,25 @@ You need a valid Google Cloud API key with access to the **Maps Pollen API**.
 4. Go to **APIs & Services → Credentials → Create credentials → API key**.  
 5. **Restrict your key** (recommended):  
    - **API restrictions** → **Restrict key** → select **Maps Pollen API** only.  
-   - **Application restrictions** (optional but recommended):  
-     - **HTTP referrers** (for frontend usages) or  
-     - **IP addresses** (for server-side usage, e.g. your HA host).  
-6. **Copy** the key and paste it in the integration setup.  
+   - **Application restrictions** (optional):  
+     - Prefer **IP addresses** for server-side usage (your HA host).  
+     - If your IP is dynamic, consider **no application restriction** and rely on
+       the API restriction above.  
+6. **Copy** the key and paste it in the integration setup.
+
+The setup form also links directly to the Google documentation for obtaining
+an API key and best-practice restrictions.
 
 👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to avoid exhausting your free tier.
+
+HTTP referrer (website) restrictions are intended for browser-based apps and
+are not supported by this integration.
+
+### Troubleshooting 403 errors
+
+403 responses during setup or updates now include the API’s reason (when
+available). They often indicate billing is disabled, the Pollen API is not
+enabled, or your key restrictions do not match your Home Assistant host.
 
 ---
 
@@ -136,6 +155,14 @@ severity:
 ---
 
 ### 🧩 Custom cards (for real dynamic color binding)
+
+**Pollen dashboard card (recommended): pollenprognos-card**
+
+If you want a dedicated pollen Lovelace card with forecast visualizations and a visual editor UI,
+**pollenprognos-card** supports this integration since **v2.9.0**.
+
+- Repo: [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
+- Install: HACS → Frontend
 
 If you need the icon/badge to follow the **exact** API color (`color_hex`):
 

@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "Konfigurace úrovní pylu",
-        "description": "Zadejte svůj klíč Google API, vyberte svou polohu na mapě, interval aktualizace (hodiny) a kód jazyka pro odpověď API.",
+        "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API. Můžete také nastavit dny předpovědi a rozsah senzorů po dnech (TYPY).",
         "data": {
           "api_key": "Klíč API",
           "name": "Název",
           "location": "Poloha",
           "update_interval": "Interval aktualizace (hodiny)",
-          "language_code": "Kód jazyka odpovědi API"
+          "language_code": "Kód jazyka odpovědi API",
+          "forecast_days": "Dny předpovědi (1–5)",
+          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "Neplatný klíč API",
-      "cannot_connect": "Nelze se připojit ke službě",
-      "quota_exceeded": "Překročena kvóta",
-      "invalid_language": "Neplatný kód jazyka",
+      "invalid_auth": "Neplatný klíč API\n\n{error_message}",
+      "cannot_connect": "Nelze se připojit ke službě\n\n{error_message}",
+      "quota_exceeded": "Překročena kvóta\n\n{error_message}",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "invalid_coordinates": "Vyberte platné umístění na mapě.",
-      "unknown": "Neznámá chyba"
+      "unknown": "Neznámá chyba",
+      "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
+      "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5."
     },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Možnosti",
-        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2).",
+        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2; vytvoří senzory D+1 i D+2).",
         "data": {
           "update_interval": "Interval aktualizace (hodiny)",
           "language_code": "Kód jazyka odpovědi API",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Neplatný klíč API",
-      "cannot_connect": "Nelze se připojit ke službě",
-      "quota_exceeded": "Překročena kvóta",
-      "invalid_language": "Neplatný kód jazyka",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
       "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
-      "unknown": "Neznámá chyba"
+      "unknown": "Neznámá chyba",
+      "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
+      "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5."
     }
   },
   "device": {

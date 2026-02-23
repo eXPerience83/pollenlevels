@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 
 import pytest
 
@@ -20,7 +21,7 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
     """Run @pytest.mark.asyncio tests locally when no other async plugin is active."""
 
     marker = pyfuncitem.get_closest_marker("asyncio")
-    if marker is None or not asyncio.iscoroutinefunction(pyfuncitem.obj):
+    if marker is None or not inspect.iscoroutinefunction(pyfuncitem.obj):
         return None
 
     # If another asyncio-aware plugin is active, let it handle the test.

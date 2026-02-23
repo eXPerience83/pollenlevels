@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "花粉水平設定",
-        "description": "請輸入 Google API 金鑰、在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。",
+        "description": "輸入你的 Google API 金鑰（[在此取得]({api_key_url})）並查看最佳實務（[最佳實務]({restricting_api_keys_url})）。在地圖上選擇位置、更新間隔（小時）以及 API 回應的語言代碼。你也可以設定預測天數與逐日類型感測器的範圍。",
         "data": {
           "api_key": "API 金鑰",
           "name": "名稱",
           "location": "位置",
           "update_interval": "更新間隔（小時）",
-          "language_code": "API 回應語言代碼"
+          "language_code": "API 回應語言代碼",
+          "forecast_days": "預測天數（1–5）",
+          "create_forecast_sensors": "逐日類型感測器範圍"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "無效的 API 金鑰",
-      "cannot_connect": "無法連線到服務",
-      "quota_exceeded": "超出配額",
-      "invalid_language": "無效的語言代碼",
+      "invalid_auth": "無效的 API 金鑰\n\n{error_message}",
+      "cannot_connect": "無法連線到服務\n\n{error_message}",
+      "quota_exceeded": "超出配額\n\n{error_message}",
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此欄位不得為空",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
       "invalid_coordinates": "請在地圖上選擇有效的位置。",
-      "unknown": "未知錯誤"
+      "unknown": "未知錯誤",
+      "invalid_update_interval": "更新間隔必須在 1 到 24 小時之間。",
+      "invalid_forecast_days": "預測天數必須在 1 到 5 之間。"
     },
     "abort": {
       "already_configured": "此位置已設定。",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – 選項",
-        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器，適用於 {title}。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2）。",
+        "description": "修改更新間隔、API 語言、預測天數與逐日類型感測器，適用於 {title}。\n逐日類型感測器選項：僅今日（none）、至明日（D+1）、至後日（D+2；會同時建立 D+1 與 D+2 感測器）。",
         "data": {
           "update_interval": "更新間隔（小時）",
           "language_code": "API 回應語言代碼",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "無效的 API 金鑰",
-      "cannot_connect": "無法連線到服務",
-      "quota_exceeded": "超出配額",
-      "invalid_language": "無效的語言代碼",
       "invalid_language_format": "請使用標準的 BCP-47 代碼，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此欄位不得為空",
       "invalid_option_combo": "請增加「預測天數」以涵蓋所選的逐日類型感測器。",
-      "unknown": "未知錯誤"
+      "unknown": "未知錯誤",
+      "invalid_update_interval": "更新間隔必須在 1 到 24 小時之間。",
+      "invalid_forecast_days": "預測天數必須在 1 到 5 之間。"
     }
   },
   "device": {

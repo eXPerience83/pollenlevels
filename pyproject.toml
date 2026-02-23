@@ -6,7 +6,7 @@
 
 [project]
 name = "pollenlevels"
-version = "1.8.6"
+version = "1.9.3"
 # Enforce the runtime floor aligned with upcoming HA Python 3.14 images.
 requires-python = ">=3.14"
 
@@ -34,6 +34,12 @@ ignore = [
 # IMPORTANT: first-party must match this integration's package
 known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
+
+[tool.pytest.ini_options]
+# Use importlib mode to avoid test module name collisions in environments
+# where unrelated packages (or plugins) ship a top-level "tests" package.
+addopts = ["--import-mode=importlib"]
+testpaths = ["tests"]
 
 # --- Optional hardening (uncomment if needed) ---
 # [tool.ruff]

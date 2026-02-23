@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "Siitepölytason asetukset",
-        "description": "Anna Google API -avaimesi, valitse sijaintisi kartalta, päivitysväli (tunnit) ja API-vastauksen kielikoodi.",
+        "description": "Syötä Google API -avaimesi ([hanki se täältä]({api_key_url})) ja tutustu parhaisiin käytäntöihin ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi. Voit myös määrittää ennustepäivät ja päiväsensorien laajuuden (TYYPIT).",
         "data": {
           "api_key": "API-avain",
           "name": "Nimi",
           "location": "Sijainti",
           "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi"
+          "language_code": "API-vastauksen kielikoodi",
+          "forecast_days": "Ennustepäivät (1–5)",
+          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "Virheellinen API-avain",
-      "cannot_connect": "Palveluun ei saada yhteyttä",
-      "quota_exceeded": "Kiintiö ylitetty",
-      "invalid_language": "Virheellinen kielikoodi",
+      "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
+      "cannot_connect": "Palveluun ei saada yhteyttä\n\n{error_message}",
+      "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
-      "unknown": "Tuntematon virhe"
+      "unknown": "Tuntematon virhe",
+      "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
+      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5."
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Asetukset",
-        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2).",
+        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2; luo sekä D+1- että D+2-sensorit).",
         "data": {
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Virheellinen API-avain",
-      "cannot_connect": "Palveluun ei saada yhteyttä",
-      "quota_exceeded": "Kiintiö ylitetty",
-      "invalid_language": "Virheellinen kielikoodi",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
       "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
-      "unknown": "Tuntematon virhe"
+      "unknown": "Tuntematon virhe",
+      "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
+      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5."
     }
   },
   "device": {

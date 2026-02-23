@@ -1,4 +1,213 @@
-# Changelog
+## [1.9.3] - 2026-02-14
+### Fixed
+- Aligned config-flow API validation with runtime parsing by requiring `dailyInfo`
+  to be a non-empty list of objects during setup validation.
+- Prevented test cross-contamination in setup tests by using scoped monkeypatching
+  for coordinator/client stubs instead of persistent module reassignment.
+- Prevented disabled per-day sensors from being re-created during sensor setup by
+  skipping `*_d1`/`*_d2` keys when effective forecast options disable them.
+- Hardened coordinator parsing for malformed `dailyInfo` payloads by treating
+  non-list/non-dict structures as invalid and preserving the last successful
+  dataset when available.
+- Normalized stored forecast sensor mode values during integration setup so
+  legacy or whitespace-padded values no longer degrade silently to `none`.
+- Ensured deterministic current-day plant sensor creation by sorting plant codes.
+- Reject whitespace-only API keys at setup (defensive validation) and raise `ConfigEntryAuthFailed` with a clearer "Invalid API key" message.
+- Mask API key input fields in config flow (password selector).
+- Cleared entry runtime data when platform forwarding fails to avoid leaving a partially initialized state.
+- Hardened `forecast_days` parsing during coordinator and sensor setup to tolerate malformed stored values without crashing.
+- Improved test isolation by avoiding unconditional replacement of the global `aiohttp` module stub.
+- Accepted numeric-string RGB channels from API color payloads by relying on shared
+  channel normalization, while still ignoring non-numeric strings.
+- Hardened HTTP 429 backoff by validating `Retry-After` values (rejecting non-finite,
+  negative, and stale date-based delays) and clamping retry sleep to a safe bounded
+  range.
+
+### Changed
+- Switched sensor setup iteration to use a validated local data snapshot for
+  clearer and more consistent entity creation flow.
+- Preserved legacy 4-decimal coordinate unique-id formatting to keep existing
+  duplicate-location detection behavior stable across upgrades.
+- Expanded regression coverage for disabled per-day sensor creation, malformed
+  `dailyInfo` handling, setup mode normalization, and legacy duplicate
+  detection behavior for coordinate-based unique IDs.
+- Simplified plant parsing by removing redundant code checks (non-empty by construction).
+- Deduplicated defensive integer parsing into a shared utility and aligned diagnostics
+  with runtime/config-flow rules to reject non-finite or decimal values consistently.
+- Clarified the per-day TYPE sensor range option text (D+2 creates both D+1 and D+2 sensors) across translations.
+
+## [1.9.2] - 2026-02-13
+### Fixed
+- Re-raised `asyncio.CancelledError` during coordinator updates to avoid wrapping
+  shutdown/reload cancellations as `UpdateFailed`.
+- Validated config-entry coordinates as finite and in-range values before setup
+  to avoid malformed requests and retry with `ConfigEntryNotReady` when invalid.
+
+### Changed
+- Reduced coordinator parsing overhead by building per-day type/plant lookup maps
+  in a single pass and reusing them across forecast extraction.
+- Reused cached day-0 plant maps for current-day plant sensors and sorted type-code
+  processing for deterministic sensor key ordering.
+- Normalized plant-code matching across days to keep plant forecast attributes
+  populated even when API casing differs between days.
+- Clamped diagnostics `request_params_example.days` to supported forecast ranges
+  and handled non-finite values defensively.
+- Hardened numeric parsing guards for config/options inputs and color channels
+  to safely reject non-finite values without raising runtime errors.
+- Dropped non-finite rounded coordinates in diagnostics request examples to keep
+  support payloads consistent and safe.
+- Kept plant `code` attributes in their day-0 API form while using normalized
+  keys internally for cross-day forecast matching stability.
+- Enforced integer-only parsing for numeric config/options fields to reject
+  decimal inputs consistently.
+- Strengthened diagnostics tests with active redaction behavior checks for secret
+  fields in support payloads.
+- Aligned runtime integer parsing with config-flow rules (reject non-integer
+  numeric values) and reduced coordinator forecast overhead by reusing offset
+  maps and plant-key lists during attribute enrichment.
+
+## [1.9.1] - 2026-01-10
+### Fixed
+- Preserved the last successful coordinator data when the API response omits
+  `dailyInfo`, avoiding empty entities after transient API glitches.
+- Redacted API keys from config flow error placeholders derived from API responses
+  to prevent secrets from appearing in setup errors.
+- Cleared stale setup error placeholders when per-day sensor options are
+  incompatible with the selected forecast days.
+- Clarified diagnostics redaction flow: `async_redact_data` is a synchronous
+  helper in HA Core (despite the name), ensuring diagnostics return the final
+  redacted payload.
+- Trimmed diagnostics payloads to avoid listing all data keys and to hide precise
+  coordinates while keeping rounded location context for support.
+- Updated the `pollenlevels.force_update` service to request a coordinator
+  refresh and wait for completion before returning.
+- Sanitized `pollenlevels.force_update` failure logging to avoid exposing raw
+  exception details in warnings.
+- Handled cancelled `force_update` refresh results explicitly to keep service
+  logging and control flow consistent during shutdown/reload paths.
+- Re-raised coordinator `CancelledError` during updates so shutdown/reload
+  cancellations are not wrapped as `UpdateFailed`.
+
+### Changed
+- **Breaking change:** removed the `color_raw` attribute from pollen sensors to
+  reduce state size; use `color_hex` or `color_rgb` instead.
+- Refactored config flow HTTP validation to reduce duplicated error handling
+  logic without changing behavior.
+- Updated README attributes list to remove `color_raw` now that it is no longer
+  exposed by sensors.
+- Removed unused internal `color_raw` coordinator payload fields to reduce
+  update payload size while keeping `color_hex`/`color_rgb` behavior unchanged.
+- Clarified diagnostics coordinator access when `runtime_data` is missing,
+  without changing diagnostics output.
+
+## [1.9.0-rc1] - 2025-12-31
+### Changed
+- Moved runtime state to config entry `runtime_data` with a shared
+  `GooglePollenApiClient` per entry while keeping existing sensor behaviour and
+  identifiers unchanged.
+- Updated sensors, diagnostics, and the `pollenlevels.force_update` service to
+  read coordinators from runtime data so each entry reuses a single API client
+  for Google Pollen requests.
+- Treated HTTP 401 responses like 403 to surface `invalid_auth` during setup
+  validation and runtime calls instead of generic connection errors.
+- Restored API key validation during setup to raise `ConfigEntryAuthFailed`
+  when the key is missing instead of retrying endlessly.
+- Centralized config entry title normalization during setup so the cleaned
+  device titles are reused across all sensors.
+- Simplified metadata sensors by relying on inherited `unique_id` and
+  `device_info` properties instead of redefining them.
+- Updated the `force_update` service to queue coordinator refreshes via
+  `async_request_refresh` and added service coverage for entries lacking
+  runtime data.
+- Cleared config entry `runtime_data` after unload to drop stale coordinator
+  references and keep teardown tidy.
+- Enabled forecast day count and per-day sensor mode selection during initial
+  setup using dropdown selectors shared with the options flow to keep
+  validation consistent.
+- Enhanced setup validation to surface HTTP 401/403 API messages safely via the
+  form error placeholders without exposing secrets.
+- Updated the options flow to use selectors while normalizing numeric fields to
+  integers and keeping existing validation rules and defaults intact.
+- Runtime HTTP 403 responses now surface detailed messages without triggering
+  reauthentication, keeping setup and update behavior aligned.
+- Deduplicated HTTP error message extraction into a shared helper used by
+  config validation and the runtime client to keep diagnostics consistent.
+- Updated the options flow regression test to expect the new
+  `invalid_forecast_days` error code for out-of-range values.
+- Consolidated numeric options validation in the options flow through a shared
+  helper to reduce duplication for interval and forecast day checks.
+- Centralized the pollen client retry count into a shared `MAX_RETRIES`
+  constant to simplify future tuning without touching request logic.
+- Tightened error extraction typing to expect `aiohttp.ClientResponse` while
+  guarding the import so environments without aiohttp can still run tests.
+- Reduced debug log volume by summarizing coordinator refreshes and sensor
+  creation details instead of logging full payloads.
+- Reformatted the codebase with Black and Ruff to keep imports and styling
+  consistent with repository standards.
+- Expanded translation coverage tests to include section titles and service
+  metadata keys, ensuring locales stay aligned with `en.json`.
+- Coordinator Module Extraction: The PollenDataUpdateCoordinator class and its
+  associated helper functions have been moved from sensor.py to a new,
+  dedicated coordinator.py module. This significantly improves modularity and
+  separation of concerns within the component.
+- Removed optional HTTP Referer (website restriction) support to simplify configuration,
+  as it is not suitable for server-side integrations (existing entries are
+  migrated to remove legacy `http_referer` values).
+- Documented the 1–24 update interval range in the README options list.
+
+### Fixed
+- Avoid pre-filling the API key field when the form is re-displayed after
+  validation errors.
+- Added a fallback error message when unexpected client exceptions are raised to
+  avoid empty UpdateFailed errors in the UI.
+- Fixed options flow to preserve the stored per-day sensor mode when no override
+  is set in entry options, preventing unintended resets to "none".
+- Sanitized update interval defaults in setup and options forms to clamp
+  malformed stored values within supported bounds.
+- Rejected update interval submissions above 24 hours to match selector limits.
+- Sanitized setup and options defaults for forecast days and per-day sensor mode
+  selectors to keep UI defaults within supported choices.
+- Normalized invalid stored per-day sensor mode values in the options flow to
+  avoid persisting unsupported selector choices.
+- Simplified the per-day sensor mode fallback during options submission to reuse
+  the normalized current mode and prevent regressions.
+- Migrated per-day sensor mode to entry options when stored in entry data to
+  prevent option resets after upgrades.
+- Centralized per-day sensor mode normalization to avoid duplicate validation
+  logic across migration and options handling.
+- Normalized invalid stored per-day sensor mode values already stored in entry
+  options during migration to keep options consistent.
+- Versioned config entries to ensure the per-day sensor mode migration runs once
+  and is not repeated on every restart.
+- Ensured unversioned entries run the per-day sensor mode migration and that
+  option presence is respected even when the stored value is None.
+- Moved the optional API key section directly below the API key field in the
+  setup flow for improved visibility.
+- Hardened HTTP client timeout handling and normalized non-string per-day sensor
+  mode values defensively.
+- Added entry context to migration failure logs for easier debugging.
+- Removed a mutable default from the API key options schema to avoid shared
+  state across config flow instances.
+- Normalized whitespace-only per-day sensor mode values and preserved fallback
+  to entry data when options explicitly store None.
+- Removed redundant timeout handling in the HTTP client error path.
+- Fixed the force_update service to await coordinator refresh coroutines safely
+  without passing None into asyncio.gather.
+- Hardened parsing of update interval and forecast days to tolerate malformed
+  stored values while keeping defaults intact.
+- Hardened numeric parsing to handle non-finite values without crashing setup.
+- Clamped update interval and forecast days in setup to supported ranges.
+- Limited update interval to a maximum of 24 hours in setup and options.
+- Clamped forecast day handling in sensor setup to the supported 1–5 range for
+  consistent cleanup decisions.
+- Avoided treating empty indexInfo objects as valid forecast indices.
+- Added force_update service name/description for better UI discoverability.
+- Ensured migrations clean up legacy keys even when entries are already at the
+  target version.
+- Always removed per-day sensor mode from entry data during migration to avoid
+  duplicated settings.
+- Corrected Chinese setup description punctuation in zh-Hans and zh-Hant.
+
 ## [1.8.6] - 2025-12-09
 ### Changed
 - Parallelized the `force_update` service to refresh all entry coordinators concurrently
@@ -250,23 +459,25 @@
 
 ## [1.7.9] - 2025-09-06
 ### Fixed
-- **Date sensor**: Return a `datetime.date` object for `device_class: date` (was a string). Ensures
-  correct UI formatting and automation compatibility.
+- **Date sensor**: Return a `datetime.date` object for `device_class: date` (was
+  a string). Ensures correct UI formatting and automation compatibility.
 
 ## [1.7.8] - 2025-09-05
 ### Changed
-- **Date sensor**: Set `device_class: date` so Home Assistant treats the value as a calendar date
-  (UI semantics/formatting). No functional impact.
-- > Note: 1.7.8 set `device_class: date` but still returned a string. This was corrected in 1.7.9 to
-  return a proper `date` object.
+- **Date sensor**: Set `device_class: date` so Home Assistant treats the value
+  as a calendar date (UI semantics/formatting). No functional impact.
+- > Note: 1.7.8 set `device_class: date` but still returned a string. This was
+  corrected in 1.7.9 to return a proper `date` object.
 
 ## [1.7.7] - 2025-09-05
 ### Changed
 - **Performance/cleanup**: Precompute static attributes for metadata sensors:
-  - Set `_attr_unique_id` and `_attr_icon` in `RegionSensor`, `DateSensor`, and `LastUpdatedSensor`.
+  - Set `_attr_unique_id` and `_attr_icon` in `RegionSensor`, `DateSensor`, and
+    `LastUpdatedSensor`.
   - Set `_attr_device_info` once in `_BaseMetaSensor`.
   - Also set `_attr_unique_id` in `PollenSensor` for consistency.
-  These changes avoid repeated property calls and align with modern HA entity patterns. No functional impact.
+  These changes avoid repeated property calls and align with modern HA entity
+  patterns. No functional impact.
 
 ## [1.7.6] - 2025-09-05
 ### Changed
@@ -320,8 +531,9 @@
 
 ## [1.6.5] - 2025-08-26
 ### Fixed
-- Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.  
-  On Python 3.14 this also covers `asyncio.TimeoutError`, so listing both is unnecessary (and auto-removed by ruff/pyupgrade).
+- Timeouts: catch built-in **`TimeoutError`** in Config Flow and Coordinator.
+  On Python 3.14 this also covers `asyncio.TimeoutError`, so listing both is
+  unnecessary (and auto-removed by ruff/pyupgrade).
 - Added missing `options.error` translations across all locales so **Options Flow** errors display
   localized.
 - **Security**: Config Flow now sanitizes exception messages (including connection/timeout errors)
@@ -337,11 +549,13 @@
 - Improved wording for `create_forecast_sensors` across all locales:
   - Field label now clarifies it’s the **range** for per-day TYPE sensors.
   - Step description explains each choice with plain language:
-    - **Only today (none)**, **Through tomorrow (D+1)**, **Through day after tomorrow (D+2)** (and local equivalents).
+    - **Only today (none)**, **Through tomorrow (D+1)**,
+      **Through day after tomorrow (D+2)** (and local equivalents).
 ### Changed
 - Minimal safe backoff in coordinator: single retry on transient failures (**TimeoutError**,
   `aiohttp.ClientError`, `5xx`).
-  For **429**, honor numeric `Retry-After` seconds (capped at **5s**) or fall back to ~**2s** plus small jitter.
+  For **429**, honor numeric `Retry-After` seconds (capped at **5s**) or fall
+  back to ~**2s** plus small jitter.
 
 ## [1.6.4] - 2025-08-22
 ### Fixed

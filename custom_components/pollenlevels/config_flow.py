@@ -6,6 +6,9 @@ Notes:
 - Redacts API keys in debug logs.
 - Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
   so catching `TimeoutError` is sufficient and preferred.
+
+IMPORTANT:
+- Keep schema construction centralized so defaults are applied consistently.
 """
 
 from __future__ import annotations
@@ -21,7 +24,19 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.helpers.selector import (
+    LocationSelector,
+    LocationSelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .const import (
     CONF_API_KEY,
@@ -35,11 +50,26 @@ from .const import (
     DOMAIN,
     FORECAST_SENSORS_CHOICES,
     MAX_FORECAST_DAYS,
+    MAX_UPDATE_INTERVAL_HOURS,
     MIN_FORECAST_DAYS,
+    MIN_UPDATE_INTERVAL_HOURS,
+    POLLEN_API_KEY_URL,
+    POLLEN_API_TIMEOUT,
+    RESTRICTING_API_KEYS_URL,
+    is_invalid_api_key_message,
 )
-from .util import redact_api_key
+from .util import (
+    extract_error_message,
+    normalize_sensor_mode,
+    redact_api_key,
+    safe_parse_int,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+FORECAST_DAYS_OPTIONS = [
+    str(i) for i in range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1)
+]
 
 # BCP-47-ish regex (common patterns, not full grammar).
 LANGUAGE_CODE_REGEX = re.compile(
@@ -48,17 +78,6 @@ LANGUAGE_CODE_REGEX = re.compile(
     r"(?:-(?:[A-Za-z]{2}|\d{3}))?"  # optional region
     r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
     re.IGNORECASE,
-)
-
-
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_API_KEY): str,
-        vol.Optional(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
-            vol.Coerce(int), vol.Range(min=1)
-        ),
-        vol.Optional(CONF_LANGUAGE_CODE): str,
-    }
 )
 
 
@@ -77,7 +96,6 @@ def is_valid_language_code(value: str) -> str:
 
 def _language_error_to_form_key(error: vol.Invalid) -> str:
     """Convert voluptuous validation errors into form error keys."""
-
     message = getattr(error, "error_message", "")
     if message == "empty":
         return "empty"
@@ -88,7 +106,6 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
 
 def _safe_coord(value: float | None, *, lat: bool) -> float | None:
     """Return a validated latitude/longitude or None if unset/invalid."""
-
     try:
         if lat:
             return cv.latitude(value)
@@ -97,37 +114,91 @@ def _safe_coord(value: float | None, *, lat: bool) -> float | None:
         return None
 
 
-def _get_location_schema(hass: Any) -> vol.Schema:
-    """Return schema for name + location with defaults from HA config."""
+def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol.Schema:
+    """Build the full step user schema without flattening nested sections."""
+    user_input = user_input or {}
 
-    default_name = getattr(hass.config, "location_name", "") or DEFAULT_ENTRY_TITLE
-    default_lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
-    default_lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+    default_name = str(
+        user_input.get(CONF_NAME)
+        or getattr(hass.config, "location_name", "")
+        or DEFAULT_ENTRY_TITLE
+    )
 
-    if default_lat is not None and default_lon is not None:
-        location_field = vol.Required(
-            CONF_LOCATION,
-            default={
-                CONF_LATITUDE: default_lat,
-                CONF_LONGITUDE: default_lon,
-            },
-        )
+    location_default = None
+    if isinstance(user_input.get(CONF_LOCATION), dict):
+        location_default = user_input[CONF_LOCATION]
+    else:
+        lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
+        lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+        if lat is not None and lon is not None:
+            location_default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
+
+    if location_default is not None:
+        location_field = vol.Required(CONF_LOCATION, default=location_default)
     else:
         location_field = vol.Required(CONF_LOCATION)
 
-    return vol.Schema(
+    update_interval_raw = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    interval_default = _sanitize_update_interval_for_default(update_interval_raw)
+    forecast_days_default = _sanitize_forecast_days_for_default(
+        user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
+    )
+    sensor_mode_default = _sanitize_forecast_mode_for_default(
+        user_input.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
+    )
+
+    schema = vol.Schema(
         {
+            vol.Required(CONF_API_KEY): TextSelector(
+                TextSelectorConfig(type=TextSelectorType.PASSWORD)
+            ),
             vol.Required(CONF_NAME, default=default_name): str,
             location_field: LocationSelector(LocationSelectorConfig(radius=False)),
+            vol.Optional(
+                CONF_UPDATE_INTERVAL,
+                default=interval_default,
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=MIN_UPDATE_INTERVAL_HOURS,
+                    max=MAX_UPDATE_INTERVAL_HOURS,
+                    step=1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="h",
+                )
+            ),
+            vol.Optional(
+                CONF_LANGUAGE_CODE,
+                default=user_input.get(
+                    CONF_LANGUAGE_CODE, getattr(hass.config, "language", "")
+                ),
+            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
+            vol.Optional(
+                CONF_FORECAST_DAYS,
+                default=forecast_days_default,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=FORECAST_DAYS_OPTIONS,
+                )
+            ),
+            vol.Optional(
+                CONF_CREATE_FORECAST_SENSORS,
+                default=sensor_mode_default,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=FORECAST_SENSORS_CHOICES,
+                )
+            ),
         }
     )
+    return schema
 
 
 def _validate_location_dict(
     location: dict[str, Any] | None,
 ) -> tuple[float, float] | None:
     """Validate location dict and return (lat, lon) or None on error."""
-
     if not isinstance(location, dict):
         return None
 
@@ -146,10 +217,70 @@ def _validate_location_dict(
     return lat, lon
 
 
+def _parse_int_option(
+    value: Any,
+    default: int,
+    *,
+    min_value: int | None = None,
+    max_value: int | None = None,
+    error_key: str | None = None,
+) -> tuple[int, str | None]:
+    """Parse a numeric option to int and enforce bounds."""
+    parsed = safe_parse_int(value if value is not None else default)
+    if parsed is None:
+        return default, error_key
+
+    if min_value is not None and parsed < min_value:
+        return parsed, error_key
+
+    if max_value is not None and parsed > max_value:
+        return parsed, error_key
+
+    return parsed, None
+
+
+def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
+    """Parse and validate the update interval in hours."""
+    return _parse_int_option(
+        value,
+        default=default,
+        min_value=MIN_UPDATE_INTERVAL_HOURS,
+        max_value=MAX_UPDATE_INTERVAL_HOURS,
+        error_key="invalid_update_interval",
+    )
+
+
+def _sanitize_update_interval_for_default(raw_value: Any) -> int:
+    """Parse and clamp an update interval value to be used as a UI default."""
+    parsed, _ = _parse_update_interval(raw_value, DEFAULT_UPDATE_INTERVAL)
+    return max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, parsed))
+
+
+def _sanitize_forecast_days_for_default(raw_value: Any) -> str:
+    """Parse and clamp forecast days to be used as a UI default."""
+    parsed, _ = _parse_int_option(
+        raw_value,
+        DEFAULT_FORECAST_DAYS,
+        min_value=MIN_FORECAST_DAYS,
+        max_value=MAX_FORECAST_DAYS,
+        error_key="invalid_forecast_days",
+    )
+    parsed = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, parsed))
+    return str(parsed)
+
+
+def _sanitize_forecast_mode_for_default(raw_value: Any) -> str:
+    """Normalize forecast sensor mode to be used as a UI default."""
+    mode = normalize_sensor_mode(raw_value, _LOGGER)
+    if mode in FORECAST_SENSORS_CHOICES:
+        return mode
+    return FORECAST_SENSORS_CHOICES[0]
+
+
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
-    VERSION = 1
+    VERSION = 3
 
     def __init__(self) -> None:
         """Initialize the config flow state."""
@@ -168,12 +299,54 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         description_placeholders: dict[str, Any] | None = None,
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
-
-        placeholders = description_placeholders
+        placeholders = (
+            description_placeholders if description_placeholders is not None else {}
+        )
         errors: dict[str, str] = {}
         normalized: dict[str, Any] = dict(user_input)
         normalized.pop(CONF_NAME, None)
         normalized.pop(CONF_LOCATION, None)
+
+        api_key = str(user_input.get(CONF_API_KEY, "")) if user_input else ""
+        api_key = api_key.strip()
+
+        if not api_key:
+            errors[CONF_API_KEY] = "empty"
+            return errors, None
+
+        interval_value, interval_error = _parse_update_interval(
+            normalized.get(CONF_UPDATE_INTERVAL),
+            default=DEFAULT_UPDATE_INTERVAL,
+        )
+        normalized[CONF_UPDATE_INTERVAL] = interval_value
+        if interval_error:
+            errors[CONF_UPDATE_INTERVAL] = interval_error
+            placeholders.pop("error_message", None)
+            return errors, None
+
+        forecast_days, days_error = _parse_int_option(
+            normalized.get(CONF_FORECAST_DAYS),
+            DEFAULT_FORECAST_DAYS,
+            min_value=MIN_FORECAST_DAYS,
+            max_value=MAX_FORECAST_DAYS,
+            error_key="invalid_forecast_days",
+        )
+        normalized[CONF_FORECAST_DAYS] = forecast_days
+        if days_error:
+            errors[CONF_FORECAST_DAYS] = days_error
+            placeholders.pop("error_message", None)
+            return errors, None
+
+        mode = normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
+        if mode not in FORECAST_SENSORS_CHOICES:
+            mode = FORECAST_SENSORS_CHOICES[0]
+            normalized[CONF_CREATE_FORECAST_SENSORS] = mode
+        needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
+        if forecast_days < needed:
+            errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+            placeholders.pop("error_message", None)
+            return errors, None
+        normalized[CONF_CREATE_FORECAST_SENSORS] = mode
 
         latlon = None
         if CONF_LOCATION in user_input:
@@ -183,6 +356,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
                 errors[CONF_LOCATION] = "invalid_coordinates"
+                placeholders.pop("error_message", None)
                 return errors, None
         else:
             try:
@@ -193,8 +367,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug(
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
-                # Legacy lat/lon path (e.g., reauth) has no CONF_LOCATION field on the form
                 errors["base"] = "invalid_coordinates"
+                placeholders.pop("error_message", None)
                 return errors, None
 
         lat, lon = latlon
@@ -202,6 +376,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_LONGITUDE] = lon
 
         if check_unique_id:
+            # Keep unique_id formatting aligned with legacy entries for
+            # duplicate detection compatibility across upgrades.
             uid = f"{lat:.4f}_{lon:.4f}"
             try:
                 await self.async_set_unique_id(uid, raise_on_progress=False)
@@ -209,12 +385,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception as err:  # defensive
                 _LOGGER.exception(
                     "Unique ID setup failed for coordinates (values redacted): %s",
-                    redact_api_key(err, user_input.get(CONF_API_KEY)),
+                    redact_api_key(err, api_key),
                 )
                 raise
 
+        normalized[CONF_API_KEY] = api_key
+
         try:
-            # Allow blank language; if present, validate & normalize
             raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
             lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
             if lang:
@@ -222,7 +399,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             session = async_get_clientsession(self.hass)
             params = {
-                "key": user_input[CONF_API_KEY],
+                "key": api_key,
                 "location.latitude": f"{lat:.6f}",
                 "location.longitude": f"{lon:.6f}",
                 "days": 1,
@@ -232,28 +409,29 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             url = "https://pollen.googleapis.com/v1/forecast:lookup"
 
-            # SECURITY: Avoid logging URL+params (contains coordinates/key)
             _LOGGER.debug("Validating Pollen API (days=%s, lang_set=%s)", 1, bool(lang))
 
-            # Add explicit timeout to prevent UI hangs on provider issues
             async with session.get(
-                url, params=params, timeout=aiohttp.ClientTimeout(total=10)
+                url,
+                params=params,
+                timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
             ) as resp:
                 status = resp.status
-                if status == 403:
-                    _LOGGER.debug("Validation HTTP 403 (body omitted)")
-                    errors["base"] = "invalid_auth"
-                elif status == 429:
-                    _LOGGER.debug("Validation HTTP 429 (body omitted)")
-                    errors["base"] = "quota_exceeded"
-                elif status != 200:
+                if status != 200:
                     _LOGGER.debug("Validation HTTP %s (body omitted)", status)
-                    errors["base"] = "cannot_connect"
-                    if placeholders is not None:
-                        # Keep user-facing message generic; HTTP status is logged above
-                        placeholders["error_message"] = (
-                            "Unable to validate the API key with the pollen service."
-                        )
+                    raw_msg = await extract_error_message(resp, f"HTTP {status}")
+                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
+                    if status == 401:
+                        errors["base"] = "invalid_auth"
+                    elif status == 403:
+                        if is_invalid_api_key_message(raw_msg):
+                            errors["base"] = "invalid_auth"
+                        else:
+                            errors["base"] = "cannot_connect"
+                    elif status == 429:
+                        errors["base"] = "quota_exceeded"
+                    else:
+                        errors["base"] = "cannot_connect"
                 else:
                     raw = await resp.read()
                     try:
@@ -263,19 +441,28 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.debug(
                         "Validation HTTP %s — %s",
                         status,
-                        redact_api_key(body_str, user_input.get(CONF_API_KEY)),
+                        redact_api_key(body_str, api_key),
                     )
                     try:
                         data = json.loads(body_str) if body_str else {}
                     except Exception:
                         data = {}
-                    if not data.get("dailyInfo"):
-                        _LOGGER.warning("Validation: 'dailyInfo' missing")
+
+                    daily_info = (
+                        data.get("dailyInfo") if isinstance(data, dict) else None
+                    )
+                    daily_is_valid = isinstance(daily_info, list) and bool(daily_info)
+                    if daily_is_valid:
+                        daily_is_valid = all(
+                            isinstance(item, dict) for item in daily_info
+                        )
+
+                    if not daily_is_valid:
+                        _LOGGER.warning("Validation: 'dailyInfo' missing or invalid")
                         errors["base"] = "cannot_connect"
-                        if placeholders is not None:
-                            placeholders["error_message"] = (
-                                "API response missing expected pollen forecast information."
-                            )
+                        placeholders["error_message"] = (
+                            "API response missing expected pollen forecast information."
+                        )
 
             if errors:
                 return errors, None
@@ -290,48 +477,52 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ve,
             )
             errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
+            placeholders.pop("error_message", None)
         except TimeoutError as err:
-            # Catch built-in TimeoutError; on Python 3.14 this also covers asyncio.TimeoutError.
             _LOGGER.warning(
-                "Validation timeout (10s): %s",
-                redact_api_key(err, user_input.get(CONF_API_KEY)),
+                "Validation timeout (%ss): %s",
+                POLLEN_API_TIMEOUT,
+                redact_api_key(err, api_key),
             )
             errors["base"] = "cannot_connect"
-            if placeholders is not None:
-                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
-                placeholders["error_message"] = (
-                    redacted or "Validation request timed out (10 seconds)."
-                )
+            redacted = redact_api_key(err, api_key)
+            placeholders["error_message"] = (
+                redacted
+                or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
+            )
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
-                redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, api_key),
             )
             errors["base"] = "cannot_connect"
-            if placeholders is not None:
-                redacted = redact_api_key(err, user_input.get(CONF_API_KEY))
-                placeholders["error_message"] = (
-                    redacted or "Network error while connecting to the pollen service."
-                )
+            redacted = redact_api_key(err, api_key)
+            placeholders["error_message"] = (
+                redacted or "Network error while connecting to the pollen service."
+            )
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
-                redact_api_key(err, user_input.get(CONF_API_KEY)),
+                redact_api_key(err, api_key),
             )
             errors["base"] = "unknown"
-            if placeholders is not None:
-                placeholders.pop("error_message", None)
+            placeholders.pop("error_message", None)
 
         return errors, None
 
     async def async_step_user(self, user_input=None):
         """Handle initial step."""
         errors: dict[str, str] = {}
-        description_placeholders: dict[str, Any] = {}
+        description_placeholders: dict[str, Any] = {
+            "api_key_url": POLLEN_API_KEY_URL,
+            "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
+        }
 
         if user_input:
+            sanitized_input: dict[str, Any] = dict(user_input)
+
             errors, normalized = await self._async_validate_input(
-                user_input,
+                sanitized_input,
                 check_unique_id=True,
                 description_placeholders=description_placeholders,
             )
@@ -340,36 +531,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title = entry_name or DEFAULT_ENTRY_TITLE
                 return self.async_create_entry(title=title, data=normalized)
 
-        base_schema = STEP_USER_DATA_SCHEMA.schema.copy()
-        base_schema.update(_get_location_schema(self.hass).schema)
-
-        suggested_values = {
-            CONF_LANGUAGE_CODE: self.hass.config.language,
-            CONF_NAME: getattr(self.hass.config, "location_name", "")
-            or DEFAULT_ENTRY_TITLE,
-        }
-
-        lat = _safe_coord(getattr(self.hass.config, "latitude", None), lat=True)
-        lon = _safe_coord(getattr(self.hass.config, "longitude", None), lat=False)
-        if lat is not None and lon is not None:
-            suggested_values[CONF_LOCATION] = {
-                CONF_LATITUDE: lat,
-                CONF_LONGITUDE: lon,
-            }
-
         return self.async_show_form(
             step_id="user",
-            data_schema=self.add_suggested_values_to_schema(
-                vol.Schema(base_schema),
-                {**suggested_values, **(user_input or {})},
-            ),
+            data_schema=_build_step_user_schema(self.hass, user_input),
             errors=errors,
             description_placeholders=description_placeholders,
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]):
         """Handle re-authentication when credentials become invalid."""
-
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         if entry is None:
             return self.async_abort(reason="reauth_failed")
@@ -379,13 +549,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
         """Prompt for a refreshed API key and validate it."""
-
         assert self._reauth_entry is not None
 
         errors: dict[str, str] = {}
         placeholders = {
             "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
             "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
+            "api_key_url": POLLEN_API_KEY_URL,
+            "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
         }
 
         if user_input:
@@ -406,12 +577,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(
                     CONF_API_KEY,
-                    default=self._reauth_entry.data.get(CONF_API_KEY, ""),
-                ): str
+                    default="",
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
             }
         )
 
-        # Ensure the form posts back to this handler.
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=schema,
@@ -431,49 +601,118 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         placeholders = {"title": self.entry.title or DEFAULT_ENTRY_TITLE}
 
+        current_interval_raw = self.entry.options.get(
+            CONF_UPDATE_INTERVAL,
+            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+        )
+        current_interval = _sanitize_update_interval_for_default(current_interval_raw)
+        current_lang = self.entry.options.get(
+            CONF_LANGUAGE_CODE,
+            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
+        )
+        current_days_raw = self.entry.options.get(
+            CONF_FORECAST_DAYS,
+            self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+        )
+        current_days_default = _sanitize_forecast_days_for_default(current_days_raw)
+        current_days = int(current_days_default)
+        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS)
+        if current_mode is None:
+            current_mode = self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none")
+        current_mode = _sanitize_forecast_mode_for_default(current_mode)
+
+        options_schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_UPDATE_INTERVAL, default=current_interval
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_UPDATE_INTERVAL_HOURS,
+                        max=MAX_UPDATE_INTERVAL_HOURS,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement="h",
+                    )
+                ),
+                vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.TEXT)
+                ),
+                vol.Optional(
+                    CONF_FORECAST_DAYS, default=current_days_default
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        mode=SelectSelectorMode.DROPDOWN,
+                        options=FORECAST_DAYS_OPTIONS,
+                    )
+                ),
+                vol.Optional(
+                    CONF_CREATE_FORECAST_SENSORS, default=current_mode
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        mode=SelectSelectorMode.DROPDOWN,
+                        options=FORECAST_SENSORS_CHOICES,
+                    )
+                ),
+            }
+        )
+
         if user_input is not None:
+            normalized_input: dict[str, Any] = {**self.entry.options, **user_input}
+            interval_value, interval_error = _parse_update_interval(
+                normalized_input.get(CONF_UPDATE_INTERVAL, current_interval),
+                current_interval,
+            )
+            normalized_input[CONF_UPDATE_INTERVAL] = interval_value
+            if interval_error:
+                errors[CONF_UPDATE_INTERVAL] = interval_error
+
+            if errors.get(CONF_UPDATE_INTERVAL):
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=options_schema,
+                    errors=errors,
+                    description_placeholders=placeholders,
+                )
+
+            forecast_days, days_error = _parse_int_option(
+                normalized_input.get(CONF_FORECAST_DAYS, current_days),
+                current_days,
+                min_value=MIN_FORECAST_DAYS,
+                max_value=MAX_FORECAST_DAYS,
+                error_key="invalid_forecast_days",
+            )
+            normalized_input[CONF_FORECAST_DAYS] = forecast_days
+            if days_error:
+                errors[CONF_FORECAST_DAYS] = days_error
+
             try:
-                # Language: allow empty; if provided, validate & normalize.
-                raw_lang = user_input.get(
+                raw_lang = normalized_input.get(
                     CONF_LANGUAGE_CODE,
                     self.entry.options.get(
-                        CONF_LANGUAGE_CODE, self.entry.data.get(CONF_LANGUAGE_CODE, "")
+                        CONF_LANGUAGE_CODE,
+                        self.entry.data.get(CONF_LANGUAGE_CODE, ""),
                     ),
                 )
                 lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
                 if lang:
                     lang = is_valid_language_code(lang)
-                user_input[CONF_LANGUAGE_CODE] = lang  # persist normalized
+                normalized_input[CONF_LANGUAGE_CODE] = lang
 
-                # forecast_days within 1..5
-                days = int(
-                    user_input.get(
-                        CONF_FORECAST_DAYS,
-                        self.entry.options.get(
-                            CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS
-                        ),
-                    )
-                )
-                if days < MIN_FORECAST_DAYS or days > MAX_FORECAST_DAYS:
-                    errors[CONF_FORECAST_DAYS] = "invalid_option_combo"
-
-                # per-day sensors vs number of days
-                mode = user_input.get(
+                days = normalized_input[CONF_FORECAST_DAYS]
+                mode = normalized_input.get(
                     CONF_CREATE_FORECAST_SENSORS,
-                    self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none"),
+                    current_mode,
                 )
-                needed = 1
-                if mode == "D+1":
-                    needed = 2
-                elif mode == "D+1+2":
-                    needed = 3
+                mode = normalize_sensor_mode(mode, _LOGGER)
+                normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
+                needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
                 if days < needed:
                     errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
 
             except vol.Invalid as ve:
                 _LOGGER.warning(
                     "Options language validation failed for '%s': %s",
-                    user_input.get(CONF_LANGUAGE_CODE),
+                    normalized_input.get(CONF_LANGUAGE_CODE),
                     ve,
                 )
                 errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
@@ -485,39 +724,11 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "unknown"
 
             if not errors:
-                return self.async_create_entry(title="", data=user_input)
-
-        # Defaults: prefer options, fallback to data/HA config
-        current_interval = self.entry.options.get(
-            CONF_UPDATE_INTERVAL,
-            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-        )
-        current_lang = self.entry.options.get(
-            CONF_LANGUAGE_CODE,
-            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
-        )
-        current_days = self.entry.options.get(
-            CONF_FORECAST_DAYS,
-            self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-        )
-        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS, "none")
+                return self.async_create_entry(title="", data=normalized_input)
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_UPDATE_INTERVAL, default=current_interval
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1)),
-                    vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): str,
-                    vol.Optional(CONF_FORECAST_DAYS, default=current_days): vol.In(
-                        list(range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1))
-                    ),
-                    vol.Optional(
-                        CONF_CREATE_FORECAST_SENSORS, default=current_mode
-                    ): vol.In(FORECAST_SENSORS_CHOICES),
-                }
-            ),
+            data_schema=options_schema,
             errors=errors,
             description_placeholders=placeholders,
         )

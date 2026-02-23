@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "Konfiguration av pollennivåer",
-        "description": "Ange din Google API-nyckel, välj din plats på kartan, uppdateringsintervall (timmar) och språkkod för API-svar.",
+        "description": "Ange din Google API-nyckel ([hämta den här]({api_key_url})) och läs bästa praxis ([bästa praxis]({restricting_api_keys_url})). Välj din plats på kartan, uppdateringsintervallet (timmar) och språkkoden för API-svaret. Du kan också ange prognosdagar och omfånget för sensorer per dag (TYPER).",
         "data": {
           "api_key": "API-nyckel",
           "name": "Namn",
           "location": "Plats",
           "update_interval": "Uppdateringsintervall (timmar)",
-          "language_code": "Språkkod för API-svar"
+          "language_code": "Språkkod för API-svar",
+          "forecast_days": "Prognosdagar (1–5)",
+          "create_forecast_sensors": "Omfång för sensorer per dag (TYPER)"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "Ogiltig API-nyckel",
-      "cannot_connect": "Kan inte ansluta till tjänsten",
-      "quota_exceeded": "Kvoten har överskridits",
-      "invalid_language": "Ogiltig språkkod",
+      "invalid_auth": "Ogiltig API-nyckel\n\n{error_message}",
+      "cannot_connect": "Kan inte ansluta till tjänsten\n\n{error_message}",
+      "quota_exceeded": "Kvoten har överskridits\n\n{error_message}",
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "invalid_coordinates": "Välj en giltig plats på kartan.",
-      "unknown": "Okänt fel"
+      "unknown": "Okänt fel",
+      "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
+      "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5."
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Alternativ",
-        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för {title}.\nAlternativ för sensorer per dag (TYPER): Endast idag (none), Till och med i morgon (D+1), Till och med i övermorgon (D+2).",
+        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för {title}.\nAlternativ för sensorer per dag (TYPER): Endast idag (none), Till och med i morgon (D+1), Till och med i övermorgon (D+2; skapar både D+1- och D+2-sensorer).",
         "data": {
           "update_interval": "Uppdateringsintervall (timmar)",
           "language_code": "Språkkod för API-svar",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Ogiltig API-nyckel",
-      "cannot_connect": "Kan inte ansluta till tjänsten",
-      "quota_exceeded": "Kvoten har överskridits",
-      "invalid_language": "Ogiltig språkkod",
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
       "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
-      "unknown": "Okänt fel"
+      "unknown": "Okänt fel",
+      "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
+      "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5."
     }
   },
   "device": {

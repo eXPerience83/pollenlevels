@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuratie",
-        "description": "Voer je Google API-sleutel in, selecteer je locatie op de kaart, het update-interval (uren) en de taalcode voor de API-respons.",
+        "description": "Voer je Google API-sleutel in ([haal hem hier]({api_key_url})) en bekijk de best practices ([best practices]({restricting_api_keys_url})). Selecteer je locatie op de kaart, het update-interval (uren) en de taalcode van de API-respons. Je kunt ook voorspellingsdagen en het bereik van per-dag TYPE-sensoren instellen.",
         "data": {
           "api_key": "API-sleutel",
           "name": "Naam",
           "location": "Locatie",
           "update_interval": "Update-interval (uren)",
-          "language_code": "Taalcode voor API-respons"
+          "language_code": "Taalcode voor API-respons",
+          "forecast_days": "Voorspellingsdagen (1–5)",
+          "create_forecast_sensors": "Bereik van per-dag TYPE-sensoren"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "Ongeldige API-sleutel",
-      "cannot_connect": "Kan geen verbinding maken met de service",
-      "quota_exceeded": "Limiet overschreden",
-      "invalid_language": "Ongeldige taalcode",
+      "invalid_auth": "Ongeldige API-sleutel\n\n{error_message}",
+      "cannot_connect": "Kan geen verbinding maken met de service\n\n{error_message}",
+      "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
-      "unknown": "Onbekende fout"
+      "unknown": "Onbekende fout",
+      "invalid_update_interval": "Het update-interval moet tussen 1 en 24 uur liggen.",
+      "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen."
     },
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opties",
-        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2).",
+        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2; maakt zowel D+1- als D+2-sensoren aan).",
         "data": {
           "update_interval": "Update-interval (uren)",
           "language_code": "Taalcode voor API-respons",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Ongeldige API-sleutel",
-      "cannot_connect": "Kan geen verbinding maken met de service",
-      "quota_exceeded": "Limiet overschreden",
-      "invalid_language": "Ongeldige taalcode",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
       "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
-      "unknown": "Onbekende fout"
+      "unknown": "Onbekende fout",
+      "invalid_update_interval": "Het update-interval moet tussen 1 en 24 uur liggen.",
+      "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen."
     }
   },
   "device": {

@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "Configuración de Niveles de Polen",
-        "description": "Introduce tu clave de API de Google, selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API.",
+        "description": "Introduce tu clave API de Google ([consíguela aquí]({api_key_url})) y revisa las buenas prácticas ([buenas prácticas]({restricting_api_keys_url})). Selecciona tu ubicación en el mapa, el intervalo de actualización (horas) y el código de idioma de la respuesta de la API. También puedes configurar los días de previsión y el alcance de los sensores por día (TIPOS).",
         "data": {
           "api_key": "Clave API",
           "name": "Nombre",
           "location": "Ubicación",
           "update_interval": "Intervalo de actualización (horas)",
-          "language_code": "Código de idioma de la respuesta de la API"
+          "language_code": "Código de idioma de la respuesta de la API",
+          "forecast_days": "Días de previsión (1–5)",
+          "create_forecast_sensors": "Alcance de sensores por día (TIPOS)"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "Clave API inválida",
+      "invalid_auth": "Clave API inválida\n\n{error_message}",
       "cannot_connect": "No se puede conectar al servicio de polen.\n\n{error_message}",
-      "quota_exceeded": "Cuota excedida",
-      "invalid_language": "Código de idioma no válido",
+      "quota_exceeded": "Cuota excedida\n\n{error_message}",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
       "invalid_coordinates": "Selecciona una ubicación válida en el mapa.",
-      "unknown": "Error desconocido"
+      "unknown": "Error desconocido",
+      "invalid_update_interval": "El intervalo de actualización debe estar entre 1 y 24 horas.",
+      "invalid_forecast_days": "Los días de previsión deben estar entre 1 y 5."
     },
     "abort": {
       "already_configured": "Esta ubicación ya está configurada.",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opciones",
-        "description": "Cambia el intervalo de actualización, el idioma de respuesta de la API, los días de previsión y los sensores por día para {title}.\nOpciones de sensores por día (TIPOS): Solo hoy (none), Hasta mañana (D+1), Hasta pasado mañana (D+2).",
+        "description": "Cambia el intervalo de actualización, el idioma de respuesta de la API, los días de previsión y los sensores por día para {title}.\nOpciones de sensores por día (TIPOS): Solo hoy (none), Hasta mañana (D+1), Hasta pasado mañana (D+2; crea sensores D+1 y D+2).",
         "data": {
           "update_interval": "Intervalo de actualización (horas)",
           "language_code": "Código de idioma de la respuesta de la API",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Clave API inválida",
-      "cannot_connect": "No se puede conectar al servicio de polen.",
-      "quota_exceeded": "Cuota excedida",
-      "invalid_language": "Código de idioma no válido",
       "invalid_language_format": "Usa un código BCP-47 canónico como \"en\" o \"es-ES\".",
       "empty": "Este campo no puede estar vacío",
       "invalid_option_combo": "Aumenta 'Días de previsión' para cubrir los sensores por día seleccionados.",
-      "unknown": "Error desconocido"
+      "unknown": "Error desconocido",
+      "invalid_update_interval": "El intervalo de actualización debe estar entre 1 y 24 horas.",
+      "invalid_forecast_days": "Los días de previsión deben estar entre 1 y 5."
     }
   },
   "device": {

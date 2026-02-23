@@ -1,7 +1,7 @@
 """Initialize Pollen Levels integration.
 
 Notes:
-- Adds a top-level INFO log when the force_update service is invoked to aid debugging.
+- Adds a top-level DEBUG log when the force_update service is invoked to aid debugging.
 - Registers an options update listener to reload the entry so interval/language changes
   take effect immediately without reinstalling.
 """
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Awaitable
 from typing import Any
 
@@ -18,15 +19,104 @@ import voluptuous as vol  # Service schema validation
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN
+from .client import GooglePollenApiClient
+from .const import (
+    CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
+    CONF_LANGUAGE_CODE,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_ENTRY_TITLE,
+    DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
+    MAX_FORECAST_DAYS,
+    MAX_UPDATE_INTERVAL_HOURS,
+    MIN_FORECAST_DAYS,
+    MIN_UPDATE_INTERVAL_HOURS,
+)
+from .coordinator import PollenDataUpdateCoordinator
+from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
+from .sensor import ForecastSensorMode
+from .util import normalize_sensor_mode, redact_api_key, safe_parse_int
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
+TARGET_ENTRY_VERSION = 3
 
 # ---- Service -------------------------------------------------------------
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate config entry data to options when needed."""
+    try:
+        target_version = TARGET_ENTRY_VERSION
+        current_version_raw = getattr(entry, "version", 1)
+        current_version = (
+            current_version_raw if isinstance(current_version_raw, int) else 1
+        )
+        legacy_key = "http_referer"
+        existing_data = entry.data or {}
+        existing_options = entry.options or {}
+        cleanup_needed = (
+            legacy_key in existing_data
+            or legacy_key in existing_options
+            or CONF_CREATE_FORECAST_SENSORS in existing_data
+        )
+        if not cleanup_needed and CONF_CREATE_FORECAST_SENSORS in existing_options:
+            stored_mode = existing_options.get(CONF_CREATE_FORECAST_SENSORS)
+            stored_mode_raw = getattr(stored_mode, "value", stored_mode)
+            if stored_mode_raw is not None:
+                stored_mode_raw = str(stored_mode_raw)
+                cleanup_needed = (
+                    normalize_sensor_mode(stored_mode_raw, _LOGGER) != stored_mode_raw
+                )
+        if current_version >= target_version and not cleanup_needed:
+            return True
+
+        new_data = dict(existing_data)
+        new_options = dict(existing_options)
+        mode = new_options.get(CONF_CREATE_FORECAST_SENSORS)
+        if mode is None:
+            mode = new_data.get(CONF_CREATE_FORECAST_SENSORS)
+        new_data.pop(CONF_CREATE_FORECAST_SENSORS, None)
+
+        mode_raw = getattr(mode, "value", mode)
+        if mode_raw is not None:
+            mode_raw = str(mode_raw)
+            normalized_mode = normalize_sensor_mode(mode_raw, _LOGGER)
+            if new_options.get(CONF_CREATE_FORECAST_SENSORS) != normalized_mode:
+                new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
+        else:
+            new_options.pop(CONF_CREATE_FORECAST_SENSORS, None)
+
+        new_data.pop(legacy_key, None)
+        new_options.pop(legacy_key, None)
+
+        new_version = max(current_version, target_version)
+        if new_data != existing_data or new_options != existing_options:
+            hass.config_entries.async_update_entry(
+                entry, data=new_data, options=new_options, version=new_version
+            )
+        else:
+            hass.config_entries.async_update_entry(entry, version=new_version)
+        return True
+    except asyncio.CancelledError:
+        raise
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception(
+            "Failed to migrate per-day sensor mode to entry options for entry %s "
+            "(version=%s)",
+            entry.entry_id,
+            getattr(entry, "version", None),
+        )
+        return False
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
@@ -35,27 +125,43 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
     async def handle_force_update_service(call: ServiceCall) -> None:
         """Refresh pollen data for all entries."""
-        # Added: top-level log to confirm manual trigger for easier debugging.
-        _LOGGER.info("Executing force_update service for all Pollen Levels entries")
+        _LOGGER.debug("Executing force_update service for all Pollen Levels entries")
         entries = list(hass.config_entries.async_entries(DOMAIN))
         tasks: list[Awaitable[None]] = []
         task_entries: list[ConfigEntry] = []
         for entry in entries:
-            coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+            runtime = getattr(entry, "runtime_data", None)
+            coordinator = getattr(runtime, "coordinator", None)
             if coordinator:
-                _LOGGER.info("Trigger manual refresh for entry %s", entry.entry_id)
-                tasks.append(coordinator.async_refresh())
+                tasks.append(coordinator.async_request_refresh())
                 task_entries.append(entry)
+            else:
+                _LOGGER.debug(
+                    "Skipping force_update for entry %s (no coordinator)",
+                    entry.entry_id,
+                )
 
-        if tasks:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for entry, result in zip(task_entries, results, strict=False):
-                if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Manual refresh failed for entry %s: %r",
-                        entry.entry_id,
-                        result,
-                    )
+        if not tasks:
+            _LOGGER.debug("No coordinators available for force_update")
+            return
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for entry, result in zip(task_entries, results, strict=False):
+            if isinstance(result, asyncio.CancelledError):
+                _LOGGER.debug(
+                    "Manual refresh cancelled for entry %s",
+                    entry.entry_id,
+                )
+                continue
+            if isinstance(result, Exception):
+                api_key = (entry.data or {}).get(CONF_API_KEY)
+                safe_message = redact_api_key(result, api_key)
+                _LOGGER.warning(
+                    "Manual refresh failed for entry %s (%s): %s",
+                    entry.entry_id,
+                    type(result).__name__,
+                    safe_message or "no error details",
+                )
 
     # Enforce empty payload for the service; reject unknown fields for clearer errors.
     hass.services.async_register(
@@ -64,7 +170,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: PollenLevelsConfigEntry
+) -> bool:
     """Forward config entry to sensor platform and register options listener."""
     _LOGGER.debug(
         "PollenLevels async_setup_entry for entry_id=%s title=%s",
@@ -72,15 +180,113 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.title,
     )
 
+    options = entry.options or {}
+
+    parsed_hours = safe_parse_int(
+        options.get(
+            CONF_UPDATE_INTERVAL,
+            entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+        )
+    )
+    hours = parsed_hours if parsed_hours is not None else DEFAULT_UPDATE_INTERVAL
+    hours = max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, hours))
+    parsed_forecast_days = safe_parse_int(
+        options.get(
+            CONF_FORECAST_DAYS,
+            entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+        )
+    )
+    forecast_days = (
+        parsed_forecast_days
+        if parsed_forecast_days is not None
+        else DEFAULT_FORECAST_DAYS
+    )
+    forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
+    language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
+    raw_mode = options.get(
+        CONF_CREATE_FORECAST_SENSORS,
+        entry.data.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE),
+    )
+    normalized_mode = normalize_sensor_mode(raw_mode, _LOGGER)
     try:
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        mode = ForecastSensorMode(normalized_mode)
+    except (ValueError, TypeError):
+        mode = ForecastSensorMode.NONE
+    create_d1 = (
+        mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2) and forecast_days >= 2
+    )
+    create_d2 = mode == ForecastSensorMode.D1_D2 and forecast_days >= 3
+
+    api_key = entry.data.get(CONF_API_KEY)
+    if not isinstance(api_key, str) or not api_key.strip():
+        raise ConfigEntryAuthFailed("Invalid API key")
+    api_key = api_key.strip()
+
+    raw_lat = entry.data.get(CONF_LATITUDE)
+    raw_lon = entry.data.get(CONF_LONGITUDE)
+    try:
+        lat = float(raw_lat)
+        lon = float(raw_lon)
+    except (TypeError, ValueError) as err:
+        _LOGGER.warning(
+            "Invalid config entry coordinates for entry %s",
+            entry.entry_id,
+        )
+        raise ConfigEntryNotReady from err
+
+    if (
+        not math.isfinite(lat)
+        or not math.isfinite(lon)
+        or not (-90.0 <= lat <= 90.0)
+        or not (-180.0 <= lon <= 180.0)
+    ):
+        _LOGGER.warning(
+            "Out-of-range or non-finite coordinates for entry %s",
+            entry.entry_id,
+        )
+        raise ConfigEntryNotReady
+
+    raw_title = entry.title or ""
+    clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
+
+    session = async_get_clientsession(hass)
+    client = GooglePollenApiClient(session, api_key)
+
+    coordinator = PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key=api_key,
+        lat=lat,
+        lon=lon,
+        hours=hours,
+        language=language,
+        entry_id=entry.entry_id,
+        entry_title=clean_title,
+        forecast_days=forecast_days,
+        create_d1=create_d1,
+        create_d2=create_d2,
+        client=client,
+    )
+
+    try:
+        await coordinator.async_config_entry_first_refresh()
     except ConfigEntryAuthFailed:
         raise
     except ConfigEntryNotReady:
         raise
     except Exception as err:
+        _LOGGER.exception("Error during initial data refresh: %s", err)
+        raise ConfigEntryNotReady from err
+
+    entry.runtime_data = PollenLevelsRuntimeData(coordinator=coordinator, client=client)
+
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    except (ConfigEntryAuthFailed, ConfigEntryNotReady):
+        entry.runtime_data = None
+        raise
+    except Exception as err:
+        entry.runtime_data = None
         _LOGGER.exception("Error forwarding entry setups: %s", err)
-        # Surfaced as ConfigEntryNotReady so HA can retry later.
         raise ConfigEntryNotReady from err
 
     # Ensure options updates (interval/language/forecast settings) trigger reload.
@@ -96,8 +302,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "PollenLevels async_unload_entry called for entry_id=%s", entry.entry_id
     )
     unloaded = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
-    if unloaded and DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
-        hass.data[DOMAIN].pop(entry.entry_id)
+    if unloaded:
+        entry.runtime_data = None
     return unloaded
 
 

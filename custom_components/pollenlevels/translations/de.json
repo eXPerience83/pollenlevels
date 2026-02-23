@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Konfiguration",
-        "description": "Gib deinen Google API-Schlüssel an, wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort.",
+        "description": "Gib deinen Google API-Schlüssel ein ([hier abrufen]({api_key_url})) und lies die Best Practices ([Best Practices]({restricting_api_keys_url})). Wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode der API-Antwort. Sie können auch Vorhersagetage und den Umfang der Tagessensoren (TYPEN) festlegen.",
         "data": {
           "api_key": "API-Schlüssel",
           "name": "Name",
           "location": "Standort",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für die API-Antwort"
+          "language_code": "Sprachcode für die API-Antwort",
+          "forecast_days": "Vorhersagetage (1–5)",
+          "create_forecast_sensors": "Bereich der Tagessensoren (TYPEN)"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "Ungültiger API-Schlüssel",
-      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
-      "quota_exceeded": "Kontingent überschritten",
-      "invalid_language": "Ungültiger Sprachcode",
+      "invalid_auth": "Ungültiger API-Schlüssel\n\n{error_message}",
+      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen\n\n{error_message}",
+      "quota_exceeded": "Kontingent überschritten\n\n{error_message}",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
       "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
-      "unknown": "Unbekannter Fehler"
+      "unknown": "Unbekannter Fehler",
+      "invalid_update_interval": "Das Aktualisierungsintervall muss zwischen 1 und 24 Stunden liegen.",
+      "invalid_forecast_days": "Vorhersagetage müssen zwischen 1 und 5 liegen."
     },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Optionen",
-        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2).",
+        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2; erstellt sowohl D+1- als auch D+2-Sensoren).",
         "data": {
           "update_interval": "Aktualisierungsintervall (Stunden)",
           "language_code": "Sprachcode für die API-Antwort",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Ungültiger API-Schlüssel",
-      "cannot_connect": "Verbindung zum Dienst fehlgeschlagen",
-      "quota_exceeded": "Kontingent überschritten",
-      "invalid_language": "Ungültiger Sprachcode",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
       "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
-      "unknown": "Unbekannter Fehler"
+      "unknown": "Unbekannter Fehler",
+      "invalid_update_interval": "Das Aktualisierungsintervall muss zwischen 1 und 24 Stunden liegen.",
+      "invalid_forecast_days": "Vorhersagetage müssen zwischen 1 und 5 liegen."
     }
   },
   "device": {

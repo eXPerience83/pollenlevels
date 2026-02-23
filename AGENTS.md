@@ -24,6 +24,7 @@
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
 - Keep imports tidy—remove unused symbols and respect the Ruff isort grouping so the Home Assistant package stays first-party under `custom_components/pollenlevels`.
+- Translation source of truth is `custom_components/pollenlevels/translations/en.json`. Keep all other locale files in sync with it and do not add or rely on a `strings.json` file.
 
 Note: When Home Assistant raises its Python floor to 3.14, this guidance will be updated; until then, treat Python 3.13 as the compatibility target for integration code.
 

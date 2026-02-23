@@ -15,19 +15,34 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+
+def _force_module(name: str, module: ModuleType) -> None:
+    """Force a module into sys.modules.
+
+    Tests in this repository are designed to run without Home Assistant installed.
+    In some developer environments, other pytest plugins or pre-imports may have
+    already inserted modules like `custom_components` or `homeassistant`.
+
+    Using `setdefault()` can then silently keep the pre-existing module, which
+    may not match the lightweight stubs expected by these tests.
+    """
+
+    sys.modules[name] = module
+
+
 # ---------------------------------------------------------------------------
 # Minimal package and dependency stubs so the config flow can be imported.
 # ---------------------------------------------------------------------------
 custom_components_pkg = ModuleType("custom_components")
 custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-sys.modules.setdefault("custom_components", custom_components_pkg)
+_force_module("custom_components", custom_components_pkg)
 
 pollenlevels_pkg = ModuleType("custom_components.pollenlevels")
 pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
-sys.modules.setdefault("custom_components.pollenlevels", pollenlevels_pkg)
+_force_module("custom_components.pollenlevels", pollenlevels_pkg)
 
 ha_mod = ModuleType("homeassistant")
-sys.modules.setdefault("homeassistant", ha_mod)
+_force_module("homeassistant", ha_mod)
 
 config_entries_mod = ModuleType("homeassistant.config_entries")
 
@@ -51,6 +66,9 @@ class _StubConfigFlow:
     def async_create_entry(self, *args, **kwargs):  # pragma: no cover - not used
         return {"title": kwargs.get("title"), "data": kwargs.get("data")}
 
+    def add_suggested_values_to_schema(self, schema, suggested_values):
+        return schema
+
 
 class _StubOptionsFlow:
     pass
@@ -68,17 +86,17 @@ class _StubConfigEntry:
 config_entries_mod.ConfigFlow = _StubConfigFlow
 config_entries_mod.OptionsFlow = _StubOptionsFlow
 config_entries_mod.ConfigEntry = _StubConfigEntry
-sys.modules.setdefault("homeassistant.config_entries", config_entries_mod)
+_force_module("homeassistant.config_entries", config_entries_mod)
 
 const_mod = ModuleType("homeassistant.const")
 const_mod.CONF_LATITUDE = "latitude"
 const_mod.CONF_LOCATION = "location"
 const_mod.CONF_LONGITUDE = "longitude"
 const_mod.CONF_NAME = "name"
-sys.modules.setdefault("homeassistant.const", const_mod)
+_force_module("homeassistant.const", const_mod)
 
 helpers_mod = ModuleType("homeassistant.helpers")
-sys.modules.setdefault("homeassistant.helpers", helpers_mod)
+_force_module("homeassistant.helpers", helpers_mod)
 
 config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
 
@@ -110,7 +128,7 @@ def _longitude(value=None):
 config_validation_mod.latitude = _latitude
 config_validation_mod.longitude = _longitude
 config_validation_mod.string = lambda value=None: value
-sys.modules.setdefault("homeassistant.helpers.config_validation", config_validation_mod)
+_force_module("homeassistant.helpers.config_validation", config_validation_mod)
 
 aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
 
@@ -152,7 +170,7 @@ class _StubSession:
 
 
 aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
-sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+_force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 selector_mod = ModuleType("homeassistant.helpers.selector")
 
@@ -167,9 +185,75 @@ class _LocationSelector:
         self.config = config
 
 
+class _NumberSelectorConfig:
+    def __init__(
+        self,
+        *,
+        min: float | None = None,
+        max: float | None = None,
+        step: float | None = None,
+        mode: str | None = None,
+        unit_of_measurement: str | None = None,
+    ) -> None:
+        self.min = min
+        self.max = max
+        self.step = step
+        self.mode = mode
+        self.unit_of_measurement = unit_of_measurement
+
+
+class _NumberSelectorMode:
+    BOX = "BOX"
+
+
+class _NumberSelector:
+    def __init__(self, config: _NumberSelectorConfig):
+        self.config = config
+
+
+class _TextSelectorConfig:
+    def __init__(self, *, type: str | None = None):  # noqa: A003
+        self.type = type
+
+
+class _TextSelectorType:
+    TEXT = "TEXT"
+    PASSWORD = "PASSWORD"
+
+
+class _TextSelector:
+    def __init__(self, config: _TextSelectorConfig):
+        self.config = config
+
+
+class _SelectSelectorConfig:
+    def __init__(self, *, mode: str | None = None, options=None):
+        self.mode = mode
+        self.options = options
+
+
+class _SelectSelectorMode:
+    DROPDOWN = "DROPDOWN"
+
+
+class _SelectSelector:
+    def __init__(self, config: _SelectSelectorConfig):
+        self.config = config
+
+
 selector_mod.LocationSelector = _LocationSelector
 selector_mod.LocationSelectorConfig = _LocationSelectorConfig
-sys.modules.setdefault("homeassistant.helpers.selector", selector_mod)
+selector_mod.NumberSelector = _NumberSelector
+selector_mod.NumberSelectorConfig = _NumberSelectorConfig
+selector_mod.NumberSelectorMode = _NumberSelectorMode
+selector_mod.TextSelector = _TextSelector
+selector_mod.TextSelectorConfig = _TextSelectorConfig
+selector_mod.TextSelectorType = _TextSelectorType
+selector_mod.SelectSelector = _SelectSelector
+selector_mod.SelectSelectorConfig = _SelectSelectorConfig
+selector_mod.SelectSelectorMode = _SelectSelectorMode
+selector_mod.section = lambda key: key
+_force_module("homeassistant.helpers.selector", selector_mod)
 
 ha_mod.helpers = helpers_mod
 ha_mod.config_entries = config_entries_mod
@@ -188,7 +272,7 @@ class _StubClientTimeout:
 
 aiohttp_mod.ClientError = _StubClientError
 aiohttp_mod.ClientTimeout = _StubClientTimeout
-sys.modules.setdefault("aiohttp", aiohttp_mod)
+_force_module("aiohttp", aiohttp_mod)
 
 vol_mod = ModuleType("voluptuous")
 
@@ -199,15 +283,20 @@ class _StubInvalid(Exception):
         self.error_message = error_message
 
 
+class _StubSchema:
+    def __init__(self, schema):
+        self.schema = schema
+
+
 vol_mod.Invalid = _StubInvalid
-vol_mod.Schema = lambda *args, **kwargs: None
-vol_mod.Optional = lambda *args, **kwargs: None
-vol_mod.Required = lambda *args, **kwargs: None
+vol_mod.Schema = lambda schema, **kwargs: _StubSchema(schema)
+vol_mod.Optional = lambda key, **kwargs: key
+vol_mod.Required = lambda key, **kwargs: key
 vol_mod.All = lambda *args, **kwargs: None
 vol_mod.Coerce = lambda *args, **kwargs: None
 vol_mod.Range = lambda *args, **kwargs: None
 vol_mod.In = lambda *args, **kwargs: None
-sys.modules.setdefault("voluptuous", vol_mod)
+_force_module("voluptuous", vol_mod)
 
 from homeassistant.const import (
     CONF_LATITUDE,
@@ -223,9 +312,17 @@ from custom_components.pollenlevels.config_flow import (
 )
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
+    DEFAULT_FORECAST_DAYS,
+    DEFAULT_UPDATE_INTERVAL,
+    FORECAST_SENSORS_CHOICES,
+    MAX_FORECAST_DAYS,
+    MAX_UPDATE_INTERVAL_HOURS,
+    MIN_FORECAST_DAYS,
 )
 
 
@@ -242,6 +339,14 @@ class _StubResponse:
 
     async def read(self) -> bytes:
         return self._body
+
+    async def json(self):
+        import json as _json
+
+        return _json.loads(self._body.decode())
+
+    async def text(self) -> str:
+        return self._body.decode()
 
 
 class _SequenceSession:
@@ -333,6 +438,36 @@ def test_validate_input_invalid_language_key_mapping() -> None:
 
     assert errors == {CONF_LANGUAGE_CODE: "invalid_language_format"}
     assert normalized is None
+
+
+def test_validate_input_empty_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Blank or whitespace API keys should be rejected without HTTP calls."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    session_called = False
+
+    def _raise_session(hass):
+        nonlocal session_called
+        session_called = True
+        raise AssertionError("async_get_clientsession should not be called")
+
+    monkeypatch.setattr(cf, "async_get_clientsession", _raise_session)
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                CONF_API_KEY: "   ",
+                CONF_LOCATION: {CONF_LATITUDE: 1.0, CONF_LONGITUDE: 2.0},
+            },
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {CONF_API_KEY: "empty"}
+    assert normalized is None
+    assert session_called is False
 
 
 def test_language_error_to_form_key_mapping() -> None:
@@ -433,12 +568,234 @@ def _base_user_input() -> dict:
     }
 
 
-def test_validate_input_http_403_sets_invalid_auth(
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("not-a-number", DEFAULT_UPDATE_INTERVAL),
+        (0, 1),
+        (999, MAX_UPDATE_INTERVAL_HOURS),
+    ],
+)
+def test_setup_schema_update_interval_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: object,
+    expected: int,
+) -> None:
+    """Update interval defaults should be sanitized for form rendering."""
+
+    captured_defaults: list[int | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_UPDATE_INTERVAL:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+    cf._build_step_user_schema(hass, {CONF_UPDATE_INTERVAL: raw_value})
+
+    assert captured_defaults == [expected]
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        ("999", str(MAX_FORECAST_DAYS)),
+        (-5, str(MIN_FORECAST_DAYS)),
+        ("abc", str(DEFAULT_FORECAST_DAYS)),
+    ],
+)
+def test_setup_schema_forecast_days_default_is_sanitized(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: object,
+    expected: str,
+) -> None:
+    """Forecast days defaults should be sanitized for form rendering."""
+
+    captured_defaults: list[str | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_FORECAST_DAYS:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+    cf._build_step_user_schema(hass, {CONF_FORECAST_DAYS: raw_value})
+
+    assert captured_defaults == [expected]
+
+
+def test_setup_schema_sensor_mode_default_is_sanitized(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HTTP 403 during validation should map to invalid_auth."""
+    """Per-day sensor defaults should fall back to a valid selector choice."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(403))
+    captured_defaults: list[str | None] = []
+
+    def _capture_optional(key, **kwargs):
+        if key == CONF_CREATE_FORECAST_SENSORS:
+            captured_defaults.append(kwargs.get("default"))
+        return key
+
+    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+    cf._build_step_user_schema(hass, {CONF_CREATE_FORECAST_SENSORS: "bad"})
+
+    assert captured_defaults == [FORECAST_SENSORS_CHOICES[0]]
+
+
+def test_step_user_schema_masks_api_key_field() -> None:
+    """Initial setup form should render API key as a password selector."""
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+    )
+
+    schema = cf._build_step_user_schema(hass, {})
+    api_selector = schema.schema[CONF_API_KEY]
+
+    assert isinstance(api_selector, cf.TextSelector)
+    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
+
+
+def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reauth form should mask API key input and avoid prefilling secrets."""
+
+    captured_default: dict[str, object] = {}
+    orig_required = cf.vol.Required
+
+    def _capture_required(key, **kwargs):
+        if key == CONF_API_KEY:
+            captured_default["api_key"] = kwargs.get("default")
+        return orig_required(key, **kwargs)
+
+    monkeypatch.setattr(cf.vol, "Required", _capture_required)
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+        },
+        entry_id="entry-id",
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
+    flow.context = {"entry_id": "entry-id"}
+    flow._reauth_entry = entry
+
+    captured: dict[str, object] = {}
+
+    def _capture_show_form(*, step_id=None, data_schema=None, **kwargs):
+        captured["step_id"] = step_id
+        captured["schema"] = data_schema
+        return {"step_id": step_id}
+
+    flow.async_show_form = _capture_show_form  # type: ignore[method-assign]
+
+    result = asyncio.run(flow.async_step_reauth_confirm())
+
+    assert result == {"step_id": "reauth_confirm"}
+    assert captured_default["api_key"] == ""
+    schema = captured["schema"]
+    assert hasattr(schema, "schema")
+    api_selector = schema.schema[CONF_API_KEY]
+    assert isinstance(api_selector, cf.TextSelector)
+    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
+
+
+def test_validate_input_update_interval_below_min_sets_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sub-1 update intervals should surface a field error and skip I/O."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(200))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: 0}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(user_input, check_unique_id=False)
+    )
+
+    assert errors == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+    assert normalized is None
+    assert not session.calls
+
+
+def test_validate_input_update_interval_float_string(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Float-like strings should coerce to int and allow validation to proceed."""
+
+    session = _patch_client_session(
+        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"indexInfo": []}]}')
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: "1.0"}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(user_input, check_unique_id=False)
+    )
+
+    assert errors == {}
+    assert normalized is not None
+    assert normalized[CONF_UPDATE_INTERVAL] == 1
+    assert session.calls
+
+
+def test_validate_input_update_interval_non_numeric_sets_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-numeric update intervals should surface a field error and skip I/O."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(200))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: "abc"}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(user_input, check_unique_id=False)
+    )
+
+    assert errors == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+    assert normalized is None
+    assert not session.calls
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (401, {"base": "invalid_auth"}),
+        (403, {"base": "cannot_connect"}),
+    ],
+)
+def test_validate_input_http_auth_errors_map_correctly(
+    monkeypatch: pytest.MonkeyPatch, status: int, expected: dict
+) -> None:
+    """HTTP auth failures during validation should map correctly."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(status))
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -448,7 +805,7 @@ def test_validate_input_http_403_sets_invalid_auth(
     )
 
     assert session.calls
-    assert errors == {"base": "invalid_auth"}
+    assert errors == expected
     assert normalized is None
 
 
@@ -515,6 +872,211 @@ def test_validate_input_http_500_sets_error_message_placeholder(
     assert placeholders.get("error_message")
 
 
+def test_validate_input_clears_error_message_placeholder_on_validation_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Field-level validation errors should clear stale error_message placeholders."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(500))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message")
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {**_base_user_input(), CONF_LANGUAGE_CODE: "bad code"},
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert errors == {CONF_LANGUAGE_CODE: "invalid_language_format"}
+    assert normalized is None
+    assert "error_message" not in placeholders
+
+
+def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """invalid_option_combo should clear stale error_message placeholders."""
+
+    session = _patch_client_session(monkeypatch, _StubResponse(500))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message")
+
+    _patch_client_session(
+        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"day": "D0"}]}')
+    )
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                **_base_user_input(),
+                CONF_FORECAST_DAYS: 1,
+                CONF_CREATE_FORECAST_SENSORS: "D+1",
+            },
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert errors == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
+    assert normalized is None
+    assert "error_message" not in placeholders
+
+
+def test_validate_input_http_403_sets_error_message_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 403 should populate the cannot_connect error_message placeholder."""
+
+    body = b'{"error": {"message": "Forbidden for this project"}}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=403, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert "Forbidden" in placeholders.get("error_message", "")
+
+
+def test_validate_input_http_403_invalid_key_maps_to_invalid_auth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 403 invalid API key messages should behave like invalid_auth."""
+
+    body = b'{"error": {"message": "API key not valid. Please pass a valid API key."}}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=403, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "invalid_auth"}
+    assert normalized is None
+    assert "api key not valid" in placeholders.get("error_message", "").lower()
+
+
+def test_validate_input_redacts_api_key_in_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Error placeholders should redact API keys returned by the service."""
+
+    body = b'{"error": {"message": "API key test-key not valid"}}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=401, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    user_input = _base_user_input()
+    user_input[cf.CONF_API_KEY] = "test-key"
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            user_input,
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert session.calls
+    assert errors == {"base": "invalid_auth"}
+    assert normalized is None
+    error_message = placeholders.get("error_message", "")
+    assert "test-key" not in error_message
+    assert "***" in error_message
+
+
+def test_validate_input_http_200_non_list_dailyinfo_sets_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-list dailyInfo in HTTP 200 should be treated as invalid."""
+
+    body = b'{"dailyInfo": "invalid"}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=200, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+
+
+def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dailyInfo list with non-dict items should be treated as invalid."""
+
+    body = b'{"dailyInfo": ["invalid-item"]}'
+    session = _patch_client_session(monkeypatch, _StubResponse(status=200, body=body))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert session.calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+
+
 def test_validate_input_unexpected_exception_sets_unknown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -542,7 +1104,8 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     """Successful validation should normalize data and set unique ID."""
 
     body = b'{"dailyInfo": [{"day": "D0"}]}'
-    session = _patch_client_session(monkeypatch, _StubResponse(200, body))
+    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
 
     class _TrackingFlow(PollenLevelsConfigFlow):
         def __init__(self) -> None:
@@ -580,6 +1143,55 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     assert normalized[CONF_LANGUAGE_CODE] == "es"
     assert flow.unique_ids == ["1.0000_2.0000"]
     assert flow.abort_calls == 1
+
+
+def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unique-id format should match legacy 4-decimal duplicate detection."""
+
+    body = b'{"dailyInfo": [{"day": "D0"}]}'
+    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
+
+    class _TrackingFlow(PollenLevelsConfigFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.unique_ids: list[str] = []
+
+        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
+            self.unique_ids.append(uid)
+            return None
+
+        def _abort_if_unique_id_configured(self):
+            return None
+
+    flow = _TrackingFlow()
+    flow.hass = SimpleNamespace(config=SimpleNamespace())
+
+    first = {
+        **_base_user_input(),
+        CONF_LOCATION: {CONF_LATITUDE: "1.0000044", CONF_LONGITUDE: "2.0000044"},
+    }
+    second = {
+        **_base_user_input(),
+        CONF_LOCATION: {CONF_LATITUDE: "1.0000046", CONF_LONGITUDE: "2.0000046"},
+    }
+
+    first_errors, first_normalized = asyncio.run(
+        flow._async_validate_input(first, check_unique_id=True)
+    )
+    second_errors, second_normalized = asyncio.run(
+        flow._async_validate_input(second, check_unique_id=True)
+    )
+
+    assert session.calls
+    assert first_errors == {}
+    assert second_errors == {}
+    assert first_normalized is not None
+    assert second_normalized is not None
+    assert len(flow.unique_ids) == 2
+    assert flow.unique_ids[0] == flow.unique_ids[1] == "1.0000_2.0000"
 
 
 def test_reauth_confirm_updates_and_reloads_entry() -> None:
@@ -713,3 +1325,35 @@ def test_async_step_user_defaults_entry_name() -> None:
 
     assert result["title"] == DEFAULT_ENTRY_TITLE
     assert result["data"] == normalized
+
+
+@pytest.mark.parametrize("raw", ["inf", "-inf", "nan"])
+def test_parse_int_option_non_finite_returns_error(raw: str) -> None:
+    """Non-finite numeric values should be rejected safely."""
+
+    parsed, err = cf._parse_int_option(
+        raw,
+        default=cf.DEFAULT_UPDATE_INTERVAL,
+        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        error_key="invalid_update_interval",
+    )
+
+    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert err == "invalid_update_interval"
+
+
+@pytest.mark.parametrize("raw", ["2.9", 2.1])
+def test_parse_int_option_decimal_returns_error(raw: object) -> None:
+    """Decimal values should be rejected for integer-only options."""
+
+    parsed, err = cf._parse_int_option(
+        raw,
+        default=cf.DEFAULT_UPDATE_INTERVAL,
+        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        error_key="invalid_update_interval",
+    )
+
+    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert err == "invalid_update_interval"

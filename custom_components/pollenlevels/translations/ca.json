@@ -3,13 +3,15 @@
     "step": {
       "user": {
         "title": "Configuració de Nivells de pol·len",
-        "description": "Introdueix la teva clau d’API de Google, selecciona la teva ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API.",
+        "description": "Introdueix la teva clau API de Google ([aconsegueix-la aquí]({api_key_url})) i revisa les bones pràctiques ([bones pràctiques]({restricting_api_keys_url})). Selecciona la ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API. També pots definir els dies de previsió i l'abast dels sensors per dia (TIPUS).",
         "data": {
           "api_key": "Clau API",
           "name": "Nom",
           "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta de l’API"
+          "language_code": "Codi d’idioma de la resposta de l’API",
+          "forecast_days": "Dies de previsió (1–5)",
+          "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)"
         }
       },
       "reauth_confirm": {
@@ -21,15 +23,16 @@
       }
     },
     "error": {
-      "invalid_auth": "Clau API no vàlida",
+      "invalid_auth": "Clau API no vàlida\n\n{error_message}",
       "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
-      "quota_exceeded": "Quota excedida",
-      "invalid_language": "Codi d’idioma no vàlid",
+      "quota_exceeded": "Quota excedida\n\n{error_message}",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
-      "unknown": "Error desconegut"
+      "unknown": "Error desconegut",
+      "invalid_update_interval": "L’interval d’actualització ha d’estar entre 1 i 24 hores.",
+      "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5."
     },
     "abort": {
       "already_configured": "Aquesta ubicació ja està configurada.",
@@ -41,7 +44,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcions",
-        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2).",
+        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2; crea tant els sensors D+1 com D+2).",
         "data": {
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API",
@@ -51,14 +54,12 @@
       }
     },
     "error": {
-      "invalid_auth": "Clau API no vàlida",
-      "cannot_connect": "No es pot connectar al servei de pol·len.",
-      "quota_exceeded": "Quota excedida",
-      "invalid_language": "Codi d’idioma no vàlid",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
       "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
-      "unknown": "Error desconegut"
+      "unknown": "Error desconegut",
+      "invalid_update_interval": "L’interval d’actualització ha d’estar entre 1 i 24 hores.",
+      "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5."
     }
   },
   "device": {

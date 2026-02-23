@@ -11,7 +11,8 @@ No network I/O is performed.
 
 from __future__ import annotations
 
-from typing import Any
+import math
+from typing import Any, cast
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
@@ -26,19 +27,17 @@ from .const import (
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
-    DOMAIN,
+    MAX_FORECAST_DAYS,
+    MIN_FORECAST_DAYS,
 )
-from .util import redact_api_key
+from .runtime import PollenLevelsRuntimeData
+from .util import redact_api_key, safe_parse_int
 
 # Redact potentially sensitive values from diagnostics.
-# NOTE: Also redact the "location.*" variants used in the request example to avoid
-# leaking coordinates in exported diagnostics.
 TO_REDACT = {
     CONF_API_KEY,
     CONF_LATITUDE,
     CONF_LONGITUDE,
-    "location.latitude",
-    "location.longitude",
 }
 
 
@@ -57,7 +56,8 @@ async def async_get_config_entry_diagnostics(
 
     NOTE: This function must not perform any network I/O.
     """
-    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    runtime = cast(PollenLevelsRuntimeData | None, getattr(entry, "runtime_data", None))
+    coordinator = getattr(runtime, "coordinator", None) if runtime else None
     options: dict[str, Any] = dict(entry.options or {})
     data: dict[str, Any] = dict(entry.data or {})
 
@@ -65,9 +65,12 @@ async def async_get_config_entry_diagnostics(
     # coordinates. This should not be redacted.
     def _rounded(value: Any) -> float | None:
         try:
-            return round(float(value), 1)
-        except (TypeError, ValueError):
+            f = float(value)
+        except (TypeError, ValueError, OverflowError):
             return None
+        if not math.isfinite(f):
+            return None
+        return round(f, 1)
 
     approx_location = {
         "label": "approximate_location (rounded)",
@@ -77,26 +80,25 @@ async def async_get_config_entry_diagnostics(
 
     # --- Build a safe params example (no network I/O) ----------------------
     # Use DEFAULT_FORECAST_DAYS from const.py to avoid config drift.
-    try:
-        days_effective = int(
-            options.get(
-                CONF_FORECAST_DAYS,
-                data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-            )
-        )
-    except Exception:
+    days_raw = options.get(
+        CONF_FORECAST_DAYS,
+        data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+    )
+    parsed_days = safe_parse_int(days_raw)
+    if parsed_days is None:
         # Defensive fallback
         days_effective = DEFAULT_FORECAST_DAYS
+    else:
+        days_effective = parsed_days
 
-    # Clamp days to a sensible minimum (avoid 0 or negative in diagnostics)
-    if days_effective < 1:
-        days_effective = 1
+    days_effective = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, days_effective))
 
     params_example: dict[str, Any] = {
         # Explicitly mask the API key example
         "key": redact_api_key(data.get(CONF_API_KEY), data.get(CONF_API_KEY)) or "***",
-        "location.latitude": data.get(CONF_LATITUDE),
-        "location.longitude": data.get(CONF_LONGITUDE),
+        # Use rounded coordinates to avoid exposing precise location data.
+        "location.latitude": _rounded(data.get(CONF_LATITUDE)),
+        "location.longitude": _rounded(data.get(CONF_LONGITUDE)),
         "days": days_effective,
     }
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
@@ -115,8 +117,12 @@ async def async_get_config_entry_diagnostics(
             "create_d1": getattr(coordinator, "create_d1", None),
             "create_d2": getattr(coordinator, "create_d2", None),
             "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
-            "data_keys": list((getattr(coordinator, "data", {}) or {}).keys()),
+            "data_keys_total": 0,
+            "data_keys": [],
         }
+        all_keys = list((getattr(coordinator, "data", {}) or {}).keys())
+        coord_info["data_keys_total"] = len(all_keys)
+        coord_info["data_keys"] = all_keys[:50]
 
         # ---------- Forecast summaries (TYPES & PLANTS) ----------
         data_map: dict[str, Any] = getattr(coordinator, "data", {}) or {}
@@ -183,8 +189,6 @@ async def async_get_config_entry_diagnostics(
                 CONF_CREATE_FORECAST_SENSORS: options.get(CONF_CREATE_FORECAST_SENSORS),
             },
             "data": {
-                CONF_LATITUDE: data.get(CONF_LATITUDE),
-                CONF_LONGITUDE: data.get(CONF_LONGITUDE),
                 CONF_LANGUAGE_CODE: data.get(CONF_LANGUAGE_CODE),
             },
         },
@@ -194,5 +198,7 @@ async def async_get_config_entry_diagnostics(
         "request_params_example": params_example,
     }
 
+    # NOTE: Home Assistant's `async_redact_data` is a synchronous callback helper
+    # despite its `async_` prefix. Do not `await` it.
     # Redact secrets and return
     return async_redact_data(diag, TO_REDACT)
