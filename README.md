@@ -156,6 +156,14 @@ severity:
 
 ### 🧩 Custom cards (for real dynamic color binding)
 
+**Pollen dashboard card (recommended): pollenprognos-card**
+
+If you want a dedicated pollen Lovelace card with forecast visualizations and a visual editor UI,
+**pollenprognos-card** supports this integration since **v2.9.0**.
+
+- Repo: [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
+- Install: HACS → Frontend
+
 If you need the icon/badge to follow the **exact** API color (`color_hex`):
 
 **Mushroom (mushroom-template-card)**
