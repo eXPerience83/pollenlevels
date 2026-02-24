@@ -1,3 +1,10 @@
+## [1.9.4] - 2026-02-24
+### Changed
+- Updated release packaging automation for HACS `zip_release` by validating the
+  integration-root ZIP layout, enabling strict release upload failure when
+  `pollenlevels.zip` is missing, and aligning package-test artifact upload to
+  `actions/upload-artifact@v6`.
+
 ## [1.9.3] - 2026-02-14
 ### Fixed
 - Aligned config-flow API validation with runtime parsing by requiring `dailyInfo`

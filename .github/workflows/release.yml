@@ -1,0 +1,61 @@
+name: Release Asset
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build release ZIP (integration root at ZIP root)
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f "${{ github.workspace }}/pollenlevels.zip"
+          cd "${{ github.workspace }}/custom_components/pollenlevels"
+          zip "${{ github.workspace }}/pollenlevels.zip" -r ./
+
+      - name: Validate ZIP structure (zip_release-compatible)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import zipfile
+
+          zip_path = "pollenlevels.zip"
+          required = {"manifest.json", "__init__.py"}
+
+          with zipfile.ZipFile(zip_path) as zf:
+              names = [n for n in zf.namelist() if n and not n.endswith("/")]
+
+          if not names:
+              raise SystemExit("ZIP is empty")
+
+          bad_prefix = [n for n in names if n.startswith("custom_components/")]
+          if bad_prefix:
+              raise SystemExit(
+                  "ZIP contains 'custom_components/' prefix; "
+                  "zip must be integration-root only"
+              )
+
+          missing = sorted(required.difference(names))
+          if missing:
+              raise SystemExit("ZIP missing required root files: " + ", ".join(missing))
+
+          print("ZIP structure validated.")
+          PY
+
+      - name: Upload ZIP to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pollenlevels.zip
+          overwrite_files: true
+          fail_on_unmatched_files: true
