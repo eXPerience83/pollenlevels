@@ -1,3 +1,9 @@
+## [1.9.5] - 2026-02-27
+### Changed
+- Bumped GitHub Actions artifact upload to `actions/upload-artifact@v7`.
+- Reused the shared Google Pollen API client for config-flow validation so setup now
+  follows the same retries and HTTP error handling semantics as runtime updates.
+
 ## [1.9.4] - 2026-02-24
 ### Changed
 - Updated release packaging automation for HACS `zip_release` by validating the

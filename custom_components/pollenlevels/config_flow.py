@@ -13,7 +13,6 @@ IMPORTANT:
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from typing import Any
@@ -23,6 +22,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     LocationSelector,
@@ -37,7 +37,9 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
+from .client import GooglePollenApiClient
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
@@ -54,12 +56,9 @@ from .const import (
     MIN_FORECAST_DAYS,
     MIN_UPDATE_INTERVAL_HOURS,
     POLLEN_API_KEY_URL,
-    POLLEN_API_TIMEOUT,
     RESTRICTING_API_KEYS_URL,
-    is_invalid_api_key_message,
 )
 from .util import (
-    extract_error_message,
     normalize_sensor_mode,
     redact_api_key,
     safe_parse_int,
@@ -398,71 +397,25 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 lang = is_valid_language_code(lang)
 
             session = async_get_clientsession(self.hass)
-            params = {
-                "key": api_key,
-                "location.latitude": f"{lat:.6f}",
-                "location.longitude": f"{lon:.6f}",
-                "days": 1,
-            }
-            if lang:
-                params["languageCode"] = lang
+            client = GooglePollenApiClient(session=session, api_key=api_key)
+            data = await client.async_fetch_pollen_data(
+                latitude=lat,
+                longitude=lon,
+                days=1,
+                language_code=lang or None,
+            )
 
-            url = "https://pollen.googleapis.com/v1/forecast:lookup"
+            daily_info = data.get("dailyInfo") if isinstance(data, dict) else None
+            daily_is_valid = isinstance(daily_info, list) and bool(daily_info)
+            if daily_is_valid:
+                daily_is_valid = all(isinstance(item, dict) for item in daily_info)
 
-            _LOGGER.debug("Validating Pollen API (days=%s, lang_set=%s)", 1, bool(lang))
-
-            async with session.get(
-                url,
-                params=params,
-                timeout=aiohttp.ClientTimeout(total=POLLEN_API_TIMEOUT),
-            ) as resp:
-                status = resp.status
-                if status != 200:
-                    _LOGGER.debug("Validation HTTP %s (body omitted)", status)
-                    raw_msg = await extract_error_message(resp, f"HTTP {status}")
-                    placeholders["error_message"] = redact_api_key(raw_msg, api_key)
-                    if status == 401:
-                        errors["base"] = "invalid_auth"
-                    elif status == 403:
-                        if is_invalid_api_key_message(raw_msg):
-                            errors["base"] = "invalid_auth"
-                        else:
-                            errors["base"] = "cannot_connect"
-                    elif status == 429:
-                        errors["base"] = "quota_exceeded"
-                    else:
-                        errors["base"] = "cannot_connect"
-                else:
-                    raw = await resp.read()
-                    try:
-                        body_str = raw.decode()
-                    except Exception:
-                        body_str = str(raw)
-                    _LOGGER.debug(
-                        "Validation HTTP %s — %s",
-                        status,
-                        redact_api_key(body_str, api_key),
-                    )
-                    try:
-                        data = json.loads(body_str) if body_str else {}
-                    except Exception:
-                        data = {}
-
-                    daily_info = (
-                        data.get("dailyInfo") if isinstance(data, dict) else None
-                    )
-                    daily_is_valid = isinstance(daily_info, list) and bool(daily_info)
-                    if daily_is_valid:
-                        daily_is_valid = all(
-                            isinstance(item, dict) for item in daily_info
-                        )
-
-                    if not daily_is_valid:
-                        _LOGGER.warning("Validation: 'dailyInfo' missing or invalid")
-                        errors["base"] = "cannot_connect"
-                        placeholders["error_message"] = (
-                            "API response missing expected pollen forecast information."
-                        )
+            if not daily_is_valid:
+                _LOGGER.warning("Validation: 'dailyInfo' missing or invalid")
+                errors["base"] = "cannot_connect"
+                placeholders["error_message"] = (
+                    "API response missing expected pollen forecast information."
+                )
 
             if errors:
                 return errors, None
@@ -478,18 +431,25 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
             placeholders.pop("error_message", None)
-        except TimeoutError as err:
-            _LOGGER.warning(
-                "Validation timeout (%ss): %s",
-                POLLEN_API_TIMEOUT,
-                redact_api_key(err, api_key),
+        except ConfigEntryAuthFailed as err:
+            _LOGGER.warning("Authentication failed during validation")
+            errors["base"] = "invalid_auth"
+            redacted = redact_api_key(err, api_key)
+            if redacted:
+                placeholders["error_message"] = redacted
+        except UpdateFailed as err:
+            errors["base"] = (
+                "quota_exceeded" if "HTTP 429" in str(err) else "cannot_connect"
             )
+            redacted = redact_api_key(err, api_key)
+            if redacted:
+                placeholders["error_message"] = redacted
+        except TimeoutError as err:
+            _LOGGER.warning("Validation timeout: %s", redact_api_key(err, api_key))
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key)
-            placeholders["error_message"] = (
-                redacted
-                or f"Validation request timed out ({POLLEN_API_TIMEOUT} seconds)."
-            )
+            if redacted:
+                placeholders["error_message"] = redacted
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
@@ -497,9 +457,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key)
-            placeholders["error_message"] = (
-                redacted or "Network error while connecting to the pollen service."
-            )
+            if redacted:
+                placeholders["error_message"] = redacted
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
