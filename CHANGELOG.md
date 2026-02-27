@@ -1,3 +1,15 @@
+## [1.9.5] - 2026-02-27
+### Changed
+- Aligned config-flow validation with runtime client semantics by using
+  `GooglePollenApiClient` for setup checks, mapping auth/quota/connectivity
+  errors consistently, and removing duplicate HTTP/JSON parsing from the flow.
+- Expanded config-flow regression coverage to validate client-based setup
+  behavior, including normalized request arguments and timeout/client-error
+  handling parity.
+- Bumped GitHub Actions artifact upload to `actions/upload-artifact@v7`.
+- Replaced fragile text-based HTTP 429 detection in setup validation with a
+  dedicated client quota exception so `quota_exceeded` mapping remains stable.
+
 ## [1.9.4] - 2026-02-24
 ### Changed
 - Updated release packaging automation for HACS `zip_release` by validating the

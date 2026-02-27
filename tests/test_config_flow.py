@@ -44,6 +44,16 @@ _force_module("custom_components.pollenlevels", pollenlevels_pkg)
 ha_mod = ModuleType("homeassistant")
 _force_module("homeassistant", ha_mod)
 
+exceptions_mod = ModuleType("homeassistant.exceptions")
+
+
+class _StubConfigEntryAuthFailed(Exception):
+    pass
+
+
+exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
+_force_module("homeassistant.exceptions", exceptions_mod)
+
 config_entries_mod = ModuleType("homeassistant.config_entries")
 
 
@@ -97,6 +107,16 @@ _force_module("homeassistant.const", const_mod)
 
 helpers_mod = ModuleType("homeassistant.helpers")
 _force_module("homeassistant.helpers", helpers_mod)
+
+update_coordinator_mod = ModuleType("homeassistant.helpers.update_coordinator")
+
+
+class _StubUpdateFailed(Exception):
+    pass
+
+
+update_coordinator_mod.UpdateFailed = _StubUpdateFailed
+_force_module("homeassistant.helpers.update_coordinator", update_coordinator_mod)
 
 config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
 
@@ -298,6 +318,34 @@ vol_mod.Range = lambda *args, **kwargs: None
 vol_mod.In = lambda *args, **kwargs: None
 _force_module("voluptuous", vol_mod)
 
+
+client_mod = ModuleType("custom_components.pollenlevels.client")
+
+
+class _StubGooglePollenApiClient:
+    def __init__(self, session, api_key: str) -> None:
+        self._session = session
+        self._api_key = api_key
+
+    async def async_fetch_pollen_data(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        days: int,
+        language_code: str | None,
+    ) -> dict:
+        return {"dailyInfo": [{"day": "D0"}]}
+
+
+class _StubPollenQuotaExceededError(_StubUpdateFailed):
+    pass
+
+
+client_mod.GooglePollenApiClient = _StubGooglePollenApiClient
+client_mod.PollenQuotaExceededError = _StubPollenQuotaExceededError
+_force_module("custom_components.pollenlevels.client", client_mod)
+
 from homeassistant.const import (
     CONF_LATITUDE,
     CONF_LOCATION,
@@ -331,32 +379,66 @@ class _StubResponse:
         self.status = status
         self._body = body or b"{}"
 
-    async def __aenter__(self):  # pragma: no cover - trivial
-        return self
 
-    async def __aexit__(self, exc_type, exc, tb):  # pragma: no cover - trivial
-        return None
+class _StubValidationClient:
+    def __init__(self, responses: list[_StubResponse], api_key: str) -> None:
+        self._responses = responses
+        self._api_key = api_key
+        self.calls: list[dict[str, object]] = []
 
-    async def read(self) -> bytes:
-        return self._body
+    async def async_fetch_pollen_data(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        days: int,
+        language_code: str | None,
+    ) -> dict:
+        self.calls.append(
+            {
+                "latitude": latitude,
+                "longitude": longitude,
+                "days": days,
+                "language_code": language_code,
+            }
+        )
+        response = self._responses.pop(0)
 
-    async def json(self):
+        if response.status == 401:
+            raise cf.ConfigEntryAuthFailed("HTTP 401: API key *** not valid")
+
+        if response.status == 403:
+            body_text = response._body.decode()
+            if "API key not valid" in body_text:
+                raise cf.ConfigEntryAuthFailed(f"HTTP 403: {body_text}")
+            raise cf.UpdateFailed(f"HTTP 403: {body_text}")
+
+        if response.status == 429:
+            raise cf.PollenQuotaExceededError("HTTP 429: Quota exceeded")
+
+        if response.status != 200:
+            raise cf.UpdateFailed(f"HTTP {response.status}: backend error")
+
         import json as _json
 
-        return _json.loads(self._body.decode())
-
-    async def text(self) -> str:
-        return self._body.decode()
+        return _json.loads(response._body.decode())
 
 
-class _SequenceSession:
-    def __init__(self, responses: list[_StubResponse]) -> None:
-        self.responses = responses
-        self.calls: list[tuple[tuple, dict]] = []
+class _PatchedClientFactory:
+    def __init__(self, responses: list[_StubResponse]):
+        self._responses = responses
+        self.instances: list[_StubValidationClient] = []
 
-    def get(self, *args, **kwargs):
-        self.calls.append((args, kwargs))
-        return self.responses.pop(0)
+    @property
+    def calls(self) -> list[dict[str, object]]:
+        if not self.instances:
+            return []
+        return self.instances[0].calls
+
+    def __call__(self, session, api_key: str) -> _StubValidationClient:
+        client = _StubValidationClient(self._responses, api_key)
+        self.instances.append(client)
+        return client
 
 
 def _collect_error_keys_from_config_flow() -> set[str]:
@@ -555,9 +637,11 @@ def test_validate_input_non_dict_location() -> None:
 
 
 def _patch_client_session(monkeypatch: pytest.MonkeyPatch, response: _StubResponse):
-    session = _SequenceSession([response])
+    session = object()
     monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
-    return session
+    factory = _PatchedClientFactory([response])
+    monkeypatch.setattr(cf, "GooglePollenApiClient", factory)
+    return factory
 
 
 def _base_user_input() -> dict:
@@ -825,6 +909,60 @@ def test_validate_input_http_429_sets_quota_exceeded(
 
     assert session.calls
     assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+
+
+def test_validate_input_client_timeout_maps_to_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeouts bubbling from the API client should map to cannot_connect."""
+
+    class _TimeoutClient:
+        def __init__(self, session, api_key: str) -> None:
+            self.calls: list[dict[str, object]] = []
+
+        async def async_fetch_pollen_data(self, **kwargs) -> dict:
+            self.calls.append(kwargs)
+            raise TimeoutError("timed out")
+
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: object())
+    monkeypatch.setattr(cf, "GooglePollenApiClient", _TimeoutClient)
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+
+
+def test_validate_input_client_error_maps_to_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Client transport errors should map to cannot_connect."""
+
+    class _ClientErroringClient:
+        def __init__(self, session, api_key: str) -> None:
+            self.calls: list[dict[str, object]] = []
+
+        async def async_fetch_pollen_data(self, **kwargs) -> dict:
+            self.calls.append(kwargs)
+            raise cf.ClientError("network down")
+
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: object())
+    monkeypatch.setattr(cf, "GooglePollenApiClient", _ClientErroringClient)
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert errors == {"base": "cannot_connect"}
     assert normalized is None
 
 
@@ -1104,8 +1242,11 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     """Successful validation should normalize data and set unique ID."""
 
     body = b'{"dailyInfo": [{"day": "D0"}]}'
-    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
-    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
+    factory = _PatchedClientFactory(
+        [_StubResponse(200, body), _StubResponse(200, body)]
+    )
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: object())
+    monkeypatch.setattr(cf, "GooglePollenApiClient", factory)
 
     class _TrackingFlow(PollenLevelsConfigFlow):
         def __init__(self) -> None:
@@ -1135,7 +1276,9 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
         flow._async_validate_input(user_input, check_unique_id=True)
     )
 
-    assert session.calls
+    assert factory.calls
+    assert factory.calls[0]["days"] == 1
+    assert factory.calls[0]["language_code"] == "es"
     assert errors == {}
     assert normalized is not None
     assert normalized[CONF_LATITUDE] == pytest.approx(1.0)
@@ -1151,8 +1294,11 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
     """Unique-id format should match legacy 4-decimal duplicate detection."""
 
     body = b'{"dailyInfo": [{"day": "D0"}]}'
-    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
-    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
+    factory = _PatchedClientFactory(
+        [_StubResponse(200, body), _StubResponse(200, body)]
+    )
+    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: object())
+    monkeypatch.setattr(cf, "GooglePollenApiClient", factory)
 
     class _TrackingFlow(PollenLevelsConfigFlow):
         def __init__(self) -> None:
@@ -1185,7 +1331,7 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
         flow._async_validate_input(second, check_unique_id=True)
     )
 
-    assert session.calls
+    assert factory.calls
     assert first_errors == {}
     assert second_errors == {}
     assert first_normalized is not None
