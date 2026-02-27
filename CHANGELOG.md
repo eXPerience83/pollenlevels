@@ -3,6 +3,8 @@
 - Bumped GitHub Actions artifact upload to `actions/upload-artifact@v7`.
 - Reused the shared Google Pollen API client for config-flow validation so setup now
   follows the same retries and HTTP error handling semantics as runtime updates.
+- Restored user-facing fallback messages for setup timeout/network validation
+  failures when upstream exception text is empty.
 
 ## [1.9.4] - 2026-02-24
 ### Changed

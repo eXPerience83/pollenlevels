@@ -1104,6 +1104,58 @@ def test_validate_input_http_429_maps_to_quota_exceeded(
     assert "api key not valid" in placeholders.get("error_message", "").lower()
 
 
+def test_validate_input_timeout_sets_fallback_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """TimeoutError without a message should still provide a user-friendly fallback."""
+
+    calls = _patch_client_fetch(monkeypatch, error=TimeoutError())
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Validation request timed out."
+
+
+def test_validate_input_client_error_sets_fallback_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ClientError without details should still provide a network fallback message."""
+
+    calls = _patch_client_fetch(monkeypatch, error=cf.aiohttp.ClientError())
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message") == (
+        "Network error while connecting to the pollen service."
+    )
+
+
 def test_validate_input_redacts_api_key_in_error_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

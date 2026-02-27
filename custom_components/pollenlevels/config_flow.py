@@ -448,8 +448,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.warning("Validation timeout: %s", redact_api_key(err, api_key))
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key)
-            if redacted:
-                placeholders["error_message"] = redacted
+            placeholders["error_message"] = redacted or "Validation request timed out."
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
@@ -457,8 +456,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key)
-            if redacted:
-                placeholders["error_message"] = redacted
+            placeholders["error_message"] = (
+                redacted or "Network error while connecting to the pollen service."
+            )
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
