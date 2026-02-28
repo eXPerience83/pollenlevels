@@ -31,7 +31,11 @@ def _format_http_message(status: int, raw_message: str | None) -> str:
 
 
 class PollenQuotaExceededError(UpdateFailed):
-    """Raised when the Google Pollen API quota is exceeded (HTTP 429)."""
+    """Raised when the Google Pollen API quota is exceeded (HTTP 429).
+
+    Inherits from UpdateFailed to stay compatible with existing client/coordinator
+    error handling while still allowing explicit quota classification in config flow.
+    """
 
 
 class GooglePollenApiClient:
