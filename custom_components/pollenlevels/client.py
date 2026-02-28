@@ -30,6 +30,10 @@ def _format_http_message(status: int, raw_message: str | None) -> str:
     return f"HTTP {status}"
 
 
+class PollenQuotaExceededError(UpdateFailed):
+    """Raised when the Google Pollen API quota is exceeded (HTTP 429)."""
+
+
 class GooglePollenApiClient:
     """Thin async client wrapper for the Google Pollen API."""
 
@@ -136,7 +140,7 @@ class GooglePollenApiClient:
                             await extract_error_message(resp, default=""), self._api_key
                         )
                         message = _format_http_message(resp.status, raw_message or None)
-                        raise UpdateFailed(message)
+                        raise PollenQuotaExceededError(message)
 
                     if 500 <= resp.status <= 599:
                         if attempt < max_retries:

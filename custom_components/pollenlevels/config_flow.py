@@ -39,7 +39,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from .client import GooglePollenApiClient
+from .client import GooglePollenApiClient, PollenQuotaExceededError
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
@@ -436,15 +436,22 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "invalid_auth"
             redacted = redact_api_key(err, api_key)
             placeholders["error_message"] = redacted or "Authentication failed."
-        except UpdateFailed as err:
-            base = "quota_exceeded" if "HTTP 429" in str(err) else "cannot_connect"
-            errors["base"] = base
+        except PollenQuotaExceededError as err:
+            errors["base"] = "quota_exceeded"
             redacted = redact_api_key(err, api_key)
-            placeholders["error_message"] = redacted or (
-                "Quota exceeded."
-                if base == "quota_exceeded"
-                else "Failed to connect to the pollen service."
-            )
+            if redacted:
+                placeholders["error_message"] = redacted
+            else:
+                placeholders["error_message"] = "Quota exceeded."
+        except UpdateFailed as err:
+            errors["base"] = "cannot_connect"
+            redacted = redact_api_key(err, api_key)
+            if redacted:
+                placeholders["error_message"] = redacted
+            else:
+                placeholders["error_message"] = (
+                    "Failed to connect to the pollen service."
+                )
         except TimeoutError as err:
             _LOGGER.warning("Validation timeout: %s", redact_api_key(err, api_key))
             errors["base"] = "cannot_connect"

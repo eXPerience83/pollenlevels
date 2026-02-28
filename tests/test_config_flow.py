@@ -901,7 +901,7 @@ def test_validate_input_http_429_sets_quota_exceeded(
     """HTTP 429 during validation should map to quota_exceeded."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=UpdateFailed("HTTP 429 Too Many Requests")
+        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429 Too Many Requests")
     )
 
     flow = PollenLevelsConfigFlow()
@@ -1101,14 +1101,16 @@ def test_validate_input_auth_error_empty_message_uses_fallback_placeholder(
     assert placeholders.get("error_message") == "Authentication failed."
 
 
-def test_validate_input_http_429_maps_to_quota_exceeded(
+def test_validate_input_quota_error_maps_to_quota_exceeded(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """UpdateFailed carrying HTTP 429 should map to quota_exceeded."""
+    """Dedicated quota errors should map to quota_exceeded."""
 
     calls = _patch_client_fetch(
         monkeypatch,
-        error=UpdateFailed("HTTP 429: API key not valid. Please pass a valid API key."),
+        error=cf.PollenQuotaExceededError(
+            "HTTP 429: API key not valid. Please pass a valid API key."
+        ),
     )
 
     flow = PollenLevelsConfigFlow()
@@ -1159,9 +1161,11 @@ def test_validate_input_update_failed_empty_message_uses_connect_fallback(
 def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Quota errors should use fallback text when redaction produces an empty string."""
+    """Quota-exceeded errors should use fallback text when redaction is empty."""
 
-    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed("HTTP 429"))
+    calls = _patch_client_fetch(
+        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
+    )
     monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "")
 
     flow = PollenLevelsConfigFlow()
