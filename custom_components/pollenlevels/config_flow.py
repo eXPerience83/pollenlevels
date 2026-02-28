@@ -435,15 +435,16 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.warning("Authentication failed during validation")
             errors["base"] = "invalid_auth"
             redacted = redact_api_key(err, api_key)
-            if redacted:
-                placeholders["error_message"] = redacted
+            placeholders["error_message"] = redacted or "Authentication failed."
         except UpdateFailed as err:
-            errors["base"] = (
-                "quota_exceeded" if "HTTP 429" in str(err) else "cannot_connect"
-            )
+            base = "quota_exceeded" if "HTTP 429" in str(err) else "cannot_connect"
+            errors["base"] = base
             redacted = redact_api_key(err, api_key)
-            if redacted:
-                placeholders["error_message"] = redacted
+            placeholders["error_message"] = redacted or (
+                "Quota exceeded."
+                if base == "quota_exceeded"
+                else "Failed to connect to the pollen service."
+            )
         except TimeoutError as err:
             _LOGGER.warning("Validation timeout: %s", redact_api_key(err, api_key))
             errors["base"] = "cannot_connect"

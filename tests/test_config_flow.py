@@ -1076,6 +1076,31 @@ def test_validate_input_auth_error_sets_error_message_placeholder(
     assert "Forbidden" in placeholders.get("error_message", "")
 
 
+def test_validate_input_auth_error_empty_message_uses_fallback_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Auth failures with empty text should use the default placeholder message."""
+
+    calls = _patch_client_fetch(monkeypatch, error=ConfigEntryAuthFailed(""))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "invalid_auth"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Authentication failed."
+
+
 def test_validate_input_http_429_maps_to_quota_exceeded(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1102,6 +1127,59 @@ def test_validate_input_http_429_maps_to_quota_exceeded(
     assert errors == {"base": "quota_exceeded"}
     assert normalized is None
     assert "api key not valid" in placeholders.get("error_message", "").lower()
+
+
+def test_validate_input_update_failed_empty_message_uses_connect_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """UpdateFailed with empty text should use cannot_connect fallback message."""
+
+    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed(""))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert (
+        placeholders.get("error_message") == "Failed to connect to the pollen service."
+    )
+
+
+def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Quota errors should use fallback text when redaction produces an empty string."""
+
+    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed("HTTP 429"))
+    monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "")
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Quota exceeded."
 
 
 def test_validate_input_timeout_sets_fallback_error_message(

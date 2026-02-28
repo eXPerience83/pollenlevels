@@ -7,6 +7,8 @@
 ### Fixed
 - Restored user-facing fallback messages for setup timeout/network validation
   failures when upstream exception text is empty.
+- Ensured config-flow always provides non-empty `{error_message}` placeholders
+  for auth and update validation failures with category-appropriate fallback text.
 
 ## [1.9.4] - 2026-02-24
 ### Changed
