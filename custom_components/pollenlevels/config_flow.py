@@ -439,19 +439,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except PollenQuotaExceededError as err:
             errors["base"] = "quota_exceeded"
             redacted = redact_api_key(err, api_key)
-            if redacted:
-                placeholders["error_message"] = redacted
-            else:
-                placeholders["error_message"] = "Quota exceeded."
+            placeholders["error_message"] = redacted or "Quota exceeded."
         except UpdateFailed as err:
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key)
-            if redacted:
-                placeholders["error_message"] = redacted
-            else:
-                placeholders["error_message"] = (
-                    "Failed to connect to the pollen service."
-                )
+            placeholders["error_message"] = (
+                redacted or "Failed to connect to the pollen service."
+            )
         except TimeoutError as err:
             _LOGGER.warning("Validation timeout: %s", redact_api_key(err, api_key))
             errors["base"] = "cannot_connect"
