@@ -1,3 +1,23 @@
+## [1.9.5] - 2026-03-02
+### Changed
+- Bumped GitHub Actions artifact upload to `actions/upload-artifact@v7`.
+- Reused the shared Google Pollen API client for config-flow validation so setup now
+  follows the same retries and HTTP error handling semantics as runtime updates.
+
+### Fixed
+- Restored user-facing fallback messages for setup timeout/network validation
+  failures when upstream exception text is empty.
+- Ensured config-flow always provides non-empty `{error_message}` placeholders
+  for auth and update validation failures with category-appropriate fallback text.
+- Classified setup quota errors via a dedicated client exception instead of
+  matching `"HTTP 429"` in the error message, and clarified config-flow fallback
+  message selection logic for maintainability.
+- Trimmed redacted validation errors before fallback selection so whitespace-only
+  messages no longer suppress user-facing setup error details.
+- Replaced code-only HTTP placeholders (for example `HTTP 429`/`HTTP 500`) with
+  friendly setup error fallbacks and normalized client HTTP message formatting for
+  whitespace-only API error text.
+
 ## [1.9.4] - 2026-02-24
 ### Changed
 - Updated release packaging automation for HACS `zip_release` by validating the

@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import email.utils
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -87,6 +89,16 @@ config_entries_mod.ConfigFlow = _StubConfigFlow
 config_entries_mod.OptionsFlow = _StubOptionsFlow
 config_entries_mod.ConfigEntry = _StubConfigEntry
 _force_module("homeassistant.config_entries", config_entries_mod)
+
+exceptions_mod = ModuleType("homeassistant.exceptions")
+
+
+class _StubConfigEntryAuthFailed(Exception):
+    pass
+
+
+exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
+_force_module("homeassistant.exceptions", exceptions_mod)
 
 const_mod = ModuleType("homeassistant.const")
 const_mod.CONF_LATITUDE = "latitude"
@@ -171,6 +183,55 @@ class _StubSession:
 
 aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
 _force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+
+update_coordinator_mod = ModuleType("homeassistant.helpers.update_coordinator")
+
+
+class _StubUpdateFailed(Exception):
+    pass
+
+
+class _StubDataUpdateCoordinator:
+    def __init__(self, *args, **kwargs):
+        self.hass = args[0] if args else None
+        self.data = None
+
+    async def async_refresh(self):
+        return None
+
+    async def async_request_refresh(self):
+        return None
+
+    async def async_config_entry_first_refresh(self):
+        return None
+
+
+class _StubCoordinatorEntity:
+    def __init__(self, coordinator=None):
+        self.coordinator = coordinator
+
+
+update_coordinator_mod.UpdateFailed = _StubUpdateFailed
+update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
+update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
+_force_module("homeassistant.helpers.update_coordinator", update_coordinator_mod)
+
+util_mod = ModuleType("homeassistant.util")
+dt_mod = ModuleType("homeassistant.util.dt")
+
+
+def _parse_http_date(value: str):
+    try:
+        return email.utils.parsedate_to_datetime(value)
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return None
+
+
+dt_mod.parse_http_date = _parse_http_date
+dt_mod.utcnow = lambda: datetime.now(UTC)
+util_mod.dt = dt_mod
+_force_module("homeassistant.util", util_mod)
+_force_module("homeassistant.util.dt", dt_mod)
 
 selector_mod = ModuleType("homeassistant.helpers.selector")
 
@@ -270,8 +331,14 @@ class _StubClientTimeout:
         self.total = total
 
 
+class _StubClientSession:
+    pass
+
+
 aiohttp_mod.ClientError = _StubClientError
 aiohttp_mod.ClientTimeout = _StubClientTimeout
+aiohttp_mod.ClientSession = _StubClientSession
+aiohttp_mod.ContentTypeError = ValueError
 _force_module("aiohttp", aiohttp_mod)
 
 vol_mod = ModuleType("voluptuous")
@@ -304,6 +371,8 @@ from homeassistant.const import (
     CONF_LONGITUDE,
     CONF_NAME,
 )
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.pollenlevels import config_flow as cf
 from custom_components.pollenlevels.config_flow import (
@@ -554,10 +623,26 @@ def test_validate_input_non_dict_location() -> None:
     assert normalized is None
 
 
-def _patch_client_session(monkeypatch: pytest.MonkeyPatch, response: _StubResponse):
-    session = _SequenceSession([response])
-    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
-    return session
+def _patch_client_fetch(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    result: dict | None = None,
+    error: Exception | None = None,
+) -> list[dict[str, object]]:
+    calls: list[dict[str, object]] = []
+
+    async def _fake_fetch(self, **kwargs):
+        calls.append(kwargs)
+        if error is not None:
+            raise error
+        return result or {"dailyInfo": [{"day": "D0"}]}
+
+    monkeypatch.setattr(
+        cf.GooglePollenApiClient,
+        "async_fetch_pollen_data",
+        _fake_fetch,
+    )
+    return calls
 
 
 def _base_user_input() -> dict:
@@ -722,7 +807,7 @@ def test_validate_input_update_interval_below_min_sets_error(
 ) -> None:
     """Sub-1 update intervals should surface a field error and skip I/O."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(200))
+    calls = _patch_client_fetch(monkeypatch)
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -735,7 +820,7 @@ def test_validate_input_update_interval_below_min_sets_error(
 
     assert errors == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
     assert normalized is None
-    assert not session.calls
+    assert not calls
 
 
 def test_validate_input_update_interval_float_string(
@@ -743,8 +828,9 @@ def test_validate_input_update_interval_float_string(
 ) -> None:
     """Float-like strings should coerce to int and allow validation to proceed."""
 
-    session = _patch_client_session(
-        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"indexInfo": []}]}')
+    calls = _patch_client_fetch(
+        monkeypatch,
+        result={"dailyInfo": [{"indexInfo": []}]},
     )
 
     flow = PollenLevelsConfigFlow()
@@ -759,7 +845,7 @@ def test_validate_input_update_interval_float_string(
     assert errors == {}
     assert normalized is not None
     assert normalized[CONF_UPDATE_INTERVAL] == 1
-    assert session.calls
+    assert calls
 
 
 def test_validate_input_update_interval_non_numeric_sets_error(
@@ -767,7 +853,7 @@ def test_validate_input_update_interval_non_numeric_sets_error(
 ) -> None:
     """Non-numeric update intervals should surface a field error and skip I/O."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(200))
+    calls = _patch_client_fetch(monkeypatch)
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -780,22 +866,22 @@ def test_validate_input_update_interval_non_numeric_sets_error(
 
     assert errors == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
     assert normalized is None
-    assert not session.calls
+    assert not calls
 
 
 @pytest.mark.parametrize(
-    ("status", "expected"),
+    ("error", "expected"),
     [
-        (401, {"base": "invalid_auth"}),
-        (403, {"base": "cannot_connect"}),
+        (ConfigEntryAuthFailed("HTTP 401"), {"base": "invalid_auth"}),
+        (UpdateFailed("HTTP 403"), {"base": "cannot_connect"}),
     ],
 )
 def test_validate_input_http_auth_errors_map_correctly(
-    monkeypatch: pytest.MonkeyPatch, status: int, expected: dict
+    monkeypatch: pytest.MonkeyPatch, error: Exception, expected: dict
 ) -> None:
     """HTTP auth failures during validation should map correctly."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(status))
+    calls = _patch_client_fetch(monkeypatch, error=error)
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -804,55 +890,19 @@ def test_validate_input_http_auth_errors_map_correctly(
         flow._async_validate_input(_base_user_input(), check_unique_id=False)
     )
 
-    assert session.calls
+    assert calls
     assert errors == expected
     assert normalized is None
 
 
-def test_validate_input_http_429_sets_quota_exceeded(
+def test_validate_input_http_429_code_only_uses_quota_fallback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HTTP 429 during validation should map to quota_exceeded."""
+    """Code-only quota messages should be replaced by a friendly fallback."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(429))
-
-    flow = PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace()
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    calls = _patch_client_fetch(
+        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
     )
-
-    assert session.calls
-    assert errors == {"base": "quota_exceeded"}
-    assert normalized is None
-
-
-def test_validate_input_http_500_sets_cannot_connect(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Unexpected HTTP failures should map to cannot_connect."""
-
-    session = _patch_client_session(monkeypatch, _StubResponse(500))
-
-    flow = PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace()
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
-    )
-
-    assert session.calls
-    assert errors == {"base": "cannot_connect"}
-    assert normalized is None
-
-
-def test_validate_input_http_500_sets_error_message_placeholder(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """HTTP 500 should populate the cannot_connect error_message placeholder."""
-
-    session = _patch_client_session(monkeypatch, _StubResponse(500))
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -866,7 +916,103 @@ def test_validate_input_http_500_sets_error_message_placeholder(
         )
     )
 
-    assert session.calls
+    assert calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Quota exceeded."
+
+
+def test_validate_input_http_429_sets_quota_exceeded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 429 during validation should map to quota_exceeded."""
+
+    calls = _patch_client_fetch(
+        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429 Too Many Requests")
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+
+
+def test_validate_input_http_500_sets_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unexpected HTTP failures should map to cannot_connect."""
+
+    calls = _patch_client_fetch(
+        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+
+
+def test_validate_input_http_code_only_uses_connect_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Code-only UpdateFailed messages should use a friendly connect fallback."""
+
+    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed("HTTP 500"))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert (
+        placeholders.get("error_message") == "Failed to connect to the pollen service."
+    )
+
+
+def test_validate_input_http_500_sets_error_message_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP 500 should populate the cannot_connect error_message placeholder."""
+
+    calls = _patch_client_fetch(
+        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
     assert placeholders.get("error_message")
@@ -877,7 +1023,9 @@ def test_validate_input_clears_error_message_placeholder_on_validation_error(
 ) -> None:
     """Field-level validation errors should clear stale error_message placeholders."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(500))
+    calls = _patch_client_fetch(
+        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
+    )
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -891,7 +1039,7 @@ def test_validate_input_clears_error_message_placeholder_on_validation_error(
         )
     )
 
-    assert session.calls
+    assert calls
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
     assert placeholders.get("error_message")
@@ -914,7 +1062,9 @@ def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
 ) -> None:
     """invalid_option_combo should clear stale error_message placeholders."""
 
-    session = _patch_client_session(monkeypatch, _StubResponse(500))
+    calls = _patch_client_fetch(
+        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
+    )
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -928,14 +1078,12 @@ def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
         )
     )
 
-    assert session.calls
+    assert calls
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
     assert placeholders.get("error_message")
 
-    _patch_client_session(
-        monkeypatch, _StubResponse(200, b'{"dailyInfo": [{"day": "D0"}]}')
-    )
+    _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
@@ -954,13 +1102,15 @@ def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
     assert "error_message" not in placeholders
 
 
-def test_validate_input_http_403_sets_error_message_placeholder(
+def test_validate_input_auth_error_sets_error_message_placeholder(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HTTP 403 should populate the cannot_connect error_message placeholder."""
+    """Auth failures should populate the invalid_auth error_message placeholder."""
 
-    body = b'{"error": {"message": "Forbidden for this project"}}'
-    session = _patch_client_session(monkeypatch, _StubResponse(status=403, body=body))
+    calls = _patch_client_fetch(
+        monkeypatch,
+        error=ConfigEntryAuthFailed("HTTP 401: Forbidden for this project"),
+    )
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -974,19 +1124,18 @@ def test_validate_input_http_403_sets_error_message_placeholder(
         )
     )
 
-    assert session.calls
-    assert errors == {"base": "cannot_connect"}
+    assert calls
+    assert errors == {"base": "invalid_auth"}
     assert normalized is None
     assert "Forbidden" in placeholders.get("error_message", "")
 
 
-def test_validate_input_http_403_invalid_key_maps_to_invalid_auth(
+def test_validate_input_auth_error_empty_message_uses_fallback_placeholder(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HTTP 403 invalid API key messages should behave like invalid_auth."""
+    """Auth failures with empty text should use the default placeholder message."""
 
-    body = b'{"error": {"message": "API key not valid. Please pass a valid API key."}}'
-    session = _patch_client_session(monkeypatch, _StubResponse(status=403, body=body))
+    calls = _patch_client_fetch(monkeypatch, error=ConfigEntryAuthFailed(""))
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -1000,10 +1149,203 @@ def test_validate_input_http_403_invalid_key_maps_to_invalid_auth(
         )
     )
 
-    assert session.calls
+    assert calls
     assert errors == {"base": "invalid_auth"}
     assert normalized is None
+    assert placeholders.get("error_message") == "Authentication failed."
+
+
+def test_validate_input_quota_error_maps_to_quota_exceeded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dedicated quota errors should map to quota_exceeded."""
+
+    calls = _patch_client_fetch(
+        monkeypatch,
+        error=cf.PollenQuotaExceededError(
+            "HTTP 429: API key not valid. Please pass a valid API key."
+        ),
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
     assert "api key not valid" in placeholders.get("error_message", "").lower()
+
+
+def test_validate_input_update_failed_empty_message_uses_connect_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """UpdateFailed with empty text should use cannot_connect fallback message."""
+
+    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed(""))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert (
+        placeholders.get("error_message") == "Failed to connect to the pollen service."
+    )
+
+
+def test_validate_input_http_429_whitespace_redacted_uses_quota_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Whitespace-only redacted quota messages should still use fallback text."""
+
+    calls = _patch_client_fetch(
+        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
+    )
+    monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "   ")
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Quota exceeded."
+
+
+def test_validate_input_update_failed_whitespace_redacted_uses_connect_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Whitespace-only redacted UpdateFailed messages should use connect fallback."""
+
+    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed("HTTP 500"))
+    monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "   ")
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert (
+        placeholders.get("error_message") == "Failed to connect to the pollen service."
+    )
+
+
+def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Quota-exceeded errors should use fallback text when redaction is empty."""
+
+    calls = _patch_client_fetch(
+        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
+    )
+    monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "")
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Quota exceeded."
+
+
+def test_validate_input_timeout_sets_fallback_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """TimeoutError without a message should still provide a user-friendly fallback."""
+
+    calls = _patch_client_fetch(monkeypatch, error=TimeoutError())
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Validation request timed out."
+
+
+def test_validate_input_client_error_sets_fallback_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ClientError without details should still provide a network fallback message."""
+
+    calls = _patch_client_fetch(monkeypatch, error=cf.aiohttp.ClientError())
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message") == (
+        "Network error while connecting to the pollen service."
+    )
 
 
 def test_validate_input_redacts_api_key_in_error_message(
@@ -1011,8 +1353,10 @@ def test_validate_input_redacts_api_key_in_error_message(
 ) -> None:
     """Error placeholders should redact API keys returned by the service."""
 
-    body = b'{"error": {"message": "API key test-key not valid"}}'
-    session = _patch_client_session(monkeypatch, _StubResponse(status=401, body=body))
+    calls = _patch_client_fetch(
+        monkeypatch,
+        error=ConfigEntryAuthFailed("HTTP 401: API key test-key not valid"),
+    )
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -1029,7 +1373,7 @@ def test_validate_input_redacts_api_key_in_error_message(
         )
     )
 
-    assert session.calls
+    assert calls
     assert errors == {"base": "invalid_auth"}
     assert normalized is None
     error_message = placeholders.get("error_message", "")
@@ -1042,8 +1386,7 @@ def test_validate_input_http_200_non_list_dailyinfo_sets_cannot_connect(
 ) -> None:
     """A non-list dailyInfo in HTTP 200 should be treated as invalid."""
 
-    body = b'{"dailyInfo": "invalid"}'
-    session = _patch_client_session(monkeypatch, _StubResponse(status=200, body=body))
+    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": "invalid"})
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -1052,7 +1395,7 @@ def test_validate_input_http_200_non_list_dailyinfo_sets_cannot_connect(
         flow._async_validate_input(_base_user_input(), check_unique_id=False)
     )
 
-    assert session.calls
+    assert calls
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
 
@@ -1062,8 +1405,7 @@ def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
 ) -> None:
     """A dailyInfo list with non-dict items should be treated as invalid."""
 
-    body = b'{"dailyInfo": ["invalid-item"]}'
-    session = _patch_client_session(monkeypatch, _StubResponse(status=200, body=body))
+    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": ["invalid-item"]})
 
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -1072,7 +1414,7 @@ def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
         flow._async_validate_input(_base_user_input(), check_unique_id=False)
     )
 
-    assert session.calls
+    assert calls
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
 
@@ -1103,9 +1445,7 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
 ) -> None:
     """Successful validation should normalize data and set unique ID."""
 
-    body = b'{"dailyInfo": [{"day": "D0"}]}'
-    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
-    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
+    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
 
     class _TrackingFlow(PollenLevelsConfigFlow):
         def __init__(self) -> None:
@@ -1135,7 +1475,7 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
         flow._async_validate_input(user_input, check_unique_id=True)
     )
 
-    assert session.calls
+    assert calls
     assert errors == {}
     assert normalized is not None
     assert normalized[CONF_LATITUDE] == pytest.approx(1.0)
@@ -1150,9 +1490,7 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
 ) -> None:
     """Unique-id format should match legacy 4-decimal duplicate detection."""
 
-    body = b'{"dailyInfo": [{"day": "D0"}]}'
-    session = _SequenceSession([_StubResponse(200, body), _StubResponse(200, body)])
-    monkeypatch.setattr(cf, "async_get_clientsession", lambda hass: session)
+    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
 
     class _TrackingFlow(PollenLevelsConfigFlow):
         def __init__(self) -> None:
@@ -1185,7 +1523,7 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
         flow._async_validate_input(second, check_unique_id=True)
     )
 
-    assert session.calls
+    assert calls
     assert first_errors == {}
     assert second_errors == {}
     assert first_normalized is not None

@@ -25,9 +25,18 @@ _LOGGER = logging.getLogger(__name__)
 def _format_http_message(status: int, raw_message: str | None) -> str:
     """Format an HTTP status and optional message consistently."""
 
-    if raw_message:
-        return f"HTTP {status}: {raw_message}"
+    cleaned = raw_message.strip() if raw_message else ""
+    if cleaned:
+        return f"HTTP {status}: {cleaned}"
     return f"HTTP {status}"
+
+
+class PollenQuotaExceededError(UpdateFailed):
+    """Raised when the Google Pollen API quota is exceeded (HTTP 429).
+
+    Inherits from UpdateFailed to stay compatible with existing client/coordinator
+    error handling while still allowing explicit quota classification in config flow.
+    """
 
 
 class GooglePollenApiClient:
@@ -136,7 +145,7 @@ class GooglePollenApiClient:
                             await extract_error_message(resp, default=""), self._api_key
                         )
                         message = _format_http_message(resp.status, raw_message or None)
-                        raise UpdateFailed(message)
+                        raise PollenQuotaExceededError(message)
 
                     if 500 <= resp.status <= 599:
                         if attempt < max_retries:

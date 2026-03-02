@@ -1446,6 +1446,54 @@ def test_coordinator_invalid_key_message_triggers_reauth() -> None:
         loop.close()
 
 
+def test_format_http_message_ignores_whitespace_only_message() -> None:
+    """Whitespace-only raw messages should not add a trailing HTTP suffix."""
+
+    assert client_mod._format_http_message(429, "   ") == "HTTP 429"
+
+
+def test_client_raises_dedicated_quota_error_after_terminal_429(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Terminal HTTP 429 responses raise the dedicated quota exception."""
+
+    session = SequenceSession(
+        [
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": "2"},
+            ),
+            ResponseSpec(
+                status=429,
+                payload={"error": {"message": "Quota exceeded"}},
+                headers={"Retry-After": "2"},
+            ),
+        ]
+    )
+
+    async def _fast_sleep(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr(client_mod.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0)
+
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    async def _run() -> None:
+        await client.async_fetch_pollen_data(
+            latitude=1.0,
+            longitude=2.0,
+            days=1,
+            language_code=None,
+        )
+
+    with pytest.raises(client_mod.PollenQuotaExceededError, match="Quota exceeded"):
+        asyncio.run(_run())
+
+    assert session.calls == 2
+
+
 def test_coordinator_retries_then_raises_on_rate_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
