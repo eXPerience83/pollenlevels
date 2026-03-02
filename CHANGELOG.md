@@ -14,6 +14,9 @@
   message selection logic for maintainability.
 - Trimmed redacted validation errors before fallback selection so whitespace-only
   messages no longer suppress user-facing setup error details.
+- Replaced code-only HTTP placeholders (for example `HTTP 429`/`HTTP 500`) with
+  friendly setup error fallbacks and normalized client HTTP message formatting for
+  whitespace-only API error text.
 
 ## [1.9.4] - 2026-02-24
 ### Changed

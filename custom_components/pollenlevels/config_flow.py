@@ -439,10 +439,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except PollenQuotaExceededError as err:
             errors["base"] = "quota_exceeded"
             redacted = redact_api_key(err, api_key).strip()
+            if re.fullmatch(r"HTTP\s+429(?::)?", redacted, flags=re.IGNORECASE):
+                redacted = ""
             placeholders["error_message"] = redacted or "Quota exceeded."
         except UpdateFailed as err:
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key).strip()
+            if re.fullmatch(r"HTTP\s+\d+(?::)?", redacted, flags=re.IGNORECASE):
+                redacted = ""
             placeholders["error_message"] = (
                 redacted or "Failed to connect to the pollen service."
             )

@@ -895,6 +895,33 @@ def test_validate_input_http_auth_errors_map_correctly(
     assert normalized is None
 
 
+def test_validate_input_http_429_code_only_uses_quota_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Code-only quota messages should be replaced by a friendly fallback."""
+
+    calls = _patch_client_fetch(
+        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "quota_exceeded"}
+    assert normalized is None
+    assert placeholders.get("error_message") == "Quota exceeded."
+
+
 def test_validate_input_http_429_sets_quota_exceeded(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -935,6 +962,33 @@ def test_validate_input_http_500_sets_cannot_connect(
     assert calls
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
+
+
+def test_validate_input_http_code_only_uses_connect_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Code-only UpdateFailed messages should use a friendly connect fallback."""
+
+    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed("HTTP 500"))
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert (
+        placeholders.get("error_message") == "Failed to connect to the pollen service."
+    )
 
 
 def test_validate_input_http_500_sets_error_message_placeholder(

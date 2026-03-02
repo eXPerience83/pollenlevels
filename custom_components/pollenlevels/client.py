@@ -25,8 +25,9 @@ _LOGGER = logging.getLogger(__name__)
 def _format_http_message(status: int, raw_message: str | None) -> str:
     """Format an HTTP status and optional message consistently."""
 
-    if raw_message:
-        return f"HTTP {status}: {raw_message}"
+    cleaned = raw_message.strip() if raw_message else ""
+    if cleaned:
+        return f"HTTP {status}: {cleaned}"
     return f"HTTP {status}"
 
 

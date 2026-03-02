@@ -1446,6 +1446,12 @@ def test_coordinator_invalid_key_message_triggers_reauth() -> None:
         loop.close()
 
 
+def test_format_http_message_ignores_whitespace_only_message() -> None:
+    """Whitespace-only raw messages should not add a trailing HTTP suffix."""
+
+    assert client_mod._format_http_message(429, "   ") == "HTTP 429"
+
+
 def test_client_raises_dedicated_quota_error_after_terminal_429(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
