@@ -12,6 +12,8 @@
 - Classified setup quota errors via a dedicated client exception instead of
   matching `"HTTP 429"` in error text, and clarified config-flow fallback
   message selection logic for maintainability.
+- Trimmed redacted validation errors before fallback selection so whitespace-only
+  messages no longer suppress user-facing setup error details.
 
 ## [1.9.4] - 2026-02-24
 ### Changed
