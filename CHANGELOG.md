@@ -1,4 +1,4 @@
-## [1.9.5] - 2026-02-27
+## [1.9.5] - 2026-03-02
 ### Changed
 - Bumped GitHub Actions artifact upload to `actions/upload-artifact@v7`.
 - Reused the shared Google Pollen API client for config-flow validation so setup now
