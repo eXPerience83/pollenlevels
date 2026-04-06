@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Klíč API"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Překonfigurovat Pylové hladiny",
+        "description": "Aktualizujte klíč API pro {latitude},{longitude}. Můžete ho vytvořit v [dokumentaci klíčů API Google]({api_key_url}) a projít [omezení klíčů API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API klíč"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
       "reauth_successful": "Opětovné ověření proběhlo úspěšně.",
-      "reauth_failed": "Opětovné ověření se nezdařilo. Zkuste to znovu."
+      "reauth_failed": "Opětovné ověření se nezdařilo. Zkuste to znovu.",
+      "reconfigure_successful": "Překonfigurování bylo úspěšně dokončeno.",
+      "reconfigure_failed": "Překonfigurování selhalo. Zkuste to prosím znovu."
     }
   },
   "options": {

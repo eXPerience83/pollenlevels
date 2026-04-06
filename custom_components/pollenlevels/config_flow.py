@@ -284,6 +284,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow state."""
         self._reauth_entry: config_entries.ConfigEntry | None = None
+        self._reconfigure_entry: config_entries.ConfigEntry | None = None
 
     @staticmethod
     def async_get_options_flow(entry: config_entries.ConfigEntry):
@@ -549,6 +550,61 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reauth_confirm",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=placeholders,
+        )
+
+    async def async_step_reconfigure(self, entry_data: dict[str, Any]):
+        """Handle a user-initiated reconfigure request."""
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        if entry is None:
+            return self.async_abort(reason="reconfigure_failed")
+
+        self._reconfigure_entry = entry
+        return await self.async_step_reconfigure_confirm()
+
+    async def async_step_reconfigure_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Prompt for a refreshed API key from the reconfigure UI."""
+        assert self._reconfigure_entry is not None
+
+        errors: dict[str, str] = {}
+        placeholders = {
+            "latitude": f"{self._reconfigure_entry.data.get(CONF_LATITUDE)}",
+            "longitude": f"{self._reconfigure_entry.data.get(CONF_LONGITUDE)}",
+            "api_key_url": POLLEN_API_KEY_URL,
+            "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
+        }
+
+        if user_input:
+            combined: dict[str, Any] = {**self._reconfigure_entry.data, **user_input}
+            errors, normalized = await self._async_validate_input(
+                combined,
+                check_unique_id=False,
+                description_placeholders=placeholders,
+            )
+            if not errors and normalized is not None:
+                self.hass.config_entries.async_update_entry(
+                    self._reconfigure_entry, data=normalized
+                )
+                await self.hass.config_entries.async_reload(
+                    self._reconfigure_entry.entry_id
+                )
+                return self.async_abort(reason="reconfigure_successful")
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_API_KEY,
+                    default="",
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
+            }
+        )
+
+        return self.async_show_form(
+            step_id="reconfigure_confirm",
             data_schema=schema,
             errors=errors,
             description_placeholders=placeholders,

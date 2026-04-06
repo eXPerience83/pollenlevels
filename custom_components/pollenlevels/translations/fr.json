@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Clé API"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Reconfigurer Niveaux de pollen",
+        "description": "Mettez à jour la clé API pour {latitude},{longitude}. Vous pouvez en générer une dans la [documentation des clés API Google]({api_key_url}) et consulter [les restrictions des clés API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "Clé API"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré.",
       "reauth_successful": "La réauthentification a réussi.",
-      "reauth_failed": "La réauthentification a échoué. Veuillez réessayer."
+      "reauth_failed": "La réauthentification a échoué. Veuillez réessayer.",
+      "reconfigure_successful": "La reconfiguration est terminée avec succès.",
+      "reconfigure_failed": "Échec de la reconfiguration. Veuillez réessayer."
     }
   },
   "options": {

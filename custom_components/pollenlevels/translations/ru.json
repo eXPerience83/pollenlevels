@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Ключ API"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Перенастроить Уровни пыльцы",
+        "description": "Обновите API-ключ для {latitude},{longitude}. Вы можете создать его в [документации по API-ключам Google]({api_key_url}) и проверить [ограничения API-ключей]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API-ключ"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Это местоположение уже настроено.",
       "reauth_successful": "Повторная аутентификация выполнена успешно.",
-      "reauth_failed": "Повторная аутентификация не удалась. Повторите попытку."
+      "reauth_failed": "Повторная аутентификация не удалась. Повторите попытку.",
+      "reconfigure_successful": "Перенастройка успешно завершена.",
+      "reconfigure_failed": "Не удалось выполнить перенастройку. Повторите попытку."
     }
   },
   "options": {

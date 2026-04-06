@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API-Schlüssel"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Pollenwerte neu konfigurieren",
+        "description": "Aktualisieren Sie den API-Schlüssel für {latitude},{longitude}. Sie können einen in der [Google-API-Schlüssel-Dokumentation]({api_key_url}) erstellen und [API-Schlüssel-Beschränkungen]({restricting_api_keys_url}) prüfen.",
+        "data": {
+          "api_key": "API-Schlüssel"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
       "reauth_successful": "Die erneute Authentifizierung war erfolgreich.",
-      "reauth_failed": "Die erneute Authentifizierung ist fehlgeschlagen. Bitte versuche es erneut."
+      "reauth_failed": "Die erneute Authentifizierung ist fehlgeschlagen. Bitte versuche es erneut.",
+      "reconfigure_successful": "Die Neukonfiguration wurde erfolgreich abgeschlossen.",
+      "reconfigure_failed": "Die Neukonfiguration ist fehlgeschlagen. Bitte versuchen Sie es erneut."
     }
   },
   "options": {

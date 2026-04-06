@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Chave da API"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Reconfigurar Níveis de Pólen",
+        "description": "Atualize a chave de API para {latitude},{longitude}. Você pode gerar uma na [documentação de chaves de API do Google]({api_key_url}) e revisar [as restrições de chave de API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "Chave de API"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Este local já está configurado.",
       "reauth_successful": "Reautenticação concluída com sucesso.",
-      "reauth_failed": "A reautenticação falhou. Tente novamente."
+      "reauth_failed": "A reautenticação falhou. Tente novamente.",
+      "reconfigure_successful": "A reconfiguração foi concluída com sucesso.",
+      "reconfigure_failed": "A reconfiguração falhou. Tente novamente."
     }
   },
   "options": {

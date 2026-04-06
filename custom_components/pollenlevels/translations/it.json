@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Chiave API"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Riconfigura Livelli Pollinici",
+        "description": "Aggiorna la chiave API per {latitude},{longitude}. Puoi generarne una nella [documentazione delle chiavi API Google]({api_key_url}) e rivedere [le restrizioni delle chiavi API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "Chiave API"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Questa posizione è già configurata.",
       "reauth_successful": "La ri-autenticazione è stata completata con successo.",
-      "reauth_failed": "La ri-autenticazione non è riuscita. Riprova."
+      "reauth_failed": "La ri-autenticazione non è riuscita. Riprova.",
+      "reconfigure_successful": "Riconfigurazione completata con successo.",
+      "reconfigure_failed": "Riconfigurazione non riuscita. Riprova."
     }
   },
   "options": {

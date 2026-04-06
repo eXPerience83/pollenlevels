@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Ключ API"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Переналаштувати Рівні пилку",
+        "description": "Оновіть API-ключ для {latitude},{longitude}. Ви можете створити його в [документації ключів API Google]({api_key_url}) та переглянути [обмеження ключів API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API-ключ"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Це розташування вже налаштовано.",
       "reauth_successful": "Повторна автентифікація виконана успішно.",
-      "reauth_failed": "Повторна автентифікація не вдалася. Спробуйте ще раз."
+      "reauth_failed": "Повторна автентифікація не вдалася. Спробуйте ще раз.",
+      "reconfigure_successful": "Переналаштування успішно завершено.",
+      "reconfigure_failed": "Не вдалося виконати переналаштування. Спробуйте ще раз."
     }
   },
   "options": {

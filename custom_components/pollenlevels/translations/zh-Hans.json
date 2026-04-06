@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API 密钥"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "重新配置花粉水平",
+        "description": "更新 {latitude},{longitude} 的 API 密钥。您可以在 [Google API 密钥文档]({api_key_url}) 生成，并查看 [API 密钥限制]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API 密钥"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "该位置已配置。",
       "reauth_successful": "重新验证已成功完成。",
-      "reauth_failed": "重新验证失败。请重试。"
+      "reauth_failed": "重新验证失败。请重试。",
+      "reconfigure_successful": "重新配置已成功完成。",
+      "reconfigure_failed": "重新配置失败。请重试。"
     }
   },
   "options": {

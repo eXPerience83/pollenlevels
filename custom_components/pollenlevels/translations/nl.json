@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API-sleutel"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Pollenwaarden opnieuw configureren",
+        "description": "Werk de API-sleutel bij voor {latitude},{longitude}. Je kunt er een maken in de [Google API-sleutel-documentatie]({api_key_url}) en [API-sleutelbeperkingen]({restricting_api_keys_url}) bekijken.",
+        "data": {
+          "api_key": "API-sleutel"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
       "reauth_successful": "Opnieuw autoriseren voltooid.",
-      "reauth_failed": "Opnieuw autoriseren is mislukt. Probeer het opnieuw."
+      "reauth_failed": "Opnieuw autoriseren is mislukt. Probeer het opnieuw.",
+      "reconfigure_successful": "Herconfiguratie is succesvol voltooid.",
+      "reconfigure_failed": "Herconfiguratie is mislukt. Probeer het opnieuw."
     }
   },
   "options": {
