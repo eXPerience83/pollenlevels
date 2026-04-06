@@ -520,6 +520,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         step_id: str,
         success_reason: str,
         user_input: dict[str, Any] | None,
+        persist_normalized_data: bool = True,
     ):
         """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
@@ -538,7 +539,14 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 description_placeholders=placeholders,
             )
             if not errors and normalized is not None:
-                self.hass.config_entries.async_update_entry(entry, data=normalized)
+                if persist_normalized_data:
+                    new_data = normalized
+                else:
+                    new_data = {
+                        **entry.data,
+                        CONF_API_KEY: str(normalized.get(CONF_API_KEY, "")).strip(),
+                    }
+                self.hass.config_entries.async_update_entry(entry, data=new_data)
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 return self.async_abort(reason=success_reason)
 
@@ -587,6 +595,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reconfigure_confirm",
             success_reason="reconfigure_successful",
             user_input=user_input,
+            persist_normalized_data=False,
         )
 
 

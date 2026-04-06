@@ -6,6 +6,10 @@
 - Localized reconfiguration step labels/descriptions and success/failure abort
   messages across bundled translations.
 
+### Fixed
+- Prevented the reconfigure flow from writing option-owned fields back into
+  config-entry data when saving a refreshed API key.
+
 ## [1.9.5] - 2026-03-02
 ### Changed
 - Bumped GitHub Actions artifact upload to `actions/upload-artifact@v7`.
