@@ -7,8 +7,8 @@
   messages across bundled translations.
 
 ### Fixed
-- Prevented the reconfigure flow from writing option-owned fields back into
-  config-entry data when saving a refreshed API key.
+- Prevented both reconfigure and re-auth flows from writing option-owned fields
+  back into config-entry data when saving a refreshed API key.
 
 ## [1.9.5] - 2026-03-02
 ### Changed

@@ -574,6 +574,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             success_reason="reauth_successful",
             user_input=user_input,
+            persist_normalized_data=False,
         )
 
     async def async_step_reconfigure(self, entry_data: dict[str, Any]):

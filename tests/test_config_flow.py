@@ -1639,6 +1639,71 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
     assert recorder.reloaded == "entry-id"
 
 
+def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
+    """Reauth should only update API key in data, preserving option boundaries."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+            CONF_LANGUAGE_CODE: "en",
+            CONF_UPDATE_INTERVAL: 6,
+            # Intentionally no CONF_FORECAST_DAYS in data.
+        },
+        options={CONF_FORECAST_DAYS: 5, CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        entry_id="entry-id",
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+
+        async def async_reload(self, entry_id: str):
+            return None
+
+    recorder = _Recorder()
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    flow.context = {"entry_id": "entry-id"}
+
+    # Validation may normalize and include option-backed fields.
+    normalized = {
+        **entry.data,
+        CONF_API_KEY: "new-key",
+        CONF_FORECAST_DAYS: 2,
+        CONF_CREATE_FORECAST_SENSORS: "none",
+    }
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    async def run_flow():
+        await flow.async_step_reauth(entry.data)
+        return await flow.async_step_reauth_confirm({CONF_API_KEY: "new-key"})
+
+    result = asyncio.run(run_flow())
+
+    assert result == {"type": "abort", "reason": "reauth_successful"}
+    assert recorder.updated is not None
+    updated_entry, updated_data = recorder.updated
+    assert updated_entry is entry
+    assert updated_data[CONF_API_KEY] == "new-key"
+    assert CONF_FORECAST_DAYS not in updated_data
+    assert CONF_CREATE_FORECAST_SENSORS not in updated_data
+
+
 def test_reconfigure_confirm_updates_and_reloads_entry() -> None:
     """Reconfigure confirmation should update stored credentials and reload entry."""
 
