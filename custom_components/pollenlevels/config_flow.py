@@ -513,31 +513,34 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._reauth_entry = entry
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
-        """Prompt for a refreshed API key and validate it."""
-        assert self._reauth_entry is not None
-
+    async def _async_handle_api_key_confirm(
+        self,
+        *,
+        entry: config_entries.ConfigEntry,
+        step_id: str,
+        success_reason: str,
+        user_input: dict[str, Any] | None,
+    ):
+        """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
         placeholders = {
-            "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
-            "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
+            "latitude": f"{entry.data.get(CONF_LATITUDE)}",
+            "longitude": f"{entry.data.get(CONF_LONGITUDE)}",
             "api_key_url": POLLEN_API_KEY_URL,
             "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
         }
 
         if user_input:
-            combined: dict[str, Any] = {**self._reauth_entry.data, **user_input}
+            combined: dict[str, Any] = {**entry.data, **user_input}
             errors, normalized = await self._async_validate_input(
                 combined,
                 check_unique_id=False,
                 description_placeholders=placeholders,
             )
             if not errors and normalized is not None:
-                self.hass.config_entries.async_update_entry(
-                    self._reauth_entry, data=normalized
-                )
-                await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
-                return self.async_abort(reason="reauth_successful")
+                self.hass.config_entries.async_update_entry(entry, data=normalized)
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason=success_reason)
 
         schema = vol.Schema(
             {
@@ -549,10 +552,20 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         return self.async_show_form(
-            step_id="reauth_confirm",
+            step_id=step_id,
             data_schema=schema,
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
+        """Prompt for a refreshed API key and validate it."""
+        assert self._reauth_entry is not None
+        return await self._async_handle_api_key_confirm(
+            entry=self._reauth_entry,
+            step_id="reauth_confirm",
+            success_reason="reauth_successful",
+            user_input=user_input,
         )
 
     async def async_step_reconfigure(self, entry_data: dict[str, Any]):
@@ -569,45 +582,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ):
         """Prompt for a refreshed API key from the reconfigure UI."""
         assert self._reconfigure_entry is not None
-
-        errors: dict[str, str] = {}
-        placeholders = {
-            "latitude": f"{self._reconfigure_entry.data.get(CONF_LATITUDE)}",
-            "longitude": f"{self._reconfigure_entry.data.get(CONF_LONGITUDE)}",
-            "api_key_url": POLLEN_API_KEY_URL,
-            "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
-        }
-
-        if user_input:
-            combined: dict[str, Any] = {**self._reconfigure_entry.data, **user_input}
-            errors, normalized = await self._async_validate_input(
-                combined,
-                check_unique_id=False,
-                description_placeholders=placeholders,
-            )
-            if not errors and normalized is not None:
-                self.hass.config_entries.async_update_entry(
-                    self._reconfigure_entry, data=normalized
-                )
-                await self.hass.config_entries.async_reload(
-                    self._reconfigure_entry.entry_id
-                )
-                return self.async_abort(reason="reconfigure_successful")
-
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_API_KEY,
-                    default="",
-                ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
-            }
-        )
-
-        return self.async_show_form(
+        return await self._async_handle_api_key_confirm(
+            entry=self._reconfigure_entry,
             step_id="reconfigure_confirm",
-            data_schema=schema,
-            errors=errors,
-            description_placeholders=placeholders,
+            success_reason="reconfigure_successful",
+            user_input=user_input,
         )
 
 

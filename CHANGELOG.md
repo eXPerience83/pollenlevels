@@ -1,3 +1,11 @@
+## [1.9.6] - 2026-04-06
+### Changed
+- Refactored config-flow API key confirmation handling to reuse a shared helper
+  across re-authentication and reconfiguration steps, reducing duplication
+  while preserving existing behavior.
+- Localized reconfiguration step labels/descriptions and success/failure abort
+  messages across bundled translations.
+
 ## [1.9.5] - 2026-03-02
 ### Changed
 - Bumped GitHub Actions artifact upload to `actions/upload-artifact@v7`.
