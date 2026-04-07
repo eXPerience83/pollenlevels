@@ -281,11 +281,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 3
 
-    def __init__(self) -> None:
-        """Initialize the config flow state."""
-        self._reauth_entry: config_entries.ConfigEntry | None = None
-        self._reconfigure_entry: config_entries.ConfigEntry | None = None
-
     @staticmethod
     def async_get_options_flow(entry: config_entries.ConfigEntry):
         """Return the options flow handler."""
@@ -506,11 +501,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: dict[str, Any]):
         """Handle re-authentication when credentials become invalid."""
-        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        if entry is None:
-            return self.async_abort(reason="reauth_failed")
-
-        self._reauth_entry = entry
         return await self.async_step_reauth_confirm()
 
     async def _async_handle_api_key_confirm(
@@ -540,15 +530,16 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             if not errors and normalized is not None:
                 if persist_normalized_data:
-                    new_data = normalized
+                    data_updates = normalized
                 else:
-                    new_data = {
-                        **entry.data,
+                    data_updates = {
                         CONF_API_KEY: str(normalized.get(CONF_API_KEY, "")).strip(),
                     }
-                self.hass.config_entries.async_update_entry(entry, data=new_data)
-                await self.hass.config_entries.async_reload(entry.entry_id)
-                return self.async_abort(reason=success_reason)
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates=data_updates,
+                    reason=success_reason,
+                )
 
         schema = vol.Schema(
             {
@@ -568,31 +559,30 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
         """Prompt for a refreshed API key and validate it."""
-        assert self._reauth_entry is not None
+        entry = self._get_reauth_entry()
+        if entry is None:
+            return self.async_abort(reason="reauth_failed")
         return await self._async_handle_api_key_confirm(
-            entry=self._reauth_entry,
+            entry=entry,
             step_id="reauth_confirm",
             success_reason="reauth_successful",
             user_input=user_input,
             persist_normalized_data=False,
         )
 
-    async def async_step_reconfigure(self, entry_data: dict[str, Any]):
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
         """Handle a user-initiated reconfigure request."""
-        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        if entry is None:
-            return self.async_abort(reason="reconfigure_failed")
-
-        self._reconfigure_entry = entry
         return await self.async_step_reconfigure_confirm()
 
     async def async_step_reconfigure_confirm(
         self, user_input: dict[str, Any] | None = None
     ):
         """Prompt for a refreshed API key from the reconfigure UI."""
-        assert self._reconfigure_entry is not None
+        entry = self._get_reconfigure_entry()
+        if entry is None:
+            return self.async_abort(reason="reconfigure_failed")
         return await self._async_handle_api_key_confirm(
-            entry=self._reconfigure_entry,
+            entry=entry,
             step_id="reconfigure_confirm",
             success_reason="reconfigure_successful",
             user_input=user_input,

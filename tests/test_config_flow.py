@@ -71,6 +71,24 @@ class _StubConfigFlow:
     def add_suggested_values_to_schema(self, schema, suggested_values):
         return schema
 
+    def _get_reauth_entry(self):
+        entry_id = self.context.get("entry_id")
+        return self.hass.config_entries.async_get_entry(entry_id)
+
+    def _get_reconfigure_entry(self):
+        entry_id = self.context.get("entry_id")
+        return self.hass.config_entries.async_get_entry(entry_id)
+
+    def async_update_reload_and_abort(
+        self, entry, *, data_updates=None, reason=None, **kwargs
+    ):
+        new_data = dict(entry.data)
+        if data_updates:
+            new_data.update(data_updates)
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
+        self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason=reason)
+
 
 class _StubOptionsFlow:
     pass
@@ -780,7 +798,7 @@ def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
     flow.context = {"entry_id": "entry-id"}
-    flow._reauth_entry = entry
+    flow._get_reauth_entry = lambda: entry  # type: ignore[method-assign]
 
     captured: dict[str, object] = {}
 
@@ -829,7 +847,7 @@ def test_reconfigure_confirm_schema_masks_api_key_and_uses_blank_default(
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
     flow.context = {"entry_id": "entry-id"}
-    flow._reconfigure_entry = entry
+    flow._get_reconfigure_entry = lambda: entry  # type: ignore[method-assign]
 
     captured: dict[str, object] = {}
 
@@ -1581,8 +1599,8 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
     assert flow.unique_ids[0] == flow.unique_ids[1] == "1.0000_2.0000"
 
 
-def test_reauth_confirm_updates_and_reloads_entry() -> None:
-    """Re-auth confirmation should update stored credentials and reload the entry."""
+def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
+    """Re-auth confirmation should update existing entry credentials and reload."""
 
     entry = cf.config_entries.ConfigEntry(
         data={
@@ -1605,7 +1623,7 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
         def async_update_entry(self, entry_to_update, *, data):
             self.updated = (entry_to_update, data)
 
-        async def async_reload(self, entry_id: str):
+        def async_reload(self, entry_id: str):
             self.reloaded = entry_id
 
     recorder = _Recorder()
@@ -1614,12 +1632,7 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
 
-    normalized = {
-        CONF_API_KEY: "new-key",
-        CONF_LATITUDE: 1.0,
-        CONF_LONGITUDE: 2.0,
-        CONF_LANGUAGE_CODE: "en",
-    }
+    normalized = {**entry.data, CONF_API_KEY: "new-key", CONF_FORECAST_DAYS: 3}
 
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
@@ -1635,7 +1648,13 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
     result = asyncio.run(run_flow())
 
     assert result == {"type": "abort", "reason": "reauth_successful"}
-    assert recorder.updated == (entry, normalized)
+    assert recorder.updated == (
+        entry,
+        {
+            **entry.data,
+            CONF_API_KEY: "new-key",
+        },
+    )
     assert recorder.reloaded == "entry-id"
 
 
@@ -1665,7 +1684,7 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
         def async_update_entry(self, entry_to_update, *, data):
             self.updated = (entry_to_update, data)
 
-        async def async_reload(self, entry_id: str):
+        def async_reload(self, entry_id: str):
             return None
 
     recorder = _Recorder()
@@ -1704,8 +1723,8 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
     assert CONF_CREATE_FORECAST_SENSORS not in updated_data
 
 
-def test_reconfigure_confirm_updates_and_reloads_entry() -> None:
-    """Reconfigure confirmation should update stored credentials and reload entry."""
+def test_reconfigure_confirm_updates_existing_entry_and_reloads() -> None:
+    """Reconfigure confirmation should update existing entry credentials and reload."""
 
     entry = cf.config_entries.ConfigEntry(
         data={
@@ -1728,7 +1747,7 @@ def test_reconfigure_confirm_updates_and_reloads_entry() -> None:
         def async_update_entry(self, entry_to_update, *, data):
             self.updated = (entry_to_update, data)
 
-        async def async_reload(self, entry_id: str):
+        def async_reload(self, entry_id: str):
             self.reloaded = entry_id
 
     recorder = _Recorder()
@@ -1736,13 +1755,15 @@ def test_reconfigure_confirm_updates_and_reloads_entry() -> None:
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
+    created: dict[str, bool] = {"called": False}
 
-    normalized = {
-        CONF_API_KEY: "new-key",
-        CONF_LATITUDE: 1.0,
-        CONF_LONGITUDE: 2.0,
-        CONF_LANGUAGE_CODE: "en",
-    }
+    def _capture_create_entry(*args, **kwargs):
+        created["called"] = True
+        return {"type": "create_entry"}
+
+    flow.async_create_entry = _capture_create_entry  # type: ignore[method-assign]
+
+    normalized = {**entry.data, CONF_API_KEY: "new-key", CONF_UPDATE_INTERVAL: 12}
 
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
@@ -1752,14 +1773,22 @@ def test_reconfigure_confirm_updates_and_reloads_entry() -> None:
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
 
     async def run_flow():
-        await flow.async_step_reconfigure(entry.data)
+        first = await flow.async_step_reconfigure()
+        assert first == {"step_id": "reconfigure_confirm"}
         return await flow.async_step_reconfigure_confirm({CONF_API_KEY: "new-key"})
 
     result = asyncio.run(run_flow())
 
     assert result == {"type": "abort", "reason": "reconfigure_successful"}
-    assert recorder.updated == (entry, normalized)
+    assert recorder.updated == (
+        entry,
+        {
+            **entry.data,
+            CONF_API_KEY: "new-key",
+        },
+    )
     assert recorder.reloaded == "entry-id"
+    assert created["called"] is False
 
 
 def test_reconfigure_confirm_does_not_reintroduce_option_fields_in_data() -> None:
@@ -1788,7 +1817,7 @@ def test_reconfigure_confirm_does_not_reintroduce_option_fields_in_data() -> Non
         def async_update_entry(self, entry_to_update, *, data):
             self.updated = (entry_to_update, data)
 
-        async def async_reload(self, entry_id: str):
+        def async_reload(self, entry_id: str):
             return None
 
     recorder = _Recorder()
@@ -1796,6 +1825,13 @@ def test_reconfigure_confirm_does_not_reintroduce_option_fields_in_data() -> Non
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
+    created: dict[str, bool] = {"called": False}
+
+    def _capture_create_entry(*args, **kwargs):
+        created["called"] = True
+        return {"type": "create_entry"}
+
+    flow.async_create_entry = _capture_create_entry  # type: ignore[method-assign]
 
     # Validation may normalize and include option-backed fields.
     normalized = {
@@ -1812,7 +1848,8 @@ def test_reconfigure_confirm_does_not_reintroduce_option_fields_in_data() -> Non
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
 
     async def run_flow():
-        await flow.async_step_reconfigure(entry.data)
+        first = await flow.async_step_reconfigure()
+        assert first == {"step_id": "reconfigure_confirm"}
         return await flow.async_step_reconfigure_confirm({CONF_API_KEY: "new-key"})
 
     result = asyncio.run(run_flow())
@@ -1823,6 +1860,7 @@ def test_reconfigure_confirm_does_not_reintroduce_option_fields_in_data() -> Non
     assert updated_entry is entry
     assert updated_data[CONF_API_KEY] == "new-key"
     assert CONF_CREATE_FORECAST_SENSORS not in updated_data
+    assert created["called"] is False
 
 
 def test_async_step_user_uses_custom_entry_name() -> None:

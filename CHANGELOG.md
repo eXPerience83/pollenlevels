@@ -3,12 +3,18 @@
 - Refactored config-flow API key confirmation handling to reuse a shared helper
   across re-authentication and reconfiguration steps, reducing duplication
   while preserving existing behavior.
+- Aligned re-authentication/reconfiguration flow handling with Home Assistant's
+  helper-based entry APIs (`_get_*_entry` and update/reload/abort helper path).
+- Normalized the reconfigure step signature/shape to match current Home
+  Assistant config-flow conventions while keeping the existing confirmation UX.
 - Localized reconfiguration step labels/descriptions and success/failure abort
   messages across bundled translations.
 
 ### Fixed
 - Prevented both reconfigure and re-auth flows from writing option-owned fields
   back into config-entry data when saving a refreshed API key.
+- Preserved the API-key-only data refresh behavior while migrating reauth and
+  reconfigure confirmations to the helper-based update path.
 
 ## [1.9.5] - 2026-03-02
 ### Changed
