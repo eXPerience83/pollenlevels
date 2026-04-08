@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API-kulcs"
         }
+      },
+      "reconfigure": {
+        "title": "Pollenértékek újrakonfigurálása",
+        "description": "Frissítse az API-kulcsot ehhez: {latitude},{longitude}. Új kulcsot a [Google API-kulcs dokumentációban]({api_key_url}) hozhat létre, és ellenőrizheti az [API-kulcs korlátozásokat]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API-kulcs"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",
       "reauth_successful": "Az újrahitelesítés sikerült.",
-      "reauth_failed": "Az újrahitelesítés nem sikerült. Próbáld meg újra."
+      "reauth_failed": "Az újrahitelesítés nem sikerült. Próbáld meg újra.",
+      "reconfigure_successful": "Az újrakonfigurálás sikeresen befejeződött.",
+      "reconfigure_failed": "Az újrakonfigurálás sikertelen. Kérjük, próbálja újra."
     }
   },
   "options": {

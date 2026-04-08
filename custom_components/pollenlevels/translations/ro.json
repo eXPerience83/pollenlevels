@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Cheie API"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigurează Niveluri de polen",
+        "description": "Actualizați cheia API pentru {latitude},{longitude}. Puteți genera una în [documentația cheilor API Google]({api_key_url}) și revizui [restricțiile cheilor API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "Cheie API"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Această locație este deja configurată.",
       "reauth_successful": "Reautentificarea s-a încheiat cu succes.",
-      "reauth_failed": "Reautentificarea a eșuat. Încercați din nou."
+      "reauth_failed": "Reautentificarea a eșuat. Încercați din nou.",
+      "reconfigure_successful": "Reconfigurarea s-a finalizat cu succes.",
+      "reconfigure_failed": "Reconfigurarea a eșuat. Încercați din nou."
     }
   },
   "options": {

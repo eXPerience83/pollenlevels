@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API-avain"
         }
+      },
+      "reconfigure": {
+        "title": "Määritä Pollenitasot uudelleen",
+        "description": "Päivitä API-avain sijainnille {latitude},{longitude}. Voit luoda avaimen [Googlen API-avainohjeesta]({api_key_url}) ja tarkistaa [API-avaimen rajoitukset]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API-avain"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
       "reauth_successful": "Uudelleentodennus onnistui.",
-      "reauth_failed": "Uudelleentodennus epäonnistui. Yritä uudelleen."
+      "reauth_failed": "Uudelleentodennus epäonnistui. Yritä uudelleen.",
+      "reconfigure_successful": "Uudelleenmääritys onnistui.",
+      "reconfigure_failed": "Uudelleenmääritys epäonnistui. Yritä uudelleen."
     }
   },
   "options": {

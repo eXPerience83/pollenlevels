@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API-nøkkel"
         }
+      },
+      "reconfigure": {
+        "title": "Konfigurer Pollennivåer på nytt",
+        "description": "Oppdater API-nøkkelen for {latitude},{longitude}. Du kan opprette en i [Google API-nøkkel-dokumentasjonen]({api_key_url}) og gjennomgå [API-nøkkelbegrensninger]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API-nøkkel"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Dette stedet er allerede konfigurert.",
       "reauth_successful": "Ny autentisering fullført.",
-      "reauth_failed": "Ny autentisering mislyktes. Prøv igjen."
+      "reauth_failed": "Ny autentisering mislyktes. Prøv igjen.",
+      "reconfigure_successful": "Omkonfigurering fullført.",
+      "reconfigure_failed": "Omkonfigurering mislyktes. Prøv igjen."
     }
   },
   "options": {

@@ -281,10 +281,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 3
 
-    def __init__(self) -> None:
-        """Initialize the config flow state."""
-        self._reauth_entry: config_entries.ConfigEntry | None = None
-
     @staticmethod
     def async_get_options_flow(entry: config_entries.ConfigEntry):
         """Return the options flow handler."""
@@ -505,38 +501,45 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: dict[str, Any]):
         """Handle re-authentication when credentials become invalid."""
-        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        if entry is None:
-            return self.async_abort(reason="reauth_failed")
-
-        self._reauth_entry = entry
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
-        """Prompt for a refreshed API key and validate it."""
-        assert self._reauth_entry is not None
-
+    async def _async_handle_api_key_confirm(
+        self,
+        *,
+        entry: config_entries.ConfigEntry,
+        step_id: str,
+        success_reason: str,
+        user_input: dict[str, Any] | None,
+        persist_normalized_data: bool = True,
+    ):
+        """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
         placeholders = {
-            "latitude": f"{self._reauth_entry.data.get(CONF_LATITUDE)}",
-            "longitude": f"{self._reauth_entry.data.get(CONF_LONGITUDE)}",
+            "latitude": f"{entry.data.get(CONF_LATITUDE)}",
+            "longitude": f"{entry.data.get(CONF_LONGITUDE)}",
             "api_key_url": POLLEN_API_KEY_URL,
             "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
         }
 
         if user_input:
-            combined: dict[str, Any] = {**self._reauth_entry.data, **user_input}
+            combined: dict[str, Any] = {**entry.data, **user_input}
             errors, normalized = await self._async_validate_input(
                 combined,
                 check_unique_id=False,
                 description_placeholders=placeholders,
             )
             if not errors and normalized is not None:
-                self.hass.config_entries.async_update_entry(
-                    self._reauth_entry, data=normalized
+                if persist_normalized_data:
+                    data_updates = normalized
+                else:
+                    data_updates = {
+                        CONF_API_KEY: str(normalized.get(CONF_API_KEY, "")).strip(),
+                    }
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates=data_updates,
+                    reason=success_reason,
                 )
-                await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
-                return self.async_abort(reason="reauth_successful")
 
         schema = vol.Schema(
             {
@@ -548,10 +551,36 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         return self.async_show_form(
-            step_id="reauth_confirm",
+            step_id=step_id,
             data_schema=schema,
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
+        """Prompt for a refreshed API key and validate it."""
+        entry = self._get_reauth_entry()
+        if entry is None:
+            return self.async_abort(reason="reauth_failed")
+        return await self._async_handle_api_key_confirm(
+            entry=entry,
+            step_id="reauth_confirm",
+            success_reason="reauth_successful",
+            user_input=user_input,
+            persist_normalized_data=False,
+        )
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
+        """Prompt for a refreshed API key from the reconfigure UI."""
+        entry = self._get_reconfigure_entry()
+        if entry is None:
+            return self.async_abort(reason="reconfigure_failed")
+        return await self._async_handle_api_key_confirm(
+            entry=entry,
+            step_id="reconfigure",
+            success_reason="reconfigure_successful",
+            user_input=user_input,
+            persist_normalized_data=False,
         )
 
 

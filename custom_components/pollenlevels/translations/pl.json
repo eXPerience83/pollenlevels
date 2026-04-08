@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Klucz API"
         }
+      },
+      "reconfigure": {
+        "title": "Skonfiguruj ponownie Poziomy pyłków",
+        "description": "Zaktualizuj klucz API dla {latitude},{longitude}. Możesz utworzyć go w [dokumentacji kluczy API Google]({api_key_url}) i sprawdzić [ograniczenia kluczy API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "Klucz API"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
       "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie.",
-      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie."
+      "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie.",
+      "reconfigure_successful": "Ponowna konfiguracja została zakończona pomyślnie.",
+      "reconfigure_failed": "Ponowna konfiguracja nie powiodła się. Spróbuj ponownie."
     }
   },
   "options": {

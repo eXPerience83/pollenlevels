@@ -20,6 +20,13 @@
         "data": {
           "api_key": "Clave API"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar Niveles de Polen",
+        "description": "Actualiza la clave API para {latitude},{longitude}. Puedes generar una en [la documentación de claves API de Google]({api_key_url}) y revisar [las restricciones de claves API]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "Clave API"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Esta ubicación ya está configurada.",
       "reauth_successful": "La reautenticación se completó correctamente.",
-      "reauth_failed": "La reautenticación falló. Inténtalo de nuevo."
+      "reauth_failed": "La reautenticación falló. Inténtalo de nuevo.",
+      "reconfigure_successful": "La reconfiguración se completó correctamente.",
+      "reconfigure_failed": "La reconfiguración falló. Inténtalo de nuevo."
     }
   },
   "options": {

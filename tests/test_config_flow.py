@@ -71,6 +71,24 @@ class _StubConfigFlow:
     def add_suggested_values_to_schema(self, schema, suggested_values):
         return schema
 
+    def _get_reauth_entry(self):
+        entry_id = self.context.get("entry_id")
+        return self.hass.config_entries.async_get_entry(entry_id)
+
+    def _get_reconfigure_entry(self):
+        entry_id = self.context.get("entry_id")
+        return self.hass.config_entries.async_get_entry(entry_id)
+
+    def async_update_reload_and_abort(
+        self, entry, *, data_updates=None, reason=None, **kwargs
+    ):
+        new_data = dict(entry.data)
+        if data_updates:
+            new_data.update(data_updates)
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
+        self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason=reason)
+
 
 class _StubOptionsFlow:
     pass
@@ -780,7 +798,7 @@ def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
     flow = PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
     flow.context = {"entry_id": "entry-id"}
-    flow._reauth_entry = entry
+    flow._get_reauth_entry = lambda: entry  # type: ignore[method-assign]
 
     captured: dict[str, object] = {}
 
@@ -794,6 +812,55 @@ def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
     result = asyncio.run(flow.async_step_reauth_confirm())
 
     assert result == {"step_id": "reauth_confirm"}
+    assert captured_default["api_key"] == ""
+    schema = captured["schema"]
+    assert hasattr(schema, "schema")
+    api_selector = schema.schema[CONF_API_KEY]
+    assert isinstance(api_selector, cf.TextSelector)
+    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
+
+
+def test_reconfigure_schema_masks_api_key_and_uses_blank_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reconfigure form should mask API key input and avoid prefilling secrets."""
+
+    captured_default: dict[str, object] = {}
+    orig_required = cf.vol.Required
+
+    def _capture_required(key, **kwargs):
+        if key == CONF_API_KEY:
+            captured_default["api_key"] = kwargs.get("default")
+        return orig_required(key, **kwargs)
+
+    monkeypatch.setattr(cf.vol, "Required", _capture_required)
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+        },
+        entry_id="entry-id",
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
+    flow.context = {"entry_id": "entry-id"}
+    flow._get_reconfigure_entry = lambda: entry  # type: ignore[method-assign]
+
+    captured: dict[str, object] = {}
+
+    def _capture_show_form(*, step_id=None, data_schema=None, **kwargs):
+        captured["step_id"] = step_id
+        captured["schema"] = data_schema
+        return {"step_id": step_id}
+
+    flow.async_show_form = _capture_show_form  # type: ignore[method-assign]
+
+    result = asyncio.run(flow.async_step_reconfigure())
+
+    assert result == {"step_id": "reconfigure"}
     assert captured_default["api_key"] == ""
     schema = captured["schema"]
     assert hasattr(schema, "schema")
@@ -1532,8 +1599,8 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
     assert flow.unique_ids[0] == flow.unique_ids[1] == "1.0000_2.0000"
 
 
-def test_reauth_confirm_updates_and_reloads_entry() -> None:
-    """Re-auth confirmation should update stored credentials and reload the entry."""
+def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
+    """Re-auth confirmation should update existing entry credentials and reload."""
 
     entry = cf.config_entries.ConfigEntry(
         data={
@@ -1556,7 +1623,7 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
         def async_update_entry(self, entry_to_update, *, data):
             self.updated = (entry_to_update, data)
 
-        async def async_reload(self, entry_id: str):
+        def async_reload(self, entry_id: str):
             self.reloaded = entry_id
 
     recorder = _Recorder()
@@ -1565,11 +1632,73 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
 
+    normalized = {**entry.data, CONF_API_KEY: "new-key", CONF_FORECAST_DAYS: 3}
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    async def run_flow():
+        await flow.async_step_reauth(entry.data)
+        return await flow.async_step_reauth_confirm({CONF_API_KEY: "new-key"})
+
+    result = asyncio.run(run_flow())
+
+    assert result == {"type": "abort", "reason": "reauth_successful"}
+    assert recorder.updated == (
+        entry,
+        {
+            **entry.data,
+            CONF_API_KEY: "new-key",
+        },
+    )
+    assert recorder.reloaded == "entry-id"
+
+
+def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
+    """Reauth should only update API key in data, preserving option boundaries."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+            CONF_LANGUAGE_CODE: "en",
+            CONF_UPDATE_INTERVAL: 6,
+            # Intentionally no CONF_FORECAST_DAYS in data.
+        },
+        options={CONF_FORECAST_DAYS: 5, CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        entry_id="entry-id",
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+
+        def async_reload(self, entry_id: str):
+            return None
+
+    recorder = _Recorder()
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    flow.context = {"entry_id": "entry-id"}
+
+    # Validation may normalize and include option-backed fields.
     normalized = {
+        **entry.data,
         CONF_API_KEY: "new-key",
-        CONF_LATITUDE: 1.0,
-        CONF_LONGITUDE: 2.0,
-        CONF_LANGUAGE_CODE: "en",
+        CONF_FORECAST_DAYS: 2,
+        CONF_CREATE_FORECAST_SENSORS: "none",
     }
 
     async def fake_validate(
@@ -1586,8 +1715,152 @@ def test_reauth_confirm_updates_and_reloads_entry() -> None:
     result = asyncio.run(run_flow())
 
     assert result == {"type": "abort", "reason": "reauth_successful"}
-    assert recorder.updated == (entry, normalized)
+    assert recorder.updated is not None
+    updated_entry, updated_data = recorder.updated
+    assert updated_entry is entry
+    assert updated_data[CONF_API_KEY] == "new-key"
+    assert CONF_FORECAST_DAYS not in updated_data
+    assert CONF_CREATE_FORECAST_SENSORS not in updated_data
+
+
+def test_reconfigure_updates_existing_entry_and_reloads() -> None:
+    """Reconfigure confirmation should update existing entry credentials and reload."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+            CONF_LANGUAGE_CODE: "en",
+        },
+        entry_id="entry-id",
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+            self.reloaded = None
+
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+
+        def async_reload(self, entry_id: str):
+            self.reloaded = entry_id
+
+    recorder = _Recorder()
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    flow.context = {"entry_id": "entry-id"}
+    created: dict[str, bool] = {"called": False}
+
+    def _capture_create_entry(*args, **kwargs):
+        created["called"] = True
+        return {"type": "create_entry"}
+
+    flow.async_create_entry = _capture_create_entry  # type: ignore[method-assign]
+
+    normalized = {**entry.data, CONF_API_KEY: "new-key", CONF_UPDATE_INTERVAL: 12}
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    async def run_flow():
+        first = await flow.async_step_reconfigure()
+        assert first == {"step_id": "reconfigure"}
+        return await flow.async_step_reconfigure({CONF_API_KEY: "new-key"})
+
+    result = asyncio.run(run_flow())
+
+    assert result == {"type": "abort", "reason": "reconfigure_successful"}
+    assert recorder.updated == (
+        entry,
+        {
+            **entry.data,
+            CONF_API_KEY: "new-key",
+        },
+    )
     assert recorder.reloaded == "entry-id"
+    assert created["called"] is False
+
+
+def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
+    """Reconfigure should only update API key in data, preserving option boundaries."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 1.0,
+            CONF_LONGITUDE: 2.0,
+            CONF_LANGUAGE_CODE: "en",
+            CONF_UPDATE_INTERVAL: 6,
+            # Intentionally no CONF_CREATE_FORECAST_SENSORS in data.
+        },
+        options={CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        entry_id="entry-id",
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+
+        def async_reload(self, entry_id: str):
+            return None
+
+    recorder = _Recorder()
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    flow.context = {"entry_id": "entry-id"}
+    created: dict[str, bool] = {"called": False}
+
+    def _capture_create_entry(*args, **kwargs):
+        created["called"] = True
+        return {"type": "create_entry"}
+
+    flow.async_create_entry = _capture_create_entry  # type: ignore[method-assign]
+
+    # Validation may normalize and include option-backed fields.
+    normalized = {
+        **entry.data,
+        CONF_API_KEY: "new-key",
+        CONF_CREATE_FORECAST_SENSORS: "none",
+    }
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    async def run_flow():
+        first = await flow.async_step_reconfigure()
+        assert first == {"step_id": "reconfigure"}
+        return await flow.async_step_reconfigure({CONF_API_KEY: "new-key"})
+
+    result = asyncio.run(run_flow())
+
+    assert result == {"type": "abort", "reason": "reconfigure_successful"}
+    assert recorder.updated is not None
+    updated_entry, updated_data = recorder.updated
+    assert updated_entry is entry
+    assert updated_data[CONF_API_KEY] == "new-key"
+    assert CONF_CREATE_FORECAST_SENSORS not in updated_data
+    assert created["called"] is False
 
 
 def test_async_step_user_uses_custom_entry_name() -> None:

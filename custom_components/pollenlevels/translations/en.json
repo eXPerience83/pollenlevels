@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API Key"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Pollen Levels",
+        "description": "Update the API key for {latitude},{longitude}. You can generate one at [Google API key docs]({api_key_url}) and review [API key restrictions]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "This location is already configured.",
       "reauth_successful": "Re-authentication completed successfully.",
-      "reauth_failed": "Re-authentication failed. Please try again."
+      "reauth_failed": "Re-authentication failed. Please try again.",
+      "reconfigure_successful": "Reconfiguration completed successfully.",
+      "reconfigure_failed": "Reconfiguration failed. Please try again."
     }
   },
   "options": {

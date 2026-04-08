@@ -20,6 +20,13 @@
         "data": {
           "api_key": "API-nyckel"
         }
+      },
+      "reconfigure": {
+        "title": "Konfigurera om Pollennivåer",
+        "description": "Uppdatera API-nyckeln för {latitude},{longitude}. Du kan skapa en i [Google API-nyckeldokumentation]({api_key_url}) och granska [API-nyckelbegränsningar]({restricting_api_keys_url}).",
+        "data": {
+          "api_key": "API-nyckel"
+        }
       }
     },
     "error": {
@@ -37,7 +44,9 @@
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
       "reauth_successful": "Återautentiseringen lyckades.",
-      "reauth_failed": "Återautentiseringen misslyckades. Försök igen."
+      "reauth_failed": "Återautentiseringen misslyckades. Försök igen.",
+      "reconfigure_successful": "Omkonfigureringen slutfördes.",
+      "reconfigure_failed": "Omkonfigureringen misslyckades. Försök igen."
     }
   },
   "options": {
