@@ -21,7 +21,7 @@
           "api_key": "API-nøgle"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Omkonfigurer Pollen Levels",
         "description": "Opdater API-nøglen for {latitude},{longitude}. Du kan oprette en i [Google API-nøgle-dokumentationen]({api_key_url}) og gennemgå [begrænsninger for API-nøgler]({restricting_api_keys_url}).",
         "data": {

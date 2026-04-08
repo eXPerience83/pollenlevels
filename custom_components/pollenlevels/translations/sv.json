@@ -21,7 +21,7 @@
           "api_key": "API-nyckel"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Konfigurera om Pollennivåer",
         "description": "Uppdatera API-nyckeln för {latitude},{longitude}. Du kan skapa en i [Google API-nyckeldokumentation]({api_key_url}) och granska [API-nyckelbegränsningar]({restricting_api_keys_url}).",
         "data": {

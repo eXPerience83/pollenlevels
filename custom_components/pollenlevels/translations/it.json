@@ -21,7 +21,7 @@
           "api_key": "Chiave API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Riconfigura Livelli Pollinici",
         "description": "Aggiorna la chiave API per {latitude},{longitude}. Puoi generarne una nella [documentazione delle chiavi API Google]({api_key_url}) e rivedere [le restrizioni delle chiavi API]({restricting_api_keys_url}).",
         "data": {

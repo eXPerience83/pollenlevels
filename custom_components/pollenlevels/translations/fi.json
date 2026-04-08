@@ -21,7 +21,7 @@
           "api_key": "API-avain"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Määritä Pollenitasot uudelleen",
         "description": "Päivitä API-avain sijainnille {latitude},{longitude}. Voit luoda avaimen [Googlen API-avainohjeesta]({api_key_url}) ja tarkistaa [API-avaimen rajoitukset]({restricting_api_keys_url}).",
         "data": {

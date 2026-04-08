@@ -21,7 +21,7 @@
           "api_key": "API-sleutel"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Pollenwaarden opnieuw configureren",
         "description": "Werk de API-sleutel bij voor {latitude},{longitude}. Je kunt er een maken in de [Google API-sleutel-documentatie]({api_key_url}) en [API-sleutelbeperkingen]({restricting_api_keys_url}) bekijken.",
         "data": {

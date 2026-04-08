@@ -21,7 +21,7 @@
           "api_key": "Chave da API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Reconfigurar Níveis de Pólen",
         "description": "Atualize a chave de API para {latitude},{longitude}. Você pode gerar uma na [documentação de chaves de API do Google]({api_key_url}) e revisar [as restrições de chave de API]({restricting_api_keys_url}).",
         "data": {

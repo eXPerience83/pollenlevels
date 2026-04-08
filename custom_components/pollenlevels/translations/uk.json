@@ -21,7 +21,7 @@
           "api_key": "Ключ API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Переналаштувати Рівні пилку",
         "description": "Оновіть API-ключ для {latitude},{longitude}. Ви можете створити його в [документації ключів API Google]({api_key_url}) та переглянути [обмеження ключів API]({restricting_api_keys_url}).",
         "data": {

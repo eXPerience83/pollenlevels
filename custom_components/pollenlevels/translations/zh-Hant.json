@@ -21,7 +21,7 @@
           "api_key": "API 金鑰"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "重新設定花粉水平",
         "description": "更新 {latitude},{longitude} 的 API 金鑰。您可以在 [Google API 金鑰文件]({api_key_url}) 產生，並檢視 [API 金鑰限制]({restricting_api_keys_url}).",
         "data": {

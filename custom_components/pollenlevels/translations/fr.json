@@ -21,7 +21,7 @@
           "api_key": "Clé API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Reconfigurer Niveaux de pollen",
         "description": "Mettez à jour la clé API pour {latitude},{longitude}. Vous pouvez en générer une dans la [documentation des clés API Google]({api_key_url}) et consulter [les restrictions des clés API]({restricting_api_keys_url}).",
         "data": {

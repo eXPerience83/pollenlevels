@@ -21,7 +21,7 @@
           "api_key": "Ключ API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Перенастроить Уровни пыльцы",
         "description": "Обновите API-ключ для {latitude},{longitude}. Вы можете создать его в [документации по API-ключам Google]({api_key_url}) и проверить [ограничения API-ключей]({restricting_api_keys_url}).",
         "data": {
