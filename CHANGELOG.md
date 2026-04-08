@@ -23,9 +23,6 @@
   Assistant config-flow conventions while keeping the existing confirmation UX.
 - Localized reconfiguration step labels/descriptions and success/failure abort
   messages across bundled translations.
-- Simplified the reconfigure flow to a single `reconfigure` step while keeping
-  the helper-based update/reload/abort path and API-key-only data refresh
-  behavior unchanged.
 
 ### Fixed
 - Prevented both reconfigure and re-auth flows from writing option-owned fields
