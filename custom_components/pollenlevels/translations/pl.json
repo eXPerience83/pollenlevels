@@ -21,7 +21,7 @@
           "api_key": "Klucz API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Skonfiguruj ponownie Poziomy pyłków",
         "description": "Zaktualizuj klucz API dla {latitude},{longitude}. Możesz utworzyć go w [dokumentacji kluczy API Google]({api_key_url}) i sprawdzić [ograniczenia kluczy API]({restricting_api_keys_url}).",
         "data": {

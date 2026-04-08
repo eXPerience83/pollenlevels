@@ -1,3 +1,17 @@
+## [1.9.7] - 2026-04-08
+### Changed
+- Aligned re-authentication/reconfiguration handling with Home Assistant's
+  helper-based entry APIs (`_get_*_entry` and update/reload/abort helper path).
+- Simplified reconfigure to a single real `reconfigure` config-flow step while
+  preserving the existing helper-based update path.
+- Moved reconfigure form translations from `config.step.reconfigure_confirm` to
+  `config.step.reconfigure` across bundled locales.
+
+### Fixed
+- Preserved API-key-only refresh behavior during re-authentication and
+  reconfiguration updates so option-owned fields are not reintroduced into
+  config-entry data.
+
 ## [1.9.6] - 2026-04-06
 ### Changed
 - Refactored config-flow API key confirmation handling to reuse a shared helper

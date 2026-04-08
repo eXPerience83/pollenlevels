@@ -21,7 +21,7 @@
           "api_key": "API-kulcs"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Pollenértékek újrakonfigurálása",
         "description": "Frissítse az API-kulcsot ehhez: {latitude},{longitude}. Új kulcsot a [Google API-kulcs dokumentációban]({api_key_url}) hozhat létre, és ellenőrizheti az [API-kulcs korlátozásokat]({restricting_api_keys_url}).",
         "data": {

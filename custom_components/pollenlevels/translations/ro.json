@@ -21,7 +21,7 @@
           "api_key": "Cheie API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Reconfigurează Niveluri de polen",
         "description": "Actualizați cheia API pentru {latitude},{longitude}. Puteți genera una în [documentația cheilor API Google]({api_key_url}) și revizui [restricțiile cheilor API]({restricting_api_keys_url}).",
         "data": {

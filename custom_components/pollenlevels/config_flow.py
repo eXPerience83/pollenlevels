@@ -571,19 +571,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
-        """Handle a user-initiated reconfigure request."""
-        return await self.async_step_reconfigure_confirm()
-
-    async def async_step_reconfigure_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ):
         """Prompt for a refreshed API key from the reconfigure UI."""
         entry = self._get_reconfigure_entry()
         if entry is None:
             return self.async_abort(reason="reconfigure_failed")
         return await self._async_handle_api_key_confirm(
             entry=entry,
-            step_id="reconfigure_confirm",
+            step_id="reconfigure",
             success_reason="reconfigure_successful",
             user_input=user_input,
             persist_normalized_data=False,

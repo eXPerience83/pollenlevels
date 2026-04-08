@@ -21,7 +21,7 @@
           "api_key": "Clau API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Reconfigura Nivells de Pol·len",
         "description": "Actualitza la clau API per a {latitude},{longitude}. En pots generar una a [la documentació de claus API de Google]({api_key_url}) i revisar [les restriccions de claus API]({restricting_api_keys_url}).",
         "data": {

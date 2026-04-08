@@ -21,7 +21,7 @@
           "api_key": "Clave API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Reconfigurar Niveles de Polen",
         "description": "Actualiza la clave API para {latitude},{longitude}. Puedes generar una en [la documentación de claves API de Google]({api_key_url}) y revisar [las restricciones de claves API]({restricting_api_keys_url}).",
         "data": {

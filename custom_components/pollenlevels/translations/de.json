@@ -21,7 +21,7 @@
           "api_key": "API-Schlüssel"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Pollenwerte neu konfigurieren",
         "description": "Aktualisieren Sie den API-Schlüssel für {latitude},{longitude}. Sie können einen in der [Google-API-Schlüssel-Dokumentation]({api_key_url}) erstellen und [API-Schlüssel-Beschränkungen]({restricting_api_keys_url}) prüfen.",
         "data": {

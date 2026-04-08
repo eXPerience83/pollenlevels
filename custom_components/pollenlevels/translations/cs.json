@@ -21,7 +21,7 @@
           "api_key": "Klíč API"
         }
       },
-      "reconfigure_confirm": {
+      "reconfigure": {
         "title": "Překonfigurovat Pylové hladiny",
         "description": "Aktualizujte klíč API pro {latitude},{longitude}. Můžete ho vytvořit v [dokumentaci klíčů API Google]({api_key_url}) a projít [omezení klíčů API]({restricting_api_keys_url}).",
         "data": {

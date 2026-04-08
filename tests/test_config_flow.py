@@ -820,7 +820,7 @@ def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
     assert api_selector.config.type == cf.TextSelectorType.PASSWORD
 
 
-def test_reconfigure_confirm_schema_masks_api_key_and_uses_blank_default(
+def test_reconfigure_schema_masks_api_key_and_uses_blank_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Reconfigure form should mask API key input and avoid prefilling secrets."""
@@ -858,9 +858,9 @@ def test_reconfigure_confirm_schema_masks_api_key_and_uses_blank_default(
 
     flow.async_show_form = _capture_show_form  # type: ignore[method-assign]
 
-    result = asyncio.run(flow.async_step_reconfigure_confirm())
+    result = asyncio.run(flow.async_step_reconfigure())
 
-    assert result == {"step_id": "reconfigure_confirm"}
+    assert result == {"step_id": "reconfigure"}
     assert captured_default["api_key"] == ""
     schema = captured["schema"]
     assert hasattr(schema, "schema")
@@ -1723,7 +1723,7 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
     assert CONF_CREATE_FORECAST_SENSORS not in updated_data
 
 
-def test_reconfigure_confirm_updates_existing_entry_and_reloads() -> None:
+def test_reconfigure_updates_existing_entry_and_reloads() -> None:
     """Reconfigure confirmation should update existing entry credentials and reload."""
 
     entry = cf.config_entries.ConfigEntry(
@@ -1774,8 +1774,8 @@ def test_reconfigure_confirm_updates_existing_entry_and_reloads() -> None:
 
     async def run_flow():
         first = await flow.async_step_reconfigure()
-        assert first == {"step_id": "reconfigure_confirm"}
-        return await flow.async_step_reconfigure_confirm({CONF_API_KEY: "new-key"})
+        assert first == {"step_id": "reconfigure"}
+        return await flow.async_step_reconfigure({CONF_API_KEY: "new-key"})
 
     result = asyncio.run(run_flow())
 
@@ -1791,7 +1791,7 @@ def test_reconfigure_confirm_updates_existing_entry_and_reloads() -> None:
     assert created["called"] is False
 
 
-def test_reconfigure_confirm_does_not_reintroduce_option_fields_in_data() -> None:
+def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
     """Reconfigure should only update API key in data, preserving option boundaries."""
 
     entry = cf.config_entries.ConfigEntry(
@@ -1849,8 +1849,8 @@ def test_reconfigure_confirm_does_not_reintroduce_option_fields_in_data() -> Non
 
     async def run_flow():
         first = await flow.async_step_reconfigure()
-        assert first == {"step_id": "reconfigure_confirm"}
-        return await flow.async_step_reconfigure_confirm({CONF_API_KEY: "new-key"})
+        assert first == {"step_id": "reconfigure"}
+        return await flow.async_step_reconfigure({CONF_API_KEY: "new-key"})
 
     result = asyncio.run(run_flow())
 
