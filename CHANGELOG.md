@@ -1,9 +1,9 @@
 ## [2.0.0] - 2026-05-07
-### Breaking Changes
-- Raised the minimum supported Home Assistant version to 2026.3.0.
-- Dropped Python 3.13 compatibility and aligned the project with Python 3.14+.
-
 ### Changed
+- **Breaking change:** Raised the minimum supported Home Assistant version to
+  2026.3.0.
+- **Breaking change:** Dropped Python 3.13 compatibility and aligned the project
+  with Python 3.14+.
 - Updated CI and project metadata to test and document the Python 3.14 baseline.
 
 ## [1.9.7] - 2026-04-08

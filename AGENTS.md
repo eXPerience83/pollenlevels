@@ -17,6 +17,9 @@
 - Do NOT add any new boilerplate, intro text or `## [Unreleased]` section automatically. If such sections already exist, leave them and only edit their content when explicitly requested.
 - Version headings must use the pattern `## [version] - YYYY-MM-DD` (ASCII hyphen) and releases must stay in reverse chronological order. Use SemVer identifiers such as `1.8.2`, `1.8.2-rc1`, `1.8.1-alpha1`.
 - Inside each version, use only these headings: `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`. Prefer `Changed` for documentation-only updates.
+- For breaking changes, keep one of the allowed section headings above and
+  prefix the bullet with `**Breaking change:**`; do not add a separate
+  `### Breaking Changes` heading.
 - Each change must be a `- ` bullet. Wrap long bullets around 80–100 characters with indented continuation lines; do NOT insert blank lines inside a bullet and avoid `<br>` or trailing double spaces.
 - Keep diffs minimal: never reflow or rewrap unrelated text, and never rename existing headings unless they clearly violate these rules.
 - If comparison links exist at the bottom of the changelog, keep the existing style and only extend it for new versions of this repository.
