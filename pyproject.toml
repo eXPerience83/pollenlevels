@@ -1,4 +1,4 @@
-# Tooling aligned to Home Assistant Python floor (>=3.14.0).
+# Tooling aligned to the Home Assistant Python floor (>=3.14.0).
 # NOTE: We purposely DO NOT set [tool.black].required-version; CI pins Black/Ruff
 # to the current minor series. If you ever need an exact lock, set both:
 #   - pyproject: required-version = "<desired black version>"
@@ -6,8 +6,8 @@
 
 [project]
 name = "pollenlevels"
-version = "1.9.7"
-# Enforce the runtime floor aligned with upcoming HA Python 3.14 images.
+version = "2.0.0"
+# Enforce the runtime floor aligned with Home Assistant Python 3.14 images.
 requires-python = ">=3.14"
 
 [tool.black]
