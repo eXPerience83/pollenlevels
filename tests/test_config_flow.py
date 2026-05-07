@@ -134,7 +134,7 @@ config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
 def _latitude(value=None):
     try:
         lat = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as _err:
         # Mirror Home Assistant's cv.latitude behavior for invalid types
         raise cf.vol.Invalid("latitude_type") from None
     if lat < -90 or lat > 90:
@@ -145,7 +145,7 @@ def _latitude(value=None):
 def _longitude(value=None):
     try:
         lon = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as _err:
         # Mirror Home Assistant's cv.longitude behavior for invalid types
         raise cf.vol.Invalid("longitude_type") from None
 
@@ -241,7 +241,7 @@ dt_mod = ModuleType("homeassistant.util.dt")
 def _parse_http_date(value: str):
     try:
         return email.utils.parsedate_to_datetime(value)
-    except (TypeError, ValueError, IndexError, OverflowError):
+    except (TypeError, ValueError, IndexError, OverflowError) as _err:
         return None
 
 
