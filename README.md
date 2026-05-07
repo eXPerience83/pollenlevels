@@ -20,6 +20,11 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 ---
 
+## Requirements
+
+- Requires Home Assistant 2026.3.0 or newer.
+- This release line targets Python 3.14+, matching the Home Assistant runtime baseline.
+
 ## 🌟 Features
 
 - **Multi-language support** — UI in 21 languages (**EN, ES, CA, DE, FR, IT, PL, RU, UK, NL, ZH-Hans, SV, CS, PT-BR, DA, NB, PT-PT, RO, FI, HU, ZH-Hant**) + API responses in any language.

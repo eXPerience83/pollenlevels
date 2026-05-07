@@ -1,7 +1,7 @@
 # Contributing
 
-- Follow Home Assistant's current Python floor for integration code (Python 3.13). Tooling is pinned to Python 3.14, but
-  integration logic must stay compatible with 3.13 syntax and standard library features.
+- The integration targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
+  Use Python 3.14 for local development and CI parity.
 - Format code with Black (line length 88, target-version `py314`) and sort/lint imports with Ruff (`ruff check --fix --select I` followed
   by `ruff check`).
 - The translation source of truth is `custom_components/pollenlevels/translations/en.json`. Keep every other locale file in

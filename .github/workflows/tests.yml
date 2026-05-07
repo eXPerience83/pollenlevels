@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13", "3.14"]
+        python-version: ["3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -38,7 +38,6 @@ jobs:
           fi
 
       - name: Install package
-        if: ${{ matrix.python-version >= '3.14' }}
         run: |
           python -m pip install .
 
