@@ -1,3 +1,8 @@
+## [2.1.0] - 2026-05-07
+### Added
+- Added daily summary sensors for plants in season, overall pollen risk, and top
+  pollen types.
+
 ## [2.0.0] - 2026-05-07
 ### Changed
 - **Breaking change:** Raised the minimum supported Home Assistant version to
