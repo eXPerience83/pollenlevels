@@ -100,13 +100,13 @@
         "name": "Останнє оновлення"
       },
       "plants_in_season_today": {
-        "name": "Plants in Season Today"
+        "name": "Рослини в сезоні сьогодні"
       },
       "overall_pollen_risk_today": {
-        "name": "Overall Pollen Risk Today"
+        "name": "Загальний ризик пилку сьогодні"
       },
       "top_pollen_types_today": {
-        "name": "Top Pollen Types Today"
+        "name": "Основні типи пилку сьогодні"
       }
     }
   }

@@ -100,7 +100,7 @@ def safe_parse_int(value: Any) -> int | None:
 
     try:
         parsed_float = float(value)
-    except (TypeError, ValueError, OverflowError):
+    except (TypeError, ValueError, OverflowError) as _err:
         return None
 
     if not math.isfinite(parsed_float) or not parsed_float.is_integer():

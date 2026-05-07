@@ -96,9 +96,9 @@ def _entry_code(key: str, info: dict[str, Any]) -> str:
     if info.get("code") is not None:
         return str(info["code"])
     if key.startswith("type_"):
-        return key.removeprefix("type_")
+        return key.removeprefix("type_").upper()
     if key.startswith("plants_"):
-        return key.removeprefix("plants_")
+        return key.removeprefix("plants_").upper()
     return key
 
 
@@ -700,7 +700,7 @@ class DateSensor(_BaseMetaSensor):
         try:
             y, m, d = map(int, date_str.split("-"))
             return date(y, m, d)
-        except ValueError, TypeError:
+        except (ValueError, TypeError) as _err:
             _LOGGER.error("Invalid date format received: %s", date_str)
             return None
 

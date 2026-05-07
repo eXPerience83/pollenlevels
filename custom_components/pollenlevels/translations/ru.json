@@ -100,13 +100,13 @@
         "name": "Последнее обновление"
       },
       "plants_in_season_today": {
-        "name": "Plants in Season Today"
+        "name": "Растения в сезоне сегодня"
       },
       "overall_pollen_risk_today": {
-        "name": "Overall Pollen Risk Today"
+        "name": "Общий риск пыльцы сегодня"
       },
       "top_pollen_types_today": {
-        "name": "Top Pollen Types Today"
+        "name": "Основные типы пыльцы сегодня"
       }
     }
   }

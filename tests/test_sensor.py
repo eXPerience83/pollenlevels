@@ -216,7 +216,7 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
     try:
         parsed = parsedate_to_datetime(value) if value is not None else None
-    except TypeError, ValueError, IndexError:
+    except (TypeError, ValueError, IndexError) as _err:
         return None
 
     if parsed is None:
@@ -1277,19 +1277,16 @@ def test_plants_in_season_today_counts_mixed_values() -> None:
             {
                 "plants_oak": {
                     "source": "plant",
-                    "code": "OAK",
                     "displayName": "Oak",
                     "inSeason": True,
                 },
                 "plants_birch": {
                     "source": "plant",
-                    "code": "BIRCH",
                     "displayName": "Birch",
                     "inSeason": False,
                 },
                 "plants_alder": {
                     "source": "plant",
-                    "code": "ALDER",
                     "displayName": "Alder",
                 },
             }
@@ -1381,7 +1378,6 @@ def test_overall_pollen_risk_today_returns_max_value_and_attribution() -> None:
                 },
                 "type_tree": {
                     "source": "type",
-                    "code": "TREE",
                     "displayName": "Tree",
                     "value": 4,
                     "category": "HIGH",
@@ -1454,7 +1450,6 @@ def test_top_pollen_types_today_returns_tied_names_and_attributes() -> None:
                 },
                 "type_weed": {
                     "source": "type",
-                    "code": "WEED",
                     "displayName": "Weed",
                     "value": 1,
                     "category": "LOW",

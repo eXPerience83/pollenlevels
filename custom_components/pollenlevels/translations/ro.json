@@ -100,13 +100,13 @@
         "name": "Ultima actualizare"
       },
       "plants_in_season_today": {
-        "name": "Plants in Season Today"
+        "name": "Plante în sezon astăzi"
       },
       "overall_pollen_risk_today": {
-        "name": "Overall Pollen Risk Today"
+        "name": "Risc general de polen astăzi"
       },
       "top_pollen_types_today": {
-        "name": "Top Pollen Types Today"
+        "name": "Principalele tipuri de polen astăzi"
       }
     }
   }

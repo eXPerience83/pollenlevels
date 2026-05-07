@@ -100,13 +100,13 @@
         "name": "Senaste uppdatering"
       },
       "plants_in_season_today": {
-        "name": "Plants in Season Today"
+        "name": "Växter i säsong idag"
       },
       "overall_pollen_risk_today": {
-        "name": "Overall Pollen Risk Today"
+        "name": "Övergripande pollenrisk idag"
       },
       "top_pollen_types_today": {
-        "name": "Top Pollen Types Today"
+        "name": "Dominerande pollentyper idag"
       }
     }
   }

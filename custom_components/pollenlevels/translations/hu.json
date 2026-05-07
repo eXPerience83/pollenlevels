@@ -100,13 +100,13 @@
         "name": "Utoljára frissítve"
       },
       "plants_in_season_today": {
-        "name": "Plants in Season Today"
+        "name": "Ma szezonban lévő növények"
       },
       "overall_pollen_risk_today": {
-        "name": "Overall Pollen Risk Today"
+        "name": "Mai általános pollenkockázat"
       },
       "top_pollen_types_today": {
-        "name": "Top Pollen Types Today"
+        "name": "Mai fő pollentípusok"
       }
     }
   }

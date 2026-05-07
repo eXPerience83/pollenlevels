@@ -100,13 +100,13 @@
         "name": "上次更新時間"
       },
       "plants_in_season_today": {
-        "name": "Plants in Season Today"
+        "name": "今日當季植物"
       },
       "overall_pollen_risk_today": {
-        "name": "Overall Pollen Risk Today"
+        "name": "今日整體花粉風險"
       },
       "top_pollen_types_today": {
-        "name": "Top Pollen Types Today"
+        "name": "今日主要花粉類型"
       }
     }
   }

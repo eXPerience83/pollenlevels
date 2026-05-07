@@ -35,7 +35,7 @@ def _normalize_channel(v: Any) -> int | None:
     """
     try:
         f = float(v)
-    except (TypeError, ValueError, OverflowError):
+    except (TypeError, ValueError, OverflowError) as _err:
         return None
     if not math.isfinite(f):
         return None
@@ -422,7 +422,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 # Use day-specific 'inSeason' and 'advice' from the forecast day.
                 try:
                     day_obj = daily[off]
-                except (IndexError, TypeError):
+                except (IndexError, TypeError) as _err:
                     day_obj = None
                 day_item = type_by_day_code[off].get(_tcode) if day_obj else None
                 day_in_season = (

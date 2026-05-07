@@ -100,13 +100,13 @@
         "name": "Última atualização"
       },
       "plants_in_season_today": {
-        "name": "Plants in Season Today"
+        "name": "Plantas na estação hoje"
       },
       "overall_pollen_risk_today": {
-        "name": "Overall Pollen Risk Today"
+        "name": "Risco geral de pólen hoje"
       },
       "top_pollen_types_today": {
-        "name": "Top Pollen Types Today"
+        "name": "Principais tipos de pólen hoje"
       }
     }
   }
