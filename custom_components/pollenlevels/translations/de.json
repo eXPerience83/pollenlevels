@@ -98,6 +98,15 @@
       },
       "last_updated": {
         "name": "Letzte Aktualisierung"
+      },
+      "plants_in_season_today": {
+        "name": "Pflanzen heute in Saison"
+      },
+      "overall_pollen_risk_today": {
+        "name": "Gesamtes Pollenrisiko heute"
+      },
+      "top_pollen_types_today": {
+        "name": "Wichtigste Pollenarten heute"
       }
     }
   }

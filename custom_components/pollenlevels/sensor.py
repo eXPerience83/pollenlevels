@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Awaitable
 from datetime import date  # Added `date` for DATE device class native_value
 from enum import StrEnum
@@ -200,6 +201,14 @@ async def async_setup_entry(
 
     sensors.extend(
         [
+            PlantsInSeasonTodaySensor(coordinator),
+            OverallPollenRiskTodaySensor(coordinator),
+            TopPollenTypesTodaySensor(coordinator),
+        ]
+    )
+
+    sensors.extend(
+        [
             RegionSensor(coordinator),
             DateSensor(coordinator),
             LastUpdatedSensor(coordinator),
@@ -379,6 +388,241 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         }
 
 
+def _is_finite_number(value: Any) -> bool:
+    """Return whether value is a finite non-boolean number."""
+    return (
+        isinstance(value, int | float)
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _normalize_entry_code(key: str, info: dict[str, Any], prefix: str) -> str:
+    """Return a deterministic uppercase code from API metadata or the data key."""
+    raw_code = info.get("code")
+    if isinstance(raw_code, str) and raw_code.strip():
+        return raw_code.strip().upper()
+
+    fallback = key
+    if fallback.startswith(prefix):
+        fallback = fallback[len(prefix) :]
+    fallback = fallback.split("_d", 1)[0]
+    return fallback.upper()
+
+
+def _current_day_plant_entries(
+    coordinator: PollenDataUpdateCoordinator,
+) -> list[tuple[str, str, str, dict[str, Any]]]:
+    """Collect current-day plant entries sorted by normalized plant code."""
+    entries: list[tuple[str, str, str, dict[str, Any]]] = []
+    for key, info in (coordinator.data or {}).items():
+        if not isinstance(info, dict) or info.get("source") != "plant":
+            continue
+        code = _normalize_entry_code(key, info, "plants_")
+        name = info.get("displayName") or code
+        entries.append((code, str(name), key, info))
+    return sorted(entries, key=lambda item: item[0])
+
+
+def _current_day_type_entries(
+    coordinator: PollenDataUpdateCoordinator,
+) -> list[tuple[str, str, str, dict[str, Any]]]:
+    """Collect current-day pollen type entries sorted by normalized type code."""
+    entries: list[tuple[str, str, str, dict[str, Any]]] = []
+    for key, info in (coordinator.data or {}).items():
+        if key.endswith(("_d1", "_d2")):
+            continue
+        if not isinstance(info, dict) or info.get("source") != "type":
+            continue
+        if not _is_finite_number(info.get("value")):
+            continue
+        code = _normalize_entry_code(key, info, "type_")
+        name = info.get("displayName") or code
+        entries.append((code, str(name), key, info))
+    return sorted(entries, key=lambda item: item[0])
+
+
+def _top_type_entries(
+    coordinator: PollenDataUpdateCoordinator,
+) -> tuple[float | int | None, list[tuple[str, str, str, dict[str, Any]]]]:
+    """Return the maximum current-day type value and all entries tied for it."""
+    entries = _current_day_type_entries(coordinator)
+    if not entries:
+        return None, []
+    top_value = max(info["value"] for _code, _name, _key, info in entries)
+    top_entries = [entry for entry in entries if entry[3]["value"] == top_value]
+    return top_value, top_entries
+
+
+class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
+    """Provide base behavior for daily summary sensors."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator, group: str) -> None:
+        """Initialize a summary sensor on an existing integration device group."""
+        super().__init__(coordinator)
+        self.coordinator = coordinator
+
+        device_id = f"{self.coordinator.entry_id}_{group}"
+        translation_keys = {"type": "types", "plant": "plants"}
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, device_id)},
+            "manufacturer": "Google",
+            "model": "Pollen API",
+            "translation_key": translation_keys[group],
+            "translation_placeholders": {
+                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
+                "latitude": f"{self.coordinator.lat:.6f}",
+                "longitude": f"{self.coordinator.lon:.6f}",
+            },
+        }
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose public attribution on all daily summary sensors."""
+        return {ATTR_ATTRIBUTION: ATTRIBUTION}
+
+
+class PlantsInSeasonTodaySensor(_BaseSummarySensor):
+    """Represent a count of plants explicitly marked in season today."""
+
+    _attr_translation_key = "plants_in_season_today"
+    _attr_icon = "mdi:sprout"
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
+        """Initialize the plants in season summary sensor."""
+        super().__init__(coordinator, "plant")
+        self._attr_unique_id = f"{self.coordinator.entry_id}_plants_in_season_today"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of plants explicitly marked in season today."""
+        entries = _current_day_plant_entries(self.coordinator)
+        in_season_count = sum(
+            1 for _code, _name, _key, info in entries if info.get("inSeason") is True
+        )
+        out_of_season_count = sum(
+            1 for _code, _name, _key, info in entries if info.get("inSeason") is False
+        )
+        if in_season_count + out_of_season_count == 0:
+            return None
+        return in_season_count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return plant season summary attributes."""
+        attrs = super().extra_state_attributes
+        entries = _current_day_plant_entries(self.coordinator)
+        in_season_count = sum(
+            1 for _code, _name, _key, info in entries if info.get("inSeason") is True
+        )
+        out_of_season_count = sum(
+            1 for _code, _name, _key, info in entries if info.get("inSeason") is False
+        )
+        unknown_entries = [
+            (code, name)
+            for code, name, _key, info in entries
+            if not isinstance(info.get("inSeason"), bool)
+        ]
+        in_season_entries = [
+            (code, name)
+            for code, name, _key, info in entries
+            if info.get("inSeason") is True
+        ]
+        attrs.update(
+            {
+                "plant_codes": [code for code, _name in in_season_entries],
+                "plant_names": [name for _code, name in in_season_entries],
+                "in_season_count": in_season_count,
+                "out_of_season_count": out_of_season_count,
+                "unknown_season_count": len(unknown_entries),
+                "total_plant_count": len(entries),
+                "unknown_season_codes": [code for code, _name in unknown_entries],
+                "unknown_season_names": [name for _code, name in unknown_entries],
+            }
+        )
+        return attrs
+
+
+class OverallPollenRiskTodaySensor(_BaseSummarySensor):
+    """Represent the highest current-day pollen type value."""
+
+    _attr_translation_key = "overall_pollen_risk_today"
+    _attr_icon = DEFAULT_ICON
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0  # type: ignore[assignment]
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
+        """Initialize the overall pollen risk summary sensor."""
+        super().__init__(coordinator, "type")
+        self._attr_unique_id = f"{self.coordinator.entry_id}_overall_pollen_risk_today"
+
+    @property
+    def native_value(self) -> float | int | None:
+        """Return the maximum valid current-day pollen type value."""
+        top_value, _top_entries = _top_type_entries(self.coordinator)
+        return top_value
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return overall pollen risk summary attributes."""
+        attrs = super().extra_state_attributes
+        _top_value, top_entries = _top_type_entries(self.coordinator)
+        first_info = top_entries[0][3] if top_entries else {}
+        attrs.update(
+            {
+                "category": first_info.get("category"),
+                "description": first_info.get("description"),
+                "top_pollen_codes": [code for code, _name, _key, _info in top_entries],
+                "top_pollen_names": [name for _code, name, _key, _info in top_entries],
+                "top_pollen_categories": [
+                    info.get("category") for _code, _name, _key, info in top_entries
+                ],
+                "tie_count": len(top_entries),
+            }
+        )
+        return attrs
+
+
+class TopPollenTypesTodaySensor(_BaseSummarySensor):
+    """Represent the display names of the top current-day pollen types."""
+
+    _attr_translation_key = "top_pollen_types_today"
+    _attr_icon = DEFAULT_ICON
+
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
+        """Initialize the top pollen types summary sensor."""
+        super().__init__(coordinator, "type")
+        self._attr_unique_id = f"{self.coordinator.entry_id}_top_pollen_types_today"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the top pollen type names, preserving ties."""
+        _top_value, top_entries = _top_type_entries(self.coordinator)
+        if not top_entries:
+            return None
+        return ", ".join(name for _code, name, _key, _info in top_entries)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return top pollen type summary attributes."""
+        attrs = super().extra_state_attributes
+        top_value, top_entries = _top_type_entries(self.coordinator)
+        attrs.update(
+            {
+                "top_value": top_value,
+                "top_pollen_codes": [code for code, _name, _key, _info in top_entries],
+                "top_pollen_names": [name for _code, name, _key, _info in top_entries],
+                "top_pollen_categories": [
+                    info.get("category") for _code, _name, _key, info in top_entries
+                ],
+                "tie_count": len(top_entries),
+            }
+        )
+        return attrs
+
+
 class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
     """Provide base for metadata sensors."""
 
@@ -462,7 +706,9 @@ class DateSensor(_BaseMetaSensor):
         try:
             y, m, d = map(int, date_str.split("-"))
             return date(y, m, d)
+        # fmt: off
         except (ValueError, TypeError):
+            # fmt: on
             _LOGGER.error("Invalid date format received: %s", date_str)
             return None
 
