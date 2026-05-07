@@ -218,9 +218,9 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
     try:
         parsed = parsedate_to_datetime(value) if value is not None else None
-    except (TypeError, ValueError, IndexError) as err:
-        if err.args is not None:
-            return None
+    # fmt: off
+    except (TypeError, ValueError, IndexError):
+        # fmt: on
         return None
 
     if parsed is None:
@@ -482,8 +482,8 @@ def test_plants_in_season_counts_mixed_boolean_and_unknown_values() -> None:
     attrs = entity.extra_state_attributes
 
     assert entity.native_value == 1
-    assert attrs["plant_codes"] == ["BIRCH", "ELM", "OAK", "PINE"]
-    assert attrs["plant_names"] == ["Birch", "Elm", "Oak", "Pine"]
+    assert attrs["plant_codes"] == ["OAK"]
+    assert attrs["plant_names"] == ["Oak"]
     assert attrs["in_season_count"] == 1
     assert attrs["out_of_season_count"] == 1
     assert attrs["unknown_season_count"] == 2

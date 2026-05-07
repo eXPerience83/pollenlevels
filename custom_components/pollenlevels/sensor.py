@@ -525,10 +525,15 @@ class PlantsInSeasonTodaySensor(_BaseSummarySensor):
             for code, name, _key, info in entries
             if not isinstance(info.get("inSeason"), bool)
         ]
+        in_season_entries = [
+            (code, name)
+            for code, name, _key, info in entries
+            if info.get("inSeason") is True
+        ]
         attrs.update(
             {
-                "plant_codes": [code for code, _name, _key, _info in entries],
-                "plant_names": [name for _code, name, _key, _info in entries],
+                "plant_codes": [code for code, _name in in_season_entries],
+                "plant_names": [name for _code, name in in_season_entries],
                 "in_season_count": in_season_count,
                 "out_of_season_count": out_of_season_count,
                 "unknown_season_count": len(unknown_entries),
@@ -701,7 +706,9 @@ class DateSensor(_BaseMetaSensor):
         try:
             y, m, d = map(int, date_str.split("-"))
             return date(y, m, d)
-        except ValueError, TypeError:
+        # fmt: off
+        except (ValueError, TypeError):
+            # fmt: on
             _LOGGER.error("Invalid date format received: %s", date_str)
             return None
 
