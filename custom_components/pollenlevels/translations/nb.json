@@ -98,6 +98,15 @@
       },
       "last_updated": {
         "name": "Sist oppdatert"
+      },
+      "plants_in_season_today": {
+        "name": "Plants in Season Today"
+      },
+      "overall_pollen_risk_today": {
+        "name": "Overall Pollen Risk Today"
+      },
+      "top_pollen_types_today": {
+        "name": "Top Pollen Types Today"
       }
     }
   }

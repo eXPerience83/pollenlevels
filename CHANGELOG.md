@@ -1,4 +1,8 @@
 ## [1.9.7] - 2026-04-08
+### Added
+- Added daily summary sensors for plants in season, overall pollen risk, and top
+  pollen types.
+
 ### Changed
 - Aligned re-authentication/reconfiguration handling with Home Assistant's
   helper-based entry APIs (`_get_*_entry` and update/reload/abort helper path).

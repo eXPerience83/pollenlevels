@@ -90,6 +90,16 @@ exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
 exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
 sys.modules.setdefault("homeassistant.exceptions", exceptions_mod)
 
+config_entries_mod = types.ModuleType("homeassistant.config_entries")
+
+
+class _StubConfigEntry:  # pragma: no cover - type placeholder only
+    pass
+
+
+config_entries_mod.ConfigEntry = _StubConfigEntry
+sys.modules.setdefault("homeassistant.config_entries", config_entries_mod)
+
 helpers_mod = types.ModuleType("homeassistant.helpers")
 sys.modules.setdefault("homeassistant.helpers", helpers_mod)
 
@@ -206,7 +216,7 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
     try:
         parsed = parsedate_to_datetime(value) if value is not None else None
-    except (TypeError, ValueError, IndexError):
+    except TypeError, ValueError, IndexError:
         return None
 
     if parsed is None:
@@ -1241,6 +1251,332 @@ def test_coordinator_ignores_nonfinite_color_channels() -> None:
 
     assert data["type_grass"]["color_hex"] is None
     assert data["type_grass"]["color_rgb"] is None
+
+
+def _summary_coordinator(data: dict[str, Any]) -> types.SimpleNamespace:
+    """Return a minimal coordinator for summary sensor unit tests."""
+    return types.SimpleNamespace(
+        data=data,
+        entry_id="entry",
+        entry_title=sensor.DEFAULT_ENTRY_TITLE,
+        lat=1.0,
+        lon=2.0,
+    )
+
+
+def _state_class(entity: Any) -> Any:
+    """Return the test-visible sensor state class."""
+    return getattr(entity, "state_class", getattr(entity, "_attr_state_class", None))
+
+
+def test_plants_in_season_today_counts_mixed_values() -> None:
+    """Plants in season summary counts True, False, and unknown separately."""
+
+    entity = sensor.PlantsInSeasonTodaySensor(
+        _summary_coordinator(
+            {
+                "plants_oak": {
+                    "source": "plant",
+                    "code": "OAK",
+                    "displayName": "Oak",
+                    "inSeason": True,
+                },
+                "plants_birch": {
+                    "source": "plant",
+                    "code": "BIRCH",
+                    "displayName": "Birch",
+                    "inSeason": False,
+                },
+                "plants_alder": {
+                    "source": "plant",
+                    "code": "ALDER",
+                    "displayName": "Alder",
+                },
+            }
+        )
+    )
+
+    attrs = entity.extra_state_attributes
+
+    assert entity.native_value == 1
+    assert attrs[sensor.ATTR_ATTRIBUTION] == sensor.ATTRIBUTION
+    assert attrs["plant_codes"] == ["ALDER", "BIRCH", "OAK"]
+    assert attrs["plant_names"] == ["Alder", "Birch", "Oak"]
+    assert attrs["in_season_count"] == 1
+    assert attrs["out_of_season_count"] == 1
+    assert attrs["unknown_season_count"] == 1
+    assert attrs["total_plant_count"] == 3
+    assert attrs["unknown_season_codes"] == ["ALDER"]
+    assert attrs["unknown_season_names"] == ["Alder"]
+
+
+def test_plants_in_season_today_returns_none_without_boolean_season() -> None:
+    """Plants in season summary is unknown when no plant has boolean season data."""
+
+    entity = sensor.PlantsInSeasonTodaySensor(
+        _summary_coordinator(
+            {
+                "plants_oak": {
+                    "source": "plant",
+                    "code": "OAK",
+                    "displayName": "Oak",
+                },
+                "plants_birch": {
+                    "source": "plant",
+                    "code": "BIRCH",
+                    "displayName": "Birch",
+                    "inSeason": "false",
+                },
+            }
+        )
+    )
+
+    assert entity.native_value is None
+    assert entity.extra_state_attributes["unknown_season_count"] == 2
+
+
+def test_plants_in_season_today_returns_none_without_plant_entries() -> None:
+    """Plants in season summary is unknown when no plant entries exist."""
+
+    entity = sensor.PlantsInSeasonTodaySensor(
+        _summary_coordinator(
+            {
+                "type_grass": {
+                    "source": "type",
+                    "code": "GRASS",
+                    "displayName": "Grass",
+                    "value": 2,
+                }
+            }
+        )
+    )
+
+    attrs = entity.extra_state_attributes
+
+    assert entity.native_value is None
+    assert attrs[sensor.ATTR_ATTRIBUTION] == sensor.ATTRIBUTION
+    assert attrs["plant_codes"] == []
+    assert attrs["plant_names"] == []
+    assert attrs["in_season_count"] == 0
+    assert attrs["out_of_season_count"] == 0
+    assert attrs["unknown_season_count"] == 0
+    assert attrs["total_plant_count"] == 0
+    assert attrs["unknown_season_codes"] == []
+    assert attrs["unknown_season_names"] == []
+
+
+def test_overall_pollen_risk_today_returns_max_value_and_attribution() -> None:
+    """Overall pollen risk uses the maximum finite current-day type index."""
+
+    entity = sensor.OverallPollenRiskTodaySensor(
+        _summary_coordinator(
+            {
+                "type_grass": {
+                    "source": "type",
+                    "code": "GRASS",
+                    "displayName": "Grass",
+                    "value": 2,
+                    "category": "LOW",
+                    "description": "Low",
+                },
+                "type_tree": {
+                    "source": "type",
+                    "code": "TREE",
+                    "displayName": "Tree",
+                    "value": 4,
+                    "category": "HIGH",
+                    "description": "High",
+                },
+            }
+        )
+    )
+
+    attrs = entity.extra_state_attributes
+
+    assert entity.native_value == 4
+    assert attrs[sensor.ATTR_ATTRIBUTION] == sensor.ATTRIBUTION
+    assert attrs["category"] == "HIGH"
+    assert attrs["description"] == "High"
+    assert attrs["top_pollen_codes"] == ["TREE"]
+    assert attrs["top_pollen_names"] == ["Tree"]
+    assert attrs["top_pollen_categories"] == ["HIGH"]
+    assert attrs["tie_count"] == 1
+
+
+def test_top_pollen_types_today_returns_single_winner_name() -> None:
+    """Top pollen types summary returns one display name for a single winner."""
+
+    entity = sensor.TopPollenTypesTodaySensor(
+        _summary_coordinator(
+            {
+                "type_grass": {
+                    "source": "type",
+                    "code": "GRASS",
+                    "displayName": "Grass",
+                    "value": 5,
+                    "category": "VERY_HIGH",
+                },
+                "type_tree": {
+                    "source": "type",
+                    "code": "TREE",
+                    "displayName": "Tree",
+                    "value": 3,
+                    "category": "MODERATE",
+                },
+            }
+        )
+    )
+
+    assert entity.native_value == "Grass"
+    assert entity.extra_state_attributes["top_value"] == 5
+    assert entity.extra_state_attributes["tie_count"] == 1
+
+
+def test_top_pollen_types_today_returns_tied_names_and_attributes() -> None:
+    """Top pollen types summary keeps all tied current-day type winners."""
+
+    entity = sensor.TopPollenTypesTodaySensor(
+        _summary_coordinator(
+            {
+                "type_tree": {
+                    "source": "type",
+                    "code": "TREE",
+                    "displayName": "Tree",
+                    "value": 4,
+                    "category": "HIGH",
+                },
+                "type_grass": {
+                    "source": "type",
+                    "code": "GRASS",
+                    "displayName": "Grass",
+                    "value": 4,
+                    "category": "HIGH",
+                },
+                "type_weed": {
+                    "source": "type",
+                    "code": "WEED",
+                    "displayName": "Weed",
+                    "value": 1,
+                    "category": "LOW",
+                },
+            }
+        )
+    )
+
+    attrs = entity.extra_state_attributes
+
+    assert entity.native_value == "Grass, Tree"
+    assert attrs[sensor.ATTR_ATTRIBUTION] == sensor.ATTRIBUTION
+    assert attrs["top_value"] == 4
+    assert attrs["top_pollen_codes"] == ["GRASS", "TREE"]
+    assert attrs["top_pollen_names"] == ["Grass", "Tree"]
+    assert attrs["top_pollen_categories"] == ["HIGH", "HIGH"]
+    assert attrs["tie_count"] == 2
+
+
+def test_type_summary_sensors_return_none_without_valid_current_day_value() -> None:
+    """Type summaries are unknown when current-day type values are invalid."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "category": "LOW",
+            },
+            "type_tree": {
+                "source": "type",
+                "code": "TREE",
+                "displayName": "Tree",
+                "value": float("nan"),
+                "category": "HIGH",
+            },
+            "type_weed": {
+                "source": "type",
+                "code": "WEED",
+                "displayName": "Weed",
+                "value": "5",
+                "category": "VERY_HIGH",
+            },
+            "type_grass_d1": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass D+1",
+                "value": 5,
+                "category": "VERY_HIGH",
+            },
+        }
+    )
+
+    risk = sensor.OverallPollenRiskTodaySensor(coordinator)
+    top = sensor.TopPollenTypesTodaySensor(coordinator)
+
+    risk_attrs = risk.extra_state_attributes
+    top_attrs = top.extra_state_attributes
+
+    assert risk.native_value is None
+    assert risk_attrs[sensor.ATTR_ATTRIBUTION] == sensor.ATTRIBUTION
+    assert risk_attrs["category"] is None
+    assert risk_attrs["description"] is None
+    assert risk_attrs["top_pollen_codes"] == []
+    assert risk_attrs["top_pollen_names"] == []
+    assert risk_attrs["top_pollen_categories"] == []
+    assert risk_attrs["tie_count"] == 0
+    assert top.native_value is None
+    assert top_attrs[sensor.ATTR_ATTRIBUTION] == sensor.ATTRIBUTION
+    assert top_attrs["top_value"] is None
+    assert top_attrs["top_pollen_codes"] == []
+    assert top_attrs["top_pollen_names"] == []
+    assert top_attrs["top_pollen_categories"] == []
+    assert top_attrs["tie_count"] == 0
+
+
+def test_type_summary_sensors_ignore_per_day_entries() -> None:
+    """Current-day type summaries ignore D+1 and D+2 per-day sensors."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 2,
+                "category": "LOW",
+            },
+            "type_grass_d1": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass D+1",
+                "value": 5,
+                "category": "VERY_HIGH",
+            },
+            "type_tree_d2": {
+                "source": "type",
+                "code": "TREE",
+                "displayName": "Tree D+2",
+                "value": 4,
+                "category": "HIGH",
+            },
+        }
+    )
+
+    risk = sensor.OverallPollenRiskTodaySensor(coordinator)
+    top = sensor.TopPollenTypesTodaySensor(coordinator)
+
+    assert risk.native_value == 2
+    assert risk.extra_state_attributes["top_pollen_codes"] == ["GRASS"]
+    assert top.native_value == "Grass"
+    assert top.extra_state_attributes["top_pollen_codes"] == ["GRASS"]
+
+
+def test_summary_text_and_plant_count_sensors_have_no_measurement_state_class() -> None:
+    """Text and plant count summary sensors do not expose measurement state class."""
+
+    coordinator = _summary_coordinator({})
+
+    assert _state_class(sensor.TopPollenTypesTodaySensor(coordinator)) is None
+    assert _state_class(sensor.PlantsInSeasonTodaySensor(coordinator)) is None
 
 
 def test_coordinator_type_keys_are_deterministic_sorted() -> None:
