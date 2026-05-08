@@ -69,6 +69,12 @@ class _HomeAssistant:
 core_mod.HomeAssistant = _HomeAssistant
 _force_module("homeassistant.core", core_mod)
 
+custom_components_pkg = ModuleType("custom_components")
+custom_components_pkg.__path__ = [
+    str(Path(__file__).resolve().parents[1] / "custom_components")
+]
+_force_module("custom_components", custom_components_pkg)
+
 pollenlevels_pkg = ModuleType("custom_components.pollenlevels")
 pollenlevels_pkg.__path__ = [
     str(Path(__file__).resolve().parents[1] / "custom_components" / "pollenlevels")

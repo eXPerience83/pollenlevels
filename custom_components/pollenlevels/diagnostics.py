@@ -194,7 +194,11 @@ async def async_get_config_entry_diagnostics(
     def _rounded(value: Any) -> float | None:
         try:
             f = float(value)
-        except TypeError, ValueError, OverflowError:
+        except TypeError:
+            return None
+        except ValueError:
+            return None
+        except OverflowError:
             return None
         if not math.isfinite(f):
             return None
