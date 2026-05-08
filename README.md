@@ -85,6 +85,29 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
 ---
 
+## Daily summary sensors
+
+The integration creates three current-day summary sensors in addition to the
+individual pollen type and plant sensors:
+
+- `plants_in_season_today`
+  - State: number of plants explicitly marked as in season today.
+  - Key attributes: `plant_codes`, `plant_names`, `in_season_count`,
+    `out_of_season_count`, `unknown_season_count`, `total_plant_count`,
+    `unknown_season_codes`, and `unknown_season_names`.
+  - Missing or non-boolean `inSeason` values are treated as unknown, not false.
+- `overall_pollen_risk_today`
+  - State: highest current-day pollen type index value.
+  - Key attributes: `category`, `description`, `top_pollen_codes`,
+    `top_pollen_names`, `top_pollen_categories`, and `tie_count`.
+  - Tied top pollen types are preserved in the attributes.
+- `top_pollen_types_today`
+  - State: top pollen type name, or comma-separated names when tied.
+  - Key attributes: `top_value`, `top_pollen_codes`, `top_pollen_names`,
+    `top_pollen_categories`, and `tie_count`.
+
+---
+
 ## 🗝️ Getting a Google API Key
 
 You need a valid Google Cloud API key with access to the **Maps Pollen API**.
@@ -139,7 +162,7 @@ entities:
     entity: sensor.type_grass
     attribute: description
     name: Index description
-````
+```
 
 > Simple and robust. It shows attributes clearly but **doesn’t color** the icon.
 

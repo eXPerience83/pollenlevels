@@ -2197,6 +2197,73 @@ async def test_async_setup_entry_skips_disabled_d1_d2_sensors() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_adds_daily_summary_sensors() -> None:
+    """Setup creates the three daily summary sensors."""
+
+    entry_id = "summary_entry"
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor.CONF_API_KEY: "key",
+            sensor.CONF_LATITUDE: 1.0,
+            sensor.CONF_LONGITUDE: 2.0,
+            sensor.CONF_UPDATE_INTERVAL: sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor.CONF_FORECAST_DAYS: sensor.DEFAULT_FORECAST_DAYS,
+        },
+        entry_id=entry_id,
+    )
+    coordinator = types.SimpleNamespace(
+        data={
+            "date": {"source": "meta", "value": "2026-05-08"},
+            "region": {"source": "meta", "value": "us_ca_san_francisco"},
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 3,
+                "category": "Moderate",
+            },
+            "plants_oak": {
+                "source": "plant",
+                "code": "OAK",
+                "displayName": "Oak",
+                "inSeason": True,
+            },
+        },
+        entry_id=entry_id,
+        entry_title="Home",
+        lat=1.0,
+        lon=2.0,
+        forecast_days=sensor.DEFAULT_FORECAST_DAYS,
+        create_d1=False,
+        create_d2=False,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=object()
+    )
+
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    await sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    unique_ids = {
+        entity.unique_id
+        for entity in captured
+        if getattr(entity, "unique_id", None) is not None
+    }
+
+    assert {
+        f"{entry_id}_plants_in_season_today",
+        f"{entry_id}_overall_pollen_risk_today",
+        f"{entry_id}_top_pollen_types_today",
+    }.issubset(unique_ids)
+
+
+@pytest.mark.asyncio
 async def test_device_info_uses_default_title_when_blank(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
