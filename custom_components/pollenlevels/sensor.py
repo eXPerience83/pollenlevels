@@ -706,10 +706,7 @@ class DateSensor(_BaseMetaSensor):
         try:
             y, m, d = map(int, date_str.split("-"))
             return date(y, m, d)
-        except ValueError:
-            _LOGGER.error("Invalid date format received: %s", date_str)
-            return None
-        except TypeError:
+        except ValueError, TypeError:
             _LOGGER.error("Invalid date format received: %s", date_str)
             return None
 
