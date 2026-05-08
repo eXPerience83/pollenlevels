@@ -218,9 +218,11 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
     try:
         parsed = parsedate_to_datetime(value) if value is not None else None
-    # fmt: off
-    except (TypeError, ValueError, IndexError):
-        # fmt: on
+    except TypeError:
+        return None
+    except ValueError:
+        return None
+    except IndexError:
         return None
 
     if parsed is None:
