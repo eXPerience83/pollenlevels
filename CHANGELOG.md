@@ -2,6 +2,8 @@
 ### Added
 - Added daily summary sensors for plants in season, overall pollen risk, and top
   pollen types.
+- Added a diagnostics `daily_summary` snapshot mirroring the daily summary
+  sensors for easier support troubleshooting.
 
 ## [2.0.0] - 2026-05-07
 ### Changed
