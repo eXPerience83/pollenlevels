@@ -11,6 +11,10 @@ on:
 # No checkout needed; HACS action validates repo metadata remotely
 permissions: {}
 
+concurrency:
+  group: hacs-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   validate-hacs:
     runs-on: "ubuntu-latest"

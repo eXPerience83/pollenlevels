@@ -3,6 +3,10 @@ name: Package Test
 on:
   workflow_dispatch:
 
+concurrency:
+  group: package-test-${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   package:
     runs-on: ubuntu-latest
