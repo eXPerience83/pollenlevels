@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, NamedTuple
 
-SummaryEntry = tuple[str, str, str, dict[str, Any]]
+
+class SummaryEntry(NamedTuple):
+    """Represent a normalized daily summary entry."""
+
+    code: str
+    name: str
+    key: str
+    info: dict[str, Any]
 
 
 def is_finite_number(value: Any) -> bool:
@@ -38,8 +45,8 @@ def current_day_plant_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
             continue
         code = normalize_entry_code(key, info, "plants_")
         name = info.get("displayName") or code
-        entries.append((code, str(name), key, info))
-    return sorted(entries, key=lambda item: item[0])
+        entries.append(SummaryEntry(code, str(name), key, info))
+    return sorted(entries, key=lambda entry: entry.code)
 
 
 def current_day_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
@@ -54,8 +61,8 @@ def current_day_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
             continue
         code = normalize_entry_code(key, info, "type_")
         name = info.get("displayName") or code
-        entries.append((code, str(name), key, info))
-    return sorted(entries, key=lambda item: item[0])
+        entries.append(SummaryEntry(code, str(name), key, info))
+    return sorted(entries, key=lambda entry: entry.code)
 
 
 def top_type_entries(
@@ -65,8 +72,8 @@ def top_type_entries(
     entries = current_day_type_entries(data_map)
     if not entries:
         return None, []
-    top_value = max(info["value"] for _code, _name, _key, info in entries)
-    top_entries = [entry for entry in entries if entry[3]["value"] == top_value]
+    top_value = max(entry.info["value"] for entry in entries)
+    top_entries = [entry for entry in entries if entry.info["value"] == top_value]
     return top_value, top_entries
 
 
@@ -74,17 +81,15 @@ def daily_summary(data_map: dict[str, Any]) -> dict[str, Any]:
     """Return payloads for the daily summary sensors."""
     plant_entries = current_day_plant_entries(data_map)
     in_season_entries = [
-        (code, name)
-        for code, name, _key, info in plant_entries
-        if info.get("inSeason") is True
+        entry for entry in plant_entries if entry.info.get("inSeason") is True
     ]
     out_of_season_count = sum(
-        1 for _code, _name, _key, info in plant_entries if info.get("inSeason") is False
+        1 for entry in plant_entries if entry.info.get("inSeason") is False
     )
     unknown_entries = [
-        (code, name)
-        for code, name, _key, info in plant_entries
-        if not isinstance(info.get("inSeason"), bool)
+        entry
+        for entry in plant_entries
+        if not isinstance(entry.info.get("inSeason"), bool)
     ]
     in_season_count = len(in_season_entries)
     season_state = (
@@ -92,39 +97,39 @@ def daily_summary(data_map: dict[str, Any]) -> dict[str, Any]:
     )
 
     top_value, top_entries = top_type_entries(data_map)
-    top_names = [name for _code, name, _key, _info in top_entries]
-    first_info = top_entries[0][3] if top_entries else {}
+    top_names = [entry.name for entry in top_entries]
+    first_info = top_entries[0].info if top_entries else {}
 
     return {
         "plants_in_season_today": {
             "state": season_state,
-            "plant_codes": [code for code, _name in in_season_entries],
-            "plant_names": [name for _code, name in in_season_entries],
+            "plant_codes": [entry.code for entry in in_season_entries],
+            "plant_names": [entry.name for entry in in_season_entries],
             "in_season_count": in_season_count,
             "out_of_season_count": out_of_season_count,
             "unknown_season_count": len(unknown_entries),
             "total_plant_count": len(plant_entries),
-            "unknown_season_codes": [code for code, _name in unknown_entries],
-            "unknown_season_names": [name for _code, name in unknown_entries],
+            "unknown_season_codes": [entry.code for entry in unknown_entries],
+            "unknown_season_names": [entry.name for entry in unknown_entries],
         },
         "overall_pollen_risk_today": {
             "state": top_value,
             "category": first_info.get("category"),
             "description": first_info.get("description"),
-            "top_pollen_codes": [code for code, _name, _key, _info in top_entries],
+            "top_pollen_codes": [entry.code for entry in top_entries],
             "top_pollen_names": top_names,
             "top_pollen_categories": [
-                info.get("category") for _code, _name, _key, info in top_entries
+                entry.info.get("category") for entry in top_entries
             ],
             "tie_count": len(top_entries),
         },
         "top_pollen_types_today": {
             "state": ", ".join(top_names) if top_names else None,
             "top_value": top_value,
-            "top_pollen_codes": [code for code, _name, _key, _info in top_entries],
+            "top_pollen_codes": [entry.code for entry in top_entries],
             "top_pollen_names": top_names,
             "top_pollen_categories": [
-                info.get("category") for _code, _name, _key, info in top_entries
+                entry.info.get("category") for entry in top_entries
             ],
             "tie_count": len(top_entries),
         },

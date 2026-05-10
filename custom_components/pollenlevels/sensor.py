@@ -418,6 +418,11 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
         return {ATTR_ATTRIBUTION: ATTRIBUTION}
 
 
+def _summary_attrs(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return summary attributes without the sensor state field."""
+    return {key: value for key, value in payload.items() if key != "state"}
+
+
 class PlantsInSeasonTodaySensor(_BaseSummarySensor):
     """Represent a count of plants explicitly marked in season today."""
 
@@ -440,11 +445,11 @@ class PlantsInSeasonTodaySensor(_BaseSummarySensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return plant season summary attributes."""
         attrs = super().extra_state_attributes
-        summary = _daily_summary(self.coordinator.data or {})[
-            "plants_in_season_today"
-        ].copy()
-        summary.pop("state")
-        attrs.update(summary)
+        attrs.update(
+            _summary_attrs(
+                _daily_summary(self.coordinator.data or {})["plants_in_season_today"]
+            )
+        )
         return attrs
 
 
@@ -472,11 +477,11 @@ class OverallPollenRiskTodaySensor(_BaseSummarySensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return overall pollen risk summary attributes."""
         attrs = super().extra_state_attributes
-        summary = _daily_summary(self.coordinator.data or {})[
-            "overall_pollen_risk_today"
-        ].copy()
-        summary.pop("state")
-        attrs.update(summary)
+        attrs.update(
+            _summary_attrs(
+                _daily_summary(self.coordinator.data or {})["overall_pollen_risk_today"]
+            )
+        )
         return attrs
 
 
@@ -502,11 +507,11 @@ class TopPollenTypesTodaySensor(_BaseSummarySensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return top pollen type summary attributes."""
         attrs = super().extra_state_attributes
-        summary = _daily_summary(self.coordinator.data or {})[
-            "top_pollen_types_today"
-        ].copy()
-        summary.pop("state")
-        attrs.update(summary)
+        attrs.update(
+            _summary_attrs(
+                _daily_summary(self.coordinator.data or {})["top_pollen_types_today"]
+            )
+        )
         return attrs
 
 

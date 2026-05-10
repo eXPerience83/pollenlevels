@@ -2,13 +2,29 @@
 
 from __future__ import annotations
 
-import sys
+import importlib.util
 from pathlib import Path
+from types import ModuleType
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+SUMMARY_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "custom_components"
+    / "pollenlevels"
+    / "summary.py"
+)
 
-from custom_components.pollenlevels.summary import daily_summary  # noqa: E402
+
+def _load_summary_module() -> ModuleType:
+    """Load summary.py directly without importing the integration package."""
+    spec = importlib.util.spec_from_file_location("pollenlevels_summary", SUMMARY_PATH)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+daily_summary = _load_summary_module().daily_summary
 
 
 def test_daily_summary_uses_empty_states_without_data() -> None:
