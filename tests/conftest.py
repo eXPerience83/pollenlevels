@@ -4,8 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import sys
+from types import ModuleType
 
 import pytest
+
+aiohttp_mod = sys.modules.setdefault("aiohttp", ModuleType("aiohttp"))
+if not hasattr(aiohttp_mod, "ContentTypeError"):
+    aiohttp_mod.ContentTypeError = ValueError
 
 
 def pytest_configure(config: pytest.Config) -> None:
