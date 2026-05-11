@@ -3,26 +3,133 @@
 from __future__ import annotations
 
 import sys
+import types
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+_SENTINEL = object()
 
-# Import config_flow test module to reuse its Home Assistant stubs.
-import tests.test_config_flow  # noqa: E402,F401  # pylint: disable=unused-import
 
-ha_exceptions = sys.modules["homeassistant.exceptions"]
-if not hasattr(ha_exceptions, "ConfigEntryNotReady"):
+class _StubClientError(Exception):
+    """Minimal aiohttp ClientError stub."""
 
-    class _StubConfigEntryNotReady(Exception):
-        pass
 
-    ha_exceptions.ConfigEntryNotReady = _StubConfigEntryNotReady
+class _StubClientSession:
+    """Minimal aiohttp ClientSession stub."""
 
-from custom_components.pollenlevels import client as client_mod  # noqa: E402
+
+class _StubClientTimeout:
+    """Minimal aiohttp ClientTimeout stub."""
+
+    def __init__(self, total: float | None = None) -> None:
+        self.total = total
+
+
+class _StubConfigEntryAuthFailed(Exception):
+    """Minimal Home Assistant auth failure stub."""
+
+
+class _StubUpdateFailed(Exception):
+    """Minimal Home Assistant update failure stub."""
+
+
+def _set_module(
+    snapshot: dict[str, object], name: str, module: types.ModuleType
+) -> None:
+    """Set a temporary module while preserving its previous value."""
+
+    snapshot.setdefault(name, sys.modules.get(name, _SENTINEL))
+    sys.modules[name] = module
+
+
+def _restore_modules(snapshot: dict[str, object]) -> None:
+    """Restore modules changed only for importing the client under test."""
+
+    for name, module in reversed(snapshot.items()):
+        if module is _SENTINEL:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = module  # type: ignore[assignment]
+
+
+def _install_client_import_stubs() -> dict[str, object]:
+    """Install the minimum modules required to import client.py directly."""
+
+    snapshot: dict[str, object] = {}
+
+    custom_components_pkg = types.ModuleType("custom_components")
+    custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
+    _set_module(snapshot, "custom_components", custom_components_pkg)
+
+    pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
+    pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
+    _set_module(snapshot, "custom_components.pollenlevels", pollenlevels_pkg)
+
+    aiohttp_mod = types.ModuleType("aiohttp")
+    aiohttp_mod.ClientError = _StubClientError
+    aiohttp_mod.ClientSession = _StubClientSession
+    aiohttp_mod.ClientTimeout = _StubClientTimeout
+    aiohttp_mod.ContentTypeError = ValueError
+    _set_module(snapshot, "aiohttp", aiohttp_mod)
+
+    ha_mod = types.ModuleType("homeassistant")
+    _set_module(snapshot, "homeassistant", ha_mod)
+
+    exceptions_mod = types.ModuleType("homeassistant.exceptions")
+    exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
+    _set_module(snapshot, "homeassistant.exceptions", exceptions_mod)
+
+    helpers_mod = types.ModuleType("homeassistant.helpers")
+    _set_module(snapshot, "homeassistant.helpers", helpers_mod)
+
+    update_coordinator_mod = types.ModuleType(
+        "homeassistant.helpers.update_coordinator"
+    )
+    update_coordinator_mod.UpdateFailed = _StubUpdateFailed
+    _set_module(
+        snapshot,
+        "homeassistant.helpers.update_coordinator",
+        update_coordinator_mod,
+    )
+
+    util_mod = types.ModuleType("homeassistant.util")
+    dt_mod = types.ModuleType("homeassistant.util.dt")
+    dt_mod.parse_http_date = lambda _value: None
+    dt_mod.utcnow = lambda: datetime.now(UTC)
+    util_mod.dt = dt_mod
+    _set_module(snapshot, "homeassistant.util", util_mod)
+    _set_module(snapshot, "homeassistant.util.dt", dt_mod)
+
+    for name in (
+        "custom_components.pollenlevels.client",
+        "custom_components.pollenlevels.const",
+        "custom_components.pollenlevels.util",
+    ):
+        snapshot.setdefault(name, sys.modules.get(name, _SENTINEL))
+
+    return snapshot
+
+
+def _import_client_module() -> types.ModuleType:
+    """Import client.py with local stubs and avoid leaking them globally."""
+
+    snapshot = _install_client_import_stubs()
+    try:
+        from custom_components.pollenlevels import client as imported_client
+
+        return imported_client
+    finally:
+        pollenlevels_pkg = sys.modules.get("custom_components.pollenlevels")
+        if pollenlevels_pkg is not None and hasattr(pollenlevels_pkg, "client"):
+            delattr(pollenlevels_pkg, "client")
+        _restore_modules(snapshot)
+
+
+client_mod = _import_client_module()
 
 
 class FakeResponse:
