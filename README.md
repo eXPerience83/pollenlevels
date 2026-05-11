@@ -55,6 +55,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - Your **API key** is stored by Home Assistant’s secure config entries.  
 - **We never log your API key.** As a safety net, if it ever appears in an error message, it is **redacted** as `***`.  
 - **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
+- Diagnostics include a redacted `daily_summary` snapshot to help troubleshoot
+  the daily summary sensors without exposing API keys or exact coordinates.
 - Avoid sharing full debug logs publicly; review them for sensitive information before posting.
 
 ---
