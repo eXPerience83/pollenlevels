@@ -210,7 +210,7 @@ async def async_setup_entry(
     normalized_mode = normalize_sensor_mode(raw_mode, _LOGGER)
     try:
         mode = ForecastSensorMode(normalized_mode)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         mode = ForecastSensorMode.NONE
     create_d1 = (
         mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2) and forecast_days >= 2
@@ -281,7 +281,7 @@ async def async_setup_entry(
 
     try:
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-    except (ConfigEntryAuthFailed, ConfigEntryNotReady):
+    except ConfigEntryAuthFailed, ConfigEntryNotReady:
         entry.runtime_data = None
         raise
     except Exception as err:
