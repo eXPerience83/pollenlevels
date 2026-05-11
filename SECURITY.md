@@ -26,6 +26,8 @@ When reporting a vulnerability, include:
 ## Security Expectations
 
 Do not share Google API keys, full debug logs, or exact coordinates publicly.
+If you accidentally expose a Google API key, rotate it before sharing logs or
+diagnostics.
 
 Review diagnostics exports for any sensitive information before sharing them.
 

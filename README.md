@@ -58,6 +58,10 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - Diagnostics include a redacted `daily_summary` snapshot to help troubleshoot
   the daily summary sensors without exposing API keys or exact coordinates.
 - Avoid sharing full debug logs publicly; review them for sensitive information before posting.
+- Never share real Google API keys publicly, and do not paste full Google Pollen
+  API URLs containing `key=...` into public issues. If a key was exposed,
+  rotate it in Google Cloud Console and restrict it to the required API and
+  allowed referrers/IPs where possible.
 
 ---
 
