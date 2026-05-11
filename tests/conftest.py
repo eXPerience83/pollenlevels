@@ -10,6 +10,27 @@ from types import ModuleType
 import pytest
 
 aiohttp_mod = sys.modules.setdefault("aiohttp", ModuleType("aiohttp"))
+
+
+class _StubClientError(Exception):
+    pass
+
+
+class _StubClientSession:  # pragma: no cover - structure only
+    pass
+
+
+class _StubClientTimeout:
+    def __init__(self, total: float | None = None):
+        self.total = total
+
+
+if not hasattr(aiohttp_mod, "ClientError"):
+    aiohttp_mod.ClientError = _StubClientError
+if not hasattr(aiohttp_mod, "ClientSession"):
+    aiohttp_mod.ClientSession = _StubClientSession
+if not hasattr(aiohttp_mod, "ClientTimeout"):
+    aiohttp_mod.ClientTimeout = _StubClientTimeout
 if not hasattr(aiohttp_mod, "ContentTypeError"):
     aiohttp_mod.ContentTypeError = ValueError
 
