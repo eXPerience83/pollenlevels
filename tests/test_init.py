@@ -102,6 +102,7 @@ class _StubClientTimeout:
 aiohttp_mod.ClientError = _StubClientError
 aiohttp_mod.ClientSession = _StubClientSession
 aiohttp_mod.ClientTimeout = _StubClientTimeout
+aiohttp_mod.ContentTypeError = ValueError
 sys.modules["aiohttp"] = aiohttp_mod
 
 cv_mod = sys.modules["homeassistant.helpers.config_validation"]
@@ -160,7 +161,7 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
     try:
         parsed = parsedate_to_datetime(value) if value is not None else None
-    except (TypeError, ValueError, IndexError):
+    except TypeError, ValueError, IndexError:
         return None
 
     if parsed is None:

@@ -6,12 +6,7 @@ import math
 import random
 from typing import Any
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
-
-try:  # pragma: no cover - fallback for environments with stubbed aiohttp
-    from aiohttp import ContentTypeError
-except ImportError:  # pragma: no cover - tests stub aiohttp without ContentTypeError
-    ContentTypeError = ValueError  # type: ignore[misc,assignment]
+from aiohttp import ClientError, ClientSession, ClientTimeout, ContentTypeError
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -54,7 +49,7 @@ class GooglePollenApiClient:
             if math.isfinite(parsed) and parsed > 0:
                 return parsed
             return 2.0
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             retry_at = dt_util.parse_http_date(retry_after_raw)
             if retry_at is not None:
                 delay = (retry_at - dt_util.utcnow()).total_seconds()
