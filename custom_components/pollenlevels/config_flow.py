@@ -109,7 +109,7 @@ def _safe_coord(value: float | None, *, lat: bool) -> float | None:
         if lat:
             return cv.latitude(value)
         return cv.longitude(value)
-    except (vol.Invalid, TypeError, ValueError):
+    except vol.Invalid, TypeError, ValueError:
         return None
 
 
@@ -210,7 +210,7 @@ def _validate_location_dict(
     try:
         lat = cv.latitude(lat_val)
         lon = cv.longitude(lon_val)
-    except (vol.Invalid, TypeError, ValueError):
+    except vol.Invalid, TypeError, ValueError:
         return None
 
     return lat, lon
@@ -358,7 +358,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 lat = cv.latitude(user_input.get(CONF_LATITUDE))
                 lon = cv.longitude(user_input.get(CONF_LONGITUDE))
                 latlon = (lat, lon)
-            except (vol.Invalid, TypeError):
+            except vol.Invalid, TypeError:
                 _LOGGER.debug(
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
