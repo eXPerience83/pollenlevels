@@ -277,3 +277,18 @@ async def test_client_treats_400_invalid_api_key_as_auth_failure() -> None:
     message = str(exc_info.value)
     assert api_key not in message
     assert "***" in message
+
+
+@pytest.mark.asyncio
+async def test_client_treats_400_non_auth_error_as_update_failed() -> None:
+    """Non-auth generic 4xx responses should remain update failures."""
+
+    response = FakeResponse(
+        status=400,
+        json_results=[
+            {"error": {"message": "Invalid value at 'days': value is out of range"}}
+        ],
+    )
+
+    with pytest.raises(client_mod.UpdateFailed, match="HTTP 400"):
+        await _fetch_with_response(response)
