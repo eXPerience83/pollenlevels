@@ -1,3 +1,13 @@
+## [2.1.1] - 2026-05-12
+### Fixed
+- Treated generic Google Pollen API 4xx responses containing invalid API key
+  messages as authentication failures so Home Assistant can trigger
+  reauthentication instead of reporting a connectivity error.
+
+### Changed
+- Refactored invalid API key classification in the Google Pollen API client to
+  reuse a shared private helper across HTTP 403 and generic 4xx handling.
+
 ## [2.1.0] - 2026-05-07
 ### Added
 - Added daily summary sensors for plants in season, overall pollen risk, and top
