@@ -253,3 +253,27 @@ async def test_client_redacts_api_key_from_http_error_body() -> None:
     message = str(exc_info.value)
     assert api_key not in message
     assert "***" in message
+
+
+@pytest.mark.asyncio
+async def test_client_treats_400_invalid_api_key_as_auth_failure() -> None:
+    """Invalid-key messages on generic 4xx responses should trigger re-auth."""
+
+    api_key = "bad-key"
+    response = FakeResponse(
+        status=400,
+        json_results=[
+            {
+                "error": {
+                    "message": f"API key not valid. Please pass a valid API key: {api_key}"
+                }
+            }
+        ],
+    )
+
+    with pytest.raises(client_mod.ConfigEntryAuthFailed) as exc_info:
+        await _fetch_with_response(response, api_key=api_key)
+
+    message = str(exc_info.value)
+    assert api_key not in message
+    assert "***" in message
