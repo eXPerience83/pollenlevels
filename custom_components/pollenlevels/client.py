@@ -26,6 +26,15 @@ def _format_http_message(status: int, raw_message: str | None) -> str:
     return f"HTTP {status}"
 
 
+def _raise_auth_failed_if_invalid_api_key(
+    raw_message: str | None, formatted_message: str
+) -> None:
+    """Raise an auth failure when the API response indicates an invalid key."""
+
+    if is_invalid_api_key_message(raw_message):
+        raise ConfigEntryAuthFailed(formatted_message)
+
+
 class PollenQuotaExceededError(UpdateFailed):
     """Raised when the Google Pollen API quota is exceeded (HTTP 429).
 
@@ -116,8 +125,7 @@ class GooglePollenApiClient:
                             await extract_error_message(resp, default=""), self._api_key
                         )
                         message = _format_http_message(resp.status, raw_message or None)
-                        if is_invalid_api_key_message(raw_message):
-                            raise ConfigEntryAuthFailed(message)
+                        _raise_auth_failed_if_invalid_api_key(raw_message, message)
                         raise UpdateFailed(message)
 
                     if resp.status == 429:
@@ -165,6 +173,7 @@ class GooglePollenApiClient:
                             await extract_error_message(resp, default=""), self._api_key
                         )
                         message = _format_http_message(resp.status, raw_message or None)
+                        _raise_auth_failed_if_invalid_api_key(raw_message, message)
                         raise UpdateFailed(message)
 
                     if resp.status != 200:
