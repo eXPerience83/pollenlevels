@@ -23,14 +23,47 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+          cache: "pip"
+
+      - name: Install validation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade "black==25.*" "ruff==0.14.*" "pytest>=8,<9"
+
+      - name: Compile Python sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q custom_components tests
+
+      - name: Ruff validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruff check .
+
+      - name: Black validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          black --check .
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q
+        env:
+          PYTHONPATH: .
 
       - name: Build release ZIP (integration root at ZIP root)
         shell: bash
         run: |
           set -euo pipefail
           rm -f "${{ github.workspace }}/pollenlevels.zip"
-          cd "${{ github.workspace }}/custom_components/pollenlevels"
-          zip "${{ github.workspace }}/pollenlevels.zip" -r ./
+          git archive --format=zip --output="${{ github.workspace }}/pollenlevels.zip" HEAD:custom_components/pollenlevels
 
       - name: Validate ZIP structure (zip_release-compatible)
         shell: bash
@@ -53,6 +86,18 @@ jobs:
               raise SystemExit(
                   "ZIP contains 'custom_components/' prefix; "
                   "zip must be integration-root only"
+              )
+
+          generated = [
+              n
+              for n in names
+              if "__pycache__/" in n
+              or n.endswith((".pyc", ".pyo"))
+              or n.startswith((".pytest_cache/", ".ruff_cache/"))
+          ]
+          if generated:
+              raise SystemExit(
+                  "ZIP contains generated/cache files: " + ", ".join(generated)
               )
 
           missing = sorted(required.difference(names))
