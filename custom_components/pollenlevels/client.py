@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .const import MAX_RETRIES, POLLEN_API_TIMEOUT, is_invalid_api_key_message
-from .util import extract_error_message, redact_api_key
+from .util import extract_error_message, redact_sensitive_values
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,6 +81,39 @@ class GooglePollenApiClient:
         _LOGGER.warning(message, *base_args, delay, attempt + 1, max_retries)
         await asyncio.sleep(delay)
 
+    def _redact_sensitive_message(
+        self,
+        value: object,
+        *,
+        latitude: float | str | None,
+        longitude: float | str | None,
+    ) -> str:
+        """Redact sensitive values from messages surfaced by the API client."""
+
+        return redact_sensitive_values(
+            value,
+            api_key=self._api_key,
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+    async def _async_redacted_http_message(
+        self,
+        resp: Any,
+        *,
+        default: str,
+        latitude: float | str | None,
+        longitude: float | str | None,
+    ) -> tuple[str, str]:
+        """Extract, redact, and format an HTTP error response message."""
+
+        raw_message = self._redact_sensitive_message(
+            await extract_error_message(resp, default=default),
+            latitude=latitude,
+            longitude=longitude,
+        )
+        return raw_message, _format_http_message(resp.status, raw_message or None)
+
     async def async_fetch_pollen_data(
         self,
         *,
@@ -114,17 +147,21 @@ class GooglePollenApiClient:
                     timeout=ClientTimeout(total=POLLEN_API_TIMEOUT),
                 ) as resp:
                     if resp.status == 401:
-                        raw_message = redact_api_key(
-                            await extract_error_message(resp, default=""), self._api_key
+                        _, message = await self._async_redacted_http_message(
+                            resp,
+                            default="",
+                            latitude=latitude,
+                            longitude=longitude,
                         )
-                        message = _format_http_message(resp.status, raw_message or None)
                         raise ConfigEntryAuthFailed(message)
 
                     if resp.status == 403:
-                        raw_message = redact_api_key(
-                            await extract_error_message(resp, default=""), self._api_key
+                        raw_message, message = await self._async_redacted_http_message(
+                            resp,
+                            default="",
+                            latitude=latitude,
+                            longitude=longitude,
                         )
-                        message = _format_http_message(resp.status, raw_message or None)
                         _raise_auth_failed_if_invalid_api_key(raw_message, message)
                         raise UpdateFailed(message)
 
@@ -144,10 +181,12 @@ class GooglePollenApiClient:
                             )
                             await asyncio.sleep(delay)
                             continue
-                        raw_message = redact_api_key(
-                            await extract_error_message(resp, default=""), self._api_key
+                        _, message = await self._async_redacted_http_message(
+                            resp,
+                            default="",
+                            latitude=latitude,
+                            longitude=longitude,
                         )
-                        message = _format_http_message(resp.status, raw_message or None)
                         raise PollenQuotaExceededError(message)
 
                     if 500 <= resp.status <= 599:
@@ -162,25 +201,31 @@ class GooglePollenApiClient:
                                 base_args=(resp.status,),
                             )
                             continue
-                        raw_message = redact_api_key(
-                            await extract_error_message(resp, default=""), self._api_key
+                        _, message = await self._async_redacted_http_message(
+                            resp,
+                            default="",
+                            latitude=latitude,
+                            longitude=longitude,
                         )
-                        message = _format_http_message(resp.status, raw_message or None)
                         raise UpdateFailed(message)
 
                     if 400 <= resp.status < 500 and resp.status not in (403, 429):
-                        raw_message = redact_api_key(
-                            await extract_error_message(resp, default=""), self._api_key
+                        raw_message, message = await self._async_redacted_http_message(
+                            resp,
+                            default="",
+                            latitude=latitude,
+                            longitude=longitude,
                         )
-                        message = _format_http_message(resp.status, raw_message or None)
                         _raise_auth_failed_if_invalid_api_key(raw_message, message)
                         raise UpdateFailed(message)
 
                     if resp.status != 200:
-                        raw_message = redact_api_key(
-                            await extract_error_message(resp, default=""), self._api_key
+                        _, message = await self._async_redacted_http_message(
+                            resp,
+                            default="",
+                            latitude=latitude,
+                            longitude=longitude,
                         )
-                        message = _format_http_message(resp.status, raw_message or None)
                         raise UpdateFailed(message)
 
                     try:
@@ -213,7 +258,9 @@ class GooglePollenApiClient:
                     )
                     continue
                 msg = (
-                    redact_api_key(err, self._api_key)
+                    self._redact_sensitive_message(
+                        err, latitude=latitude, longitude=longitude
+                    )
                     or "Google Pollen API call timed out"
                 )
                 raise UpdateFailed(f"Timeout: {msg}") from err
@@ -228,14 +275,19 @@ class GooglePollenApiClient:
                         ),
                     )
                     continue
-                msg = redact_api_key(err, self._api_key) or (
-                    "Network error while calling the Google Pollen API"
+                msg = (
+                    self._redact_sensitive_message(
+                        err, latitude=latitude, longitude=longitude
+                    )
+                    or "Network error while calling the Google Pollen API"
                 )
                 raise UpdateFailed(msg) from err
             except UpdateFailed:
                 raise
             except Exception as err:  # noqa: BLE001
-                msg = redact_api_key(err, self._api_key)
+                msg = self._redact_sensitive_message(
+                    err, latitude=latitude, longitude=longitude
+                )
                 if not msg:
                     msg = "Unexpected error while calling the Google Pollen API"
                 _LOGGER.error("Pollen API error: %s", msg)
