@@ -60,6 +60,7 @@ from .const import (
 from .util import (
     normalize_sensor_mode,
     redact_api_key,
+    redact_sensitive_values,
     safe_parse_int,
     validate_latitude,
     validate_location_pair,
@@ -134,6 +135,21 @@ def _safe_error_message(error: Exception | str, fallback: str) -> str:
     """Return a non-empty error message suitable for form placeholders."""
     message = str(error).strip()
     return message or fallback
+
+
+def _redact_validation_error(
+    error: object,
+    api_key: str | None,
+    latitude: float | None,
+    longitude: float | None,
+) -> str:
+    """Redact validation errors before logging or showing placeholders."""
+    return redact_sensitive_values(
+        error,
+        api_key=api_key,
+        latitude=latitude,
+        longitude=longitude,
+    ).strip()
 
 
 def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol.Schema:
@@ -442,13 +458,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except ConfigEntryAuthFailed as err:
             _LOGGER.warning("Authentication failed during validation")
             errors["base"] = "invalid_auth"
-            redacted = redact_api_key(err, api_key).strip()
+            redacted = _redact_validation_error(err, api_key, lat, lon)
             placeholders["error_message"] = _safe_error_message(
                 redacted, "Authentication failed."
             )
         except PollenQuotaExceededError as err:
             errors["base"] = "quota_exceeded"
-            redacted = redact_api_key(err, api_key).strip()
+            redacted = _redact_validation_error(err, api_key, lat, lon)
             if re.fullmatch(r"HTTP\s+429(?::)?", redacted, flags=re.IGNORECASE):
                 redacted = ""
             placeholders["error_message"] = _safe_error_message(
@@ -456,33 +472,36 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         except UpdateFailed as err:
             errors["base"] = "cannot_connect"
-            redacted = redact_api_key(err, api_key).strip()
+            redacted = _redact_validation_error(err, api_key, lat, lon)
             if re.fullmatch(r"HTTP\s+\d+(?::)?", redacted, flags=re.IGNORECASE):
                 redacted = ""
             placeholders["error_message"] = _safe_error_message(
                 redacted, "Failed to connect to the pollen service."
             )
         except TimeoutError as err:
-            _LOGGER.warning("Validation timeout: %s", redact_api_key(err, api_key))
+            _LOGGER.warning(
+                "Validation timeout: %s",
+                _redact_validation_error(err, api_key, lat, lon),
+            )
             errors["base"] = "cannot_connect"
-            redacted = redact_api_key(err, api_key).strip()
+            redacted = _redact_validation_error(err, api_key, lat, lon)
             placeholders["error_message"] = _safe_error_message(
                 redacted, "Validation request timed out."
             )
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
-                redact_api_key(err, api_key),
+                _redact_validation_error(err, api_key, lat, lon),
             )
             errors["base"] = "cannot_connect"
-            redacted = redact_api_key(err, api_key).strip()
+            redacted = _redact_validation_error(err, api_key, lat, lon)
             placeholders["error_message"] = _safe_error_message(
                 redacted, "Network error while connecting to the pollen service."
             )
         except Exception as err:  # defensive
             _LOGGER.exception(
                 "Unexpected error in Pollen Levels config flow while validating input: %s",
-                redact_api_key(err, api_key),
+                _redact_validation_error(err, api_key, lat, lon),
             )
             errors["base"] = "unknown"
             placeholders.pop("error_message", None)
