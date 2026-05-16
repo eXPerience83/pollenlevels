@@ -21,6 +21,40 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+          cache: "pip"
+
+      - name: Install validation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade "black==25.*" "ruff==0.14.*" "pytest>=8,<9"
+
+      - name: Compile Python sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q custom_components tests
+
+      - name: Ruff validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruff check .
+
+      - name: Black validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          black --check .
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q
+        env:
+          PYTHONPATH: .
 
       - name: Build release ZIP (integration root at ZIP root)
         shell: bash
