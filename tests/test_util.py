@@ -70,6 +70,10 @@ util_mod = _import_util_module()
 redact_api_key = util_mod.redact_api_key
 redact_sensitive_values = util_mod.redact_sensitive_values
 safe_parse_int = util_mod.safe_parse_int
+parse_finite_float = util_mod.parse_finite_float
+validate_latitude = util_mod.validate_latitude
+validate_location_pair = util_mod.validate_location_pair
+validate_longitude = util_mod.validate_longitude
 
 
 def test_redact_api_key_handles_non_utf8_bytes():
@@ -221,3 +225,78 @@ def test_safe_parse_int(value, expected):
     """safe_parse_int accepts integer-like values and rejects invalid input."""
 
     assert safe_parse_int(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (0, 0.0),
+        (12.5, 12.5),
+        ("12.5", 12.5),
+        (" -3 ", -3.0),
+    ],
+)
+def test_parse_finite_float_accepts_numeric_values(value, expected):
+    """parse_finite_float returns normalized floats for finite numeric input."""
+
+    assert parse_finite_float(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, True, False, "not-a-number", "nan", "inf", float("nan"), float("inf")],
+)
+def test_parse_finite_float_rejects_invalid_values(value):
+    """parse_finite_float rejects bools, empty values, and non-finite numbers."""
+
+    assert parse_finite_float(value) is None
+
+
+@pytest.mark.parametrize("value", [-90, -90.0, "-90", 0, "12.5", 90, "90"])
+def test_validate_latitude_accepts_valid_values(value):
+    """validate_latitude accepts numeric and numeric-string values in range."""
+
+    assert validate_latitude(value) == float(value)
+
+
+@pytest.mark.parametrize("value", [-180, -180.0, "-180", 0, "12.5", 180, "180"])
+def test_validate_longitude_accepts_valid_values(value):
+    """validate_longitude accepts numeric and numeric-string values in range."""
+
+    assert validate_longitude(value) == float(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, True, False, "not-a-number", "nan", "inf", -90.1, 90.1],
+)
+def test_validate_latitude_rejects_invalid_values(value):
+    """validate_latitude rejects invalid, non-finite, and out-of-range values."""
+
+    assert validate_latitude(value) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, True, False, "not-a-number", "nan", "inf", -180.1, 180.1],
+)
+def test_validate_longitude_rejects_invalid_values(value):
+    """validate_longitude rejects invalid, non-finite, and out-of-range values."""
+
+    assert validate_longitude(value) is None
+
+
+def test_validate_location_pair_accepts_valid_pair():
+    """validate_location_pair returns normalized floats for valid coordinates."""
+
+    assert validate_location_pair("40.4168", "-3.7038") == (40.4168, -3.7038)
+
+
+@pytest.mark.parametrize(
+    ("latitude", "longitude"),
+    [(None, 1), (1, None), (91, 1), (1, 181), (True, 1), (1, "bad")],
+)
+def test_validate_location_pair_rejects_invalid_pair(latitude, longitude):
+    """validate_location_pair rejects pairs with any invalid coordinate."""
+
+    assert validate_location_pair(latitude, longitude) is None

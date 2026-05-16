@@ -18,7 +18,6 @@ import re
 from typing import Any
 
 import aiohttp
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
@@ -62,6 +61,9 @@ from .util import (
     normalize_sensor_mode,
     redact_api_key,
     safe_parse_int,
+    validate_latitude,
+    validate_location_pair,
+    validate_longitude,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,6 +71,7 @@ _LOGGER = logging.getLogger(__name__)
 FORECAST_DAYS_OPTIONS = [
     str(i) for i in range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1)
 ]
+_FORECAST_MODE_MIN_DAYS = {"D+1": 2, "D+1+2": 3}
 
 # BCP-47-ish regex (common patterns, not full grammar).
 LANGUAGE_CODE_REGEX = re.compile(
@@ -105,12 +108,32 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
 
 def _safe_coord(value: float | None, *, lat: bool) -> float | None:
     """Return a validated latitude/longitude or None if unset/invalid."""
-    try:
-        if lat:
-            return cv.latitude(value)
-        return cv.longitude(value)
-    except vol.Invalid, TypeError, ValueError:
-        return None
+    if lat:
+        return validate_latitude(value)
+    return validate_longitude(value)
+
+
+def _required_forecast_days_for_mode(mode: str) -> int:
+    """Return the minimum forecast days required for a sensor mode."""
+    return _FORECAST_MODE_MIN_DAYS.get(mode, MIN_FORECAST_DAYS)
+
+
+def _normalize_forecast_mode_for_save(raw_value: Any) -> str:
+    """Normalize a forecast sensor mode before saving it."""
+    return normalize_sensor_mode(raw_value, _LOGGER)
+
+
+def _forecast_mode_combo_error(forecast_days: int, mode: str) -> str | None:
+    """Return an error key when forecast days and mode are incompatible."""
+    if forecast_days < _required_forecast_days_for_mode(mode):
+        return "invalid_option_combo"
+    return None
+
+
+def _safe_error_message(error: Exception | str, fallback: str) -> str:
+    """Return a non-empty error message suitable for form placeholders."""
+    message = str(error).strip()
+    return message or fallback
 
 
 def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol.Schema:
@@ -204,16 +227,7 @@ def _validate_location_dict(
     lat_val = location.get(CONF_LATITUDE)
     lon_val = location.get(CONF_LONGITUDE)
 
-    if lat_val is None or lon_val is None:
-        return None
-
-    try:
-        lat = cv.latitude(lat_val)
-        lon = cv.longitude(lon_val)
-    except vol.Invalid, TypeError, ValueError:
-        return None
-
-    return lat, lon
+    return validate_location_pair(lat_val, lon_val)
 
 
 def _parse_int_option(
@@ -332,13 +346,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             placeholders.pop("error_message", None)
             return errors, None
 
-        mode = normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
-        if mode not in FORECAST_SENSORS_CHOICES:
-            mode = FORECAST_SENSORS_CHOICES[0]
-            normalized[CONF_CREATE_FORECAST_SENSORS] = mode
-        needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
-        if forecast_days < needed:
-            errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+        mode = _normalize_forecast_mode_for_save(
+            normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
+        )
+        combo_error = _forecast_mode_combo_error(forecast_days, mode)
+        if combo_error:
+            errors[CONF_CREATE_FORECAST_SENSORS] = combo_error
             placeholders.pop("error_message", None)
             return errors, None
         normalized[CONF_CREATE_FORECAST_SENSORS] = mode
@@ -354,11 +367,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 placeholders.pop("error_message", None)
                 return errors, None
         else:
-            try:
-                lat = cv.latitude(user_input.get(CONF_LATITUDE))
-                lon = cv.longitude(user_input.get(CONF_LONGITUDE))
-                latlon = (lat, lon)
-            except vol.Invalid, TypeError:
+            latlon = validate_location_pair(
+                user_input.get(CONF_LATITUDE), user_input.get(CONF_LONGITUDE)
+            )
+            if latlon is None:
                 _LOGGER.debug(
                     "Invalid coordinates provided (values redacted): parsing failed"
                 )
@@ -431,26 +443,32 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.warning("Authentication failed during validation")
             errors["base"] = "invalid_auth"
             redacted = redact_api_key(err, api_key).strip()
-            placeholders["error_message"] = redacted or "Authentication failed."
+            placeholders["error_message"] = _safe_error_message(
+                redacted, "Authentication failed."
+            )
         except PollenQuotaExceededError as err:
             errors["base"] = "quota_exceeded"
             redacted = redact_api_key(err, api_key).strip()
             if re.fullmatch(r"HTTP\s+429(?::)?", redacted, flags=re.IGNORECASE):
                 redacted = ""
-            placeholders["error_message"] = redacted or "Quota exceeded."
+            placeholders["error_message"] = _safe_error_message(
+                redacted, "Quota exceeded."
+            )
         except UpdateFailed as err:
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key).strip()
             if re.fullmatch(r"HTTP\s+\d+(?::)?", redacted, flags=re.IGNORECASE):
                 redacted = ""
-            placeholders["error_message"] = (
-                redacted or "Failed to connect to the pollen service."
+            placeholders["error_message"] = _safe_error_message(
+                redacted, "Failed to connect to the pollen service."
             )
         except TimeoutError as err:
             _LOGGER.warning("Validation timeout: %s", redact_api_key(err, api_key))
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key).strip()
-            placeholders["error_message"] = redacted or "Validation request timed out."
+            placeholders["error_message"] = _safe_error_message(
+                redacted, "Validation request timed out."
+            )
         except aiohttp.ClientError as err:
             _LOGGER.error(
                 "Connection error: %s",
@@ -458,8 +476,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             errors["base"] = "cannot_connect"
             redacted = redact_api_key(err, api_key).strip()
-            placeholders["error_message"] = (
-                redacted or "Network error while connecting to the pollen service."
+            placeholders["error_message"] = _safe_error_message(
+                redacted, "Network error while connecting to the pollen service."
             )
         except Exception as err:  # defensive
             _LOGGER.exception(
@@ -693,15 +711,16 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                 normalized_input[CONF_LANGUAGE_CODE] = lang
 
                 days = normalized_input[CONF_FORECAST_DAYS]
-                mode = normalized_input.get(
-                    CONF_CREATE_FORECAST_SENSORS,
-                    current_mode,
+                mode = _normalize_forecast_mode_for_save(
+                    normalized_input.get(
+                        CONF_CREATE_FORECAST_SENSORS,
+                        current_mode,
+                    )
                 )
-                mode = normalize_sensor_mode(mode, _LOGGER)
                 normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
-                needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
-                if days < needed:
-                    errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+                combo_error = _forecast_mode_combo_error(days, mode)
+                if combo_error:
+                    errors[CONF_CREATE_FORECAST_SENSORS] = combo_error
 
             except vol.Invalid as ve:
                 _LOGGER.warning(

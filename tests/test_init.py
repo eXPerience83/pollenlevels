@@ -441,6 +441,26 @@ def test_setup_entry_invalid_coordinates_raise_not_ready() -> None:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+def test_setup_entry_invalid_coordinates_do_not_log_precise_values(caplog) -> None:
+    """Invalid coordinates should fail without logging precise coordinate values."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 91.123456,
+            integration.CONF_LONGITUDE: 2.654321,
+        }
+    )
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    log_text = caplog.text
+    assert "91.123456" not in log_text
+    assert "2.654321" not in log_text
+
+
 def test_setup_entry_nonfinite_or_out_of_range_coordinates_raise_not_ready() -> None:
     """Non-finite or out-of-range coordinates should trigger ConfigEntryNotReady."""
 
@@ -463,6 +483,40 @@ def test_setup_entry_nonfinite_or_out_of_range_coordinates_raise_not_ready() -> 
 
         with pytest.raises(integration.ConfigEntryNotReady):
             asyncio.run(integration.async_setup_entry(hass, entry))
+
+
+def test_setup_entry_boolean_coordinates_raise_not_ready() -> None:
+    """Boolean coordinates should trigger ConfigEntryNotReady."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: True,
+            integration.CONF_LONGITUDE: 2.0,
+        }
+    )
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+
+def test_setup_entry_numeric_string_coordinates_are_allowed() -> None:
+    """Numeric string coordinates should still set up normally."""
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: "1.5",
+            integration.CONF_LONGITUDE: "2.5",
+        }
+    )
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+    assert entry.runtime_data is not None
+    assert entry.runtime_data.coordinator.lat == pytest.approx(1.5)
+    assert entry.runtime_data.coordinator.lon == pytest.approx(2.5)
 
 
 def test_setup_entry_boundary_coordinates_are_allowed() -> None:

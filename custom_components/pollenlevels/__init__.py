@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import math
 from collections.abc import Awaitable
 from typing import Any
 
@@ -42,7 +41,12 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .sensor import ForecastSensorMode
-from .util import normalize_sensor_mode, redact_api_key, safe_parse_int
+from .util import (
+    normalize_sensor_mode,
+    redact_api_key,
+    safe_parse_int,
+    validate_location_pair,
+)
 
 # Ensure YAML config is entry-only for this domain (no YAML schema).
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -224,27 +228,14 @@ async def async_setup_entry(
 
     raw_lat = entry.data.get(CONF_LATITUDE)
     raw_lon = entry.data.get(CONF_LONGITUDE)
-    try:
-        lat = float(raw_lat)
-        lon = float(raw_lon)
-    except (TypeError, ValueError) as err:
+    latlon = validate_location_pair(raw_lat, raw_lon)
+    if latlon is None:
         _LOGGER.warning(
             "Invalid config entry coordinates for entry %s",
             entry.entry_id,
         )
-        raise ConfigEntryNotReady from err
-
-    if (
-        not math.isfinite(lat)
-        or not math.isfinite(lon)
-        or not (-90.0 <= lat <= 90.0)
-        or not (-180.0 <= lon <= 180.0)
-    ):
-        _LOGGER.warning(
-            "Out-of-range or non-finite coordinates for entry %s",
-            entry.entry_id,
-        )
         raise ConfigEntryNotReady
+    lat, lon = latlon
 
     raw_title = entry.title or ""
     clean_title = raw_title.strip() or DEFAULT_ENTRY_TITLE
