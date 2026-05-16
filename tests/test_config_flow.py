@@ -1085,6 +1085,46 @@ def test_validate_input_http_500_sets_error_message_placeholder(
     assert placeholders.get("error_message")
 
 
+def test_validate_input_update_failed_redacts_api_key_and_coordinates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """UpdateFailed placeholders should redact API keys and precise coordinates."""
+
+    user_input = _base_user_input()
+    latitude = "48.8566123"
+    longitude = "2.3522456"
+    user_input[CONF_LOCATION] = {CONF_LATITUDE: latitude, CONF_LONGITUDE: longitude}
+    api_key = user_input[CONF_API_KEY]
+    calls = _patch_client_fetch(
+        monkeypatch,
+        error=UpdateFailed(
+            f"API key {api_key} failed for "
+            f"location.latitude={latitude} location.longitude={longitude}"
+        ),
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            user_input,
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    error_message = placeholders.get("error_message", "")
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert api_key not in error_message
+    assert latitude not in error_message
+    assert longitude not in error_message
+    assert "***" in error_message
+
+
 def test_validate_input_clears_error_message_placeholder_on_validation_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1167,6 +1207,181 @@ def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
     assert errors == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
     assert normalized is None
     assert "error_message" not in placeholders
+
+
+@pytest.mark.parametrize(
+    ("forecast_days", "mode"),
+    [(1, "D+1"), (2, "D+1+2")],
+)
+def test_validate_input_invalid_forecast_mode_combinations(
+    forecast_days: int,
+    mode: str,
+) -> None:
+    """User flow should reject forecast modes requiring more forecast days."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                **_base_user_input(),
+                CONF_FORECAST_DAYS: forecast_days,
+                CONF_CREATE_FORECAST_SENSORS: mode,
+            },
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
+    assert normalized is None
+
+
+@pytest.mark.parametrize(
+    ("forecast_days", "mode"),
+    [(2, "D+1"), (3, "D+1+2"), (1, "none")],
+)
+def test_validate_input_valid_forecast_mode_combinations_are_accepted(
+    monkeypatch: pytest.MonkeyPatch,
+    forecast_days: int,
+    mode: str,
+) -> None:
+    """User flow should accept forecast mode combinations that have enough days."""
+
+    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                **_base_user_input(),
+                CONF_FORECAST_DAYS: forecast_days,
+                CONF_CREATE_FORECAST_SENSORS: mode,
+            },
+            check_unique_id=False,
+        )
+    )
+
+    assert calls
+    assert errors == {}
+    assert normalized is not None
+    assert normalized[CONF_FORECAST_DAYS] == forecast_days
+    assert normalized[CONF_CREATE_FORECAST_SENSORS] == mode
+
+
+def test_validate_input_invalid_forecast_days_returns_error() -> None:
+    """Invalid forecast days should keep the dedicated field error key."""
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {**_base_user_input(), CONF_FORECAST_DAYS: "not-a-number"},
+            check_unique_id=False,
+        )
+    )
+
+    assert errors == {CONF_FORECAST_DAYS: "invalid_forecast_days"}
+    assert normalized is None
+
+
+@pytest.mark.parametrize(
+    ("forecast_days", "mode"),
+    [(1, "D+1"), (2, "D+1+2")],
+)
+def test_options_flow_invalid_forecast_mode_combinations(
+    forecast_days: int,
+    mode: str,
+) -> None:
+    """Options flow should reject forecast modes requiring more forecast days."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
+    )
+    flow = cf.PollenLevelsOptionsFlow(entry)
+    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+    flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "form",
+        **kwargs,
+    }
+    flow.async_create_entry = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "create_entry",
+        **kwargs,
+    }
+
+    result = asyncio.run(
+        flow.async_step_init(
+            {
+                CONF_FORECAST_DAYS: forecast_days,
+                CONF_CREATE_FORECAST_SENSORS: mode,
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
+
+
+@pytest.mark.parametrize(
+    ("forecast_days", "mode"),
+    [(2, "D+1"), (3, "D+1+2"), (1, "none")],
+)
+def test_options_flow_valid_forecast_mode_combinations_are_accepted(
+    forecast_days: int,
+    mode: str,
+) -> None:
+    """Options flow should accept forecast mode combinations with enough days."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
+    )
+    flow = cf.PollenLevelsOptionsFlow(entry)
+    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+    flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "form",
+        **kwargs,
+    }
+    flow.async_create_entry = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "create_entry",
+        **kwargs,
+    }
+
+    result = asyncio.run(
+        flow.async_step_init(
+            {
+                CONF_FORECAST_DAYS: forecast_days,
+                CONF_CREATE_FORECAST_SENSORS: mode,
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_FORECAST_DAYS] == forecast_days
+    assert result["data"][CONF_CREATE_FORECAST_SENSORS] == mode
+
+
+def test_options_flow_invalid_forecast_days_returns_error() -> None:
+    """Options flow should keep the dedicated invalid forecast days field error."""
+
+    entry = cf.config_entries.ConfigEntry(data={CONF_FORECAST_DAYS: 3})
+    flow = cf.PollenLevelsOptionsFlow(entry)
+    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+    flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "form",
+        **kwargs,
+    }
+    flow.async_create_entry = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "create_entry",
+        **kwargs,
+    }
+
+    result = asyncio.run(flow.async_step_init({CONF_FORECAST_DAYS: "not-a-number"}))
+
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_FORECAST_DAYS: "invalid_forecast_days"}
 
 
 def test_validate_input_auth_error_sets_error_message_placeholder(

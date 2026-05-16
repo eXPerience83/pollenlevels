@@ -138,6 +138,50 @@ def redact_api_key(text: object, api_key: str | None) -> str:
     return redact_sensitive_values(text, api_key=api_key)
 
 
+def parse_finite_float(value: Any) -> float | None:
+    """Parse a finite float value, rejecting bools and invalid input."""
+    if value is None or isinstance(value, bool):
+        return None
+
+    try:
+        parsed = float(value)
+    except TypeError, ValueError, OverflowError:
+        return None
+
+    if not math.isfinite(parsed):
+        return None
+
+    return parsed
+
+
+def validate_latitude(value: Any) -> float | None:
+    """Return a normalized latitude float or None when invalid."""
+    parsed = parse_finite_float(value)
+    if parsed is None or not -90.0 <= parsed <= 90.0:
+        return None
+
+    return parsed
+
+
+def validate_longitude(value: Any) -> float | None:
+    """Return a normalized longitude float or None when invalid."""
+    parsed = parse_finite_float(value)
+    if parsed is None or not -180.0 <= parsed <= 180.0:
+        return None
+
+    return parsed
+
+
+def validate_location_pair(latitude: Any, longitude: Any) -> tuple[float, float] | None:
+    """Return a normalized coordinate pair or None when either value is invalid."""
+    parsed_latitude = validate_latitude(latitude)
+    parsed_longitude = validate_longitude(longitude)
+    if parsed_latitude is None or parsed_longitude is None:
+        return None
+
+    return parsed_latitude, parsed_longitude
+
+
 def normalize_sensor_mode(mode: Any, logger: logging.Logger) -> str:
     """Normalize sensor mode, defaulting and logging a warning if invalid."""
     raw_mode = getattr(mode, "value", mode)
@@ -184,8 +228,12 @@ _redact_api_key = redact_api_key
 __all__ = [
     "extract_error_message",
     "normalize_sensor_mode",
+    "parse_finite_float",
     "redact_api_key",
     "redact_sensitive_values",
     "safe_parse_int",
+    "validate_latitude",
+    "validate_location_pair",
+    "validate_longitude",
     "_redact_api_key",
 ]
