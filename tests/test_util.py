@@ -1,8 +1,22 @@
 """Tests for shared utilities."""
 
+import sys
+import types
+from pathlib import Path
+
 import pytest
 
-from custom_components.pollenlevels.util import (
+ROOT = Path(__file__).resolve().parents[1]
+custom_components_pkg = sys.modules.setdefault(
+    "custom_components", types.ModuleType("custom_components")
+)
+custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
+pollenlevels_pkg = sys.modules.setdefault(
+    "custom_components.pollenlevels", types.ModuleType("custom_components.pollenlevels")
+)
+pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
+
+from custom_components.pollenlevels.util import (  # noqa: E402
     redact_api_key,
     redact_sensitive_values,
     safe_parse_int,
@@ -101,6 +115,41 @@ def test_redact_sensitive_values_preserves_unrelated_numbers():
     redacted = redact_sensitive_values("HTTP 400 days=5 Retry-After: 30")
 
     assert redacted == "HTTP 400 days=5 Retry-After: 30"
+
+
+@pytest.mark.parametrize(
+    ("message", "latitude"),
+    [
+        ("HTTP 404", "40"),
+        ("value 140", "40"),
+        ("value -40", "40"),
+    ],
+)
+def test_redact_sensitive_values_does_not_redact_partial_integer_coordinates(
+    message, latitude
+):
+    """Explicit integer coordinates should not redact partial numeric matches."""
+
+    assert redact_sensitive_values(message, latitude=latitude) == message
+
+
+@pytest.mark.parametrize("message", ["value 140.0", "value 40.01"])
+def test_redact_sensitive_values_does_not_redact_partial_decimal_coordinates(message):
+    """Explicit decimal coordinates should not redact partial decimal matches."""
+
+    assert redact_sensitive_values(message, latitude=40.0) == message
+
+
+@pytest.mark.parametrize("coordinate", ["40.0", "40.000000"])
+def test_redact_sensitive_values_still_redacts_exact_coordinate_values(coordinate):
+    """Exact explicit coordinate values should still be redacted."""
+
+    redacted = redact_sensitive_values(
+        f"Coordinates {coordinate} failed", latitude=40.0
+    )
+
+    assert coordinate not in redacted
+    assert "***" in redacted
 
 
 @pytest.mark.parametrize(

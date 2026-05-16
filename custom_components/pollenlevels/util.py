@@ -116,9 +116,18 @@ def redact_sensitive_values(
         s,
     )
 
-    coordinates = _coordinate_values(latitude) | _coordinate_values(longitude)
-    for coordinate in sorted(coordinates, key=len, reverse=True):
-        s = s.replace(coordinate, _REDACTION_PLACEHOLDER)
+    coordinates = sorted(
+        _coordinate_values(latitude) | _coordinate_values(longitude),
+        key=len,
+        reverse=True,
+    )
+    if coordinates:
+        pattern = "|".join(re.escape(coordinate) for coordinate in coordinates)
+        s = re.sub(
+            rf"(?<![\d.+-])({pattern})(?![\d.])",
+            _REDACTION_PLACEHOLDER,
+            s,
+        )
 
     return s
 
