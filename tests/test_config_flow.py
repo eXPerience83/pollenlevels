@@ -1085,6 +1085,46 @@ def test_validate_input_http_500_sets_error_message_placeholder(
     assert placeholders.get("error_message")
 
 
+def test_validate_input_update_failed_redacts_api_key_and_coordinates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """UpdateFailed placeholders should redact API keys and precise coordinates."""
+
+    user_input = _base_user_input()
+    latitude = "48.8566123"
+    longitude = "2.3522456"
+    user_input[CONF_LOCATION] = {CONF_LATITUDE: latitude, CONF_LONGITUDE: longitude}
+    api_key = user_input[CONF_API_KEY]
+    calls = _patch_client_fetch(
+        monkeypatch,
+        error=UpdateFailed(
+            f"API key {api_key} failed for "
+            f"location.latitude={latitude} location.longitude={longitude}"
+        ),
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            user_input,
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    error_message = placeholders.get("error_message", "")
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert api_key not in error_message
+    assert latitude not in error_message
+    assert longitude not in error_message
+    assert "***" in error_message
+
+
 def test_validate_input_clears_error_message_placeholder_on_validation_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
