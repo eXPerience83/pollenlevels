@@ -7,20 +7,69 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-custom_components_pkg = sys.modules.setdefault(
-    "custom_components", types.ModuleType("custom_components")
-)
-custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-pollenlevels_pkg = sys.modules.setdefault(
-    "custom_components.pollenlevels", types.ModuleType("custom_components.pollenlevels")
-)
-pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
+_SENTINEL = object()
 
-from custom_components.pollenlevels.util import (  # noqa: E402
-    redact_api_key,
-    redact_sensitive_values,
-    safe_parse_int,
-)
+
+def _set_module(
+    snapshot: dict[str, object], name: str, module: types.ModuleType
+) -> None:
+    """Set a temporary module while preserving its previous value."""
+
+    snapshot.setdefault(name, sys.modules.get(name, _SENTINEL))
+    sys.modules[name] = module
+
+
+def _restore_modules(snapshot: dict[str, object]) -> None:
+    """Restore modules changed only for importing the util module under test."""
+
+    for name, module in reversed(snapshot.items()):
+        if module is _SENTINEL:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = module  # type: ignore[assignment]
+
+
+def _install_util_import_stubs() -> dict[str, object]:
+    """Install package stubs required to import util.py directly."""
+
+    snapshot: dict[str, object] = {}
+
+    custom_components_pkg = types.ModuleType("custom_components")
+    custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
+    _set_module(snapshot, "custom_components", custom_components_pkg)
+
+    pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
+    pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
+    _set_module(snapshot, "custom_components.pollenlevels", pollenlevels_pkg)
+
+    for name in (
+        "custom_components.pollenlevels.const",
+        "custom_components.pollenlevels.util",
+    ):
+        snapshot.setdefault(name, sys.modules.get(name, _SENTINEL))
+
+    return snapshot
+
+
+def _import_util_module() -> types.ModuleType:
+    """Import util.py with local stubs and avoid leaking them globally."""
+
+    snapshot = _install_util_import_stubs()
+    try:
+        from custom_components.pollenlevels import util as imported_util
+
+        return imported_util
+    finally:
+        pollenlevels_pkg = sys.modules.get("custom_components.pollenlevels")
+        if pollenlevels_pkg is not None and hasattr(pollenlevels_pkg, "util"):
+            delattr(pollenlevels_pkg, "util")
+        _restore_modules(snapshot)
+
+
+util_mod = _import_util_module()
+redact_api_key = util_mod.redact_api_key
+redact_sensitive_values = util_mod.redact_sensitive_values
+safe_parse_int = util_mod.safe_parse_int
 
 
 def test_redact_api_key_handles_non_utf8_bytes():
