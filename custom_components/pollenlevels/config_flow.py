@@ -69,6 +69,7 @@ _LOGGER = logging.getLogger(__name__)
 FORECAST_DAYS_OPTIONS = [
     str(i) for i in range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1)
 ]
+FORECAST_SENSOR_MODE_MIN_DAYS = {"D+1": 2, "D+1+2": 3}
 
 # BCP-47-ish regex (common patterns, not full grammar).
 LANGUAGE_CODE_REGEX = re.compile(
@@ -249,6 +250,36 @@ def _parse_update_interval(value: Any, default: int) -> tuple[int, str | None]:
     )
 
 
+def _parse_forecast_days(value: Any, default: int) -> tuple[int, str | None]:
+    """Parse and validate the forecast day count."""
+    return _parse_int_option(
+        value,
+        default,
+        min_value=MIN_FORECAST_DAYS,
+        max_value=MAX_FORECAST_DAYS,
+        error_key="invalid_forecast_days",
+    )
+
+
+def _normalize_language(value: Any) -> str:
+    """Normalize an optional language code and validate non-empty values."""
+    lang = value.strip() if isinstance(value, str) else ""
+    if lang:
+        return is_valid_language_code(lang)
+    return ""
+
+
+def _validate_forecast_sensor_mode(
+    mode: Any, forecast_days: int
+) -> tuple[str, str | None]:
+    """Normalize per-day sensor mode and validate it against forecast days."""
+    normalized_mode = normalize_sensor_mode(mode, _LOGGER)
+    needed = FORECAST_SENSOR_MODE_MIN_DAYS.get(normalized_mode, 1)
+    if forecast_days < needed:
+        return normalized_mode, "invalid_option_combo"
+    return normalized_mode, None
+
+
 def _sanitize_update_interval_for_default(raw_value: Any) -> int:
     """Parse and clamp an update interval value to be used as a UI default."""
     parsed, _ = _parse_update_interval(raw_value, DEFAULT_UPDATE_INTERVAL)
@@ -257,13 +288,7 @@ def _sanitize_update_interval_for_default(raw_value: Any) -> int:
 
 def _sanitize_forecast_days_for_default(raw_value: Any) -> str:
     """Parse and clamp forecast days to be used as a UI default."""
-    parsed, _ = _parse_int_option(
-        raw_value,
-        DEFAULT_FORECAST_DAYS,
-        min_value=MIN_FORECAST_DAYS,
-        max_value=MAX_FORECAST_DAYS,
-        error_key="invalid_forecast_days",
-    )
+    parsed, _ = _parse_forecast_days(raw_value, DEFAULT_FORECAST_DAYS)
     parsed = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, parsed))
     return str(parsed)
 
@@ -319,12 +344,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             placeholders.pop("error_message", None)
             return errors, None
 
-        forecast_days, days_error = _parse_int_option(
+        forecast_days, days_error = _parse_forecast_days(
             normalized.get(CONF_FORECAST_DAYS),
             DEFAULT_FORECAST_DAYS,
-            min_value=MIN_FORECAST_DAYS,
-            max_value=MAX_FORECAST_DAYS,
-            error_key="invalid_forecast_days",
         )
         normalized[CONF_FORECAST_DAYS] = forecast_days
         if days_error:
@@ -332,16 +354,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             placeholders.pop("error_message", None)
             return errors, None
 
-        mode = normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
-        if mode not in FORECAST_SENSORS_CHOICES:
-            mode = FORECAST_SENSORS_CHOICES[0]
-            normalized[CONF_CREATE_FORECAST_SENSORS] = mode
-        needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
-        if forecast_days < needed:
-            errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+        mode, mode_error = _validate_forecast_sensor_mode(
+            normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0]),
+            forecast_days,
+        )
+        normalized[CONF_CREATE_FORECAST_SENSORS] = mode
+        if mode_error:
+            errors[CONF_CREATE_FORECAST_SENSORS] = mode_error
             placeholders.pop("error_message", None)
             return errors, None
-        normalized[CONF_CREATE_FORECAST_SENSORS] = mode
 
         latlon = None
         if CONF_LOCATION in user_input:
@@ -387,10 +408,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_API_KEY] = api_key
 
         try:
-            raw_lang = user_input.get(CONF_LANGUAGE_CODE, "")
-            lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
-            if lang:
-                lang = is_valid_language_code(lang)
+            lang = _normalize_language(user_input.get(CONF_LANGUAGE_CODE, ""))
 
             session = async_get_clientsession(self.hass)
             client = GooglePollenApiClient(session=session, api_key=api_key)
@@ -668,40 +686,36 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
                     description_placeholders=placeholders,
                 )
 
-            forecast_days, days_error = _parse_int_option(
+            forecast_days, days_error = _parse_forecast_days(
                 normalized_input.get(CONF_FORECAST_DAYS, current_days),
                 current_days,
-                min_value=MIN_FORECAST_DAYS,
-                max_value=MAX_FORECAST_DAYS,
-                error_key="invalid_forecast_days",
             )
             normalized_input[CONF_FORECAST_DAYS] = forecast_days
             if days_error:
                 errors[CONF_FORECAST_DAYS] = days_error
 
             try:
-                raw_lang = normalized_input.get(
-                    CONF_LANGUAGE_CODE,
-                    self.entry.options.get(
+                lang = _normalize_language(
+                    normalized_input.get(
                         CONF_LANGUAGE_CODE,
-                        self.entry.data.get(CONF_LANGUAGE_CODE, ""),
-                    ),
+                        self.entry.options.get(
+                            CONF_LANGUAGE_CODE,
+                            self.entry.data.get(CONF_LANGUAGE_CODE, ""),
+                        ),
+                    )
                 )
-                lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
-                if lang:
-                    lang = is_valid_language_code(lang)
                 normalized_input[CONF_LANGUAGE_CODE] = lang
 
-                days = normalized_input[CONF_FORECAST_DAYS]
-                mode = normalized_input.get(
-                    CONF_CREATE_FORECAST_SENSORS,
-                    current_mode,
+                mode, mode_error = _validate_forecast_sensor_mode(
+                    normalized_input.get(
+                        CONF_CREATE_FORECAST_SENSORS,
+                        current_mode,
+                    ),
+                    normalized_input[CONF_FORECAST_DAYS],
                 )
-                mode = normalize_sensor_mode(mode, _LOGGER)
                 normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
-                needed = {"D+1": 2, "D+1+2": 3}.get(mode, 1)
-                if days < needed:
-                    errors[CONF_CREATE_FORECAST_SENSORS] = "invalid_option_combo"
+                if mode_error:
+                    errors[CONF_CREATE_FORECAST_SENSORS] = mode_error
 
             except vol.Invalid as ve:
                 _LOGGER.warning(

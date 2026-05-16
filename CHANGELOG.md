@@ -1,3 +1,13 @@
+## [2.2.0-rc1] - 2026-05-16
+### Changed
+- Centralized config and options flow validation helpers for update interval,
+  forecast days, language, and per-day sensor mode handling while preserving
+  existing validation behavior.
+
+### Fixed
+- Redacted Google Pollen API keys from setup validation and runtime HTTP error
+  payloads before exposing them in logs or form placeholders.
+
 ## [2.1.1] - 2026-05-12
 ### Fixed
 - Treated generic Google Pollen API 4xx responses containing invalid API key
