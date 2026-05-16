@@ -106,7 +106,7 @@ def _language_error_to_form_key(error: vol.Invalid) -> str:
     return "invalid_language_format"
 
 
-def _safe_coord(value: float | None, *, lat: bool) -> float | None:
+def _safe_coord(value: Any, *, lat: bool) -> float | None:
     """Return a validated latitude/longitude or None if unset/invalid."""
     if lat:
         return validate_latitude(value)
