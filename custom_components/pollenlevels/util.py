@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 from typing import TYPE_CHECKING, Any
 
 from .const import FORECAST_SENSORS_CHOICES
@@ -50,23 +51,82 @@ async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
     return normalized or default
 
 
+_REDACTION_PLACEHOLDER = "***"
+_KEY_PARAM_RE = re.compile(r"(?i)(^|[?&\s])(key(?:=|%3d))([^&\s]+)")
+_LOCATION_PARAM_RE = re.compile(
+    r"(?i)(location\.(?:latitude|longitude)(?:=|%3d))(-?\d+(?:\.\d+)?)"
+)
+
+
+def _stringify_for_redaction(value: object) -> str:
+    """Return a string representation of *value* for safe redaction."""
+
+    if value is None:
+        return ""
+
+    if isinstance(value, (bytes, bytearray)):
+        try:
+            return value.decode()
+        except UnicodeDecodeError:
+            return value.decode(errors="replace")
+
+    return str(value)
+
+
+def _coordinate_values(value: float | str | None) -> set[str]:
+    """Return stable coordinate string forms that may appear in URLs/errors."""
+
+    if value is None:
+        return set()
+
+    value_str = str(value)
+    values = {value_str}
+    try:
+        parsed = float(value_str)
+    except ValueError:
+        return {item for item in values if item}
+
+    if math.isfinite(parsed):
+        values.add(f"{parsed:.6f}")
+
+    return {item for item in values if item}
+
+
+def redact_sensitive_values(
+    value: object,
+    api_key: str | None = None,
+    latitude: float | str | None = None,
+    longitude: float | str | None = None,
+) -> str:
+    """Return *value* as text with API keys and precise coordinates redacted."""
+
+    s = _stringify_for_redaction(value)
+    if not s:
+        return ""
+
+    if api_key:
+        s = s.replace(api_key, _REDACTION_PLACEHOLDER)
+
+    s = _KEY_PARAM_RE.sub(
+        lambda match: (f"{match.group(1)}{match.group(2)}{_REDACTION_PLACEHOLDER}"),
+        s,
+    )
+    s = _LOCATION_PARAM_RE.sub(
+        lambda match: f"{match.group(1)}{_REDACTION_PLACEHOLDER}",
+        s,
+    )
+
+    coordinates = _coordinate_values(latitude) | _coordinate_values(longitude)
+    for coordinate in sorted(coordinates, key=len, reverse=True):
+        s = s.replace(coordinate, _REDACTION_PLACEHOLDER)
+
+    return s
+
+
 def redact_api_key(text: object, api_key: str | None) -> str:
     """Return a string representation of *text* with the API key redacted."""
 
-    if text is None:
-        return ""
-
-    if isinstance(text, (bytes, bytearray)):
-        try:
-            s = text.decode()
-        except UnicodeDecodeError:
-            s = text.decode(errors="replace")
-    else:
-        s = str(text)
-
-    if api_key:
-        s = s.replace(api_key, "***")
-    return s
+    return redact_sensitive_values(text, api_key=api_key)
 
 
 def normalize_sensor_mode(mode: Any, logger: logging.Logger) -> str:
@@ -116,6 +176,7 @@ __all__ = [
     "extract_error_message",
     "normalize_sensor_mode",
     "redact_api_key",
+    "redact_sensitive_values",
     "safe_parse_int",
     "_redact_api_key",
 ]

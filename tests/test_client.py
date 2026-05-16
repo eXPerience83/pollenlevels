@@ -188,13 +188,30 @@ class FakeSession:
         return self.response
 
 
-async def _fetch_with_response(response: FakeResponse, api_key: str = "test") -> None:
+class RaisingSession:
+    """Raise an aiohttp-like client error for each GET call."""
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    def get(self, *_args: Any, **_kwargs: Any) -> FakeResponse:
+        """Raise the configured error."""
+
+        raise self.error
+
+
+async def _fetch_with_response(
+    response: FakeResponse,
+    api_key: str = "test",
+    latitude: float = 1.0,
+    longitude: float = 2.0,
+) -> None:
     """Execute a direct client fetch using a fake session."""
 
     client = client_mod.GooglePollenApiClient(FakeSession(response), api_key)
     await client.async_fetch_pollen_data(
-        latitude=1.0,
-        longitude=2.0,
+        latitude=latitude,
+        longitude=longitude,
         days=1,
         language_code=None,
     )
@@ -252,6 +269,69 @@ async def test_client_redacts_api_key_from_http_error_body() -> None:
 
     message = str(exc_info.value)
     assert api_key not in message
+    assert "***" in message
+
+
+@pytest.mark.asyncio
+async def test_client_redacts_sensitive_values_from_url_like_http_error() -> None:
+    """URL-like HTTP error messages should not expose secrets or coordinates."""
+
+    api_key = "bad-key"
+    latitude = 40.4168
+    longitude = -3.7038
+    url = (
+        "https://pollen.googleapis.com/v1/forecast:lookup?"
+        f"key={api_key}&location.latitude={latitude}&"
+        f"location.longitude={longitude}&days=1"
+    )
+    response = FakeResponse(
+        status=400,
+        json_results=[ValueError("invalid JSON")],
+        text_body=f"Backend rejected request URL {url}",
+    )
+
+    with pytest.raises(client_mod.UpdateFailed) as exc_info:
+        await _fetch_with_response(
+            response, api_key=api_key, latitude=latitude, longitude=longitude
+        )
+
+    message = str(exc_info.value)
+    assert api_key not in message
+    assert str(latitude) not in message
+    assert str(longitude) not in message
+    assert "***" in message
+
+
+@pytest.mark.asyncio
+async def test_client_redacts_sensitive_values_from_client_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ClientError messages should not expose secrets or coordinates."""
+
+    monkeypatch.setattr(client_mod, "MAX_RETRIES", 0)
+    api_key = "bad-key"
+    latitude = 40.4168
+    longitude = -3.7038
+    error = client_mod.ClientError(
+        "request failed: "
+        "https://pollen.googleapis.com/v1/forecast:lookup?"
+        f"key={api_key}&location.latitude={latitude}&"
+        f"location.longitude={longitude}&days=1"
+    )
+    client = client_mod.GooglePollenApiClient(RaisingSession(error), api_key)
+
+    with pytest.raises(client_mod.UpdateFailed) as exc_info:
+        await client.async_fetch_pollen_data(
+            latitude=latitude,
+            longitude=longitude,
+            days=1,
+            language_code=None,
+        )
+
+    message = str(exc_info.value)
+    assert api_key not in message
+    assert str(latitude) not in message
+    assert str(longitude) not in message
     assert "***" in message
 
 
