@@ -523,6 +523,40 @@ def test_plants_in_season_returns_none_without_plant_entries() -> None:
     assert entity.extra_state_attributes["total_plant_count"] == 0
 
 
+def test_summary_sensor_caches_payload_for_current_data_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Summary computation is cached per sensor while coordinator data is unchanged."""
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_daily_summary(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        calls.append(data)
+        call_count = len(calls)
+        return {
+            "plants_in_season_today": {
+                "state": call_count,
+                "plant_names": [f"Plant {call_count}"],
+            }
+        }
+
+    monkeypatch.setattr(sensor, "_daily_summary", fake_daily_summary)
+    initial_data = {"plants_oak": {"source": "plant", "inSeason": True}}
+    coordinator = _summary_coordinator(initial_data)
+    entity = sensor.PlantsInSeasonTodaySensor(coordinator)
+
+    assert entity.native_value == 1
+    assert entity.extra_state_attributes["plant_names"] == ["Plant 1"]
+    assert calls == [initial_data]
+
+    updated_data = {"plants_pine": {"source": "plant", "inSeason": True}}
+    coordinator.data = updated_data
+
+    assert entity.native_value == 2
+    assert entity.extra_state_attributes["plant_names"] == ["Plant 2"]
+    assert calls == [initial_data, updated_data]
+
+
 def test_overall_pollen_risk_returns_max_current_day_type_value() -> None:
     """Overall pollen risk returns the maximum valid current-day type index."""
 

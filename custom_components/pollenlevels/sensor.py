@@ -411,6 +411,17 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
                 "longitude": f"{self.coordinator.lon:.6f}",
             },
         }
+        self._summary_data_ref: object = object()
+        self._summary_cache: dict[str, dict[str, Any]] = {}
+
+    def _summary_payload(self, key: str) -> dict[str, Any]:
+        """Return a cached summary payload for the current coordinator data."""
+        data = self.coordinator.data
+        if data is not self._summary_data_ref:
+            self._summary_data_ref = data
+            self._summary_cache = _daily_summary(data or {})
+
+        return self._summary_cache[key]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -437,19 +448,13 @@ class PlantsInSeasonTodaySensor(_BaseSummarySensor):
     @property
     def native_value(self) -> int | None:
         """Return the number of plants explicitly marked in season today."""
-        return _daily_summary(self.coordinator.data or {})["plants_in_season_today"][
-            "state"
-        ]
+        return self._summary_payload("plants_in_season_today")["state"]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return plant season summary attributes."""
         attrs = super().extra_state_attributes
-        attrs.update(
-            _summary_attrs(
-                _daily_summary(self.coordinator.data or {})["plants_in_season_today"]
-            )
-        )
+        attrs.update(_summary_attrs(self._summary_payload("plants_in_season_today")))
         return attrs
 
 
@@ -469,19 +474,13 @@ class OverallPollenRiskTodaySensor(_BaseSummarySensor):
     @property
     def native_value(self) -> float | int | None:
         """Return the maximum valid current-day pollen type value."""
-        return _daily_summary(self.coordinator.data or {})["overall_pollen_risk_today"][
-            "state"
-        ]
+        return self._summary_payload("overall_pollen_risk_today")["state"]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return overall pollen risk summary attributes."""
         attrs = super().extra_state_attributes
-        attrs.update(
-            _summary_attrs(
-                _daily_summary(self.coordinator.data or {})["overall_pollen_risk_today"]
-            )
-        )
+        attrs.update(_summary_attrs(self._summary_payload("overall_pollen_risk_today")))
         return attrs
 
 
@@ -499,19 +498,13 @@ class TopPollenTypesTodaySensor(_BaseSummarySensor):
     @property
     def native_value(self) -> str | None:
         """Return the top pollen type names, preserving ties."""
-        return _daily_summary(self.coordinator.data or {})["top_pollen_types_today"][
-            "state"
-        ]
+        return self._summary_payload("top_pollen_types_today")["state"]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return top pollen type summary attributes."""
         attrs = super().extra_state_attributes
-        attrs.update(
-            _summary_attrs(
-                _daily_summary(self.coordinator.data or {})["top_pollen_types_today"]
-            )
-        )
+        attrs.update(_summary_attrs(self._summary_payload("top_pollen_types_today")))
         return attrs
 
 
