@@ -382,6 +382,30 @@ class SequenceSession:
         return FakeResponse(item.payload, status=item.status, headers=item.headers)
 
 
+def _minimal_valid_payload(value: int = 2) -> dict[str, Any]:
+    """Return a minimal valid pollen payload for coordinator refresh tests."""
+
+    return {
+        "regionCode": "us_ca_san_francisco",
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 5, "day": 9},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": value,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+            }
+        ],
+    }
+
+
 class RegistryEntry(NamedTuple):
     """Entity registry entry stub."""
 
@@ -1074,6 +1098,143 @@ def test_coordinator_mixed_dailyinfo_items_keep_last_data() -> None:
         loop.close()
 
     assert second_data == first_data
+
+
+def test_coordinator_stale_cached_data_raises_after_ttl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Malformed dailyInfo raises once cached data is older than the TTL."""
+
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=_minimal_valid_payload()),
+            ResponseSpec(status=200, payload={}),
+        ]
+    )
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=6,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        now = start + datetime.timedelta(hours=24, seconds=1)
+        with pytest.raises(client_mod.UpdateFailed, match="cached data expired"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert coordinator.data == first_data
+
+
+def test_coordinator_stale_data_ttl_accounts_for_update_interval() -> None:
+    """Effective stale-data TTL uses the larger of 24h and twice the interval."""
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    client = client_mod.GooglePollenApiClient(FakeSession({}), "test")
+
+    try:
+        six_hour = coordinator_mod.PollenDataUpdateCoordinator(
+            hass=hass,
+            api_key="test",
+            lat=1.0,
+            lon=2.0,
+            hours=6,
+            language=None,
+            entry_id="entry-6h",
+            forecast_days=1,
+            create_d1=False,
+            create_d2=False,
+            client=client,
+        )
+        twenty_four_hour = coordinator_mod.PollenDataUpdateCoordinator(
+            hass=hass,
+            api_key="test",
+            lat=1.0,
+            lon=2.0,
+            hours=24,
+            language=None,
+            entry_id="entry-24h",
+            forecast_days=1,
+            create_d1=False,
+            create_d2=False,
+            client=client,
+        )
+    finally:
+        loop.close()
+
+    assert six_hour._stale_data_ttl() == datetime.timedelta(hours=24)
+    assert twenty_four_hour._stale_data_ttl() == datetime.timedelta(hours=48)
+
+
+def test_coordinator_success_after_malformed_response_updates_last_updated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A later successful refresh updates last_updated after malformed dailyInfo."""
+
+    first_refresh = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    malformed_refresh = first_refresh + datetime.timedelta(hours=1)
+    second_refresh = first_refresh + datetime.timedelta(hours=2)
+    now = first_refresh
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=_minimal_valid_payload(value=2)),
+            ResponseSpec(status=200, payload={}),
+            ResponseSpec(status=200, payload=_minimal_valid_payload(value=4)),
+        ]
+    )
+    client = client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=6,
+        language=None,
+        entry_id="entry",
+        forecast_days=1,
+        create_d1=False,
+        create_d2=False,
+        client=client,
+    )
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        assert coordinator.last_updated == first_refresh
+
+        now = malformed_refresh
+        cached_data = loop.run_until_complete(coordinator._async_update_data())
+        assert cached_data == first_data
+        assert coordinator.last_updated == first_refresh
+
+        now = second_refresh
+        second_data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert second_data["type_grass"]["value"] == 4
+    assert coordinator.last_updated == second_refresh
 
 
 def test_coordinator_clamps_forecast_days_negative() -> None:
