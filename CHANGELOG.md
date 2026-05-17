@@ -1,8 +1,8 @@
 ## [2.2.0-alpha2] - 2026-05-17
-### Changed
+### Added
 - Added stale-data expiration for malformed Google Pollen API payloads: cached
   coordinator data is now reused only while it remains within the effective TTL.
-- The stale-data TTL is calculated internally as the larger of 24 hours or twice
+- Added an internal stale-data TTL calculated as the larger of 24 hours or twice
   the configured update interval, so installations using a 24-hour update
   interval can tolerate one missed malformed refresh before cached data expires.
 
