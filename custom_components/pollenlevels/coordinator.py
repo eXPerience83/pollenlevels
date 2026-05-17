@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -138,7 +138,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data: dict[str, dict] = {}
         self.last_updated = None
 
-    def _utcnow(self):
+    def _utcnow(self) -> datetime:
         """Return the current UTC time."""
         return dt_util.utcnow()
 
