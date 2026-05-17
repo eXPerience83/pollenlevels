@@ -111,7 +111,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             name=f"{DOMAIN}_{entry_id}",
             update_interval=update_interval,
         )
-        self._pollen_update_interval = update_interval
         self.api_key = api_key
         self.lat = lat
         self.lon = lon
@@ -145,7 +144,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
     def _stale_data_ttl(self) -> timedelta:
         """Return how long successful data may be reused after malformed payloads."""
-        update_interval = getattr(self, "update_interval", self._pollen_update_interval)
+        update_interval = self.update_interval
         if update_interval is None:
             return STALE_DATA_MIN_TTL
         return max(STALE_DATA_MIN_TTL, update_interval * 2)
