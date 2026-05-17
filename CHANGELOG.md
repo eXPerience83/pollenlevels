@@ -1,4 +1,4 @@
-## [2.2.0a1] - 2026-05-16
+## [2.2.0-alpha1] - 2026-05-16
 ### Added
 - Added the first alpha pre-release for the upcoming 2.2.0 cycle to validate
   hardening, validation, CI, and summary-sensor optimizations before the
@@ -16,6 +16,9 @@
 - Aligned the manual Package Test workflow with the release validation gate by
   running compile checks, Ruff, Black, and pytest before building the ZIP
   artifact.
+- This is an alpha pre-release for validation and feedback.
+- The remaining 2.2.0 plan still includes coordinator stale-data handling and
+  forecast extraction cleanup before beta/rc/final releases.
 
 ### Fixed
 - Preserved authentication classification for invalid Google Pollen API key
@@ -24,11 +27,6 @@
   exception messages are empty.
 - Prevented precise invalid stored coordinates from being logged during runtime
   setup failures.
-
-### Notes
-- This is an alpha pre-release for validation and feedback.
-- The remaining 2.2.0 plan still includes coordinator stale-data handling and
-  forecast extraction cleanup before beta/rc/final releases.
 
 ## [2.1.1] - 2026-05-12
 ### Fixed

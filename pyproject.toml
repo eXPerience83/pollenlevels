@@ -6,7 +6,7 @@
 
 [project]
 name = "pollenlevels"
-version = "2.2.0a1"
+version = "2.2.0-alpha1"
 # Enforce the runtime floor aligned with Home Assistant Python 3.14 images.
 requires-python = ">=3.14"
 
