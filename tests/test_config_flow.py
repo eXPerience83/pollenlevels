@@ -213,6 +213,7 @@ class _StubDataUpdateCoordinator:
     def __init__(self, *args, **kwargs):
         self.hass = args[0] if args else None
         self.data = None
+        self.update_interval = kwargs.get("update_interval")
 
     async def async_refresh(self):
         return None

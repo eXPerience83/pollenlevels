@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 
 _LOGGER = logging.getLogger(__name__)
+STALE_DATA_MIN_TTL = timedelta(hours=24)
 
 
 def _normalize_channel(v: Any) -> int | None:
@@ -103,11 +104,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         entry_title: str = DEFAULT_ENTRY_TITLE,
     ):
         """Initialize coordinator with configuration and interval."""
+        update_interval = timedelta(hours=hours)
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_{entry_id}",
-            update_interval=timedelta(hours=hours),
+            update_interval=update_interval,
         )
         self.api_key = api_key
         self.lat = lat
@@ -131,9 +133,27 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.create_d2 = create_d2
         self._client = client
         self._missing_dailyinfo_warned = False
+        self._stale_dailyinfo_warned = False
 
         self.data: dict[str, dict] = {}
         self.last_updated = None
+
+    def _utcnow(self) -> datetime:
+        """Return the current UTC time."""
+        return dt_util.utcnow()
+
+    def _stale_data_ttl(self) -> timedelta:
+        """Return how long successful data may be reused after malformed payloads."""
+        update_interval = self.update_interval
+        if update_interval is None:
+            return STALE_DATA_MIN_TTL
+        return max(STALE_DATA_MIN_TTL, update_interval * 2)
+
+    def _has_fresh_cached_data(self) -> bool:
+        """Return whether cached data is still within the stale-data tolerance."""
+        if not self.data or self.last_updated is None:
+            return False
+        return self._utcnow() - self.last_updated <= self._stale_data_ttl()
 
     # ------------------------------
     # DRY helper for forecast attrs
@@ -239,16 +259,30 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             daily = None
 
         if not daily:
-            if self.data:
+            if self._has_fresh_cached_data():
                 if not self._missing_dailyinfo_warned:
+                    cache_age = self._utcnow() - self.last_updated
                     _LOGGER.warning(
                         "API response missing or invalid dailyInfo; "
-                        "keeping last successful data"
+                        "keeping last successful data within TTL "
+                        "(cache_age=%s, ttl=%s)",
+                        cache_age,
+                        self._stale_data_ttl(),
                     )
                     self._missing_dailyinfo_warned = True
                 return self.data
+            if self.data:
+                if not self._stale_dailyinfo_warned:
+                    _LOGGER.warning(
+                        "API response missing or invalid dailyInfo; cached data expired"
+                    )
+                    self._stale_dailyinfo_warned = True
+                raise UpdateFailed(
+                    "API response missing or invalid dailyInfo; cached data expired"
+                )
             raise UpdateFailed("API response missing or invalid dailyInfo")
         self._missing_dailyinfo_warned = False
+        self._stale_dailyinfo_warned = False
 
         # date (today)
         first_day = daily[0]
@@ -494,7 +528,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             new_data[key] = base
 
         self.data = new_data
-        self.last_updated = dt_util.utcnow()
+        self.last_updated = self._utcnow()
         if _LOGGER.isEnabledFor(logging.DEBUG):
             total = len(new_data)
             types = 0
