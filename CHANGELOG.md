@@ -1,3 +1,33 @@
+## [2.2.0-alpha1] - 2026-05-17
+### Added
+- Added the first alpha pre-release for the upcoming 2.2.0 cycle to validate
+  hardening, validation, CI, and summary-sensor optimizations before the
+  remaining coordinator changes.
+
+### Changed
+- Hardened HTTP and validation error redaction so API keys and precise
+  coordinates are redacted from client and config-flow error messages.
+- Centralized latitude and longitude validation across config flow and runtime
+  setup.
+- Centralized forecast sensor mode and forecast-days compatibility validation
+  across setup and options flow.
+- Cached daily summary sensor payloads per coordinator data object to avoid
+  redundant `daily_summary(...)` recomputation for the same sensor update.
+- Aligned the manual Package Test workflow with the release validation gate by
+  running compile checks, Ruff, Black, and pytest before building the ZIP
+  artifact.
+- This is an alpha pre-release for validation and feedback.
+- The remaining 2.2.0 plan still includes coordinator stale-data handling and
+  forecast extraction cleanup before beta/rc/final releases.
+
+### Fixed
+- Preserved authentication classification for invalid Google Pollen API key
+  messages while improving redaction coverage.
+- Ensured config-flow error placeholders use safe fallback messages when upstream
+  exception messages are empty.
+- Prevented precise invalid stored coordinates from being logged during runtime
+  setup failures.
+
 ## [2.1.1] - 2026-05-12
 ### Fixed
 - Treated generic Google Pollen API 4xx responses containing invalid API key
