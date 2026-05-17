@@ -1,3 +1,19 @@
+## [2.2.0-alpha2] - 2026-05-17
+### Changed
+- Added stale-data expiration for malformed Google Pollen API payloads: cached
+  coordinator data is now reused only while it remains within the effective TTL.
+- The stale-data TTL is calculated internally as the larger of 24 hours or twice
+  the configured update interval, so installations using a 24-hour update
+  interval can tolerate one missed malformed refresh before cached data expires.
+
+### Fixed
+- Prevented indefinitely stale pollen data from remaining available when the API
+  repeatedly returns missing or invalid `dailyInfo` after a previous successful
+  refresh.
+- Preserved the short-term fallback for transient malformed `dailyInfo` payloads
+  while allowing Home Assistant to mark entities unavailable once cached data has
+  expired.
+
 ## [2.2.0-alpha1] - 2026-05-17
 ### Added
 - Added the first alpha pre-release for the upcoming 2.2.0 cycle to validate
