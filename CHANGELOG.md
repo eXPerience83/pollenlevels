@@ -1,4 +1,4 @@
-## [2.2.0-alpha1] - 2026-05-16
+## [2.2.0-alpha1] - 2026-05-17
 ### Added
 - Added the first alpha pre-release for the upcoming 2.2.0 cycle to validate
   hardening, validation, CI, and summary-sensor optimizations before the
