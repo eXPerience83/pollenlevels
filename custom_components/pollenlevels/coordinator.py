@@ -85,6 +85,57 @@ def _normalize_plant_code(code: Any) -> str:
     return str(code).strip().upper()
 
 
+def _extract_api_date(day: dict[str, Any]) -> str | None:
+    """Extract a YYYY-MM-DD date string from one API dailyInfo item."""
+    date_obj = day.get("date") or {}
+    if not isinstance(date_obj, dict):
+        return None
+
+    year = safe_parse_int(date_obj.get("year"))
+    month = safe_parse_int(date_obj.get("month"))
+    day_num = safe_parse_int(date_obj.get("day"))
+    if year is None or month is None or day_num is None:
+        return None
+    return f"{year:04d}-{month:02d}-{day_num:02d}"
+
+
+def _build_forecast_entry(
+    offset: int, date: str | None, item: dict[str, Any]
+) -> dict[str, Any]:
+    """Build one behavior-preserving forecast entry from an API item."""
+    idx_raw = item.get("indexInfo")
+    idx = idx_raw if isinstance(idx_raw, dict) else {}
+    has_index = bool(idx)
+    rgb = _rgb_from_api(idx.get("color")) if has_index else None
+    return {
+        "offset": offset,
+        "date": date,
+        "has_index": has_index,
+        "value": idx.get("value") if has_index else None,
+        "category": idx.get("category") if has_index else None,
+        "description": idx.get("indexDescription") if has_index else None,
+        "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
+        "color_rgb": list(rgb) if (has_index and rgb is not None) else None,
+    }
+
+
+def _build_forecast_list(
+    daily: list[dict[str, Any]],
+    item_by_day_code: list[dict[str, dict[str, Any]]],
+    code: str,
+    forecast_days: int,
+) -> list[dict[str, Any]]:
+    """Build forecast entries for one pollen type or plant code."""
+    forecast_list: list[dict[str, Any]] = []
+    for offset, day in enumerate(daily[1:], start=1):
+        if offset >= forecast_days:
+            break
+        date_str = _extract_api_date(day)
+        item = item_by_day_code[offset].get(code) or {}
+        forecast_list.append(_build_forecast_entry(offset, date_str, item))
+    return forecast_list
+
+
 class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinate pollen data fetch with forecast support for TYPES and PLANTS."""
 
@@ -286,12 +337,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         # date (today)
         first_day = daily[0]
-        date_obj = first_day.get("date", {}) or {}
-        if all(k in date_obj for k in ("year", "month", "day")):
-            new_data["date"] = {
-                "source": "meta",
-                "value": f"{date_obj['year']:04d}-{date_obj['month']:02d}-{date_obj['day']:02d}",
-            }
+        date_str = _extract_api_date(first_day)
+        if date_str is not None:
+            new_data["date"] = {"source": "meta", "value": date_str}
 
         type_codes: set[str] = set()
         type_by_day_code: list[dict[str, dict[str, Any]]] = []
@@ -372,12 +420,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             plant_keys.append(key)
 
         # Forecast for TYPES
-        def _extract_day_info(day: dict) -> tuple[str | None, dict | None]:
-            d = day.get("date") or {}
-            if not all(k in d for k in ("year", "month", "day")):
-                return None, None
-            return f"{d['year']:04d}-{d['month']:02d}-{d['day']:02d}", d
-
         for tcode in sorted(type_codes):
             type_key = f"type_{tcode.lower()}"
             existing = new_data.get(type_key)
@@ -409,32 +451,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                         base["inSeason"] = candidate.get("inSeason")
                         base["advice"] = candidate.get("healthRecommendations")
                         break
-            forecast_list: list[dict[str, Any]] = []
-            for offset, day in enumerate(daily[1:], start=1):
-                if offset >= self.forecast_days:
-                    break
-                date_str, _ = _extract_day_info(day)
-                item = type_by_day_code[offset].get(tcode) or {}
-                idx_raw = item.get("indexInfo")
-                idx = idx_raw if isinstance(idx_raw, dict) else None
-                has_index = isinstance(idx_raw, dict) and bool(idx_raw)
-                rgb = _rgb_from_api(idx.get("color")) if has_index else None
-                forecast_list.append(
-                    {
-                        "offset": offset,
-                        "date": date_str,
-                        "has_index": has_index,
-                        "value": idx.get("value") if has_index else None,
-                        "category": idx.get("category") if has_index else None,
-                        "description": (
-                            idx.get("indexDescription") if has_index else None
-                        ),
-                        "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
-                        "color_rgb": (
-                            list(rgb) if (has_index and rgb is not None) else None
-                        ),
-                    }
-                )
+            forecast_list = _build_forecast_list(
+                daily, type_by_day_code, tcode, self.forecast_days
+            )
             # Attach common forecast attributes (convenience, trend, expected_peak)
             base = self._process_forecast_attributes(base, forecast_list)
             new_data[type_key] = base
@@ -496,32 +515,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 # Safety: skip if for some reason code is missing
                 continue
 
-            forecast_list: list[dict[str, Any]] = []
-            for offset, day in enumerate(daily[1:], start=1):
-                if offset >= self.forecast_days:
-                    break
-                date_str, _ = _extract_day_info(day)
-                item = plant_by_day_code[offset].get(pcode) or {}
-                idx_raw = item.get("indexInfo")
-                idx = idx_raw if isinstance(idx_raw, dict) else None
-                has_index = isinstance(idx_raw, dict) and bool(idx_raw)
-                rgb = _rgb_from_api(idx.get("color")) if has_index else None
-                forecast_list.append(
-                    {
-                        "offset": offset,
-                        "date": date_str,
-                        "has_index": has_index,
-                        "value": idx.get("value") if has_index else None,
-                        "category": idx.get("category") if has_index else None,
-                        "description": (
-                            idx.get("indexDescription") if has_index else None
-                        ),
-                        "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
-                        "color_rgb": (
-                            list(rgb) if (has_index and rgb is not None) else None
-                        ),
-                    }
-                )
+            forecast_list = _build_forecast_list(
+                daily, plant_by_day_code, pcode, self.forecast_days
+            )
 
             # Attach common forecast attributes (convenience, trend, expected_peak)
             base = self._process_forecast_attributes(base, forecast_list)
