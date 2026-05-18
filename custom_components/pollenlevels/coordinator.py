@@ -88,6 +88,8 @@ def _normalize_plant_code(code: Any) -> str:
 def _extract_api_date(day: dict[str, Any]) -> str | None:
     """Extract a YYYY-MM-DD date string from one API dailyInfo item."""
     date_obj = day.get("date") or {}
+    if not isinstance(date_obj, dict):
+        return None
     if not all(date_obj.get(k) is not None for k in ("year", "month", "day")):
         return None
     return f"{date_obj['year']:04d}-{date_obj['month']:02d}-{date_obj['day']:02d}"
