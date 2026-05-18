@@ -1,5 +1,5 @@
 # ❓ Frequently Asked Questions (FAQ)
-*Last verified: 2025-08-20 (UTC). See References below.*
+Last verified: 2026-05-18 (UTC). Pricing and quota limits may change; always confirm the current values in the official Google Maps Platform pages linked below.
 
 ## 1. How many requests can I make to the Google Maps Pollen API?
 As of **March 1, 2025**, Google Maps Platform applies **free monthly usage caps per SKU**.  
@@ -82,6 +82,8 @@ Typical quota items you’ll see (names may vary slightly by locale):
 > **Safe setting:** You can set **HeatMap** quotas to **0** (or the minimum allowed) to block tile usage and avoid accidental billing.
 
 **Recommended hard caps (safe defaults):**
+Quota caps are a useful safety guard, but Google notes they may not be enforced with absolute precision due to latency. Keep a buffer below the free cap instead of setting limits right at the monthly maximum.
+
 - **Forecast Usage per day** → **150**  
   (≈ 4,500/month, comfortably under the 5,000 free cap; increase only if you have multiple locations or frequent manual refreshes)
 - **Forecast Usage per minute** → **10**

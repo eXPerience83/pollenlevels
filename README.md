@@ -273,6 +273,8 @@ color: '[[[
 curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&location.latitude=48.8566&location.longitude=2.3522&days=2&languageCode=es"
 ```
 
+Replace "YOUR_KEY" locally and never share full API URLs containing "key=..." publicly.
+
 ---
 
 ## ❤️ Support the project
