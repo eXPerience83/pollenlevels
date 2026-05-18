@@ -672,6 +672,25 @@ def _base_user_input() -> dict:
     }
 
 
+def _build_options_flow(data: dict | None = None) -> cf.PollenLevelsOptionsFlow:
+    """Build an options flow with simple form/create-entry callbacks."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data=data or {CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
+    )
+    flow = cf.PollenLevelsOptionsFlow(entry)
+    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+    flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "form",
+        **kwargs,
+    }
+    flow.async_create_entry = lambda **kwargs: {  # type: ignore[method-assign]
+        "type": "create_entry",
+        **kwargs,
+    }
+    return flow
+
+
 @pytest.mark.parametrize(
     ("raw_value", "expected"),
     [
@@ -1299,19 +1318,7 @@ def test_options_flow_invalid_forecast_mode_combinations(
 ) -> None:
     """Options flow should reject forecast modes requiring more forecast days."""
 
-    entry = cf.config_entries.ConfigEntry(
-        data={CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
-    )
-    flow = cf.PollenLevelsOptionsFlow(entry)
-    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
-    flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
-        "type": "form",
-        **kwargs,
-    }
-    flow.async_create_entry = lambda **kwargs: {  # type: ignore[method-assign]
-        "type": "create_entry",
-        **kwargs,
-    }
+    flow = _build_options_flow()
 
     result = asyncio.run(
         flow.async_step_init(
@@ -1336,19 +1343,7 @@ def test_options_flow_valid_forecast_mode_combinations_are_accepted(
 ) -> None:
     """Options flow should accept forecast mode combinations with enough days."""
 
-    entry = cf.config_entries.ConfigEntry(
-        data={CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
-    )
-    flow = cf.PollenLevelsOptionsFlow(entry)
-    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
-    flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
-        "type": "form",
-        **kwargs,
-    }
-    flow.async_create_entry = lambda **kwargs: {  # type: ignore[method-assign]
-        "type": "create_entry",
-        **kwargs,
-    }
+    flow = _build_options_flow()
 
     result = asyncio.run(
         flow.async_step_init(
@@ -1367,17 +1362,7 @@ def test_options_flow_valid_forecast_mode_combinations_are_accepted(
 def test_options_flow_invalid_forecast_days_returns_error() -> None:
     """Options flow should keep the dedicated invalid forecast days field error."""
 
-    entry = cf.config_entries.ConfigEntry(data={CONF_FORECAST_DAYS: 3})
-    flow = cf.PollenLevelsOptionsFlow(entry)
-    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
-    flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
-        "type": "form",
-        **kwargs,
-    }
-    flow.async_create_entry = lambda **kwargs: {  # type: ignore[method-assign]
-        "type": "create_entry",
-        **kwargs,
-    }
+    flow = _build_options_flow({CONF_FORECAST_DAYS: 3})
 
     result = asyncio.run(flow.async_step_init({CONF_FORECAST_DAYS: "not-a-number"}))
 

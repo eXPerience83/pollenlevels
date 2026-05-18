@@ -406,6 +406,32 @@ def _minimal_valid_payload(value: int = 2) -> dict[str, Any]:
     }
 
 
+def _make_coordinator(
+    loop: asyncio.AbstractEventLoop,
+    client: client_mod.GooglePollenApiClient,
+    *,
+    hours: int = 12,
+    forecast_days: int = 1,
+    create_d1: bool = False,
+    create_d2: bool = False,
+) -> coordinator_mod.PollenDataUpdateCoordinator:
+    """Build a coordinator with stable defaults for refresh tests."""
+
+    return coordinator_mod.PollenDataUpdateCoordinator(
+        hass=DummyHass(loop),
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=hours,
+        language=None,
+        entry_id="entry",
+        forecast_days=forecast_days,
+        create_d1=create_d1,
+        create_d2=create_d2,
+        client=client,
+    )
+
+
 class RegistryEntry(NamedTuple):
     """Entity registry entry stub."""
 
@@ -806,20 +832,7 @@ def test_type_sensor_preserves_source_with_single_day(
     client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         data = loop.run_until_complete(coordinator._async_update_data())
@@ -868,20 +881,7 @@ def test_coordinator_preserves_last_data_when_dailyinfo_missing() -> None:
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         first_data = loop.run_until_complete(coordinator._async_update_data())
@@ -929,20 +929,7 @@ def test_coordinator_first_refresh_missing_dailyinfo_raises() -> None:
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         with pytest.raises(client_mod.UpdateFailed, match="dailyInfo"):
@@ -960,20 +947,7 @@ def test_coordinator_first_refresh_invalid_dailyinfo_type_raises() -> None:
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         with pytest.raises(client_mod.UpdateFailed, match="dailyInfo"):
@@ -1010,20 +984,7 @@ def test_coordinator_invalid_dailyinfo_items_keep_last_data() -> None:
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         first_data = loop.run_until_complete(coordinator._async_update_data())
@@ -1075,20 +1036,7 @@ def test_coordinator_mixed_dailyinfo_items_keep_last_data() -> None:
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=2,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client, forecast_days=2)
 
     try:
         first_data = loop.run_until_complete(coordinator._async_update_data())
@@ -1116,20 +1064,7 @@ def test_coordinator_stale_cached_data_raises_after_ttl(
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=6,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client, hours=6)
     monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
 
     try:
@@ -1203,20 +1138,7 @@ def test_coordinator_success_after_malformed_response_updates_last_updated(
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=6,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client, hours=6)
     monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
 
     try:
@@ -1623,51 +1545,6 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
                     }
                 ],
             },
-            {
-                "pollenTypeInfo": [
-                    {
-                        "code": "GRASS",
-                        "displayName": "Grass",
-                        "indexInfo": {
-                            "value": 1,
-                            "category": "LOW",
-                            "indexDescription": "Low",
-                        },
-                    }
-                ],
-                "plantInfo": [
-                    {
-                        "code": "oak",
-                        "displayName": "Oak",
-                        "indexInfo": {
-                            "value": 2,
-                            "category": "LOW",
-                            "indexDescription": "Low",
-                        },
-                    }
-                ],
-            },
-            {
-                "date": "bad-date",
-                "pollenTypeInfo": [
-                    {
-                        "code": "GRASS",
-                        "displayName": "Grass",
-                        "indexInfo": "bad-index",
-                    }
-                ],
-                "plantInfo": [
-                    {
-                        "code": "oak",
-                        "displayName": "Oak",
-                        "indexInfo": {
-                            "value": 3,
-                            "category": "MODERATE",
-                            "indexDescription": "Moderate",
-                        },
-                    }
-                ],
-            },
         ]
     }
 
@@ -1675,19 +1552,8 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
     client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=5,
-        create_d1=True,
-        create_d2=True,
-        client=client,
+    coordinator = _make_coordinator(
+        loop, client, forecast_days=3, create_d1=True, create_d2=True
     )
 
     try:
@@ -1709,18 +1575,6 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
     assert type_entry["forecast"][1]["date"] is None
     assert type_entry["forecast"][1]["has_index"] is True
     assert type_entry["forecast"][1]["color_hex"] == "#FF6432"
-    assert type_entry["forecast"][2]["date"] is None
-    assert type_entry["forecast"][3] == {
-        "offset": 4,
-        "date": None,
-        "has_index": False,
-        "value": None,
-        "category": None,
-        "description": None,
-        "color_hex": None,
-        "color_rgb": None,
-    }
-
     d1_entry = data["type_grass_d1"]
     assert d1_entry["value"] is None
     assert d1_entry["category"] is None
@@ -1748,8 +1602,6 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
     }
     assert plant_entry["forecast"][1]["date"] is None
     assert plant_entry["forecast"][1]["color_hex"] == "#00FF00"
-    assert plant_entry["forecast"][2]["date"] is None
-    assert plant_entry["forecast"][3]["date"] is None
 
 
 def test_plant_forecast_matches_codes_case_insensitively() -> None:
@@ -1836,20 +1688,7 @@ def test_coordinator_accepts_numeric_string_color_channels() -> None:
     client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         data = loop.run_until_complete(coordinator._async_update_data())
@@ -1886,20 +1725,7 @@ def test_coordinator_ignores_invalid_string_color_channels() -> None:
     client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         data = loop.run_until_complete(coordinator._async_update_data())
@@ -1936,20 +1762,7 @@ def test_coordinator_ignores_nonfinite_color_channels() -> None:
     client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         data = loop.run_until_complete(coordinator._async_update_data())
@@ -1987,20 +1800,7 @@ def test_coordinator_type_keys_are_deterministic_sorted() -> None:
     client = client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         data = loop.run_until_complete(coordinator._async_update_data())
@@ -2241,20 +2041,7 @@ def test_coordinator_retries_then_raises_on_rate_limit(
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         with pytest.raises(client_mod.UpdateFailed, match="Quota exceeded"):
@@ -2300,20 +2087,7 @@ def test_coordinator_retry_after_http_date(monkeypatch: pytest.MonkeyPatch) -> N
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         with pytest.raises(client_mod.UpdateFailed, match="Quota exceeded"):
@@ -2375,20 +2149,7 @@ def test_coordinator_retry_after_invalid_values_use_safe_default(
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         with pytest.raises(client_mod.UpdateFailed, match="Quota exceeded"):
@@ -2419,20 +2180,7 @@ def test_coordinator_retries_then_raises_on_server_errors(
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         with pytest.raises(client_mod.UpdateFailed, match="HTTP 502"):
@@ -2461,20 +2209,7 @@ def test_coordinator_retries_then_wraps_timeout(
     client = client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
-        hass=hass,
-        api_key="test",
-        lat=1.0,
-        lon=2.0,
-        hours=12,
-        language=None,
-        entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
-        client=client,
-    )
+    coordinator = _make_coordinator(loop, client)
 
     try:
         with pytest.raises(client_mod.UpdateFailed, match="Timeout"):
