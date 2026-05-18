@@ -1,3 +1,16 @@
+## [2.2.0-rc1] - 2026-05-18
+### Changed
+- Audited and streamlined the test suite while preserving coverage for redaction,
+  validation helpers, stale-data TTL behavior, forecast extraction, config flow
+  validation, and Home Assistant setup flows.
+- Added repository guidance for future agent reviews to avoid overengineering
+  defensive parsing and tests for highly unlikely upstream payload shapes.
+- Aligned the regular tests workflow with release validation by compiling Python
+  sources before running pytest.
+- Polished pre-RC documentation notes around API key sharing, Google Maps
+  Platform pricing/quota verification, quota-cap latency, and Markdown callout
+  formatting.
+
 ## [2.2.0-beta1] - 2026-05-18
 ### Changed
 - Refactored coordinator forecast extraction to reuse shared private helpers for
