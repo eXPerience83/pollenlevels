@@ -1,3 +1,22 @@
+## [2.2.0-beta1] - 2026-05-18
+### Changed
+- Refactored coordinator forecast extraction to reuse shared private helpers for
+  API date extraction, forecast entry construction, and forecast list
+  construction.
+- Reused the shared forecast extraction path for both pollen type and plant
+  forecast attributes while preserving existing public sensor states and
+  attributes.
+- Hardened coordinator API date extraction so malformed API date payloads return
+  `None` instead of failing coordinator processing.
+- Hardened forecast `indexInfo` handling so missing, empty, or malformed
+  forecast index payloads keep the existing `has_index: false` behavior.
+
+### Fixed
+- Prevented malformed forecast date payloads from interrupting otherwise usable
+  coordinator updates.
+- Preserved D+1/D+2 type sensor shaping when forecast days contain missing
+  indexes, malformed dates, or malformed forecast index payloads.
+
 ## [2.2.0-alpha2] - 2026-05-17
 ### Added
 - Added stale-data expiration for malformed Google Pollen API payloads: cached
