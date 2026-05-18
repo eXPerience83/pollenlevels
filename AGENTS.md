@@ -12,6 +12,19 @@
 - Do not rename entities, alter `unique_id` patterns, or modify translation keys unless explicitly requested.
 - Prefer minimal, focused diffs; avoid cosmetic refactors or large code moves.
 
+## Test and Defensive Coding Policy
+- Do not add defensive code or tests only because an arbitrary JSON shape could theoretically exist.
+- Add defensive handling or regression tests when they:
+  - protect public behavior or user-facing outputs,
+  - cover a real bug or previously observed failure,
+  - cover a new branch introduced by the change,
+  - prevent a likely exception from partially malformed upstream data,
+  - or document an intentional compatibility or migration behavior.
+- Prefer small, focused tests over large synthetic fixtures.
+- Avoid duplicating malformed-payload test cases when the same behavior is already covered by a smaller helper-level test.
+- Keep defensive parsing proportional to the upstream API contract; do not add broad schema validators unless the integration has observed real instability in that payload area.
+- When a review suggests hardening for a highly unlikely upstream shape, first decide whether the scenario is realistic enough to justify code and test complexity. If not, document the reasoning in the PR instead of expanding the code.
+
 ## Changelog / `CHANGELOG.md`
 - This section is the single source of truth for the changelog style. Ignore external style guides when they conflict with these rules.
 - Do NOT add any new boilerplate, intro text or `## [Unreleased]` section automatically. If such sections already exist, leave them and only edit their content when explicitly requested.
