@@ -100,8 +100,8 @@ def _build_forecast_entry(
 ) -> dict[str, Any]:
     """Build one behavior-preserving forecast entry from an API item."""
     idx_raw = item.get("indexInfo")
-    idx = idx_raw if isinstance(idx_raw, dict) else None
-    has_index = isinstance(idx_raw, dict) and bool(idx_raw)
+    idx = idx_raw if isinstance(idx_raw, dict) else {}
+    has_index = bool(idx)
     rgb = _rgb_from_api(idx.get("color")) if has_index else None
     return {
         "offset": offset,
