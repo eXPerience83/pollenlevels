@@ -1521,6 +1521,155 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["expected_peak"]["value"] == 4
 
 
+def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None:
+    """Forecast entries preserve missing index and missing API date output."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 6, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "inSeason": True,
+                        "healthRecommendations": ["Today advice"],
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+                "plantInfo": [
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {
+                            "value": 3,
+                            "category": "MODERATE",
+                            "indexDescription": "Moderate",
+                        },
+                    }
+                ],
+            },
+            {
+                "date": {"year": 2025, "month": 6, "day": 2},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "inSeason": False,
+                        "healthRecommendations": ["Tomorrow advice"],
+                    }
+                ],
+                "plantInfo": [
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {},
+                    }
+                ],
+            },
+            {
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "inSeason": True,
+                        "healthRecommendations": ["D2 advice"],
+                        "indexInfo": {
+                            "value": 5,
+                            "category": "HIGH",
+                            "indexDescription": "High",
+                            "color": {"red": 255, "green": 100, "blue": 50},
+                        },
+                    }
+                ],
+                "plantInfo": [
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                            "color": {"red": 0, "green": 1, "blue": 0},
+                        },
+                    }
+                ],
+            },
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="test",
+        lat=1.0,
+        lon=2.0,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        forecast_days=3,
+        create_d1=True,
+        create_d2=True,
+        client=client,
+    )
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    type_entry = data["type_grass"]
+    assert type_entry["forecast"][0] == {
+        "offset": 1,
+        "date": "2025-06-02",
+        "has_index": False,
+        "value": None,
+        "category": None,
+        "description": None,
+        "color_hex": None,
+        "color_rgb": None,
+    }
+    assert type_entry["forecast"][1]["date"] is None
+    assert type_entry["forecast"][1]["has_index"] is True
+    assert type_entry["forecast"][1]["color_hex"] == "#FF6432"
+
+    d1_entry = data["type_grass_d1"]
+    assert d1_entry["value"] is None
+    assert d1_entry["category"] is None
+    assert d1_entry["description"] is None
+    assert d1_entry["date"] == "2025-06-02"
+    assert d1_entry["has_index"] is False
+    assert d1_entry["inSeason"] is False
+    assert d1_entry["advice"] == ["Tomorrow advice"]
+
+    d2_entry = data["type_grass_d2"]
+    assert d2_entry["value"] == 5
+    assert d2_entry["date"] is None
+    assert d2_entry["has_index"] is True
+
+    plant_entry = data["plants_oak"]
+    assert plant_entry["forecast"][0] == {
+        "offset": 1,
+        "date": "2025-06-02",
+        "has_index": False,
+        "value": None,
+        "category": None,
+        "description": None,
+        "color_hex": None,
+        "color_rgb": None,
+    }
+    assert plant_entry["forecast"][1]["date"] is None
+    assert plant_entry["forecast"][1]["color_hex"] == "#00FF00"
+
+
 def test_plant_forecast_matches_codes_case_insensitively() -> None:
     """Plant forecast should match even when code casing varies by day."""
 
