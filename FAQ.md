@@ -82,7 +82,7 @@ Typical quota items you’ll see (names may vary slightly by locale):
 > **Safe setting:** You can set **HeatMap** quotas to **0** (or the minimum allowed) to block tile usage and avoid accidental billing.
 
 **Recommended hard caps (safe defaults):**
-> Caution: Quota caps are a useful safety guard, but Google notes they may not be enforced with absolute precision due to latency. Keep a buffer below the free cap instead of setting limits right at the monthly maximum.
+> **Caution:** Quota caps are a useful safety guard, but Google notes they may not be enforced with absolute precision due to latency. Keep a buffer below the free cap instead of setting limits right at the monthly maximum.
 
 - **Forecast Usage per day** → **150**  
   (≈ 4,500/month, comfortably under the 5,000 free cap; increase only if you have multiple locations or frequent manual refreshes)
