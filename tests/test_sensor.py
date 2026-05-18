@@ -1572,6 +1572,7 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
                 ],
             },
             {
+                "date": {"year": 2025, "month": None, "day": 3},
                 "pollenTypeInfo": [
                     {
                         "code": "GRASS",
@@ -1599,6 +1600,30 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
                     }
                 ],
             },
+            {
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+                "plantInfo": [
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+            },
         ]
     }
 
@@ -1615,7 +1640,7 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=3,
+        forecast_days=4,
         create_d1=True,
         create_d2=True,
         client=client,
@@ -1640,6 +1665,7 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
     assert type_entry["forecast"][1]["date"] is None
     assert type_entry["forecast"][1]["has_index"] is True
     assert type_entry["forecast"][1]["color_hex"] == "#FF6432"
+    assert type_entry["forecast"][2]["date"] is None
 
     d1_entry = data["type_grass_d1"]
     assert d1_entry["value"] is None
@@ -1668,6 +1694,7 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
     }
     assert plant_entry["forecast"][1]["date"] is None
     assert plant_entry["forecast"][1]["color_hex"] == "#00FF00"
+    assert plant_entry["forecast"][2]["date"] is None
 
 
 def test_plant_forecast_matches_codes_case_insensitively() -> None:
