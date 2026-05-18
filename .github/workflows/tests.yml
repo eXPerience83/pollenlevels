@@ -37,6 +37,10 @@ jobs:
         run: |
           python -m pip install .
 
+      - name: Compile Python sources
+        run: |
+          python -m compileall -q custom_components tests
+
       - name: Run tests
         run: |
           pytest -q
