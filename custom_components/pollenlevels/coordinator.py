@@ -90,9 +90,13 @@ def _extract_api_date(day: dict[str, Any]) -> str | None:
     date_obj = day.get("date") or {}
     if not isinstance(date_obj, dict):
         return None
-    if not all(date_obj.get(k) is not None for k in ("year", "month", "day")):
+
+    year = safe_parse_int(date_obj.get("year"))
+    month = safe_parse_int(date_obj.get("month"))
+    day_num = safe_parse_int(date_obj.get("day"))
+    if year is None or month is None or day_num is None:
         return None
-    return f"{date_obj['year']:04d}-{date_obj['month']:02d}-{date_obj['day']:02d}"
+    return f"{year:04d}-{month:02d}-{day_num:02d}"
 
 
 def _build_forecast_entry(

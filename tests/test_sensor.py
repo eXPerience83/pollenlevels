@@ -1521,6 +1521,29 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["expected_peak"]["value"] == 4
 
 
+@pytest.mark.parametrize(
+    ("day", "expected"),
+    [
+        ({"date": {"year": 2025, "month": 6, "day": 1}}, "2025-06-01"),
+        ({"date": {"year": "2025", "month": "6", "day": "1"}}, "2025-06-01"),
+        ({}, None),
+        ({"date": None}, None),
+        ({"date": {"year": 2025, "month": 6}}, None),
+        ({"date": {"year": 2025, "month": None, "day": 1}}, None),
+        ({"date": "bad-date"}, None),
+        ({"date": {"year": "bad", "month": 6, "day": 1}}, None),
+        ({"date": {"year": 2025.5, "month": 6, "day": 1}}, None),
+        ({"date": {"year": True, "month": 6, "day": 1}}, None),
+    ],
+)
+def test_extract_api_date_parses_integer_like_values(
+    day: dict[str, Any], expected: str | None
+) -> None:
+    """API date extraction accepts integer-like values and rejects malformed ones."""
+
+    assert coordinator_mod._extract_api_date(day) == expected
+
+
 def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None:
     """Forecast entries preserve missing index and missing API date output."""
 
@@ -1630,11 +1653,7 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
                     {
                         "code": "GRASS",
                         "displayName": "Grass",
-                        "indexInfo": {
-                            "value": 4,
-                            "category": "MODERATE",
-                            "indexDescription": "Moderate",
-                        },
+                        "indexInfo": "bad-index",
                     }
                 ],
                 "plantInfo": [
@@ -1691,7 +1710,16 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior() -> None
     assert type_entry["forecast"][1]["has_index"] is True
     assert type_entry["forecast"][1]["color_hex"] == "#FF6432"
     assert type_entry["forecast"][2]["date"] is None
-    assert type_entry["forecast"][3]["date"] is None
+    assert type_entry["forecast"][3] == {
+        "offset": 4,
+        "date": None,
+        "has_index": False,
+        "value": None,
+        "category": None,
+        "description": None,
+        "color_hex": None,
+        "color_rgb": None,
+    }
 
     d1_entry = data["type_grass_d1"]
     assert d1_entry["value"] is None
