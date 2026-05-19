@@ -678,7 +678,8 @@ def _build_options_flow(data: dict | None = None) -> cf.PollenLevelsOptionsFlow:
     entry = cf.config_entries.ConfigEntry(
         data=data or {CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
     )
-    flow = cf.PollenLevelsOptionsFlow(entry)
+    flow = cf.PollenLevelsOptionsFlow()
+    flow.config_entry = entry
     flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
     flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
         "type": "form",
