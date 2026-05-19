@@ -1,15 +1,47 @@
-## [2.2.0-rc1] - 2026-05-18
+## [2.2.0] - 2026-05-18
+
+### Added
+
+- Added stale-data expiration for malformed Google Pollen API payloads: cached
+  coordinator data is now reused only while it remains within the effective TTL.
+- Added repository guidance for future agent reviews to avoid overengineering
+  defensive parsing and tests for highly unlikely upstream payload shapes.
+
 ### Changed
+
+- Hardened HTTP and config-flow error redaction so API keys and precise
+  coordinates are redacted from client and validation error messages.
+- Centralized latitude and longitude validation across config flow and runtime
+  setup.
+- Centralized forecast sensor mode and forecast-days compatibility validation
+  across setup and options flow.
+- Cached daily summary sensor payloads per coordinator data object to avoid
+  redundant `daily_summary(...)` recomputation for the same sensor update.
+- Refactored coordinator forecast extraction to reuse shared private helpers for
+  API date extraction, forecast entry construction, and forecast list
+  construction.
+- Aligned package, release, and regular test validation by compiling Python
+  sources and running Ruff, Black, and pytest before release packaging.
 - Audited and streamlined the test suite while preserving coverage for redaction,
   validation helpers, stale-data TTL behavior, forecast extraction, config flow
   validation, and Home Assistant setup flows.
-- Added repository guidance for future agent reviews to avoid overengineering
-  defensive parsing and tests for highly unlikely upstream payload shapes.
-- Aligned the regular tests workflow with release validation by compiling Python
-  sources before running pytest.
-- Polished pre-RC documentation notes around API key sharing, Google Maps
-  Platform pricing/quota verification, quota-cap latency, and Markdown callout
+- Polished documentation around API key sharing, Google Maps Platform
+  pricing/quota verification, quota-cap latency, and Markdown callout
   formatting.
+
+### Fixed
+
+- Prevented indefinitely stale pollen data from remaining available when the API
+  repeatedly returns missing or invalid `dailyInfo` after a previous successful
+  refresh.
+- Prevented malformed forecast date payloads from interrupting otherwise usable
+  coordinator updates.
+- Preserved D+1/D+2 type sensor shaping when forecast days contain missing
+  indexes, malformed dates, or malformed forecast index payloads.
+- Ensured config-flow error placeholders use safe fallback messages when upstream
+  exception messages are empty.
+- Prevented precise invalid stored coordinates from being logged during runtime
+  setup failures.
 
 ## [2.2.0-beta1] - 2026-05-18
 ### Changed
