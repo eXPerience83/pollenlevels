@@ -2,8 +2,6 @@
 
 Notes:
 - Adds a top-level DEBUG log when the force_update service is invoked to aid debugging.
-- Registers an options update listener to reload the entry so interval/language changes
-  take effect immediately without reinstalling.
 """
 
 from __future__ import annotations
@@ -177,7 +175,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 async def async_setup_entry(
     hass: HomeAssistant, entry: PollenLevelsConfigEntry
 ) -> bool:
-    """Forward config entry to sensor platform and register options listener."""
+    """Forward config entry to sensor platform."""
     _LOGGER.debug(
         "PollenLevels async_setup_entry for entry_id=%s title=%s",
         entry.entry_id,
@@ -280,9 +278,6 @@ async def async_setup_entry(
         _LOGGER.exception("Error forwarding entry setups: %s", err)
         raise ConfigEntryNotReady from err
 
-    # Ensure options updates (interval/language/forecast settings) trigger reload.
-    entry.async_on_unload(entry.add_update_listener(_update_listener))
-
     _LOGGER.info("PollenLevels integration loaded successfully")
     return True
 
@@ -296,13 +291,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         entry.runtime_data = None
     return unloaded
-
-
-async def _update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update by reloading the entry.
-
-    Home Assistant calls this listener after the user saves Options.
-    Reloading recreates the coordinator with the new settings.
-    """
-    _LOGGER.debug("Reloading entry %s after options update", entry.entry_id)
-    await hass.config_entries.async_reload(entry.entry_id)

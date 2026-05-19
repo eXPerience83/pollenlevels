@@ -94,6 +94,10 @@ class _StubOptionsFlow:
     pass
 
 
+class _StubOptionsFlowWithReload(_StubOptionsFlow):
+    pass
+
+
 class _StubConfigEntry:
     def __init__(self, data=None, options=None, entry_id="stub-entry"):
         self.data = data or {}
@@ -105,6 +109,7 @@ class _StubConfigEntry:
 
 config_entries_mod.ConfigFlow = _StubConfigFlow
 config_entries_mod.OptionsFlow = _StubOptionsFlow
+config_entries_mod.OptionsFlowWithReload = _StubOptionsFlowWithReload
 config_entries_mod.ConfigEntry = _StubConfigEntry
 _force_module("homeassistant.config_entries", config_entries_mod)
 
@@ -678,7 +683,8 @@ def _build_options_flow(data: dict | None = None) -> cf.PollenLevelsOptionsFlow:
     entry = cf.config_entries.ConfigEntry(
         data=data or {CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
     )
-    flow = cf.PollenLevelsOptionsFlow(entry)
+    flow = cf.PollenLevelsOptionsFlow()
+    flow.config_entry = entry
     flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
     flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
         "type": "form",

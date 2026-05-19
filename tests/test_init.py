@@ -299,7 +299,6 @@ class _FakeEntry:
         self.entry_id = entry_id
         self.title = title
         self.domain = integration.DOMAIN
-        self._update_listener = None
         self.data = data or {
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -308,15 +307,6 @@ class _FakeEntry:
         self.options = options or {}
         self.version = version
         self.runtime_data = None
-
-    def add_update_listener(self, listener):
-        self._update_listener = listener
-        return listener
-
-    def async_on_unload(self, callback):
-        # Store callbacks to mirror Home Assistant behavior during tests.
-        self._on_unload = callback  # pragma: no cover - stored for completeness
-        return callback
 
 
 class _FakeHass:
@@ -587,7 +577,7 @@ def test_setup_entry_wraps_generic_error() -> None:
 def test_setup_entry_success_and_unload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Happy path should forward setup, register listener, and unload cleanly."""
+    """Happy path should forward setup and unload cleanly."""
 
     hass = _FakeHass()
     entry = _FakeEntry()
@@ -626,14 +616,9 @@ def test_setup_entry_success_and_unload(
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
     assert hass.config_entries.forward_calls == [(entry, ["sensor"])]
-    assert entry._update_listener is integration._update_listener  # noqa: SLF001
-    assert entry._on_unload is entry._update_listener  # noqa: SLF001
 
     assert entry.runtime_data is not None
     assert entry.runtime_data.coordinator.entry_id == entry.entry_id
-
-    asyncio.run(entry._update_listener(hass, entry))  # noqa: SLF001
-    assert hass.config_entries.reload_calls == [entry.entry_id]
 
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
     assert hass.config_entries.unload_calls == [(entry, ["sensor"])]

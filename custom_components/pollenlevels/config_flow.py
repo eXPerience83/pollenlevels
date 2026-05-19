@@ -314,7 +314,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     def async_get_options_flow(entry: config_entries.ConfigEntry):
         """Return the options flow handler."""
-        return PollenLevelsOptionsFlow(entry)
+        return PollenLevelsOptionsFlow()
 
     async def _async_validate_input(
         self,
@@ -621,35 +621,34 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
+class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
     """Handle options for an existing entry."""
-
-    def __init__(self, entry: config_entries.ConfigEntry) -> None:
-        self.entry = entry
 
     async def async_step_init(self, user_input=None):
         """Display/process options form."""
         errors: dict[str, str] = {}
-        placeholders = {"title": self.entry.title or DEFAULT_ENTRY_TITLE}
+        placeholders = {"title": self.config_entry.title or DEFAULT_ENTRY_TITLE}
 
-        current_interval_raw = self.entry.options.get(
+        current_interval_raw = self.config_entry.options.get(
             CONF_UPDATE_INTERVAL,
-            self.entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+            self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         )
         current_interval = _sanitize_update_interval_for_default(current_interval_raw)
-        current_lang = self.entry.options.get(
+        current_lang = self.config_entry.options.get(
             CONF_LANGUAGE_CODE,
-            self.entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
+            self.config_entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
         )
-        current_days_raw = self.entry.options.get(
+        current_days_raw = self.config_entry.options.get(
             CONF_FORECAST_DAYS,
-            self.entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+            self.config_entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
         )
         current_days_default = _sanitize_forecast_days_for_default(current_days_raw)
         current_days = int(current_days_default)
-        current_mode = self.entry.options.get(CONF_CREATE_FORECAST_SENSORS)
+        current_mode = self.config_entry.options.get(CONF_CREATE_FORECAST_SENSORS)
         if current_mode is None:
-            current_mode = self.entry.data.get(CONF_CREATE_FORECAST_SENSORS, "none")
+            current_mode = self.config_entry.data.get(
+                CONF_CREATE_FORECAST_SENSORS, "none"
+            )
         current_mode = _sanitize_forecast_mode_for_default(current_mode)
 
         options_schema = vol.Schema(
@@ -688,7 +687,10 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            normalized_input: dict[str, Any] = {**self.entry.options, **user_input}
+            normalized_input: dict[str, Any] = {
+                **self.config_entry.options,
+                **user_input,
+            }
             interval_value, interval_error = _parse_update_interval(
                 normalized_input.get(CONF_UPDATE_INTERVAL, current_interval),
                 current_interval,
@@ -719,9 +721,9 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             try:
                 raw_lang = normalized_input.get(
                     CONF_LANGUAGE_CODE,
-                    self.entry.options.get(
+                    self.config_entry.options.get(
                         CONF_LANGUAGE_CODE,
-                        self.entry.data.get(CONF_LANGUAGE_CODE, ""),
+                        self.config_entry.data.get(CONF_LANGUAGE_CODE, ""),
                     ),
                 )
                 lang = raw_lang.strip() if isinstance(raw_lang, str) else ""
@@ -751,7 +753,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
             except Exception as err:  # defensive
                 _LOGGER.exception(
                     "Options validation error: %s",
-                    redact_api_key(err, self.entry.data.get(CONF_API_KEY)),
+                    redact_api_key(err, self.config_entry.data.get(CONF_API_KEY)),
                 )
                 errors["base"] = "unknown"
 

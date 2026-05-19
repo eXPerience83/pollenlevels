@@ -42,11 +42,20 @@ def _flow(entry_data: dict | None = None, options: dict | None = None):
         },
         options=options,
     )
-    flow = PollenLevelsOptionsFlow(entry)
+    flow = PollenLevelsOptionsFlow()
+    flow.config_entry = entry
     flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
     flow.async_show_form = lambda **kwargs: kwargs
     flow.async_create_entry = lambda *, title, data: {"title": title, "data": data}
     return flow
+
+
+def test_options_flow_uses_modern_reload_base_class() -> None:
+    """Options flow should inherit OptionsFlowWithReload."""
+
+    assert issubclass(
+        PollenLevelsOptionsFlow, base.cf.config_entries.OptionsFlowWithReload
+    )
 
 
 def test_options_flow_invalid_language_sets_error() -> None:
