@@ -226,7 +226,7 @@ async def async_setup_entry(
             preview,
             suffix,
         )
-    async_add_entities(sensors, True)
+    async_add_entities(sensors)
 
 
 class PollenSensor(CoordinatorEntity, SensorEntity):
