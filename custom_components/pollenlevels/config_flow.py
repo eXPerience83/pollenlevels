@@ -621,7 +621,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-class PollenLevelsOptionsFlow(config_entries.OptionsFlow):
+class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
     """Handle options for an existing entry."""
 
     async def async_step_init(self, user_input=None):

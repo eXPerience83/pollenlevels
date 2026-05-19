@@ -105,6 +105,7 @@ class _StubConfigEntry:
 
 config_entries_mod.ConfigFlow = _StubConfigFlow
 config_entries_mod.OptionsFlow = _StubOptionsFlow
+config_entries_mod.OptionsFlowWithReload = _StubOptionsFlow
 config_entries_mod.ConfigEntry = _StubConfigEntry
 _force_module("homeassistant.config_entries", config_entries_mod)
 
