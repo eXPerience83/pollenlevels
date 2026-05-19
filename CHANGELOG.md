@@ -1,14 +1,11 @@
 ## [2.2.0] - 2026-05-18
-
 ### Added
-
 - Added stale-data expiration for malformed Google Pollen API payloads: cached
   coordinator data is now reused only while it remains within the effective TTL.
 - Added repository guidance for future agent reviews to avoid overengineering
   defensive parsing and tests for highly unlikely upstream payload shapes.
 
 ### Changed
-
 - Hardened HTTP and config-flow error redaction so API keys and precise
   coordinates are redacted from client and validation error messages.
 - Centralized latitude and longitude validation across config flow and runtime
@@ -30,7 +27,6 @@
   formatting.
 
 ### Fixed
-
 - Prevented indefinitely stale pollen data from remaining available when the API
   repeatedly returns missing or invalid `dailyInfo` after a previous successful
   refresh.
