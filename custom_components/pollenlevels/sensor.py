@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Awaitable
-from datetime import date  # Added `date` for DATE device class native_value
+from datetime import date, datetime  # Added `date` for DATE device class native_value
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
@@ -253,7 +253,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         return info.get("displayName", self.code)
 
     @property
-    def native_value(self) -> Any:
+    def native_value(self) -> float | int | None:
         """Return current pollen index value as the sensor's native value."""
         info = self.coordinator.data.get(self.code, {})
         return info.get("value")
@@ -616,7 +616,7 @@ class LastUpdatedSensor(_BaseMetaSensor):
         self._attr_icon = "mdi:clock-check"
 
     @property
-    def native_value(self) -> Any:
+    def native_value(self) -> datetime | None:
         """Return UTC datetime of last update; frontend will localize/format."""
         # Coordinator stores an aware UTC datetime; HA expects a datetime object
         # for TIMESTAMP sensors. The UI will render it as local time.

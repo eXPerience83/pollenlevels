@@ -551,7 +551,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=description_placeholders,
         )
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]):
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> dict[str, Any]:
         """Handle re-authentication when credentials become invalid."""
         return await self.async_step_reauth_confirm()
 
