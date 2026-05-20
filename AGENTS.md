@@ -40,7 +40,9 @@
 ## Style and Documentation
 - All code comments, README entries, and changelog notes **must be written in English**.
 - Keep imports tidy—remove unused symbols and respect the Ruff isort grouping so the Home Assistant package stays first-party under `custom_components/pollenlevels`.
-- Translation source of truth is `custom_components/pollenlevels/translations/en.json`. Keep all other locale files in sync with it and do not add or rely on a `strings.json` file.
+- Translation source of truth is `custom_components/pollenlevels/translations/en.json`.
+- Keep all other locale files synchronized with that keyset.
+- Do not add or rely on a `strings.json` file, and do not introduce `%key:` translation references in this custom repository.
 
 
 ## Integration Architecture
