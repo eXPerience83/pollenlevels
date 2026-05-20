@@ -1,3 +1,19 @@
+## [2.2.1] - 2026-05-20
+### Changed
+- Modernized the options-flow reload path by using Home Assistant's
+  `OptionsFlowWithReload` pattern instead of a manually registered config-entry
+  update listener.
+- Reduced visible coordinate precision in translated device-name placeholders to
+  two decimal places while preserving full-precision coordinates for API
+  requests and configuration.
+
+### Fixed
+- Avoided a possible duplicate coordinator refresh when adding sensor entities
+  during setup, relying on the existing first coordinator refresh performed
+  before platform setup.
+- Preserved immediate reload behavior after options changes without reintroducing
+  the legacy update-listener pattern.
+
 ## [2.2.0] - 2026-05-18
 ### Added
 - Added stale-data expiration for malformed Google Pollen API payloads: cached
