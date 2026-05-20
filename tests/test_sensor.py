@@ -817,6 +817,21 @@ def test_daily_summary_device_info_rounds_coordinates_for_placeholders() -> None
     assert entity.unique_id == "entry_overall_pollen_risk_today"
 
 
+def test_metadata_device_info_rounds_coordinates_for_placeholders() -> None:
+    """Metadata placeholders show rounded coordinates without unique_id changes."""
+
+    coordinator = _summary_coordinator({"region": {"source": "meta", "code": "ES"}})
+    coordinator.lat = 39.123456
+    coordinator.lon = -0.123456
+
+    entity = sensor.RegionSensor(coordinator)
+    placeholders = entity.device_info["translation_placeholders"]
+
+    assert placeholders["latitude"] == "39.12"
+    assert placeholders["longitude"] == "-0.12"
+    assert entity.unique_id == "entry_region"
+
+
 def test_top_pollen_types_today_does_not_expose_measurement_state_class() -> None:
     """Top pollen types summary is textual and does not expose measurement state."""
 
