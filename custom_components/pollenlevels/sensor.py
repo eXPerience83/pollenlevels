@@ -62,6 +62,7 @@ __all__ = [
     "CONF_LATITUDE",
     "CONF_LONGITUDE",
     "CONF_UPDATE_INTERVAL",
+    "DEFAULT_ENTRY_TITLE",
     "DEFAULT_FORECAST_DAYS",
     "DEFAULT_UPDATE_INTERVAL",
 ]
@@ -435,7 +436,7 @@ def _device_translation_placeholders(
 ) -> dict[str, str]:
     """Return privacy-preserving placeholders for translated device names."""
     return {
-        "title": coordinator.entry_title or DEFAULT_ENTRY_TITLE,
+        "title": coordinator.entry_title,
         "latitude": f"{coordinator.lat:.2f}",
         "longitude": f"{coordinator.lon:.2f}",
     }
