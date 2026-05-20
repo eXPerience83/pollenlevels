@@ -2365,7 +2365,7 @@ async def test_async_setup_entry_skips_disabled_d1_d2_sensors() -> None:
         hours=sensor.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
-        entry_title=sensor.DEFAULT_ENTRY_TITLE,
+        entry_title=const.DEFAULT_ENTRY_TITLE,
         forecast_days=3,
         create_d1=True,
         create_d2=True,
@@ -2549,7 +2549,7 @@ async def test_device_info_uses_default_title_when_blank(
     config_entry.title = "   "
 
     client = client_mod.GooglePollenApiClient(FakeSession({}), "key")
-    clean_title = sensor.DEFAULT_ENTRY_TITLE
+    clean_title = const.DEFAULT_ENTRY_TITLE
     coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
@@ -2581,7 +2581,7 @@ async def test_device_info_uses_default_title_when_blank(
     )
 
     placeholders = region_sensor.device_info["translation_placeholders"]
-    assert placeholders["title"] == sensor.DEFAULT_ENTRY_TITLE
+    assert placeholders["title"] == const.DEFAULT_ENTRY_TITLE
 
 
 @pytest.mark.asyncio
