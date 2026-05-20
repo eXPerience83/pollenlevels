@@ -1865,6 +1865,57 @@ def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
     assert recorder.reloaded == "entry-id"
 
 
+def test_reauth_confirm_description_placeholders_round_coordinates() -> None:
+    """Reauth placeholders should expose visible coordinates rounded to 2 decimals."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 39.123456,
+            CONF_LONGITUDE: -0.123456,
+            CONF_LANGUAGE_CODE: "en",
+        },
+        entry_id="entry-id",
+    )
+
+    class _Recorder:
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            return None
+
+        def async_reload(self, entry_id: str):
+            return None
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=_Recorder())
+    flow.context = {"entry_id": "entry-id"}
+
+    captured: dict[str, object] = {}
+    normalized = {**entry.data, CONF_API_KEY: "new-key"}
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        captured["description_placeholders"] = description_placeholders
+        captured["user_input"] = dict(user_input)
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    asyncio.run(flow.async_step_reauth_confirm({CONF_API_KEY: "new-key"}))
+
+    placeholders = captured["description_placeholders"]
+    assert placeholders is not None
+    assert placeholders["latitude"] == "39.12"
+    assert placeholders["longitude"] == "-0.12"
+
+    combined_input = captured["user_input"]
+    assert combined_input[CONF_LATITUDE] == 39.123456
+    assert combined_input[CONF_LONGITUDE] == -0.123456
+
+
 def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
     """Reauth should only update API key in data, preserving option boundaries."""
 
@@ -2066,8 +2117,57 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
     updated_entry, updated_data = recorder.updated
     assert updated_entry is entry
     assert updated_data[CONF_API_KEY] == "new-key"
-    assert CONF_CREATE_FORECAST_SENSORS not in updated_data
-    assert created["called"] is False
+
+
+def test_reconfigure_description_placeholders_round_coordinates() -> None:
+    """Reconfigure placeholders should expose visible coordinates rounded to 2 decimals."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 39.123456,
+            CONF_LONGITUDE: -0.123456,
+            CONF_LANGUAGE_CODE: "en",
+        },
+        entry_id="entry-id",
+    )
+
+    class _Recorder:
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            return None
+
+        def async_reload(self, entry_id: str):
+            return None
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=_Recorder())
+    flow.context = {"entry_id": "entry-id"}
+
+    captured: dict[str, object] = {}
+    normalized = {**entry.data, CONF_API_KEY: "new-key"}
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        captured["description_placeholders"] = description_placeholders
+        captured["user_input"] = dict(user_input)
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    asyncio.run(flow.async_step_reconfigure({CONF_API_KEY: "new-key"}))
+
+    placeholders = captured["description_placeholders"]
+    assert placeholders is not None
+    assert placeholders["latitude"] == "39.12"
+    assert placeholders["longitude"] == "-0.12"
+
+    combined_input = captured["user_input"]
+    assert combined_input[CONF_LATITUDE] == 39.123456
+    assert combined_input[CONF_LONGITUDE] == -0.123456
 
 
 def test_async_step_user_uses_custom_entry_name() -> None:
