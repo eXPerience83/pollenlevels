@@ -523,7 +523,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> config_entries.ConfigFlowResult:
         """Handle initial step."""
         errors: dict[str, str] = {}
         description_placeholders: dict[str, Any] = {
@@ -551,7 +551,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=description_placeholders,
         )
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]) -> dict[str, Any]:
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any]
+    ) -> config_entries.ConfigFlowResult:
         """Handle re-authentication when credentials become invalid."""
         return await self.async_step_reauth_confirm()
 
@@ -563,7 +565,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         success_reason: str,
         user_input: dict[str, Any] | None,
         persist_normalized_data: bool = True,
-    ) -> dict[str, Any]:
+    ) -> config_entries.ConfigFlowResult:
         """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
         placeholders = {
@@ -615,7 +617,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> config_entries.ConfigFlowResult:
         """Prompt for a refreshed API key and validate it."""
         entry = self._get_reauth_entry()
         if entry is None:
@@ -630,7 +632,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> config_entries.ConfigFlowResult:
         """Prompt for a refreshed API key from the reconfigure UI."""
         entry = self._get_reconfigure_entry()
         if entry is None:
@@ -649,7 +651,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> config_entries.ConfigFlowResult:
         """Display/process options form."""
         errors: dict[str, str] = {}
         placeholders = {"title": self.config_entry.title or DEFAULT_ENTRY_TITLE}

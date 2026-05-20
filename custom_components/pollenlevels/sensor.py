@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Awaitable
-from datetime import date, datetime  # Added `date` for DATE device class native_value
+from datetime import date, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
