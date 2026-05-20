@@ -2117,6 +2117,8 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
     updated_entry, updated_data = recorder.updated
     assert updated_entry is entry
     assert updated_data[CONF_API_KEY] == "new-key"
+    assert CONF_CREATE_FORECAST_SENSORS not in updated_data
+    assert created["called"] is False
 
 
 def test_reconfigure_description_placeholders_round_coordinates() -> None:
