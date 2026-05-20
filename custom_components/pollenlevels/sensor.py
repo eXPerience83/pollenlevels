@@ -382,8 +382,8 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "translation_key": translation_key,
             "translation_placeholders": {
                 "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
-                "latitude": f"{self.coordinator.lat:.6f}",
-                "longitude": f"{self.coordinator.lon:.6f}",
+                "latitude": f"{self.coordinator.lat:.2f}",
+                "longitude": f"{self.coordinator.lon:.2f}",
             },
         }
 
@@ -407,8 +407,8 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
             "translation_key": translation_keys[group],
             "translation_placeholders": {
                 "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
-                "latitude": f"{self.coordinator.lat:.6f}",
-                "longitude": f"{self.coordinator.lon:.6f}",
+                "latitude": f"{self.coordinator.lat:.2f}",
+                "longitude": f"{self.coordinator.lon:.2f}",
             },
         }
         self._summary_data_ref: object = object()

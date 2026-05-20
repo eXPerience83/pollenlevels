@@ -778,6 +778,45 @@ def test_summary_sensors_expose_attribution() -> None:
     )
 
 
+def test_pollen_sensor_device_info_rounds_coordinates_for_placeholders() -> None:
+    """Pollen sensor placeholders show rounded coordinates without unique_id changes."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 2,
+            }
+        }
+    )
+    coordinator.lat = 39.123456
+    coordinator.lon = -0.123456
+
+    entity = sensor.PollenSensor(coordinator, "type_grass")
+    placeholders = entity.device_info["translation_placeholders"]
+
+    assert placeholders["latitude"] == "39.12"
+    assert placeholders["longitude"] == "-0.12"
+    assert entity.unique_id == "entry_type_grass"
+
+
+def test_daily_summary_device_info_rounds_coordinates_for_placeholders() -> None:
+    """Daily summary placeholders show rounded coordinates without unique_id changes."""
+
+    coordinator = _summary_coordinator({})
+    coordinator.lat = 39.123456
+    coordinator.lon = -0.123456
+
+    entity = sensor.OverallPollenRiskTodaySensor(coordinator)
+    placeholders = entity.device_info["translation_placeholders"]
+
+    assert placeholders["latitude"] == "39.12"
+    assert placeholders["longitude"] == "-0.12"
+    assert entity.unique_id == "entry_overall_pollen_risk_today"
+
+
 def test_top_pollen_types_today_does_not_expose_measurement_state_class() -> None:
     """Top pollen types summary is textual and does not expose measurement state."""
 
