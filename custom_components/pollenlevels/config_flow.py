@@ -114,6 +114,17 @@ def _safe_coord(value: Any, *, lat: bool) -> float | None:
     return validate_longitude(value)
 
 
+def _format_visible_coordinate(value: Any, *, lat: bool) -> str:
+    """Format coordinates for UI placeholders with 2 decimals.
+
+    Returns an empty string when value is missing or invalid.
+    """
+    parsed = _safe_coord(value, lat=lat)
+    if parsed is None:
+        return ""
+    return f"{parsed:.2f}"
+
+
 def _required_forecast_days_for_mode(mode: str) -> int:
     """Return the minimum forecast days required for a sensor mode."""
     return _FORECAST_MODE_MIN_DAYS.get(mode, MIN_FORECAST_DAYS)
@@ -552,8 +563,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
         placeholders = {
-            "latitude": f"{entry.data.get(CONF_LATITUDE)}",
-            "longitude": f"{entry.data.get(CONF_LONGITUDE)}",
+            "latitude": _format_visible_coordinate(
+                entry.data.get(CONF_LATITUDE), lat=True
+            ),
+            "longitude": _format_visible_coordinate(
+                entry.data.get(CONF_LONGITUDE), lat=False
+            ),
             "api_key_url": POLLEN_API_KEY_URL,
             "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
         }

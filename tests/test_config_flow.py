@@ -1865,6 +1865,63 @@ def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
     assert recorder.reloaded == "entry-id"
 
 
+@pytest.mark.parametrize(
+    ("step_method_name", "entry_getter"),
+    [
+        ("async_step_reauth_confirm", "_get_reauth_entry"),
+        ("async_step_reconfigure", "_get_reconfigure_entry"),
+    ],
+)
+def test_api_key_confirm_description_placeholders_round_coordinates(
+    step_method_name: str, entry_getter: str
+) -> None:
+    """Reauth/reconfigure placeholders should round visible coordinates."""
+
+    entry = cf.config_entries.ConfigEntry(
+        data={
+            CONF_API_KEY: "old-key",
+            CONF_LATITUDE: 39.123456,
+            CONF_LONGITUDE: -0.123456,
+            CONF_LANGUAGE_CODE: "en",
+        },
+        entry_id="entry-id",
+    )
+
+    flow = PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_update_entry=lambda *args, **kwargs: None,
+            async_reload=lambda *args, **kwargs: None,
+        )
+    )
+    flow.context = {"entry_id": "entry-id"}
+    setattr(flow, entry_getter, lambda: entry)
+
+    captured: dict[str, object] = {}
+    normalized = {**entry.data, CONF_API_KEY: "new-key"}
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        captured["description_placeholders"] = description_placeholders
+        captured["user_input"] = dict(user_input)
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    step_method = getattr(flow, step_method_name)
+    asyncio.run(step_method({CONF_API_KEY: "new-key"}))
+
+    placeholders = captured["description_placeholders"]
+    assert placeholders is not None
+    assert placeholders["latitude"] == "39.12"
+    assert placeholders["longitude"] == "-0.12"
+
+    combined_input = captured["user_input"]
+    assert combined_input[CONF_LATITUDE] == 39.123456
+    assert combined_input[CONF_LONGITUDE] == -0.123456
+
+
 def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
     """Reauth should only update API key in data, preserving option boundaries."""
 
