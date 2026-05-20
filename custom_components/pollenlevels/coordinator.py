@@ -153,7 +153,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         create_d2: bool,
         client: GooglePollenApiClient,
         entry_title: str = DEFAULT_ENTRY_TITLE,
-    ):
+    ) -> None:
         """Initialize coordinator with configuration and interval."""
         update_interval = timedelta(hours=hours)
         super().__init__(
@@ -186,8 +186,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self._missing_dailyinfo_warned = False
         self._stale_dailyinfo_warned = False
 
-        self.data: dict[str, dict] = {}
-        self.last_updated = None
+        self.data: dict[str, dict[str, Any]] = {}
+        self.last_updated: datetime | None = None
 
     def _utcnow(self) -> datetime:
         """Return the current UTC time."""
@@ -276,7 +276,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         )
         return base
 
-    async def _async_update_data(self):
+    async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         """Fetch pollen data and extract sensors for current day and forecast."""
         try:
             payload = await self._client.async_fetch_pollen_data(
@@ -296,7 +296,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Pollen API error: %s", msg)
             raise UpdateFailed(msg) from err
 
-        new_data: dict[str, dict] = {}
+        new_data: dict[str, dict[str, Any]] = {}
 
         # region
         if region := payload.get("regionCode"):

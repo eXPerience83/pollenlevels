@@ -238,7 +238,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
     # Modern friendly name composition: Device name + Entity short name
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str):
+    def __init__(self, coordinator: PollenDataUpdateCoordinator, code: str) -> None:
         """Initialize pollen sensor."""
         super().__init__(coordinator)
         self.coordinator = coordinator
@@ -253,7 +253,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         return info.get("displayName", self.code)
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return current pollen index value as the sensor's native value."""
         info = self.coordinator.data.get(self.code, {})
         return info.get("value")
@@ -273,7 +273,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         return PLANT_TYPE_ICONS.get(ptype, DEFAULT_ICON)
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes for sensor."""
         info = self.coordinator.data.get(self.code, {}) or {}
         attrs = {
@@ -359,7 +359,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         return attrs
 
     @property
-    def device_info(self):
+    def device_info(self) -> dict[str, Any]:
         """Return device info with translation support for the group."""
         info = self.coordinator.data.get(self.code, {}) or {}
         group = info.get("source")
@@ -517,7 +517,7 @@ class TopPollenTypesTodaySensor(_BaseSummarySensor):
 class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
     """Provide base for metadata sensors."""
 
-    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize metadata sensor.
 
         Static attributes are precomputed as `_attr_*` to avoid repeated property calls.
@@ -555,14 +555,14 @@ class RegionSensor(_BaseMetaSensor):
     # Metadata; classify as diagnostic for better UI grouping.
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize region sensor with static attributes."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{self.coordinator.entry_id}_region"
         self._attr_icon = "mdi:earth"
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return region code."""
         return self.coordinator.data.get("region", {}).get("value")
 
@@ -577,7 +577,7 @@ class DateSensor(_BaseMetaSensor):
     # Use DATE so the frontend applies date semantics/formatting.
     _attr_device_class = SensorDeviceClass.DATE
 
-    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize date sensor with static attributes."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{self.coordinator.entry_id}_date"
@@ -609,14 +609,14 @@ class LastUpdatedSensor(_BaseMetaSensor):
     # Use TIMESTAMP so the frontend formats the datetime automatically
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    def __init__(self, coordinator: PollenDataUpdateCoordinator):
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize last updated sensor with static attributes."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{self.coordinator.entry_id}_last_updated"
         self._attr_icon = "mdi:clock-check"
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return UTC datetime of last update; frontend will localize/format."""
         # Coordinator stores an aware UTC datetime; HA expects a datetime object
         # for TIMESTAMP sensors. The UI will render it as local time.
