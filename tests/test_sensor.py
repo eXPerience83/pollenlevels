@@ -778,8 +778,28 @@ def test_summary_sensors_expose_attribution() -> None:
     )
 
 
-def test_pollen_sensor_device_info_rounds_coordinates_for_placeholders() -> None:
-    """Pollen sensor placeholders show rounded coordinates without unique_id changes."""
+@pytest.mark.parametrize(
+    ("entity_factory", "expected_unique_id"),
+    [
+        (
+            lambda coordinator: sensor.PollenSensor(coordinator, "type_grass"),
+            "entry_type_grass",
+        ),
+        (
+            lambda coordinator: sensor.OverallPollenRiskTodaySensor(coordinator),
+            "entry_overall_pollen_risk_today",
+        ),
+        (
+            lambda coordinator: sensor.RegionSensor(coordinator),
+            "entry_region",
+        ),
+    ],
+)
+def test_device_info_rounds_coordinates_for_placeholders(
+    entity_factory,
+    expected_unique_id: str,
+) -> None:
+    """All device groups show rounded coordinates without unique_id changes."""
 
     coordinator = _summary_coordinator(
         {
@@ -788,48 +808,19 @@ def test_pollen_sensor_device_info_rounds_coordinates_for_placeholders() -> None
                 "code": "GRASS",
                 "displayName": "Grass",
                 "value": 2,
-            }
+            },
+            "region": {"source": "meta", "code": "ES"},
         }
     )
     coordinator.lat = 39.123456
     coordinator.lon = -0.123456
 
-    entity = sensor.PollenSensor(coordinator, "type_grass")
+    entity = entity_factory(coordinator)
     placeholders = entity.device_info["translation_placeholders"]
 
     assert placeholders["latitude"] == "39.12"
     assert placeholders["longitude"] == "-0.12"
-    assert entity.unique_id == "entry_type_grass"
-
-
-def test_daily_summary_device_info_rounds_coordinates_for_placeholders() -> None:
-    """Daily summary placeholders show rounded coordinates without unique_id changes."""
-
-    coordinator = _summary_coordinator({})
-    coordinator.lat = 39.123456
-    coordinator.lon = -0.123456
-
-    entity = sensor.OverallPollenRiskTodaySensor(coordinator)
-    placeholders = entity.device_info["translation_placeholders"]
-
-    assert placeholders["latitude"] == "39.12"
-    assert placeholders["longitude"] == "-0.12"
-    assert entity.unique_id == "entry_overall_pollen_risk_today"
-
-
-def test_metadata_device_info_rounds_coordinates_for_placeholders() -> None:
-    """Metadata placeholders show rounded coordinates without unique_id changes."""
-
-    coordinator = _summary_coordinator({"region": {"source": "meta", "code": "ES"}})
-    coordinator.lat = 39.123456
-    coordinator.lon = -0.123456
-
-    entity = sensor.RegionSensor(coordinator)
-    placeholders = entity.device_info["translation_placeholders"]
-
-    assert placeholders["latitude"] == "39.12"
-    assert placeholders["longitude"] == "-0.12"
-    assert entity.unique_id == "entry_region"
+    assert entity.unique_id == expected_unique_id
 
 
 def test_top_pollen_types_today_does_not_expose_measurement_state_class() -> None:

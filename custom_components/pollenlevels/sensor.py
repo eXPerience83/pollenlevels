@@ -380,11 +380,9 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": translation_key,
-            "translation_placeholders": {
-                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
-                "latitude": f"{self.coordinator.lat:.2f}",
-                "longitude": f"{self.coordinator.lon:.2f}",
-            },
+            "translation_placeholders": _device_translation_placeholders(
+                self.coordinator
+            ),
         }
 
 
@@ -405,11 +403,9 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": translation_keys[group],
-            "translation_placeholders": {
-                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
-                "latitude": f"{self.coordinator.lat:.2f}",
-                "longitude": f"{self.coordinator.lon:.2f}",
-            },
+            "translation_placeholders": _device_translation_placeholders(
+                self.coordinator
+            ),
         }
         self._summary_data_ref: object = object()
         self._summary_cache: dict[str, dict[str, Any]] = {}
@@ -432,6 +428,17 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
 def _summary_attrs(payload: dict[str, Any]) -> dict[str, Any]:
     """Return summary attributes without the sensor state field."""
     return {key: value for key, value in payload.items() if key != "state"}
+
+
+def _device_translation_placeholders(
+    coordinator: PollenDataUpdateCoordinator,
+) -> dict[str, str]:
+    """Return privacy-preserving placeholders for translated device names."""
+    return {
+        "title": coordinator.entry_title or DEFAULT_ENTRY_TITLE,
+        "latitude": f"{coordinator.lat:.2f}",
+        "longitude": f"{coordinator.lon:.2f}",
+    }
 
 
 class PlantsInSeasonTodaySensor(_BaseSummarySensor):
@@ -526,11 +533,9 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": "info",
-            "translation_placeholders": {
-                "title": self.coordinator.entry_title or DEFAULT_ENTRY_TITLE,
-                "latitude": f"{self.coordinator.lat:.2f}",
-                "longitude": f"{self.coordinator.lon:.2f}",
-            },
+            "translation_placeholders": _device_translation_placeholders(
+                self.coordinator
+            ),
         }
 
     @property
