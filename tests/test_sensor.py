@@ -778,6 +778,51 @@ def test_summary_sensors_expose_attribution() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("entity_factory", "expected_unique_id"),
+    [
+        (
+            lambda coordinator: sensor.PollenSensor(coordinator, "type_grass"),
+            "entry_type_grass",
+        ),
+        (
+            lambda coordinator: sensor.OverallPollenRiskTodaySensor(coordinator),
+            "entry_overall_pollen_risk_today",
+        ),
+        (
+            lambda coordinator: sensor.RegionSensor(coordinator),
+            "entry_region",
+        ),
+    ],
+)
+def test_device_info_rounds_coordinates_for_placeholders(
+    entity_factory,
+    expected_unique_id: str,
+) -> None:
+    """All device groups show rounded coordinates without unique_id changes."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 2,
+            },
+            "region": {"source": "meta", "code": "ES"},
+        }
+    )
+    coordinator.lat = 39.123456
+    coordinator.lon = -0.123456
+
+    entity = entity_factory(coordinator)
+    placeholders = entity.device_info["translation_placeholders"]
+
+    assert placeholders["latitude"] == "39.12"
+    assert placeholders["longitude"] == "-0.12"
+    assert entity.unique_id == expected_unique_id
+
+
 def test_top_pollen_types_today_does_not_expose_measurement_state_class() -> None:
     """Top pollen types summary is textual and does not expose measurement state."""
 
@@ -2320,7 +2365,7 @@ async def test_async_setup_entry_skips_disabled_d1_d2_sensors() -> None:
         hours=sensor.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
-        entry_title=sensor.DEFAULT_ENTRY_TITLE,
+        entry_title=const.DEFAULT_ENTRY_TITLE,
         forecast_days=3,
         create_d1=True,
         create_d2=True,
@@ -2504,7 +2549,7 @@ async def test_device_info_uses_default_title_when_blank(
     config_entry.title = "   "
 
     client = client_mod.GooglePollenApiClient(FakeSession({}), "key")
-    clean_title = sensor.DEFAULT_ENTRY_TITLE
+    clean_title = const.DEFAULT_ENTRY_TITLE
     coordinator = coordinator_mod.PollenDataUpdateCoordinator(
         hass=hass,
         api_key="key",
@@ -2536,7 +2581,7 @@ async def test_device_info_uses_default_title_when_blank(
     )
 
     placeholders = region_sensor.device_info["translation_placeholders"]
-    assert placeholders["title"] == sensor.DEFAULT_ENTRY_TITLE
+    assert placeholders["title"] == const.DEFAULT_ENTRY_TITLE
 
 
 @pytest.mark.asyncio
