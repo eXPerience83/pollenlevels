@@ -6,6 +6,7 @@ import importlib
 import sys
 import types
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -54,6 +55,18 @@ class _StubCoordinatorEntity:
 update_mod.CoordinatorEntity = _StubCoordinatorEntity
 sys.modules.setdefault("homeassistant.helpers.update_coordinator", update_mod)
 
+core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
+    "homeassistant.core"
+)
+
+
+class _StubHomeAssistant:
+    pass
+
+
+core_mod.HomeAssistant = _StubHomeAssistant
+sys.modules["homeassistant.core"] = core_mod
+
 exceptions_mod = sys.modules.get("homeassistant.exceptions") or types.ModuleType(
     "homeassistant.exceptions"
 )
@@ -63,7 +76,12 @@ class _StubHomeAssistantError(Exception):
     pass
 
 
+class _StubConfigEntryNotReady(Exception):
+    pass
+
+
 exceptions_mod.HomeAssistantError = _StubHomeAssistantError
+exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
 sys.modules["homeassistant.exceptions"] = exceptions_mod
 
 config_entries_mod = sys.modules.get(
@@ -89,10 +107,7 @@ class _FakeCoordinator:
         self.entry_title = "Test Location"
         self.lat = 40.7128
         self.lon = -74.0060
-        self.refresh_calls = 0
-
-    async def async_request_refresh(self) -> None:
-        self.refresh_calls += 1
+        self.async_request_refresh = AsyncMock()
 
 
 def test_button_attributes() -> None:
@@ -109,27 +124,33 @@ def test_button_attributes() -> None:
 
 
 @pytest.mark.asyncio
-async def test_button_press_triggers_refresh() -> None:
+async def test_button_press_awaits_async_request_refresh() -> None:
     coordinator = _FakeCoordinator()
     entity = button.PollenLevelsUpdateButton(coordinator)
 
     await entity.async_press()
 
-    assert coordinator.refresh_calls == 1
+    coordinator.async_request_refresh.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_button_press_raises_homeassistant_error_on_refresh_failure() -> None:
     coordinator = _FakeCoordinator()
-
-    async def _raise_error() -> None:
-        raise RuntimeError("boom")
-
-    coordinator.async_request_refresh = _raise_error  # type: ignore[method-assign]
+    coordinator.async_request_refresh.side_effect = RuntimeError("boom")
     entity = button.PollenLevelsUpdateButton(coordinator)
 
     with pytest.raises(exceptions_mod.HomeAssistantError):
         await entity.async_press()
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_raises_if_runtime_data_missing() -> None:
+    entry = types.SimpleNamespace(runtime_data=None)
+
+    with pytest.raises(exceptions_mod.ConfigEntryNotReady):
+        await button.async_setup_entry(
+            _StubHomeAssistant(), entry, lambda entities: None
+        )
 
 
 @pytest.mark.asyncio
@@ -142,6 +163,6 @@ async def test_setup_entry_adds_one_button_entity() -> None:
     def _add_entities(entities):
         added.extend(entities)
 
-    await button.async_setup_entry(None, entry, _add_entities)
+    await button.async_setup_entry(_StubHomeAssistant(), entry, _add_entities)
     assert len(added) == 1
     assert isinstance(added[0], button.PollenLevelsUpdateButton)

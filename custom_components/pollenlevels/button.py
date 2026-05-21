@@ -4,33 +4,34 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from homeassistant.components.button import ButtonEntity
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
+from .runtime import PollenLevelsConfigEntry
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import PollenDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    _hass,
+    _hass: HomeAssistant,
     config_entry: PollenLevelsConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Pollen Levels update button for one config entry."""
-    runtime = cast(
-        PollenLevelsRuntimeData | None, getattr(config_entry, "runtime_data", None)
-    )
+    runtime = config_entry.runtime_data
     if runtime is None:
-        return
+        raise ConfigEntryNotReady("Runtime data not ready")
 
     async_add_entities([PollenLevelsUpdateButton(runtime.coordinator)])
 
@@ -42,7 +43,7 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
     _attr_translation_key = "update_now"
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize update button entity."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.entry_id}_update_now"
