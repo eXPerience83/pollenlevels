@@ -323,7 +323,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 3
 
     @staticmethod
-    def async_get_options_flow(entry: config_entries.ConfigEntry):
+    def async_get_options_flow(
+        entry: config_entries.ConfigEntry,
+    ) -> PollenLevelsOptionsFlow:
         """Return the options flow handler."""
         return PollenLevelsOptionsFlow()
 
@@ -519,7 +521,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return errors, None
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Handle initial step."""
         errors: dict[str, str] = {}
         description_placeholders: dict[str, Any] = {
@@ -547,7 +551,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=description_placeholders,
         )
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]):
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any]
+    ) -> config_entries.ConfigFlowResult:
         """Handle re-authentication when credentials become invalid."""
         return await self.async_step_reauth_confirm()
 
@@ -559,7 +565,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         success_reason: str,
         user_input: dict[str, Any] | None,
         persist_normalized_data: bool = True,
-    ):
+    ) -> config_entries.ConfigFlowResult:
         """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
         placeholders = {
@@ -609,7 +615,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=placeholders,
         )
 
-    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None):
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Prompt for a refreshed API key and validate it."""
         entry = self._get_reauth_entry()
         if entry is None:
@@ -622,7 +630,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             persist_normalized_data=False,
         )
 
-    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Prompt for a refreshed API key from the reconfigure UI."""
         entry = self._get_reconfigure_entry()
         if entry is None:
@@ -639,7 +649,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
     """Handle options for an existing entry."""
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Display/process options form."""
         errors: dict[str, str] = {}
         placeholders = {"title": self.config_entry.title or DEFAULT_ENTRY_TITLE}
