@@ -108,6 +108,11 @@
       "top_pollen_types_today": {
         "name": "Belangrijkste pollentypen vandaag"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Update now"
+      }
     }
   }
 }

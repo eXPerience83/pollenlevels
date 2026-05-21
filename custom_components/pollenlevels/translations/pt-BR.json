@@ -108,6 +108,11 @@
       "top_pollen_types_today": {
         "name": "Principais tipos de pólen hoje"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Update now"
+      }
     }
   }
 }

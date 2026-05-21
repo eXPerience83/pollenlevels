@@ -108,6 +108,11 @@
       "top_pollen_types_today": {
         "name": "今日主要花粉类型"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Update now"
+      }
     }
   }
 }
