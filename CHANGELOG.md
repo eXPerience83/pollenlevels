@@ -1,7 +1,5 @@
 ## [2.2.2] - 2026-05-20
-
 ### Changed
-
 - Aligned re-authentication and reconfiguration coordinate placeholders with
   the existing two-decimal visible device-name formatting while preserving
   full-precision stored and API coordinates.
