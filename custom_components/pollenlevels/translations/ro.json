@@ -114,5 +114,10 @@
         "name": "Actualizează acum"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Nu s-au putut actualiza datele despre polen"
+    }
   }
 }

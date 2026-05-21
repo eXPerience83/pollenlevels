@@ -114,5 +114,10 @@
         "name": "立即更新"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "無法更新花粉資料"
+    }
   }
 }

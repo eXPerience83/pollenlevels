@@ -114,5 +114,10 @@
         "name": "Actualitza ara"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "No s'han pogut actualitzar les dades de pol·len"
+    }
   }
 }

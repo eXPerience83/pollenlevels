@@ -114,5 +114,10 @@
         "name": "Aktualizuj teraz"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Nie udało się zaktualizować danych o pyłkach"
+    }
   }
 }

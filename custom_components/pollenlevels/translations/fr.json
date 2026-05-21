@@ -114,5 +114,10 @@
         "name": "Mettre à jour maintenant"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Impossible de mettre à jour les données polliniques"
+    }
   }
 }

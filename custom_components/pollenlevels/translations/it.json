@@ -114,5 +114,10 @@
         "name": "Aggiorna ora"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Impossibile aggiornare i dati sui pollini"
+    }
   }
 }

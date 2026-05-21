@@ -114,5 +114,10 @@
         "name": "Uppdatera nu"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Kunde inte uppdatera pollendata"
+    }
   }
 }

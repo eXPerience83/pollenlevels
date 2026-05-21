@@ -114,5 +114,10 @@
         "name": "Päivitä nyt"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Siitepölytietoja ei voitu päivittää"
+    }
   }
 }

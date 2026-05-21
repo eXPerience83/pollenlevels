@@ -114,5 +114,10 @@
         "name": "Jetzt aktualisieren"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Pollendaten konnten nicht aktualisiert werden"
+    }
   }
 }

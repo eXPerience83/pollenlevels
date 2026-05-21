@@ -114,5 +114,10 @@
         "name": "Atualizar agora"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Não foi possível atualizar os dados de pólen"
+    }
   }
 }

@@ -114,5 +114,10 @@
         "name": "Update now"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Failed to refresh pollen data"
+    }
   }
 }

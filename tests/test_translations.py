@@ -252,6 +252,49 @@ def _extract_button_translation_key_usage() -> set[str]:
     return keys
 
 
+def _extract_button_exception_translation_keys() -> set[str]:
+    """Extract HomeAssistantError translation keys referenced by button.py."""
+
+    if not BUTTON_PATH.is_file():
+        raise AssertionError(f"Missing button.py at {BUTTON_PATH}")
+
+    tree = ast.parse(BUTTON_PATH.read_text(encoding="utf-8"))
+
+    keys: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not (
+            isinstance(node.func, ast.Name) and node.func.id == "HomeAssistantError"
+        ):
+            continue
+
+        domain = None
+        key = None
+        for kw in node.keywords:
+            if kw.arg == "translation_domain":
+                if isinstance(kw.value, ast.Name) and kw.value.id == "DOMAIN":
+                    domain = "DOMAIN"
+                else:
+                    _fail_unexpected_ast(
+                        "button.py HomeAssistantError translation_domain is unsupported"
+                    )
+            if kw.arg == "translation_key":
+                if isinstance(kw.value, ast.Constant) and isinstance(
+                    kw.value.value, str
+                ):
+                    key = kw.value.value
+                else:
+                    _fail_unexpected_ast(
+                        "button.py HomeAssistantError translation_key is not string literal"
+                    )
+
+        if domain == "DOMAIN" and key is not None:
+            keys.add(key)
+
+    return keys
+
+
 def test_translations_match_english_keyset() -> None:
     """Verify all locale files mirror the English translation keyset."""
 
@@ -306,6 +349,22 @@ def test_button_translation_keys_present() -> None:
         if f"entity.button.{key}.name" not in english
     }
     assert not missing, f"Missing button translation keys: {sorted(missing)}"
+
+
+def test_button_exception_translation_keys_present() -> None:
+    """Ensure HomeAssistantError translation keys in button.py exist in en.json."""
+
+    english = _flatten_keys(_load_translation(TRANSLATIONS_DIR / "en.json"))
+    error_keys = _extract_button_exception_translation_keys()
+
+    assert error_keys, "No HomeAssistantError translation_key values found in button.py"
+
+    missing = {
+        f"exceptions.{key}.message"
+        for key in error_keys
+        if f"exceptions.{key}.message" not in english
+    }
+    assert not missing, f"Missing button exception translation keys: {sorted(missing)}"
 
 
 def test_sensor_translation_keys_present() -> None:

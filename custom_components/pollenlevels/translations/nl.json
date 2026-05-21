@@ -114,5 +114,10 @@
         "name": "Nu bijwerken"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Kan pollengegevens niet bijwerken"
+    }
   }
 }

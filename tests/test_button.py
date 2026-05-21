@@ -73,7 +73,17 @@ exceptions_mod = sys.modules.get("homeassistant.exceptions") or types.ModuleType
 
 
 class _StubHomeAssistantError(Exception):
-    pass
+    def __init__(
+        self,
+        *args,
+        translation_domain=None,
+        translation_key=None,
+        translation_placeholders=None,
+    ):
+        super().__init__(*args)
+        self.translation_domain = translation_domain
+        self.translation_key = translation_key
+        self.translation_placeholders = translation_placeholders
 
 
 class _StubConfigEntryNotReady(Exception):
@@ -150,8 +160,11 @@ async def test_button_press_raises_homeassistant_error_on_refresh_failure() -> N
     coordinator.async_request_refresh.side_effect = RuntimeError("boom")
     entity = button.PollenLevelsUpdateButton(coordinator)
 
-    with pytest.raises(exceptions_mod.HomeAssistantError):
+    with pytest.raises(exceptions_mod.HomeAssistantError) as err:
         await entity.async_press()
+
+    assert err.value.translation_domain == "pollenlevels"
+    assert err.value.translation_key == "refresh_failed"
 
 
 @pytest.mark.asyncio
@@ -165,8 +178,11 @@ async def test_button_press_raises_when_refresh_reports_failure() -> None:
     coordinator.async_request_refresh.side_effect = _refresh_without_raise
     entity = button.PollenLevelsUpdateButton(coordinator)
 
-    with pytest.raises(exceptions_mod.HomeAssistantError):
+    with pytest.raises(exceptions_mod.HomeAssistantError) as err:
         await entity.async_press()
+
+    assert err.value.translation_domain == "pollenlevels"
+    assert err.value.translation_key == "refresh_failed"
 
 
 @pytest.mark.asyncio

@@ -114,5 +114,10 @@
         "name": "Frissítés most"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Nem sikerült frissíteni a pollenadatokat"
+    }
   }
 }

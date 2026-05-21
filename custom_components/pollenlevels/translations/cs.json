@@ -114,5 +114,10 @@
         "name": "Aktualizovat nyní"
       }
     }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Nepodařilo se aktualizovat data o pylu"
+    }
   }
 }

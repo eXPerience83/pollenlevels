@@ -76,7 +76,10 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
                 self.coordinator.entry_id,
                 type(err).__name__,
             )
-            raise HomeAssistantError("Failed to refresh pollen data") from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="refresh_failed",
+            ) from err
 
         if self.coordinator.last_update_success:
             return
@@ -88,4 +91,7 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
             self.coordinator.entry_id,
             error_type,
         )
-        raise HomeAssistantError("Failed to refresh pollen data")
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="refresh_failed",
+        )
