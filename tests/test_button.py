@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import sys
 import types
@@ -13,102 +14,108 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-custom_components_pkg = types.ModuleType("custom_components")
-custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-sys.modules.setdefault("custom_components", custom_components_pkg)
 
-pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
-pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
-sys.modules.setdefault("custom_components.pollenlevels", pollenlevels_pkg)
+@pytest.fixture
+def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+    """Stub required Home Assistant modules before importing button platform."""
 
-button_mod = types.ModuleType("homeassistant.components.button")
+    custom_components_pkg = types.ModuleType("custom_components")
+    custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
+    monkeypatch.setitem(sys.modules, "custom_components", custom_components_pkg)
 
+    pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
+    pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
+    monkeypatch.setitem(sys.modules, "custom_components.pollenlevels", pollenlevels_pkg)
 
-class _StubButtonEntity:
-    pass
+    button_mod = types.ModuleType("homeassistant.components.button")
 
+    class StubButtonEntity:
+        pass
 
-button_mod.ButtonEntity = _StubButtonEntity
-sys.modules.setdefault("homeassistant.components.button", button_mod)
+    button_mod.ButtonEntity = StubButtonEntity
+    monkeypatch.setitem(sys.modules, "homeassistant.components.button", button_mod)
 
-entity_mod = sys.modules.get("homeassistant.helpers.entity") or types.ModuleType(
-    "homeassistant.helpers.entity"
-)
+    entity_mod = types.ModuleType("homeassistant.helpers.entity")
 
+    class StubEntityCategory:
+        CONFIG = "config"
+        DIAGNOSTIC = "diagnostic"
 
-class _StubEntityCategory:
-    CONFIG = "config"
-    DIAGNOSTIC = "diagnostic"
+    entity_mod.EntityCategory = StubEntityCategory
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers.entity", entity_mod)
 
+    update_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
 
-entity_mod.EntityCategory = _StubEntityCategory
-sys.modules["homeassistant.helpers.entity"] = entity_mod
+    class StubCoordinatorEntity:
+        def __init__(self, coordinator):
+            self.coordinator = coordinator
 
-update_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
+    update_mod.CoordinatorEntity = StubCoordinatorEntity
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.update_coordinator", update_mod
+    )
 
+    core_mod = types.ModuleType("homeassistant.core")
 
-class _StubCoordinatorEntity:
-    def __init__(self, coordinator):
-        self.coordinator = coordinator
+    class StubHomeAssistant:
+        pass
 
+    core_mod.HomeAssistant = StubHomeAssistant
+    monkeypatch.setitem(sys.modules, "homeassistant.core", core_mod)
 
-update_mod.CoordinatorEntity = _StubCoordinatorEntity
-sys.modules.setdefault("homeassistant.helpers.update_coordinator", update_mod)
+    exceptions_mod = types.ModuleType("homeassistant.exceptions")
 
-core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
-    "homeassistant.core"
-)
+    class StubHomeAssistantError(Exception):
+        def __init__(
+            self,
+            *args,
+            translation_domain=None,
+            translation_key=None,
+            translation_placeholders=None,
+        ):
+            super().__init__(*args)
+            self.translation_domain = translation_domain
+            self.translation_key = translation_key
+            self.translation_placeholders = translation_placeholders
 
+    class StubConfigEntryNotReady(Exception):
+        pass
 
-class _StubHomeAssistant:
-    pass
+    exceptions_mod.HomeAssistantError = StubHomeAssistantError
+    exceptions_mod.ConfigEntryNotReady = StubConfigEntryNotReady
+    monkeypatch.setitem(sys.modules, "homeassistant.exceptions", exceptions_mod)
 
+    config_entries_mod = types.ModuleType("homeassistant.config_entries")
 
-core_mod.HomeAssistant = _StubHomeAssistant
-sys.modules["homeassistant.core"] = core_mod
+    class StubConfigEntry:
+        @classmethod
+        def __class_getitem__(cls, _item):
+            return cls
 
-exceptions_mod = sys.modules.get("homeassistant.exceptions") or types.ModuleType(
-    "homeassistant.exceptions"
-)
+    config_entries_mod.ConfigEntry = StubConfigEntry
+    monkeypatch.setitem(sys.modules, "homeassistant.config_entries", config_entries_mod)
 
-
-class _StubHomeAssistantError(Exception):
-    def __init__(
-        self,
-        *args,
-        translation_domain=None,
-        translation_key=None,
-        translation_placeholders=None,
-    ):
-        super().__init__(*args)
-        self.translation_domain = translation_domain
-        self.translation_key = translation_key
-        self.translation_placeholders = translation_placeholders
-
-
-class _StubConfigEntryNotReady(Exception):
-    pass
-
-
-exceptions_mod.HomeAssistantError = _StubHomeAssistantError
-exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
-sys.modules["homeassistant.exceptions"] = exceptions_mod
-
-config_entries_mod = sys.modules.get(
-    "homeassistant.config_entries"
-) or types.ModuleType("homeassistant.config_entries")
-
-
-class _StubConfigEntry:
-    @classmethod
-    def __class_getitem__(cls, _item):
-        return cls
+    return {
+        "exceptions_mod": exceptions_mod,
+        "StubHomeAssistant": StubHomeAssistant,
+    }
 
 
-config_entries_mod.ConfigEntry = _StubConfigEntry
-sys.modules["homeassistant.config_entries"] = config_entries_mod
+BUTTON_MODULE = None
+EXCEPTIONS_MOD = None
+STUB_HOME_ASSISTANT = None
 
-button = importlib.import_module("custom_components.pollenlevels.button")
+
+@pytest.fixture(autouse=True)
+def button_module(stub_ha_modules: dict[str, object]):
+    """Import the button module after stubbing Home Assistant dependencies."""
+
+    global BUTTON_MODULE, EXCEPTIONS_MOD, STUB_HOME_ASSISTANT
+
+    sys.modules.pop("custom_components.pollenlevels.button", None)
+    BUTTON_MODULE = importlib.import_module("custom_components.pollenlevels.button")
+    EXCEPTIONS_MOD = stub_ha_modules["exceptions_mod"]
+    STUB_HOME_ASSISTANT = stub_ha_modules["StubHomeAssistant"]
 
 
 class _FakeCoordinator:
@@ -124,7 +131,7 @@ class _FakeCoordinator:
 
 def test_button_attributes() -> None:
     coordinator = _FakeCoordinator()
-    entity = button.PollenLevelsUpdateButton(coordinator)
+    entity = BUTTON_MODULE.PollenLevelsUpdateButton(coordinator)
 
     assert entity._attr_unique_id == "entry-123_update_now"
     assert entity._attr_translation_key == "update_now"
@@ -139,36 +146,33 @@ def test_button_available_when_last_update_failed() -> None:
     coordinator = _FakeCoordinator()
     coordinator.last_update_success = False
 
-    entity = button.PollenLevelsUpdateButton(coordinator)
+    entity = BUTTON_MODULE.PollenLevelsUpdateButton(coordinator)
 
     assert entity.available is True
 
 
-@pytest.mark.asyncio
-async def test_button_press_awaits_async_request_refresh() -> None:
+def test_button_press_awaits_async_request_refresh() -> None:
     coordinator = _FakeCoordinator()
-    entity = button.PollenLevelsUpdateButton(coordinator)
+    entity = BUTTON_MODULE.PollenLevelsUpdateButton(coordinator)
 
-    await entity.async_press()
+    asyncio.run(entity.async_press())
 
     coordinator.async_request_refresh.assert_awaited_once()
 
 
-@pytest.mark.asyncio
-async def test_button_press_raises_homeassistant_error_on_refresh_failure() -> None:
+def test_button_press_raises_homeassistant_error_on_refresh_failure() -> None:
     coordinator = _FakeCoordinator()
     coordinator.async_request_refresh.side_effect = RuntimeError("boom")
-    entity = button.PollenLevelsUpdateButton(coordinator)
+    entity = BUTTON_MODULE.PollenLevelsUpdateButton(coordinator)
 
-    with pytest.raises(exceptions_mod.HomeAssistantError) as err:
-        await entity.async_press()
+    with pytest.raises(EXCEPTIONS_MOD.HomeAssistantError) as err:
+        asyncio.run(entity.async_press())
 
     assert err.value.translation_domain == "pollenlevels"
     assert err.value.translation_key == "refresh_failed"
 
 
-@pytest.mark.asyncio
-async def test_button_press_raises_when_refresh_reports_failure() -> None:
+def test_button_press_raises_when_refresh_reports_failure() -> None:
     coordinator = _FakeCoordinator()
 
     async def _refresh_without_raise() -> None:
@@ -176,27 +180,27 @@ async def test_button_press_raises_when_refresh_reports_failure() -> None:
         coordinator.last_exception = RuntimeError("boom")
 
     coordinator.async_request_refresh.side_effect = _refresh_without_raise
-    entity = button.PollenLevelsUpdateButton(coordinator)
+    entity = BUTTON_MODULE.PollenLevelsUpdateButton(coordinator)
 
-    with pytest.raises(exceptions_mod.HomeAssistantError) as err:
-        await entity.async_press()
+    with pytest.raises(EXCEPTIONS_MOD.HomeAssistantError) as err:
+        asyncio.run(entity.async_press())
 
     assert err.value.translation_domain == "pollenlevels"
     assert err.value.translation_key == "refresh_failed"
 
 
-@pytest.mark.asyncio
-async def test_setup_entry_raises_if_runtime_data_missing() -> None:
+def test_setup_entry_raises_if_runtime_data_missing() -> None:
     entry = types.SimpleNamespace(runtime_data=None)
 
-    with pytest.raises(exceptions_mod.ConfigEntryNotReady):
-        await button.async_setup_entry(
-            _StubHomeAssistant(), entry, lambda entities: None
+    with pytest.raises(EXCEPTIONS_MOD.ConfigEntryNotReady):
+        asyncio.run(
+            BUTTON_MODULE.async_setup_entry(
+                STUB_HOME_ASSISTANT(), entry, lambda entities: None
+            )
         )
 
 
-@pytest.mark.asyncio
-async def test_setup_entry_adds_one_button_entity() -> None:
+def test_setup_entry_adds_one_button_entity() -> None:
     coordinator = _FakeCoordinator()
     runtime = types.SimpleNamespace(coordinator=coordinator)
     entry = types.SimpleNamespace(runtime_data=runtime)
@@ -205,6 +209,8 @@ async def test_setup_entry_adds_one_button_entity() -> None:
     def _add_entities(entities):
         added.extend(entities)
 
-    await button.async_setup_entry(_StubHomeAssistant(), entry, _add_entities)
+    asyncio.run(
+        BUTTON_MODULE.async_setup_entry(STUB_HOME_ASSISTANT(), entry, _add_entities)
+    )
     assert len(added) == 1
-    assert isinstance(added[0], button.PollenLevelsUpdateButton)
+    assert isinstance(added[0], BUTTON_MODULE.PollenLevelsUpdateButton)
