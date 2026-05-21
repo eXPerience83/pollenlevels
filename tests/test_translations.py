@@ -4,6 +4,7 @@ These tests ensure:
 - All locale files have the exact same keyset as en.json (en.json is the source of truth).
 - Translation keys referenced by config_flow.py (config + options flows) exist in en.json.
 - Translation keys referenced by sensor.py via entity/device translation_key exist in en.json.
+- Translation keys referenced by button.py via entity translation_key exist in en.json.
 - Translation keys for sections (step.*.sections.*) are present if schema uses ``section(...)``.
 - Translation keys for services declared in services.yaml exist in en.json.
 
@@ -30,6 +31,7 @@ TRANSLATIONS_DIR = COMPONENT_DIR / "translations"
 CONFIG_FLOW_PATH = COMPONENT_DIR / "config_flow.py"
 CONST_PATH = COMPONENT_DIR / "const.py"
 SENSOR_PATH = COMPONENT_DIR / "sensor.py"
+BUTTON_PATH = COMPONENT_DIR / "button.py"
 SERVICES_YAML_PATH = COMPONENT_DIR / "services.yaml"
 
 
@@ -37,8 +39,8 @@ def _fail_unexpected_ast(context: str) -> None:
     """Fail with a consistent, actionable message for unsupported AST shapes."""
 
     pytest.fail(
-        "Unexpected AST layout while extracting translation keys from "
-        f"config_flow.py ({context}); please update the helper in test_translations.py",
+        "Unexpected AST layout while extracting translation keys "
+        f"({context}); please update the helper in test_translations.py",
     )
 
 
@@ -210,6 +212,89 @@ def _extract_sensor_translation_key_usage() -> tuple[set[str], set[str]]:
     return entity_keys, device_keys
 
 
+def _extract_button_translation_key_usage() -> set[str]:
+    """Extract translation keys referenced by button entities.
+
+    Entity keys:
+      - _attr_translation_key = "<key>"  -> entity.button.<key>.name
+
+    This stays intentionally narrow; unsupported AST changes should fail loudly.
+    """
+
+    if not BUTTON_PATH.is_file():
+        raise AssertionError(f"Missing button.py at {BUTTON_PATH}")
+
+    tree = ast.parse(BUTTON_PATH.read_text(encoding="utf-8"))
+
+    keys: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+
+        if isinstance(node, ast.Assign):
+            if len(node.targets) != 1:
+                _fail_unexpected_ast(
+                    "button.py _attr_translation_key assignment has multiple targets"
+                )
+            target = node.targets[0]
+            value = node.value
+        else:
+            target = node.target
+            value = node.value
+
+        if isinstance(target, ast.Name) and target.id == "_attr_translation_key":
+            if not (isinstance(value, ast.Constant) and isinstance(value.value, str)):
+                _fail_unexpected_ast(
+                    "button.py _attr_translation_key value is not a string literal"
+                )
+            keys.add(value.value)
+
+    return keys
+
+
+def _extract_button_exception_translation_keys() -> set[str]:
+    """Extract HomeAssistantError translation keys referenced by button.py."""
+
+    if not BUTTON_PATH.is_file():
+        raise AssertionError(f"Missing button.py at {BUTTON_PATH}")
+
+    tree = ast.parse(BUTTON_PATH.read_text(encoding="utf-8"))
+
+    keys: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not (
+            isinstance(node.func, ast.Name) and node.func.id == "HomeAssistantError"
+        ):
+            continue
+
+        domain = None
+        key = None
+        for kw in node.keywords:
+            if kw.arg == "translation_domain":
+                if isinstance(kw.value, ast.Name) and kw.value.id == "DOMAIN":
+                    domain = "DOMAIN"
+                else:
+                    _fail_unexpected_ast(
+                        "button.py HomeAssistantError translation_domain is unsupported"
+                    )
+            if kw.arg == "translation_key":
+                if isinstance(kw.value, ast.Constant) and isinstance(
+                    kw.value.value, str
+                ):
+                    key = kw.value.value
+                else:
+                    _fail_unexpected_ast(
+                        "button.py HomeAssistantError translation_key is not string literal"
+                    )
+
+        if domain == "DOMAIN" and key is not None:
+            keys.add(key)
+
+    return keys
+
+
 def test_translations_match_english_keyset() -> None:
     """Verify all locale files mirror the English translation keyset."""
 
@@ -248,6 +333,38 @@ def test_config_flow_extractor_includes_helper_error_keys() -> None:
     assert "options.error.invalid_update_interval" in keys
     assert "config.error.invalid_forecast_days" in keys
     assert "options.error.invalid_forecast_days" in keys
+
+
+def test_button_translation_keys_present() -> None:
+    """Ensure translation keys referenced by button.py exist in en.json."""
+
+    english = _flatten_keys(_load_translation(TRANSLATIONS_DIR / "en.json"))
+    button_keys = _extract_button_translation_key_usage()
+
+    assert button_keys, "No _attr_translation_key values found in button.py"
+
+    missing = {
+        f"entity.button.{key}.name"
+        for key in button_keys
+        if f"entity.button.{key}.name" not in english
+    }
+    assert not missing, f"Missing button translation keys: {sorted(missing)}"
+
+
+def test_button_exception_translation_keys_present() -> None:
+    """Ensure HomeAssistantError translation keys in button.py exist in en.json."""
+
+    english = _flatten_keys(_load_translation(TRANSLATIONS_DIR / "en.json"))
+    error_keys = _extract_button_exception_translation_keys()
+
+    assert error_keys, "No HomeAssistantError translation_key values found in button.py"
+
+    missing = {
+        f"exceptions.{key}.message"
+        for key in error_keys
+        if f"exceptions.{key}.message" not in english
+    }
+    assert not missing, f"Missing button exception translation keys: {sorted(missing)}"
 
 
 def test_sensor_translation_keys_present() -> None:

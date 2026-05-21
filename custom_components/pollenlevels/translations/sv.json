@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Viktigaste pollentyperna idag"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Uppdatera nu"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Kunde inte uppdatera pollendata"
     }
   }
 }

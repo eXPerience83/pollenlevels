@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Основные типы пыльцы сегодня"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Обновить сейчас"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Не удалось обновить данные о пыльце"
     }
   }
 }

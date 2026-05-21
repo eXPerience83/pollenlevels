@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Top pollen types today"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Update now"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Failed to refresh pollen data"
     }
   }
 }

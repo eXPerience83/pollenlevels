@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Основні типи пилку сьогодні"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Оновити зараз"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Не вдалося оновити дані про пилок"
     }
   }
 }
