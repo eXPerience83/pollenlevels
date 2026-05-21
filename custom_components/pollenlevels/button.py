@@ -59,6 +59,11 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
             },
         }
 
+    @property
+    def available(self) -> bool:
+        """Return whether the button is available."""
+        return True
+
     async def async_press(self) -> None:
         """Refresh this config entry's coordinator."""
         try:

@@ -125,6 +125,15 @@ def test_button_attributes() -> None:
     assert entity._attr_device_info["translation_key"] == "info"
 
 
+def test_button_available_when_last_update_failed() -> None:
+    coordinator = _FakeCoordinator()
+    coordinator.last_update_success = False
+
+    entity = button.PollenLevelsUpdateButton(coordinator)
+
+    assert entity.available is True
+
+
 @pytest.mark.asyncio
 async def test_button_press_awaits_async_request_refresh() -> None:
     coordinator = _FakeCoordinator()

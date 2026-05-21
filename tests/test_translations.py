@@ -39,8 +39,8 @@ def _fail_unexpected_ast(context: str) -> None:
     """Fail with a consistent, actionable message for unsupported AST shapes."""
 
     pytest.fail(
-        "Unexpected AST layout while extracting translation keys from "
-        f"config_flow.py ({context}); please update the helper in test_translations.py",
+        "Unexpected AST layout while extracting translation keys "
+        f"({context}); please update the helper in test_translations.py",
     )
 
 
