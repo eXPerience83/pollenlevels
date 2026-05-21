@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Tärkeimmät siitepölytyypit tänään"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Päivitä nyt"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Siitepölytietoja ei voitu päivittää"
     }
   }
 }

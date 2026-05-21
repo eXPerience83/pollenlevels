@@ -615,13 +615,13 @@ def test_setup_entry_success_and_unload(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
-    assert hass.config_entries.forward_calls == [(entry, ["sensor"])]
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
 
     assert entry.runtime_data is not None
     assert entry.runtime_data.coordinator.entry_id == entry.entry_id
 
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
-    assert hass.config_entries.unload_calls == [(entry, ["sensor"])]
+    assert hass.config_entries.unload_calls == [(entry, ["sensor", "button"])]
     assert entry.runtime_data is None
 
 

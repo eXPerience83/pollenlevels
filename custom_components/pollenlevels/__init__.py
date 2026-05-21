@@ -51,6 +51,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
 TARGET_ENTRY_VERSION = 3
+PLATFORMS = ["sensor", "button"]
 
 # ---- Service -------------------------------------------------------------
 
@@ -269,7 +270,7 @@ async def async_setup_entry(
     entry.runtime_data = PollenLevelsRuntimeData(coordinator=coordinator, client=client)
 
     try:
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     except ConfigEntryAuthFailed, ConfigEntryNotReady:
         entry.runtime_data = None
         raise
@@ -287,7 +288,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug(
         "PollenLevels async_unload_entry called for entry_id=%s", entry.entry_id
     )
-    unloaded = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         entry.runtime_data = None
     return unloaded

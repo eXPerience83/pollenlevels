@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Główne typy pyłków dzisiaj"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Aktualizuj teraz"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Nie udało się zaktualizować danych o pyłkach"
     }
   }
 }

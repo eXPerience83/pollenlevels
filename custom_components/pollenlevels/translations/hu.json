@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Mai fő pollentípusok"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Frissítés most"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Nem sikerült frissíteni a pollenadatokat"
     }
   }
 }

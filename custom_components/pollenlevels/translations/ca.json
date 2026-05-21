@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Tipus de pol·len principals avui"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Actualitza ara"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "No s'han pogut actualitzar les dades de pol·len"
     }
   }
 }

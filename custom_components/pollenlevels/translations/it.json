@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Tipi di polline principali oggi"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Aggiorna ora"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Impossibile aggiornare i dati sui pollini"
     }
   }
 }

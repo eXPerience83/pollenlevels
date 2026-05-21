@@ -108,6 +108,16 @@
       "top_pollen_types_today": {
         "name": "Hlavní typy pylu dnes"
       }
+    },
+    "button": {
+      "update_now": {
+        "name": "Aktualizovat nyní"
+      }
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Nepodařilo se aktualizovat data o pylu"
     }
   }
 }
