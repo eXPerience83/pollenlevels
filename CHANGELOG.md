@@ -1,3 +1,16 @@
+## [2.2.2] - 2026-05-20
+
+### Changed
+
+- Aligned re-authentication and reconfiguration coordinate placeholders with
+  the existing two-decimal visible device-name formatting while preserving
+  full-precision stored and API coordinates.
+- Documented the repository translation policy, keeping
+  `translations/en.json` as the source of truth without `strings.json` or
+  `%key:` references.
+- Improved internal type annotations in config flow, coordinator, and sensor
+  modules without changing runtime behavior.
+
 ## [2.2.1] - 2026-05-20
 ### Changed
 - Modernized the options-flow reload path by using Home Assistant's
