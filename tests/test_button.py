@@ -100,9 +100,9 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
 
 @pytest.fixture
-def button_platform(request: pytest.FixtureRequest) -> SimpleNamespace:
-    monkeypatch = request.getfixturevalue("monkeypatch")
-    stub_ha_modules = request.getfixturevalue("stub_ha_modules")
+def button_platform(
+    monkeypatch: pytest.MonkeyPatch, stub_ha_modules: SimpleNamespace
+) -> SimpleNamespace:
     monkeypatch.delitem(
         sys.modules, "custom_components.pollenlevels.button", raising=False
     )
@@ -151,7 +151,7 @@ def test_button_available_when_last_update_failed(
 
 @pytest.mark.asyncio
 async def test_button_press_awaits_async_request_refresh(
-    button_platform: SimpleNamespace, **_kwargs
+    button_platform: SimpleNamespace,
 ) -> None:
     coordinator = _FakeCoordinator()
     entity = button_platform.module.PollenLevelsUpdateButton(coordinator)
@@ -163,7 +163,7 @@ async def test_button_press_awaits_async_request_refresh(
 
 @pytest.mark.asyncio
 async def test_button_press_raises_homeassistant_error_on_refresh_failure(
-    button_platform: SimpleNamespace, **_kwargs
+    button_platform: SimpleNamespace,
 ) -> None:
     coordinator = _FakeCoordinator()
     coordinator.async_request_refresh.side_effect = RuntimeError("boom")
@@ -178,7 +178,7 @@ async def test_button_press_raises_homeassistant_error_on_refresh_failure(
 
 @pytest.mark.asyncio
 async def test_button_press_raises_when_refresh_reports_failure(
-    button_platform: SimpleNamespace, **_kwargs
+    button_platform: SimpleNamespace,
 ) -> None:
     coordinator = _FakeCoordinator()
 
@@ -198,7 +198,7 @@ async def test_button_press_raises_when_refresh_reports_failure(
 
 @pytest.mark.asyncio
 async def test_setup_entry_raises_if_runtime_data_missing(
-    button_platform: SimpleNamespace, **_kwargs
+    button_platform: SimpleNamespace,
 ) -> None:
     entry = types.SimpleNamespace(runtime_data=None)
 
@@ -210,7 +210,7 @@ async def test_setup_entry_raises_if_runtime_data_missing(
 
 @pytest.mark.asyncio
 async def test_setup_entry_adds_one_button_entity(
-    button_platform: SimpleNamespace, **_kwargs
+    button_platform: SimpleNamespace,
 ) -> None:
     coordinator = _FakeCoordinator()
     runtime = types.SimpleNamespace(coordinator=coordinator)
