@@ -108,6 +108,8 @@ class _FakeCoordinator:
         self.lat = 40.7128
         self.lon = -74.0060
         self.async_request_refresh = AsyncMock()
+        self.last_update_success = True
+        self.last_exception = None
 
 
 def test_button_attributes() -> None:
@@ -137,6 +139,21 @@ async def test_button_press_awaits_async_request_refresh() -> None:
 async def test_button_press_raises_homeassistant_error_on_refresh_failure() -> None:
     coordinator = _FakeCoordinator()
     coordinator.async_request_refresh.side_effect = RuntimeError("boom")
+    entity = button.PollenLevelsUpdateButton(coordinator)
+
+    with pytest.raises(exceptions_mod.HomeAssistantError):
+        await entity.async_press()
+
+
+@pytest.mark.asyncio
+async def test_button_press_raises_when_refresh_reports_failure() -> None:
+    coordinator = _FakeCoordinator()
+
+    async def _refresh_without_raise() -> None:
+        coordinator.last_update_success = False
+        coordinator.last_exception = RuntimeError("boom")
+
+    coordinator.async_request_refresh.side_effect = _refresh_without_raise
     entity = button.PollenLevelsUpdateButton(coordinator)
 
     with pytest.raises(exceptions_mod.HomeAssistantError):

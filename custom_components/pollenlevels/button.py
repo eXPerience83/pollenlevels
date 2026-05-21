@@ -72,3 +72,15 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
                 type(err).__name__,
             )
             raise HomeAssistantError("Failed to refresh pollen data") from err
+
+        if self.coordinator.last_update_success:
+            return
+
+        last_exception = getattr(self.coordinator, "last_exception", None)
+        error_type = type(last_exception).__name__ if last_exception else "UnknownError"
+        _LOGGER.warning(
+            "Manual update button refresh failed for entry %s (%s)",
+            self.coordinator.entry_id,
+            error_type,
+        )
+        raise HomeAssistantError("Failed to refresh pollen data")
