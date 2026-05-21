@@ -4,6 +4,7 @@ These tests ensure:
 - All locale files have the exact same keyset as en.json (en.json is the source of truth).
 - Translation keys referenced by config_flow.py (config + options flows) exist in en.json.
 - Translation keys referenced by sensor.py via entity/device translation_key exist in en.json.
+- Translation keys referenced by button.py via entity translation_key exist in en.json.
 - Translation keys for sections (step.*.sections.*) are present if schema uses ``section(...)``.
 - Translation keys for services declared in services.yaml exist in en.json.
 
@@ -30,6 +31,7 @@ TRANSLATIONS_DIR = COMPONENT_DIR / "translations"
 CONFIG_FLOW_PATH = COMPONENT_DIR / "config_flow.py"
 CONST_PATH = COMPONENT_DIR / "const.py"
 SENSOR_PATH = COMPONENT_DIR / "sensor.py"
+BUTTON_PATH = COMPONENT_DIR / "button.py"
 SERVICES_YAML_PATH = COMPONENT_DIR / "services.yaml"
 
 
@@ -210,6 +212,46 @@ def _extract_sensor_translation_key_usage() -> tuple[set[str], set[str]]:
     return entity_keys, device_keys
 
 
+def _extract_button_translation_key_usage() -> set[str]:
+    """Extract translation keys referenced by button entities.
+
+    Entity keys:
+      - _attr_translation_key = "<key>"  -> entity.button.<key>.name
+
+    This stays intentionally narrow; unsupported AST changes should fail loudly.
+    """
+
+    if not BUTTON_PATH.is_file():
+        raise AssertionError(f"Missing button.py at {BUTTON_PATH}")
+
+    tree = ast.parse(BUTTON_PATH.read_text(encoding="utf-8"))
+
+    keys: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+
+        if isinstance(node, ast.Assign):
+            if len(node.targets) != 1:
+                _fail_unexpected_ast(
+                    "button.py _attr_translation_key assignment has multiple targets"
+                )
+            target = node.targets[0]
+            value = node.value
+        else:
+            target = node.target
+            value = node.value
+
+        if isinstance(target, ast.Name) and target.id == "_attr_translation_key":
+            if not (isinstance(value, ast.Constant) and isinstance(value.value, str)):
+                _fail_unexpected_ast(
+                    "button.py _attr_translation_key value is not a string literal"
+                )
+            keys.add(value.value)
+
+    return keys
+
+
 def test_translations_match_english_keyset() -> None:
     """Verify all locale files mirror the English translation keyset."""
 
@@ -248,6 +290,22 @@ def test_config_flow_extractor_includes_helper_error_keys() -> None:
     assert "options.error.invalid_update_interval" in keys
     assert "config.error.invalid_forecast_days" in keys
     assert "options.error.invalid_forecast_days" in keys
+
+
+def test_button_translation_keys_present() -> None:
+    """Ensure translation keys referenced by button.py exist in en.json."""
+
+    english = _flatten_keys(_load_translation(TRANSLATIONS_DIR / "en.json"))
+    button_keys = _extract_button_translation_key_usage()
+
+    assert button_keys, "No _attr_translation_key values found in button.py"
+
+    missing = {
+        f"entity.button.{key}.name"
+        for key in button_keys
+        if f"entity.button.{key}.name" not in english
+    }
+    assert not missing, f"Missing button translation keys: {sorted(missing)}"
 
 
 def test_sensor_translation_keys_present() -> None:
