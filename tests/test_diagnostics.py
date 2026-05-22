@@ -38,8 +38,6 @@ diagnostics_mod.async_redact_data = _async_redact_data
 force_module("homeassistant.components", components_mod)
 force_module("homeassistant.components.diagnostics", diagnostics_mod)
 
-config_entries_mod = ModuleType("homeassistant.config_entries")
-
 
 class _ConfigEntry:
     def __init__(

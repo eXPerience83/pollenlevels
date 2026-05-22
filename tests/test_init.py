@@ -239,11 +239,14 @@ stub_exceptions(
     ConfigEntryNotReady=_StubConfigEntryNotReady,
     ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
 )
-update_coordinator_mod = stub_update_coordinator_module(
+stub_update_coordinator_module(
     update_failed=_StubUpdateFailed,
     data_update_coordinator=_StubDataUpdateCoordinator,
     coordinator_entity=_StubCoordinatorEntity,
 )
+_BaseDataUpdateCoordinator = sys.modules[
+    "homeassistant.helpers.update_coordinator"
+].DataUpdateCoordinator
 
 integration = importlib.import_module(
     "custom_components.pollenlevels.__init__"
@@ -552,7 +555,7 @@ def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
 
     seen: dict[str, int] = {}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             seen["hours"] = kwargs["hours"]
             seen["forecast_days"] = kwargs["forecast_days"]
@@ -597,7 +600,7 @@ def test_setup_entry_success_and_unload(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             self.api_key = kwargs["api_key"]
             self.lat = kwargs["lat"]
@@ -648,7 +651,7 @@ def test_setup_entry_normalizes_forecast_sensor_mode(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             self.create_d1 = kwargs["create_d1"]
             self.create_d2 = kwargs["create_d2"]
@@ -692,7 +695,7 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             self.create_d1 = kwargs["create_d1"]
             self.create_d2 = kwargs["create_d2"]
