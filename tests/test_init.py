@@ -13,6 +13,7 @@ import pytest
 
 from tests._ha_stubs import (
     force_module,
+    stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
     stub_update_coordinator_module,
@@ -28,8 +29,6 @@ homeassistant_mod = types.ModuleType("homeassistant")
 homeassistant_mod.__path__ = []
 force_module("homeassistant", homeassistant_mod)
 
-config_entries_mod = types.ModuleType("homeassistant.config_entries")
-
 
 class _StubConfigEntry:
     @classmethod
@@ -37,8 +36,7 @@ class _StubConfigEntry:
         return cls
 
 
-config_entries_mod.ConfigEntry = _StubConfigEntry
-force_module("homeassistant.config_entries", config_entries_mod)
+stub_config_entry_class(_StubConfigEntry)
 
 core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
     "homeassistant.core"

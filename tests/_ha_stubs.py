@@ -20,6 +20,9 @@ def force_module(name: str, module: ModuleType) -> ModuleType:
 def _set_module(
     name: str, module: ModuleType, *, monkeypatch: Any | None = None
 ) -> ModuleType:
+    # Intentionally replace target modules to keep stubs deterministic and avoid
+    # import-order coupling across suites. Fixtures can pass monkeypatch so
+    # teardown restores previous state automatically.
     if monkeypatch is not None:
         monkeypatch.setitem(sys.modules, name, module)
         return module

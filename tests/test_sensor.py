@@ -274,6 +274,7 @@ def _load_module(module_name: str, relative_path: str):
 
 
 for _mod in (
+    "custom_components.pollenlevels.const",
     "custom_components.pollenlevels.client",
     "custom_components.pollenlevels.coordinator",
     "custom_components.pollenlevels.sensor",
@@ -281,11 +282,11 @@ for _mod in (
     sys.modules.pop(_mod, None)
 
 const = _load_module("custom_components.pollenlevels.const", "const.py")
+client_mod = _load_module("custom_components.pollenlevels.client", "client.py")
 coordinator_mod = _load_module(
     "custom_components.pollenlevels.coordinator", "coordinator.py"
 )
 sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
-client_mod = _load_module("custom_components.pollenlevels.client", "client.py")
 
 
 class DummyHass:
