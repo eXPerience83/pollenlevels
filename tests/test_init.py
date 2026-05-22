@@ -38,9 +38,7 @@ class _StubConfigEntry:
 
 stub_config_entry_class(_StubConfigEntry)
 
-core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
-    "homeassistant.core"
-)
+core_mod = types.ModuleType("homeassistant.core")
 
 
 class _StubHomeAssistant:  # pragma: no cover - structure only
@@ -53,12 +51,10 @@ class _StubServiceCall:  # pragma: no cover - structure only
 
 core_mod.HomeAssistant = _StubHomeAssistant
 core_mod.ServiceCall = _StubServiceCall
-sys.modules["homeassistant.core"] = core_mod
+force_module("homeassistant.core", core_mod)
 
-ha_components_mod = sys.modules.get("homeassistant.components") or types.ModuleType(
-    "homeassistant.components"
-)
-sys.modules["homeassistant.components"] = ha_components_mod
+ha_components_mod = types.ModuleType("homeassistant.components")
+force_module("homeassistant.components", ha_components_mod)
 
 sensor_mod = types.ModuleType("homeassistant.components.sensor")
 
@@ -91,17 +87,15 @@ sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
 sensor_mod.SensorStateClass = _StubSensorStateClass
 force_module("homeassistant.components.sensor", sensor_mod)
 
-const_mod = sys.modules.get("homeassistant.const") or types.ModuleType(
-    "homeassistant.const"
-)
+const_mod = types.ModuleType("homeassistant.const")
 const_mod.ATTR_ATTRIBUTION = "Attribution"
-sys.modules["homeassistant.const"] = const_mod
+force_module("homeassistant.const", const_mod)
 
 aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
 aiohttp_client_mod.async_get_clientsession = lambda _hass: None
 force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
-aiohttp_mod = sys.modules.get("aiohttp") or types.ModuleType("aiohttp")
+aiohttp_mod = types.ModuleType("aiohttp")
 
 
 class _StubClientError(Exception):
@@ -121,21 +115,19 @@ aiohttp_mod.ClientError = _StubClientError
 aiohttp_mod.ClientSession = _StubClientSession
 aiohttp_mod.ClientTimeout = _StubClientTimeout
 aiohttp_mod.ContentTypeError = ValueError
-sys.modules["aiohttp"] = aiohttp_mod
+force_module("aiohttp", aiohttp_mod)
 
 cv_mod = types.ModuleType("homeassistant.helpers.config_validation")
 cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
 force_module("homeassistant.helpers.config_validation", cv_mod)
 
-vol_mod = sys.modules.get("voluptuous") or types.ModuleType("voluptuous")
+vol_mod = types.ModuleType("voluptuous")
 force_module("voluptuous", vol_mod)
 if not hasattr(vol_mod, "Schema"):
     vol_mod.Schema = lambda *args, **kwargs: None
 
-helpers_mod = sys.modules.get("homeassistant.helpers") or types.ModuleType(
-    "homeassistant.helpers"
-)
-sys.modules["homeassistant.helpers"] = helpers_mod
+helpers_mod = types.ModuleType("homeassistant.helpers")
+force_module("homeassistant.helpers", helpers_mod)
 
 entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
 

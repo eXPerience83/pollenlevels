@@ -66,10 +66,8 @@ sensor_mod.SensorEntity = _StubSensorEntity
 sensor_mod.SensorStateClass = _StubSensorStateClass
 force_module("homeassistant.components.sensor", sensor_mod)
 
-const_mod = sys.modules.get("homeassistant.const")
-if const_mod is None:
-    const_mod = types.ModuleType("homeassistant.const")
-    sys.modules["homeassistant.const"] = const_mod
+const_mod = types.ModuleType("homeassistant.const")
+force_module("homeassistant.const", const_mod)
 
 const_mod.ATTR_ATTRIBUTION = "Attribution"
 const_mod.CONF_NAME = "name"
@@ -235,8 +233,7 @@ util_mod = types.ModuleType("homeassistant.util")
 util_mod.dt = dt_mod
 force_module("homeassistant.util", util_mod)
 
-aiohttp_existing = sys.modules.get("aiohttp")
-aiohttp_mod = aiohttp_existing or types.ModuleType("aiohttp")
+aiohttp_mod = types.ModuleType("aiohttp")
 
 
 class _StubClientError(Exception):
@@ -252,14 +249,11 @@ class _StubClientTimeout:
         self.total = total
 
 
-if not hasattr(aiohttp_mod, "ClientError"):
-    aiohttp_mod.ClientError = _StubClientError
-if not hasattr(aiohttp_mod, "ClientSession"):
-    aiohttp_mod.ClientSession = _StubClientSession
-if not hasattr(aiohttp_mod, "ClientTimeout"):
-    aiohttp_mod.ClientTimeout = _StubClientTimeout
-if aiohttp_existing is None:
-    sys.modules["aiohttp"] = aiohttp_mod
+aiohttp_mod.ClientError = _StubClientError
+aiohttp_mod.ClientSession = _StubClientSession
+aiohttp_mod.ClientTimeout = _StubClientTimeout
+aiohttp_mod.ContentTypeError = ValueError
+force_module("aiohttp", aiohttp_mod)
 
 
 def _load_module(module_name: str, relative_path: str):
