@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT))
 
 @pytest.fixture
 def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    stub_custom_components_packages(root=ROOT)
+    stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
 
     button_mod = types.ModuleType("homeassistant.components.button")
 
@@ -51,6 +51,7 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         update_failed=RuntimeError,
         data_update_coordinator=object,
         coordinator_entity=_StubCoordinatorEntity,
+        monkeypatch=monkeypatch,
     )
 
     core_mod = types.ModuleType("homeassistant.core")
@@ -78,6 +79,7 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         pass
 
     exceptions_mod = stub_exceptions(
+        monkeypatch=monkeypatch,
         HomeAssistantError=_StubHomeAssistantError,
         ConfigEntryNotReady=_StubConfigEntryNotReady,
     )
@@ -87,7 +89,7 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         def __class_getitem__(cls, _item):
             return cls
 
-    stub_config_entry_class(_StubConfigEntry)
+    stub_config_entry_class(_StubConfigEntry, monkeypatch=monkeypatch)
 
     return SimpleNamespace(
         exceptions=exceptions_mod,

@@ -24,7 +24,21 @@ sys.path.insert(0, str(ROOT))
 stub_custom_components_packages(root=ROOT)
 
 # Provide the additional stubs required by __init__.
-force_module("homeassistant", types.ModuleType("homeassistant"))
+homeassistant_mod = types.ModuleType("homeassistant")
+homeassistant_mod.__path__ = []
+force_module("homeassistant", homeassistant_mod)
+
+config_entries_mod = types.ModuleType("homeassistant.config_entries")
+
+
+class _StubConfigEntry:
+    @classmethod
+    def __class_getitem__(cls, _item):
+        return cls
+
+
+config_entries_mod.ConfigEntry = _StubConfigEntry
+force_module("homeassistant.config_entries", config_entries_mod)
 
 core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
     "homeassistant.core"
@@ -115,7 +129,8 @@ cv_mod = types.ModuleType("homeassistant.helpers.config_validation")
 cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
 force_module("homeassistant.helpers.config_validation", cv_mod)
 
-vol_mod = sys.modules["voluptuous"]
+vol_mod = sys.modules.get("voluptuous") or types.ModuleType("voluptuous")
+force_module("voluptuous", vol_mod)
 if not hasattr(vol_mod, "Schema"):
     vol_mod.Schema = lambda *args, **kwargs: None
 

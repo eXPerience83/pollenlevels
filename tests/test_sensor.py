@@ -13,6 +13,7 @@ from typing import Any, NamedTuple
 import pytest
 
 from tests._ha_stubs import (
+    force_module,
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
@@ -29,10 +30,10 @@ stub_custom_components_packages(root=ROOT)
 # Minimal Home Assistant stubs to import the integration module under test.
 # ---------------------------------------------------------------------------
 ha = types.ModuleType("homeassistant")
-sys.modules.setdefault("homeassistant", ha)
+force_module("homeassistant", ha)
 
 ha.components = types.ModuleType("homeassistant.components")
-sys.modules.setdefault("homeassistant.components", ha.components)
+force_module("homeassistant.components", ha.components)
 
 sensor_mod = types.ModuleType("homeassistant.components.sensor")
 
@@ -63,7 +64,7 @@ class _StubSensorStateClass:
 sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
 sensor_mod.SensorEntity = _StubSensorEntity
 sensor_mod.SensorStateClass = _StubSensorStateClass
-sys.modules.setdefault("homeassistant.components.sensor", sensor_mod)
+force_module("homeassistant.components.sensor", sensor_mod)
 
 const_mod = sys.modules.get("homeassistant.const")
 if const_mod is None:
@@ -100,7 +101,7 @@ class _StubConfigEntry:
 stub_config_entry_class(_StubConfigEntry)
 
 helpers_mod = types.ModuleType("homeassistant.helpers")
-sys.modules.setdefault("homeassistant.helpers", helpers_mod)
+force_module("homeassistant.helpers", helpers_mod)
 
 entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
 
@@ -116,11 +117,11 @@ def _stub_async_get(_hass):  # pragma: no cover - not exercised in tests
 
 entity_registry_mod.async_get = _stub_async_get
 entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
-sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry_mod)
+force_module("homeassistant.helpers.entity_registry", entity_registry_mod)
 
 aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
 aiohttp_client_mod.async_get_clientsession = lambda hass: None
-sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 entity_mod = types.ModuleType("homeassistant.helpers.entity")
 
@@ -130,7 +131,7 @@ class _StubEntityCategory:
 
 
 entity_mod.EntityCategory = _StubEntityCategory
-sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
+force_module("homeassistant.helpers.entity", entity_mod)
 
 entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
 
@@ -140,7 +141,7 @@ def _add_entities_callback_stub(entities, update_before_add: bool = False) -> No
 
 
 entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
-sys.modules.setdefault("homeassistant.helpers.entity_platform", entity_platform_mod)
+force_module("homeassistant.helpers.entity_platform", entity_platform_mod)
 
 
 class _StubUpdateFailed(Exception):
@@ -186,12 +187,11 @@ class _StubCoordinatorEntity:
         return self._attr_device_info
 
 
-if "homeassistant.helpers.update_coordinator" not in sys.modules:
-    stub_update_coordinator_module(
-        update_failed=_StubUpdateFailed,
-        data_update_coordinator=_StubDataUpdateCoordinator,
-        coordinator_entity=_StubCoordinatorEntity,
-    )
+stub_update_coordinator_module(
+    update_failed=_StubUpdateFailed,
+    data_update_coordinator=_StubDataUpdateCoordinator,
+    coordinator_entity=_StubCoordinatorEntity,
+)
 
 dt_mod = types.ModuleType("homeassistant.util.dt")
 
@@ -229,11 +229,11 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
 
 dt_mod.parse_http_date = _stub_parse_http_date
-sys.modules.setdefault("homeassistant.util.dt", dt_mod)
+force_module("homeassistant.util.dt", dt_mod)
 
 util_mod = types.ModuleType("homeassistant.util")
 util_mod.dt = dt_mod
-sys.modules.setdefault("homeassistant.util", util_mod)
+force_module("homeassistant.util", util_mod)
 
 aiohttp_existing = sys.modules.get("aiohttp")
 aiohttp_mod = aiohttp_existing or types.ModuleType("aiohttp")

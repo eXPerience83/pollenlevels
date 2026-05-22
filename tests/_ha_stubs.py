@@ -17,31 +17,50 @@ def force_module(name: str, module: ModuleType) -> ModuleType:
     return module
 
 
-def stub_custom_components_packages(*, root: Path | None = None) -> None:
+def _set_module(
+    name: str, module: ModuleType, *, monkeypatch: Any | None = None
+) -> ModuleType:
+    if monkeypatch is not None:
+        monkeypatch.setitem(sys.modules, name, module)
+        return module
+    return force_module(name, module)
+
+
+def stub_custom_components_packages(
+    *, root: Path | None = None, monkeypatch: Any | None = None
+) -> None:
     """Stub custom_components packages for local integration imports."""
 
     base = root or ROOT
     custom_components_pkg = ModuleType("custom_components")
     custom_components_pkg.__path__ = [str(base / "custom_components")]
-    force_module("custom_components", custom_components_pkg)
+    _set_module("custom_components", custom_components_pkg, monkeypatch=monkeypatch)
 
     pollenlevels_pkg = ModuleType("custom_components.pollenlevels")
     pollenlevels_pkg.__path__ = [str(base / "custom_components" / "pollenlevels")]
-    force_module("custom_components.pollenlevels", pollenlevels_pkg)
+    _set_module(
+        "custom_components.pollenlevels",
+        pollenlevels_pkg,
+        monkeypatch=monkeypatch,
+    )
 
 
-def stub_config_entry_class(cls: type[Any]) -> ModuleType:
+def stub_config_entry_class(
+    cls: type[Any], *, monkeypatch: Any | None = None
+) -> ModuleType:
     module = ModuleType("homeassistant.config_entries")
     module.ConfigEntry = cls
-    force_module("homeassistant.config_entries", module)
+    _set_module("homeassistant.config_entries", module, monkeypatch=monkeypatch)
     return module
 
 
-def stub_exceptions(**exception_types: type[Exception]) -> ModuleType:
+def stub_exceptions(
+    *, monkeypatch: Any | None = None, **exception_types: type[Exception]
+) -> ModuleType:
     module = ModuleType("homeassistant.exceptions")
     for name, exc in exception_types.items():
         setattr(module, name, exc)
-    force_module("homeassistant.exceptions", module)
+    _set_module("homeassistant.exceptions", module, monkeypatch=monkeypatch)
     return module
 
 
@@ -50,10 +69,13 @@ def stub_update_coordinator_module(
     update_failed: type[Exception],
     data_update_coordinator: type[Any],
     coordinator_entity: type[Any],
+    monkeypatch: Any | None = None,
 ) -> ModuleType:
     module = ModuleType("homeassistant.helpers.update_coordinator")
     module.UpdateFailed = update_failed
     module.DataUpdateCoordinator = data_update_coordinator
     module.CoordinatorEntity = coordinator_entity
-    force_module("homeassistant.helpers.update_coordinator", module)
+    _set_module(
+        "homeassistant.helpers.update_coordinator", module, monkeypatch=monkeypatch
+    )
     return module
