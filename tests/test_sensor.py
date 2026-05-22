@@ -13,6 +13,7 @@ from typing import Any, NamedTuple
 import pytest
 
 from tests._ha_stubs import (
+    clear_integration_modules,
     force_module,
     stub_config_entry_class,
     stub_custom_components_packages,
@@ -24,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 # Ensure the custom_components namespace exists for relative imports.
+clear_integration_modules()
 stub_custom_components_packages(root=ROOT)
 
 # ---------------------------------------------------------------------------
@@ -266,14 +268,6 @@ def _load_module(module_name: str, relative_path: str):
     sys.modules[module_name] = module
     return module
 
-
-for _mod in (
-    "custom_components.pollenlevels.const",
-    "custom_components.pollenlevels.client",
-    "custom_components.pollenlevels.coordinator",
-    "custom_components.pollenlevels.sensor",
-):
-    sys.modules.pop(_mod, None)
 
 const = _load_module("custom_components.pollenlevels.const", "const.py")
 client_mod = _load_module("custom_components.pollenlevels.client", "client.py")

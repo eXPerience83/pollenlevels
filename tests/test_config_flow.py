@@ -15,6 +15,7 @@ from types import ModuleType, SimpleNamespace
 import pytest
 
 from tests._ha_stubs import (
+    clear_integration_modules,
     force_module,
     stub_custom_components_packages,
     stub_exceptions,
@@ -28,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 # ---------------------------------------------------------------------------
 # Minimal package and dependency stubs so the config flow can be imported.
 # ---------------------------------------------------------------------------
+clear_integration_modules()
 stub_custom_components_packages(root=ROOT)
 
 ha_mod = ModuleType("homeassistant")

@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 
 from tests._ha_stubs import (
+    clear_integration_modules,
     force_module,
     stub_config_entry_class,
     stub_custom_components_packages,
@@ -68,6 +69,7 @@ class _HomeAssistant:
 core_mod.HomeAssistant = _HomeAssistant
 force_module("homeassistant.core", core_mod)
 
+clear_integration_modules()
 stub_custom_components_packages(root=Path(__file__).resolve().parents[1])
 
 from custom_components.pollenlevels import diagnostics as diag  # noqa: E402

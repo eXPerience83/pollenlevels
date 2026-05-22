@@ -5,7 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -18,7 +19,7 @@ def force_module(name: str, module: ModuleType) -> ModuleType:
 
 
 def _set_module(
-    name: str, module: ModuleType, *, monkeypatch: Any | None = None
+    name: str, module: ModuleType, *, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> ModuleType:
     # Intentionally replace target modules to keep stubs deterministic and avoid
     # import-order coupling across suites. Fixtures can pass monkeypatch so
@@ -30,7 +31,7 @@ def _set_module(
 
 
 def stub_custom_components_packages(
-    *, root: Path | None = None, monkeypatch: Any | None = None
+    *, root: Path | None = None, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> None:
     """Stub custom_components packages for local integration imports."""
 
@@ -49,7 +50,7 @@ def stub_custom_components_packages(
 
 
 def stub_config_entry_class(
-    cls: type[Any], *, monkeypatch: Any | None = None
+    cls: type[object], *, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> ModuleType:
     module = ModuleType("homeassistant.config_entries")
     module.ConfigEntry = cls
@@ -58,7 +59,9 @@ def stub_config_entry_class(
 
 
 def stub_exceptions(
-    *, monkeypatch: Any | None = None, **exception_types: type[Exception]
+    *,
+    monkeypatch: pytest.MonkeyPatch | None = None,
+    **exception_types: type[Exception],
 ) -> ModuleType:
     module = ModuleType("homeassistant.exceptions")
     for name, exc in exception_types.items():
@@ -70,9 +73,9 @@ def stub_exceptions(
 def stub_update_coordinator_module(
     *,
     update_failed: type[Exception],
-    data_update_coordinator: type[Any],
-    coordinator_entity: type[Any],
-    monkeypatch: Any | None = None,
+    data_update_coordinator: type[object],
+    coordinator_entity: type[object],
+    monkeypatch: pytest.MonkeyPatch | None = None,
 ) -> ModuleType:
     module = ModuleType("homeassistant.helpers.update_coordinator")
     module.UpdateFailed = update_failed
@@ -82,3 +85,22 @@ def stub_update_coordinator_module(
         "homeassistant.helpers.update_coordinator", module, monkeypatch=monkeypatch
     )
     return module
+
+
+def clear_integration_modules(
+    package_name: str = "custom_components.pollenlevels",
+    *,
+    monkeypatch: pytest.MonkeyPatch | None = None,
+) -> None:
+    """Remove cached integration modules so tests import them with local stubs."""
+
+    module_names = [
+        name
+        for name in sys.modules
+        if name == package_name or name.startswith(f"{package_name}.")
+    ]
+    for name in module_names:
+        if monkeypatch is not None:
+            monkeypatch.delitem(sys.modules, name, raising=False)
+        else:
+            sys.modules.pop(name, None)

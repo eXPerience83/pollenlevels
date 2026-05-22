@@ -12,6 +12,7 @@ from typing import Any
 import pytest
 
 from tests._ha_stubs import (
+    clear_integration_modules,
     force_module,
     stub_config_entry_class,
     stub_custom_components_packages,
@@ -22,6 +23,7 @@ from tests._ha_stubs import (
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+clear_integration_modules()
 stub_custom_components_packages(root=ROOT)
 
 # Provide the additional stubs required by __init__.
