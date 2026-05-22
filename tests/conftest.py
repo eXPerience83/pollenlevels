@@ -79,7 +79,13 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(pyfuncitem.obj(**pyfuncitem.funcargs))
+        signature = inspect.signature(pyfuncitem.obj)
+        declared_funcargs = {
+            name: pyfuncitem.funcargs[name]
+            for name in signature.parameters
+            if name in pyfuncitem.funcargs
+        }
+        loop.run_until_complete(pyfuncitem.obj(**declared_funcargs))
     finally:
         # Ensure all tasks and async generators are properly cleaned up
         try:
