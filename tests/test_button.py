@@ -103,9 +103,6 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 def button_platform(
     monkeypatch: pytest.MonkeyPatch, stub_ha_modules: SimpleNamespace
 ) -> SimpleNamespace:
-    monkeypatch.delitem(
-        sys.modules, "custom_components.pollenlevels.button", raising=False
-    )
     module = importlib.import_module("custom_components.pollenlevels.button")
     return SimpleNamespace(
         module=module,
