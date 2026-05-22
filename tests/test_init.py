@@ -11,14 +11,20 @@ from typing import Any
 
 import pytest
 
+from tests._ha_stubs import (
+    force_module,
+    stub_custom_components_packages,
+    stub_exceptions,
+    stub_update_coordinator_module,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-# Import config_flow test module to reuse its Home Assistant stubs.
-import tests.test_config_flow  # noqa: E402,F401  # pylint: disable=unused-import
+stub_custom_components_packages(root=ROOT)
 
 # Provide the additional stubs required by __init__.
-sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
+force_module("homeassistant", types.ModuleType("homeassistant"))
 
 core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
     "homeassistant.core"
@@ -71,7 +77,7 @@ class _StubSensorStateClass:  # pragma: no cover - structure only
 sensor_mod.SensorEntity = _StubSensorEntity
 sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
 sensor_mod.SensorStateClass = _StubSensorStateClass
-sys.modules.setdefault("homeassistant.components.sensor", sensor_mod)
+force_module("homeassistant.components.sensor", sensor_mod)
 
 const_mod = sys.modules.get("homeassistant.const") or types.ModuleType(
     "homeassistant.const"
@@ -81,7 +87,7 @@ sys.modules["homeassistant.const"] = const_mod
 
 aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
 aiohttp_client_mod.async_get_clientsession = lambda _hass: None
-sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 aiohttp_mod = sys.modules.get("aiohttp") or types.ModuleType("aiohttp")
 
@@ -105,8 +111,9 @@ aiohttp_mod.ClientTimeout = _StubClientTimeout
 aiohttp_mod.ContentTypeError = ValueError
 sys.modules["aiohttp"] = aiohttp_mod
 
-cv_mod = sys.modules["homeassistant.helpers.config_validation"]
+cv_mod = types.ModuleType("homeassistant.helpers.config_validation")
 cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
+force_module("homeassistant.helpers.config_validation", cv_mod)
 
 vol_mod = sys.modules["voluptuous"]
 if not hasattr(vol_mod, "Schema"):
@@ -131,7 +138,7 @@ def _stub_async_get(_hass):  # pragma: no cover - structure only
 
 entity_registry_mod.async_get = _stub_async_get
 entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
-sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry_mod)
+force_module("homeassistant.helpers.entity_registry", entity_registry_mod)
 
 entity_mod = types.ModuleType("homeassistant.helpers.entity")
 
@@ -141,7 +148,7 @@ class _StubEntityCategory:
 
 
 entity_mod.EntityCategory = _StubEntityCategory
-sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
+force_module("homeassistant.helpers.entity", entity_mod)
 
 dt_mod = types.ModuleType("homeassistant.util.dt")
 
@@ -177,29 +184,19 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
 
 dt_mod.parse_http_date = _stub_parse_http_date
-sys.modules.setdefault("homeassistant.util.dt", dt_mod)
+force_module("homeassistant.util.dt", dt_mod)
 
 util_mod = types.ModuleType("homeassistant.util")
 util_mod.dt = dt_mod
-sys.modules.setdefault("homeassistant.util", util_mod)
+force_module("homeassistant.util", util_mod)
 
-exceptions_mod = sys.modules.setdefault(
-    "homeassistant.exceptions", types.ModuleType("homeassistant.exceptions")
-)
-if not hasattr(exceptions_mod, "ConfigEntryNotReady"):
 
-    class _StubConfigEntryNotReady(Exception):
-        pass
+class _StubConfigEntryNotReady(Exception):
+    pass
 
-    exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
-if not hasattr(exceptions_mod, "ConfigEntryAuthFailed"):
 
-    class _StubConfigEntryAuthFailed(Exception):
-        pass
-
-    exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
-
-update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
+class _StubConfigEntryAuthFailed(Exception):
+    pass
 
 
 class _StubUpdateFailed(Exception):
@@ -231,11 +228,14 @@ class _StubDataUpdateCoordinator:
         return asyncio.create_task(self.async_refresh())
 
 
-update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
-update_coordinator_mod.UpdateFailed = _StubUpdateFailed
-update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
-sys.modules.setdefault(
-    "homeassistant.helpers.update_coordinator", update_coordinator_mod
+stub_exceptions(
+    ConfigEntryNotReady=_StubConfigEntryNotReady,
+    ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
+)
+update_coordinator_mod = stub_update_coordinator_module(
+    update_failed=_StubUpdateFailed,
+    data_update_coordinator=_StubDataUpdateCoordinator,
+    coordinator_entity=_StubCoordinatorEntity,
 )
 
 integration = importlib.import_module(

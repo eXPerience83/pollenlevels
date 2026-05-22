@@ -12,17 +12,18 @@ from typing import Any, NamedTuple
 
 import pytest
 
+from tests._ha_stubs import (
+    stub_config_entry_class,
+    stub_custom_components_packages,
+    stub_exceptions,
+    stub_update_coordinator_module,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 # Ensure the custom_components namespace exists for relative imports.
-custom_components_pkg = types.ModuleType("custom_components")
-custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-sys.modules.setdefault("custom_components", custom_components_pkg)
-
-pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
-pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
-sys.modules.setdefault("custom_components.pollenlevels", pollenlevels_pkg)
+stub_custom_components_packages(root=ROOT)
 
 # ---------------------------------------------------------------------------
 # Minimal Home Assistant stubs to import the integration module under test.
@@ -75,8 +76,6 @@ const_mod.CONF_LOCATION = "location"
 const_mod.CONF_LATITUDE = "latitude"
 const_mod.CONF_LONGITUDE = "longitude"
 
-exceptions_mod = types.ModuleType("homeassistant.exceptions")
-
 
 class _StubConfigEntryNotReady(Exception):
     pass
@@ -86,11 +85,10 @@ class _StubConfigEntryAuthFailed(Exception):
     pass
 
 
-exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
-exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
-sys.modules.setdefault("homeassistant.exceptions", exceptions_mod)
-
-config_entries_mod = types.ModuleType("homeassistant.config_entries")
+stub_exceptions(
+    ConfigEntryNotReady=_StubConfigEntryNotReady,
+    ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
+)
 
 
 class _StubConfigEntry:
@@ -99,8 +97,7 @@ class _StubConfigEntry:
         return cls
 
 
-config_entries_mod.ConfigEntry = _StubConfigEntry
-sys.modules.setdefault("homeassistant.config_entries", config_entries_mod)
+stub_config_entry_class(_StubConfigEntry)
 
 helpers_mod = types.ModuleType("homeassistant.helpers")
 sys.modules.setdefault("homeassistant.helpers", helpers_mod)
@@ -144,8 +141,6 @@ def _add_entities_callback_stub(entities, update_before_add: bool = False) -> No
 
 entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
 sys.modules.setdefault("homeassistant.helpers.entity_platform", entity_platform_mod)
-
-update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
 
 
 class _StubUpdateFailed(Exception):
@@ -191,12 +186,12 @@ class _StubCoordinatorEntity:
         return self._attr_device_info
 
 
-update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
-update_coordinator_mod.UpdateFailed = _StubUpdateFailed
-update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
-sys.modules.setdefault(
-    "homeassistant.helpers.update_coordinator", update_coordinator_mod
-)
+if "homeassistant.helpers.update_coordinator" not in sys.modules:
+    stub_update_coordinator_module(
+        update_failed=_StubUpdateFailed,
+        data_update_coordinator=_StubDataUpdateCoordinator,
+        coordinator_entity=_StubCoordinatorEntity,
+    )
 
 dt_mod = types.ModuleType("homeassistant.util.dt")
 
@@ -278,12 +273,19 @@ def _load_module(module_name: str, relative_path: str):
     return module
 
 
+for _mod in (
+    "custom_components.pollenlevels.client",
+    "custom_components.pollenlevels.coordinator",
+    "custom_components.pollenlevels.sensor",
+):
+    sys.modules.pop(_mod, None)
+
 const = _load_module("custom_components.pollenlevels.const", "const.py")
 coordinator_mod = _load_module(
     "custom_components.pollenlevels.coordinator", "coordinator.py"
 )
 sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
-client_mod = importlib.import_module("custom_components.pollenlevels.client")
+client_mod = _load_module("custom_components.pollenlevels.client", "client.py")
 
 
 class DummyHass:
