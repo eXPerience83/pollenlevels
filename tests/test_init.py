@@ -244,9 +244,7 @@ stub_update_coordinator_module(
     data_update_coordinator=_StubDataUpdateCoordinator,
     coordinator_entity=_StubCoordinatorEntity,
 )
-_BaseDataUpdateCoordinator = sys.modules[
-    "homeassistant.helpers.update_coordinator"
-].DataUpdateCoordinator
+_BaseDataUpdateCoordinator = _StubDataUpdateCoordinator
 
 integration = importlib.import_module(
     "custom_components.pollenlevels.__init__"
