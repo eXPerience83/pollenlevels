@@ -17,6 +17,7 @@ from tests._ha_stubs import (
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
+    stub_homeassistant_package,
     stub_update_coordinator_module,
 )
 
@@ -27,9 +28,7 @@ clear_integration_modules()
 stub_custom_components_packages(root=ROOT)
 
 # Provide the additional stubs required by __init__.
-homeassistant_mod = types.ModuleType("homeassistant")
-homeassistant_mod.__path__ = []
-force_module("homeassistant", homeassistant_mod)
+homeassistant_mod = stub_homeassistant_package()
 
 
 class _StubConfigEntry:

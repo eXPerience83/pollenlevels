@@ -19,6 +19,7 @@ from tests._ha_stubs import (
     force_module,
     stub_custom_components_packages,
     stub_exceptions,
+    stub_homeassistant_package,
     stub_update_coordinator_module,
 )
 
@@ -32,8 +33,7 @@ sys.path.insert(0, str(ROOT))
 clear_integration_modules()
 stub_custom_components_packages(root=ROOT)
 
-ha_mod = ModuleType("homeassistant")
-force_module("homeassistant", ha_mod)
+ha_mod = stub_homeassistant_package()
 
 config_entries_mod = ModuleType("homeassistant.config_entries")
 

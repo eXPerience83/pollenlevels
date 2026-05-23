@@ -18,6 +18,7 @@ from tests._ha_stubs import (
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
+    stub_homeassistant_package,
     stub_update_coordinator_module,
 )
 
@@ -31,8 +32,7 @@ stub_custom_components_packages(root=ROOT)
 # ---------------------------------------------------------------------------
 # Minimal Home Assistant stubs to import the integration module under test.
 # ---------------------------------------------------------------------------
-ha = types.ModuleType("homeassistant")
-force_module("homeassistant", ha)
+ha = stub_homeassistant_package()
 
 ha.components = types.ModuleType("homeassistant.components")
 force_module("homeassistant.components", ha.components)

@@ -30,6 +30,20 @@ def _set_module(
     return force_module(name, module)
 
 
+def stub_homeassistant_package(
+    *,
+    as_package: bool = True,
+    monkeypatch: pytest.MonkeyPatch | None = None,
+) -> ModuleType:
+    """Install a fresh ``homeassistant`` base module for local stubs."""
+
+    module = ModuleType("homeassistant")
+    if as_package:
+        module.__path__ = []
+    _set_module("homeassistant", module, monkeypatch=monkeypatch)
+    return module
+
+
 def stub_custom_components_packages(
     *, root: Path | None = None, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> None:
@@ -96,7 +110,7 @@ def clear_integration_modules(
 
     module_names = [
         name
-        for name in sys.modules
+        for name in list(sys.modules)
         if name == package_name or name.startswith(f"{package_name}.")
     ]
     for name in module_names:
