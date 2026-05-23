@@ -1,3 +1,18 @@
+## [2.3.0b1] - 2026-05-23
+### Added
+- Added a Home Assistant button platform with an "Update now" button entity for
+  each configured Pollen Levels location.
+- Added the button platform to integration setup so update buttons are loaded
+  alongside sensor entities.
+
+### Changed
+- Isolated button platform tests with pytest fixtures and monkeypatch-based
+  Home Assistant stubs.
+- Centralized shared lightweight Home Assistant test stubs to reduce
+  import-order coupling across platform and setup tests.
+- Added deterministic integration module cleanup in tests so suites re-import
+  Pollen Levels modules with their own local stubs.
+
 ## [2.2.2] - 2026-05-20
 ### Changed
 - Aligned re-authentication and reconfiguration coordinate placeholders with
