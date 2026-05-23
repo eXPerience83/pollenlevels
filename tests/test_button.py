@@ -16,6 +16,7 @@ from tests._ha_stubs import (
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
+    stub_homeassistant_package,
     stub_update_coordinator_module,
 )
 
@@ -27,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     clear_integration_modules(monkeypatch=monkeypatch)
     stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
+    stub_homeassistant_package(monkeypatch=monkeypatch)
 
     button_mod = types.ModuleType("homeassistant.components.button")
 
