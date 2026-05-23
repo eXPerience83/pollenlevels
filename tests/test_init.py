@@ -11,18 +11,35 @@ from typing import Any
 
 import pytest
 
+from tests._ha_stubs import (
+    clear_integration_modules,
+    force_module,
+    stub_config_entry_class,
+    stub_custom_components_packages,
+    stub_exceptions,
+    stub_homeassistant_package,
+    stub_update_coordinator_module,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-# Import config_flow test module to reuse its Home Assistant stubs.
-import tests.test_config_flow  # noqa: E402,F401  # pylint: disable=unused-import
+clear_integration_modules()
+stub_custom_components_packages(root=ROOT)
 
 # Provide the additional stubs required by __init__.
-sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
+homeassistant_mod = stub_homeassistant_package()
 
-core_mod = sys.modules.get("homeassistant.core") or types.ModuleType(
-    "homeassistant.core"
-)
+
+class _StubConfigEntry:
+    @classmethod
+    def __class_getitem__(cls, _item):
+        return cls
+
+
+stub_config_entry_class(_StubConfigEntry)
+
+core_mod = types.ModuleType("homeassistant.core")
 
 
 class _StubHomeAssistant:  # pragma: no cover - structure only
@@ -35,12 +52,10 @@ class _StubServiceCall:  # pragma: no cover - structure only
 
 core_mod.HomeAssistant = _StubHomeAssistant
 core_mod.ServiceCall = _StubServiceCall
-sys.modules["homeassistant.core"] = core_mod
+force_module("homeassistant.core", core_mod)
 
-ha_components_mod = sys.modules.get("homeassistant.components") or types.ModuleType(
-    "homeassistant.components"
-)
-sys.modules["homeassistant.components"] = ha_components_mod
+ha_components_mod = types.ModuleType("homeassistant.components")
+force_module("homeassistant.components", ha_components_mod)
 
 sensor_mod = types.ModuleType("homeassistant.components.sensor")
 
@@ -71,19 +86,17 @@ class _StubSensorStateClass:  # pragma: no cover - structure only
 sensor_mod.SensorEntity = _StubSensorEntity
 sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
 sensor_mod.SensorStateClass = _StubSensorStateClass
-sys.modules.setdefault("homeassistant.components.sensor", sensor_mod)
+force_module("homeassistant.components.sensor", sensor_mod)
 
-const_mod = sys.modules.get("homeassistant.const") or types.ModuleType(
-    "homeassistant.const"
-)
+const_mod = types.ModuleType("homeassistant.const")
 const_mod.ATTR_ATTRIBUTION = "Attribution"
-sys.modules["homeassistant.const"] = const_mod
+force_module("homeassistant.const", const_mod)
 
 aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
 aiohttp_client_mod.async_get_clientsession = lambda _hass: None
-sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
-aiohttp_mod = sys.modules.get("aiohttp") or types.ModuleType("aiohttp")
+aiohttp_mod = types.ModuleType("aiohttp")
 
 
 class _StubClientError(Exception):
@@ -103,19 +116,19 @@ aiohttp_mod.ClientError = _StubClientError
 aiohttp_mod.ClientSession = _StubClientSession
 aiohttp_mod.ClientTimeout = _StubClientTimeout
 aiohttp_mod.ContentTypeError = ValueError
-sys.modules["aiohttp"] = aiohttp_mod
+force_module("aiohttp", aiohttp_mod)
 
-cv_mod = sys.modules["homeassistant.helpers.config_validation"]
+cv_mod = types.ModuleType("homeassistant.helpers.config_validation")
 cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
+force_module("homeassistant.helpers.config_validation", cv_mod)
 
-vol_mod = sys.modules["voluptuous"]
+vol_mod = types.ModuleType("voluptuous")
+force_module("voluptuous", vol_mod)
 if not hasattr(vol_mod, "Schema"):
     vol_mod.Schema = lambda *args, **kwargs: None
 
-helpers_mod = sys.modules.get("homeassistant.helpers") or types.ModuleType(
-    "homeassistant.helpers"
-)
-sys.modules["homeassistant.helpers"] = helpers_mod
+helpers_mod = types.ModuleType("homeassistant.helpers")
+force_module("homeassistant.helpers", helpers_mod)
 
 entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
 
@@ -131,7 +144,7 @@ def _stub_async_get(_hass):  # pragma: no cover - structure only
 
 entity_registry_mod.async_get = _stub_async_get
 entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
-sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry_mod)
+force_module("homeassistant.helpers.entity_registry", entity_registry_mod)
 
 entity_mod = types.ModuleType("homeassistant.helpers.entity")
 
@@ -141,7 +154,7 @@ class _StubEntityCategory:
 
 
 entity_mod.EntityCategory = _StubEntityCategory
-sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
+force_module("homeassistant.helpers.entity", entity_mod)
 
 dt_mod = types.ModuleType("homeassistant.util.dt")
 
@@ -177,29 +190,19 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
 
 dt_mod.parse_http_date = _stub_parse_http_date
-sys.modules.setdefault("homeassistant.util.dt", dt_mod)
+force_module("homeassistant.util.dt", dt_mod)
 
 util_mod = types.ModuleType("homeassistant.util")
 util_mod.dt = dt_mod
-sys.modules.setdefault("homeassistant.util", util_mod)
+force_module("homeassistant.util", util_mod)
 
-exceptions_mod = sys.modules.setdefault(
-    "homeassistant.exceptions", types.ModuleType("homeassistant.exceptions")
-)
-if not hasattr(exceptions_mod, "ConfigEntryNotReady"):
 
-    class _StubConfigEntryNotReady(Exception):
-        pass
+class _StubConfigEntryNotReady(Exception):
+    pass
 
-    exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
-if not hasattr(exceptions_mod, "ConfigEntryAuthFailed"):
 
-    class _StubConfigEntryAuthFailed(Exception):
-        pass
-
-    exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
-
-update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
+class _StubConfigEntryAuthFailed(Exception):
+    pass
 
 
 class _StubUpdateFailed(Exception):
@@ -231,12 +234,16 @@ class _StubDataUpdateCoordinator:
         return asyncio.create_task(self.async_refresh())
 
 
-update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
-update_coordinator_mod.UpdateFailed = _StubUpdateFailed
-update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
-sys.modules.setdefault(
-    "homeassistant.helpers.update_coordinator", update_coordinator_mod
+stub_exceptions(
+    ConfigEntryNotReady=_StubConfigEntryNotReady,
+    ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
 )
+stub_update_coordinator_module(
+    update_failed=_StubUpdateFailed,
+    data_update_coordinator=_StubDataUpdateCoordinator,
+    coordinator_entity=_StubCoordinatorEntity,
+)
+_BaseDataUpdateCoordinator = _StubDataUpdateCoordinator
 
 integration = importlib.import_module(
     "custom_components.pollenlevels.__init__"
@@ -545,7 +552,7 @@ def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
 
     seen: dict[str, int] = {}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             seen["hours"] = kwargs["hours"]
             seen["forecast_days"] = kwargs["forecast_days"]
@@ -590,7 +597,7 @@ def test_setup_entry_success_and_unload(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             self.api_key = kwargs["api_key"]
             self.lat = kwargs["lat"]
@@ -641,7 +648,7 @@ def test_setup_entry_normalizes_forecast_sensor_mode(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             self.create_d1 = kwargs["create_d1"]
             self.create_d2 = kwargs["create_d2"]
@@ -685,7 +692,7 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(update_coordinator_mod.DataUpdateCoordinator):
+    class _StubCoordinator(_BaseDataUpdateCoordinator):
         def __init__(self, *args, **kwargs):
             self.create_d1 = kwargs["create_d1"]
             self.create_d2 = kwargs["create_d2"]

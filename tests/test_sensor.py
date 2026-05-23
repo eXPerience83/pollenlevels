@@ -12,26 +12,30 @@ from typing import Any, NamedTuple
 
 import pytest
 
+from tests._ha_stubs import (
+    clear_integration_modules,
+    force_module,
+    stub_config_entry_class,
+    stub_custom_components_packages,
+    stub_exceptions,
+    stub_homeassistant_package,
+    stub_update_coordinator_module,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 # Ensure the custom_components namespace exists for relative imports.
-custom_components_pkg = types.ModuleType("custom_components")
-custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-sys.modules.setdefault("custom_components", custom_components_pkg)
-
-pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
-pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
-sys.modules.setdefault("custom_components.pollenlevels", pollenlevels_pkg)
+clear_integration_modules()
+stub_custom_components_packages(root=ROOT)
 
 # ---------------------------------------------------------------------------
 # Minimal Home Assistant stubs to import the integration module under test.
 # ---------------------------------------------------------------------------
-ha = types.ModuleType("homeassistant")
-sys.modules.setdefault("homeassistant", ha)
+ha = stub_homeassistant_package()
 
 ha.components = types.ModuleType("homeassistant.components")
-sys.modules.setdefault("homeassistant.components", ha.components)
+force_module("homeassistant.components", ha.components)
 
 sensor_mod = types.ModuleType("homeassistant.components.sensor")
 
@@ -62,20 +66,16 @@ class _StubSensorStateClass:
 sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
 sensor_mod.SensorEntity = _StubSensorEntity
 sensor_mod.SensorStateClass = _StubSensorStateClass
-sys.modules.setdefault("homeassistant.components.sensor", sensor_mod)
+force_module("homeassistant.components.sensor", sensor_mod)
 
-const_mod = sys.modules.get("homeassistant.const")
-if const_mod is None:
-    const_mod = types.ModuleType("homeassistant.const")
-    sys.modules["homeassistant.const"] = const_mod
+const_mod = types.ModuleType("homeassistant.const")
+force_module("homeassistant.const", const_mod)
 
 const_mod.ATTR_ATTRIBUTION = "Attribution"
 const_mod.CONF_NAME = "name"
 const_mod.CONF_LOCATION = "location"
 const_mod.CONF_LATITUDE = "latitude"
 const_mod.CONF_LONGITUDE = "longitude"
-
-exceptions_mod = types.ModuleType("homeassistant.exceptions")
 
 
 class _StubConfigEntryNotReady(Exception):
@@ -86,11 +86,10 @@ class _StubConfigEntryAuthFailed(Exception):
     pass
 
 
-exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
-exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
-sys.modules.setdefault("homeassistant.exceptions", exceptions_mod)
-
-config_entries_mod = types.ModuleType("homeassistant.config_entries")
+stub_exceptions(
+    ConfigEntryNotReady=_StubConfigEntryNotReady,
+    ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
+)
 
 
 class _StubConfigEntry:
@@ -99,11 +98,10 @@ class _StubConfigEntry:
         return cls
 
 
-config_entries_mod.ConfigEntry = _StubConfigEntry
-sys.modules.setdefault("homeassistant.config_entries", config_entries_mod)
+stub_config_entry_class(_StubConfigEntry)
 
 helpers_mod = types.ModuleType("homeassistant.helpers")
-sys.modules.setdefault("homeassistant.helpers", helpers_mod)
+force_module("homeassistant.helpers", helpers_mod)
 
 entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
 
@@ -119,11 +117,11 @@ def _stub_async_get(_hass):  # pragma: no cover - not exercised in tests
 
 entity_registry_mod.async_get = _stub_async_get
 entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
-sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry_mod)
+force_module("homeassistant.helpers.entity_registry", entity_registry_mod)
 
 aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
 aiohttp_client_mod.async_get_clientsession = lambda hass: None
-sys.modules.setdefault("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 entity_mod = types.ModuleType("homeassistant.helpers.entity")
 
@@ -133,7 +131,7 @@ class _StubEntityCategory:
 
 
 entity_mod.EntityCategory = _StubEntityCategory
-sys.modules.setdefault("homeassistant.helpers.entity", entity_mod)
+force_module("homeassistant.helpers.entity", entity_mod)
 
 entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
 
@@ -143,9 +141,7 @@ def _add_entities_callback_stub(entities, update_before_add: bool = False) -> No
 
 
 entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
-sys.modules.setdefault("homeassistant.helpers.entity_platform", entity_platform_mod)
-
-update_coordinator_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
+force_module("homeassistant.helpers.entity_platform", entity_platform_mod)
 
 
 class _StubUpdateFailed(Exception):
@@ -191,11 +187,10 @@ class _StubCoordinatorEntity:
         return self._attr_device_info
 
 
-update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
-update_coordinator_mod.UpdateFailed = _StubUpdateFailed
-update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
-sys.modules.setdefault(
-    "homeassistant.helpers.update_coordinator", update_coordinator_mod
+stub_update_coordinator_module(
+    update_failed=_StubUpdateFailed,
+    data_update_coordinator=_StubDataUpdateCoordinator,
+    coordinator_entity=_StubCoordinatorEntity,
 )
 
 dt_mod = types.ModuleType("homeassistant.util.dt")
@@ -234,14 +229,13 @@ def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
 
 
 dt_mod.parse_http_date = _stub_parse_http_date
-sys.modules.setdefault("homeassistant.util.dt", dt_mod)
+force_module("homeassistant.util.dt", dt_mod)
 
 util_mod = types.ModuleType("homeassistant.util")
 util_mod.dt = dt_mod
-sys.modules.setdefault("homeassistant.util", util_mod)
+force_module("homeassistant.util", util_mod)
 
-aiohttp_existing = sys.modules.get("aiohttp")
-aiohttp_mod = aiohttp_existing or types.ModuleType("aiohttp")
+aiohttp_mod = types.ModuleType("aiohttp")
 
 
 class _StubClientError(Exception):
@@ -257,14 +251,11 @@ class _StubClientTimeout:
         self.total = total
 
 
-if not hasattr(aiohttp_mod, "ClientError"):
-    aiohttp_mod.ClientError = _StubClientError
-if not hasattr(aiohttp_mod, "ClientSession"):
-    aiohttp_mod.ClientSession = _StubClientSession
-if not hasattr(aiohttp_mod, "ClientTimeout"):
-    aiohttp_mod.ClientTimeout = _StubClientTimeout
-if aiohttp_existing is None:
-    sys.modules["aiohttp"] = aiohttp_mod
+aiohttp_mod.ClientError = _StubClientError
+aiohttp_mod.ClientSession = _StubClientSession
+aiohttp_mod.ClientTimeout = _StubClientTimeout
+aiohttp_mod.ContentTypeError = ValueError
+force_module("aiohttp", aiohttp_mod)
 
 
 def _load_module(module_name: str, relative_path: str):
@@ -279,11 +270,11 @@ def _load_module(module_name: str, relative_path: str):
 
 
 const = _load_module("custom_components.pollenlevels.const", "const.py")
+client_mod = _load_module("custom_components.pollenlevels.client", "client.py")
 coordinator_mod = _load_module(
     "custom_components.pollenlevels.coordinator", "coordinator.py"
 )
 sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
-client_mod = importlib.import_module("custom_components.pollenlevels.client")
 
 
 class DummyHass:

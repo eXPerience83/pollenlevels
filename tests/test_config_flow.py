@@ -14,37 +14,26 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
+from tests._ha_stubs import (
+    clear_integration_modules,
+    force_module,
+    stub_custom_components_packages,
+    stub_exceptions,
+    stub_homeassistant_package,
+    stub_update_coordinator_module,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-
-
-def _force_module(name: str, module: ModuleType) -> None:
-    """Force a module into sys.modules.
-
-    Tests in this repository are designed to run without Home Assistant installed.
-    In some developer environments, other pytest plugins or pre-imports may have
-    already inserted modules like `custom_components` or `homeassistant`.
-
-    Using `setdefault()` can then silently keep the pre-existing module, which
-    may not match the lightweight stubs expected by these tests.
-    """
-
-    sys.modules[name] = module
 
 
 # ---------------------------------------------------------------------------
 # Minimal package and dependency stubs so the config flow can be imported.
 # ---------------------------------------------------------------------------
-custom_components_pkg = ModuleType("custom_components")
-custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-_force_module("custom_components", custom_components_pkg)
+clear_integration_modules()
+stub_custom_components_packages(root=ROOT)
 
-pollenlevels_pkg = ModuleType("custom_components.pollenlevels")
-pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
-_force_module("custom_components.pollenlevels", pollenlevels_pkg)
-
-ha_mod = ModuleType("homeassistant")
-_force_module("homeassistant", ha_mod)
+ha_mod = stub_homeassistant_package()
 
 config_entries_mod = ModuleType("homeassistant.config_entries")
 
@@ -111,27 +100,24 @@ config_entries_mod.ConfigFlow = _StubConfigFlow
 config_entries_mod.OptionsFlow = _StubOptionsFlow
 config_entries_mod.OptionsFlowWithReload = _StubOptionsFlowWithReload
 config_entries_mod.ConfigEntry = _StubConfigEntry
-_force_module("homeassistant.config_entries", config_entries_mod)
-
-exceptions_mod = ModuleType("homeassistant.exceptions")
+force_module("homeassistant.config_entries", config_entries_mod)
 
 
 class _StubConfigEntryAuthFailed(Exception):
     pass
 
 
-exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
-_force_module("homeassistant.exceptions", exceptions_mod)
+stub_exceptions(ConfigEntryAuthFailed=_StubConfigEntryAuthFailed)
 
 const_mod = ModuleType("homeassistant.const")
 const_mod.CONF_LATITUDE = "latitude"
 const_mod.CONF_LOCATION = "location"
 const_mod.CONF_LONGITUDE = "longitude"
 const_mod.CONF_NAME = "name"
-_force_module("homeassistant.const", const_mod)
+force_module("homeassistant.const", const_mod)
 
 helpers_mod = ModuleType("homeassistant.helpers")
-_force_module("homeassistant.helpers", helpers_mod)
+force_module("homeassistant.helpers", helpers_mod)
 
 config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
 
@@ -163,7 +149,7 @@ def _longitude(value=None):
 config_validation_mod.latitude = _latitude
 config_validation_mod.longitude = _longitude
 config_validation_mod.string = lambda value=None: value
-_force_module("homeassistant.helpers.config_validation", config_validation_mod)
+force_module("homeassistant.helpers.config_validation", config_validation_mod)
 
 aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
 
@@ -205,9 +191,7 @@ class _StubSession:
 
 
 aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
-_force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
-
-update_coordinator_mod = ModuleType("homeassistant.helpers.update_coordinator")
+force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 
 class _StubUpdateFailed(Exception):
@@ -235,10 +219,11 @@ class _StubCoordinatorEntity:
         self.coordinator = coordinator
 
 
-update_coordinator_mod.UpdateFailed = _StubUpdateFailed
-update_coordinator_mod.DataUpdateCoordinator = _StubDataUpdateCoordinator
-update_coordinator_mod.CoordinatorEntity = _StubCoordinatorEntity
-_force_module("homeassistant.helpers.update_coordinator", update_coordinator_mod)
+stub_update_coordinator_module(
+    update_failed=_StubUpdateFailed,
+    data_update_coordinator=_StubDataUpdateCoordinator,
+    coordinator_entity=_StubCoordinatorEntity,
+)
 
 util_mod = ModuleType("homeassistant.util")
 dt_mod = ModuleType("homeassistant.util.dt")
@@ -254,8 +239,8 @@ def _parse_http_date(value: str):
 dt_mod.parse_http_date = _parse_http_date
 dt_mod.utcnow = lambda: datetime.now(UTC)
 util_mod.dt = dt_mod
-_force_module("homeassistant.util", util_mod)
-_force_module("homeassistant.util.dt", dt_mod)
+force_module("homeassistant.util", util_mod)
+force_module("homeassistant.util.dt", dt_mod)
 
 selector_mod = ModuleType("homeassistant.helpers.selector")
 
@@ -338,7 +323,7 @@ selector_mod.SelectSelector = _SelectSelector
 selector_mod.SelectSelectorConfig = _SelectSelectorConfig
 selector_mod.SelectSelectorMode = _SelectSelectorMode
 selector_mod.section = lambda key: key
-_force_module("homeassistant.helpers.selector", selector_mod)
+force_module("homeassistant.helpers.selector", selector_mod)
 
 ha_mod.helpers = helpers_mod
 ha_mod.config_entries = config_entries_mod
@@ -363,7 +348,7 @@ aiohttp_mod.ClientError = _StubClientError
 aiohttp_mod.ClientTimeout = _StubClientTimeout
 aiohttp_mod.ClientSession = _StubClientSession
 aiohttp_mod.ContentTypeError = ValueError
-_force_module("aiohttp", aiohttp_mod)
+force_module("aiohttp", aiohttp_mod)
 
 vol_mod = ModuleType("voluptuous")
 
@@ -387,7 +372,7 @@ vol_mod.All = lambda *args, **kwargs: None
 vol_mod.Coerce = lambda *args, **kwargs: None
 vol_mod.Range = lambda *args, **kwargs: None
 vol_mod.In = lambda *args, **kwargs: None
-_force_module("voluptuous", vol_mod)
+force_module("voluptuous", vol_mod)
 
 from homeassistant.const import (
     CONF_LATITUDE,

@@ -11,19 +11,24 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from tests._ha_stubs import (
+    clear_integration_modules,
+    stub_config_entry_class,
+    stub_custom_components_packages,
+    stub_exceptions,
+    stub_homeassistant_package,
+    stub_update_coordinator_module,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
 @pytest.fixture
 def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    custom_components_pkg = types.ModuleType("custom_components")
-    custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-    monkeypatch.setitem(sys.modules, "custom_components", custom_components_pkg)
-
-    pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
-    pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
-    monkeypatch.setitem(sys.modules, "custom_components.pollenlevels", pollenlevels_pkg)
+    clear_integration_modules(monkeypatch=monkeypatch)
+    stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
+    stub_homeassistant_package(monkeypatch=monkeypatch)
 
     button_mod = types.ModuleType("homeassistant.components.button")
 
@@ -42,15 +47,15 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     entity_mod.EntityCategory = _StubEntityCategory
     monkeypatch.setitem(sys.modules, "homeassistant.helpers.entity", entity_mod)
 
-    update_mod = types.ModuleType("homeassistant.helpers.update_coordinator")
-
     class _StubCoordinatorEntity:
         def __init__(self, coordinator):
             self.coordinator = coordinator
 
-    update_mod.CoordinatorEntity = _StubCoordinatorEntity
-    monkeypatch.setitem(
-        sys.modules, "homeassistant.helpers.update_coordinator", update_mod
+    stub_update_coordinator_module(
+        update_failed=RuntimeError,
+        data_update_coordinator=object,
+        coordinator_entity=_StubCoordinatorEntity,
+        monkeypatch=monkeypatch,
     )
 
     core_mod = types.ModuleType("homeassistant.core")
@@ -60,8 +65,6 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
     core_mod.HomeAssistant = _StubHomeAssistant
     monkeypatch.setitem(sys.modules, "homeassistant.core", core_mod)
-
-    exceptions_mod = types.ModuleType("homeassistant.exceptions")
 
     class _StubHomeAssistantError(Exception):
         def __init__(
@@ -79,19 +82,18 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     class _StubConfigEntryNotReady(Exception):
         pass
 
-    exceptions_mod.HomeAssistantError = _StubHomeAssistantError
-    exceptions_mod.ConfigEntryNotReady = _StubConfigEntryNotReady
-    monkeypatch.setitem(sys.modules, "homeassistant.exceptions", exceptions_mod)
-
-    config_entries_mod = types.ModuleType("homeassistant.config_entries")
+    exceptions_mod = stub_exceptions(
+        monkeypatch=monkeypatch,
+        HomeAssistantError=_StubHomeAssistantError,
+        ConfigEntryNotReady=_StubConfigEntryNotReady,
+    )
 
     class _StubConfigEntry:
         @classmethod
         def __class_getitem__(cls, _item):
             return cls
 
-    config_entries_mod.ConfigEntry = _StubConfigEntry
-    monkeypatch.setitem(sys.modules, "homeassistant.config_entries", config_entries_mod)
+    stub_config_entry_class(_StubConfigEntry, monkeypatch=monkeypatch)
 
     return SimpleNamespace(
         exceptions=exceptions_mod,
@@ -103,9 +105,6 @@ def stub_ha_modules(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 def button_platform(
     monkeypatch: pytest.MonkeyPatch, stub_ha_modules: SimpleNamespace
 ) -> SimpleNamespace:
-    monkeypatch.delitem(
-        sys.modules, "custom_components.pollenlevels.button", raising=False
-    )
     module = importlib.import_module("custom_components.pollenlevels.button")
     return SimpleNamespace(
         module=module,

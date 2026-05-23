@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import datetime as dt
-import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
 
-
-def _force_module(name: str, module: ModuleType) -> None:
-    sys.modules[name] = module
-
+from tests._ha_stubs import (
+    clear_integration_modules,
+    force_module,
+    stub_config_entry_class,
+    stub_custom_components_packages,
+)
 
 components_mod = ModuleType("homeassistant.components")
 diagnostics_mod = ModuleType("homeassistant.components.diagnostics")
@@ -34,10 +35,8 @@ def _async_redact_data(data: dict[str, Any], _redact: set[str]) -> dict[str, Any
 
 
 diagnostics_mod.async_redact_data = _async_redact_data
-_force_module("homeassistant.components", components_mod)
-_force_module("homeassistant.components.diagnostics", diagnostics_mod)
-
-config_entries_mod = ModuleType("homeassistant.config_entries")
+force_module("homeassistant.components", components_mod)
+force_module("homeassistant.components.diagnostics", diagnostics_mod)
 
 
 class _ConfigEntry:
@@ -56,8 +55,7 @@ class _ConfigEntry:
         self.runtime_data = None
 
 
-config_entries_mod.ConfigEntry = _ConfigEntry
-_force_module("homeassistant.config_entries", config_entries_mod)
+stub_config_entry_class(_ConfigEntry)
 
 core_mod = ModuleType("homeassistant.core")
 
@@ -67,19 +65,10 @@ class _HomeAssistant:
 
 
 core_mod.HomeAssistant = _HomeAssistant
-_force_module("homeassistant.core", core_mod)
+force_module("homeassistant.core", core_mod)
 
-custom_components_pkg = ModuleType("custom_components")
-custom_components_pkg.__path__ = [
-    str(Path(__file__).resolve().parents[1] / "custom_components")
-]
-_force_module("custom_components", custom_components_pkg)
-
-pollenlevels_pkg = ModuleType("custom_components.pollenlevels")
-pollenlevels_pkg.__path__ = [
-    str(Path(__file__).resolve().parents[1] / "custom_components" / "pollenlevels")
-]
-_force_module("custom_components.pollenlevels", pollenlevels_pkg)
+clear_integration_modules()
+stub_custom_components_packages(root=Path(__file__).resolve().parents[1])
 
 from custom_components.pollenlevels import diagnostics as diag  # noqa: E402
 from custom_components.pollenlevels.const import (  # noqa: E402
