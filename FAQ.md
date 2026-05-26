@@ -19,8 +19,10 @@ No. By default the integration fetches every **6 hours** (~**4 requests/day**), 
 ---
 
 ## 3. Can I manually refresh the data?
-Yes. Call the `pollenlevels.force_update` service from **Developer Tools → Services** in Home Assistant.  
-This fetches new data immediately and resets the refresh timer.
+Yes. You can use either method:
+- Press the per-location **Update now** button entity created by the integration to refresh one configured location.
+- Call the `pollenlevels.force_update` service from **Developer Tools → Services** to refresh all configured locations.
+Both methods request an immediate coordinator refresh. The normal scheduled polling interval remains managed by Home Assistant's DataUpdateCoordinator.
 
 ---
 

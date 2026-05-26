@@ -1,3 +1,7 @@
+## [2.3.0] - 2026-05-26
+### Changed
+- Promoted the validated v2.3.0b1 beta to the stable v2.3.0 release.
+
 ## [2.3.0b1] - 2026-05-23
 ### Added
 - Added a Home Assistant button platform with an "Update now" button entity for

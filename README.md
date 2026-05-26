@@ -42,7 +42,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
   - **Plants** (Oak, Pine, Birch, etc.)
   - **Pollen Info** (Region / Date metadata)  
 - **Configurable updates** — Change update interval, language, forecast days, and per-day sensors without reinstalling.  
-- **Manual refresh** — Call `pollenlevels.force_update` to trigger an immediate update and reset the timer.
+- **Manual refresh** — Use the per-location **Update now** button entity to refresh a single configured location, or call the global `pollenlevels.force_update` service to refresh all configured locations.
 - **Last Updated sensor** — Shows timestamp of last successful update.
 - **Rich attributes** — Includes `inSeason`, index `description`, health `advice`,
   `color_hex`, `color_rgb`, and plant details.
