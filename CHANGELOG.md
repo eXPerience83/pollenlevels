@@ -1,3 +1,14 @@
+## [2.3.0] - 2026-05-26
+### Added
+- Added the per-location "Update now" button entity to the stable release,
+  promoted from v2.3.0b1 after validation in a real Home Assistant instance.
+
+### Changed
+- Documented the two manual refresh options in README and FAQ: the
+  per-location "Update now" button and the global
+  `pollenlevels.force_update` service.
+- No additional runtime changes were made after v2.3.0b1.
+
 ## [2.3.0b1] - 2026-05-23
 ### Added
 - Added a Home Assistant button platform with an "Update now" button entity for
