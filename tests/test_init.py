@@ -803,8 +803,8 @@ def test_force_update_continues_after_single_coordinator_failure() -> None:
     assert good_entry.runtime_data.coordinator.calls == 1
 
 
-def test_force_update_handles_cancelled_error(caplog) -> None:
-    """Cancellation results are handled gracefully and do not fail the service."""
+def test_force_update_handles_per_entry_cancelled_error(caplog) -> None:
+    """Per-entry cancellation results should not abort the global service."""
 
     class _CancelledCoordinator:
         async def async_request_refresh(self):
@@ -820,6 +820,18 @@ def test_force_update_handles_cancelled_error(caplog) -> None:
         asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
 
     assert "Manual refresh cancelled for entry entry-cancel" in caplog.text
+
+
+def test_force_update_no_coordinators_is_noop(caplog) -> None:
+    """Calling force_update with no coordinators should be a safe no-op."""
+
+    hass = _FakeHass(entries=[])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert "No coordinators available for force_update" in caplog.text
 
 
 def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
