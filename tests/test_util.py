@@ -162,6 +162,36 @@ def test_redact_sensitive_values_redacts_explicit_coordinates():
     assert redacted.count("***") == 2
 
 
+def test_redact_sensitive_values_redacts_quoted_url_assignments():
+    """Quoted URL assignments should keep quotes while redacting URL contents."""
+
+    message = (
+        'url="https://example.test/pollen?token=secret-token&key=bad-key" '
+        "url='https://example.test/pollen?api_key=secret-token&days=5'"
+    )
+
+    redacted = redact_sensitive_values(message, api_key="secret-token")
+
+    assert 'url="***"' in redacted
+    assert "url='***'" in redacted
+    assert "https://example.test" not in redacted
+    assert "token=secret-token" not in redacted
+    assert "key=bad-key" not in redacted
+    assert "api_key=secret-token" not in redacted
+
+
+def test_redact_sensitive_values_redacts_unquoted_url_assignment():
+    """Unquoted URL assignment should be redacted without exposing query values."""
+
+    redacted = redact_sensitive_values(
+        "url=https://example.test/pollen?token=abc&days=3"
+    )
+
+    assert "url=***" in redacted
+    assert "https://example.test" not in redacted
+    assert "token=abc" not in redacted
+
+
 def test_redact_sensitive_values_redacts_payload_line_without_swallowing_following_lines():
     """Payload line is redacted while later lines are still independently sanitized."""
 
