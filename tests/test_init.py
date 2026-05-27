@@ -723,12 +723,6 @@ def test_force_update_service_is_registered_with_empty_schema(
 ) -> None:
     """async_setup should register force_update with an empty schema."""
 
-    hass = _FakeHass()
-
-    assert asyncio.run(integration.async_setup(hass, {})) is True
-
-    key = (integration.DOMAIN, "force_update")
-    assert key in hass.services.registered
     marker = object()
 
     def _schema(value):
@@ -740,6 +734,8 @@ def test_force_update_service_is_registered_with_empty_schema(
     hass = _FakeHass()
     assert asyncio.run(integration.async_setup(hass, {})) is True
 
+    key = (integration.DOMAIN, "force_update")
+    assert key in hass.services.registered
     assert hass.services.schemas[key] is marker
 
 
@@ -807,7 +803,7 @@ def test_force_update_continues_after_single_coordinator_failure() -> None:
     assert good_entry.runtime_data.coordinator.calls == 1
 
 
-def test_force_update_handles_cancelled_error() -> None:
+def test_force_update_handles_cancelled_error(caplog) -> None:
     """Cancellation results are handled gracefully and do not fail the service."""
 
     class _CancelledCoordinator:
@@ -820,7 +816,10 @@ def test_force_update_handles_cancelled_error() -> None:
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_setup(hass, {})) is True
-    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert "Manual refresh cancelled for entry entry-cancel" in caplog.text
 
 
 def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
