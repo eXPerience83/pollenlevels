@@ -718,7 +718,9 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
     assert entry.runtime_data.coordinator.create_d2 is False
 
 
-def test_force_update_service_is_registered_with_empty_schema() -> None:
+def test_force_update_service_is_registered_with_empty_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """async_setup should register force_update with an empty schema."""
 
     hass = _FakeHass()
@@ -727,19 +729,16 @@ def test_force_update_service_is_registered_with_empty_schema() -> None:
 
     key = (integration.DOMAIN, "force_update")
     assert key in hass.services.registered
-    original_schema = integration.vol.Schema
     marker = object()
 
     def _schema(value):
         assert value == {}
         return marker
 
-    integration.vol.Schema = _schema
-    try:
-        hass = _FakeHass()
-        assert asyncio.run(integration.async_setup(hass, {})) is True
-    finally:
-        integration.vol.Schema = original_schema
+    monkeypatch.setattr(integration.vol, "Schema", _schema)
+
+    hass = _FakeHass()
+    assert asyncio.run(integration.async_setup(hass, {})) is True
 
     assert hass.services.schemas[key] is marker
 
@@ -765,8 +764,10 @@ def test_force_update_requests_refresh_per_entry() -> None:
     entry2.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
     entry3 = _FakeEntry(entry_id="entry-3")
     entry3.runtime_data = None
+    entry4 = _FakeEntry(entry_id="entry-4")
+    entry4.runtime_data = types.SimpleNamespace()
 
-    hass = _FakeHass(entries=[entry1, entry2, entry3])
+    hass = _FakeHass(entries=[entry1, entry2, entry3, entry4])
 
     assert asyncio.run(integration.async_setup(hass, {})) is True
     assert (integration.DOMAIN, "force_update") in hass.services.registered
@@ -806,8 +807,8 @@ def test_force_update_continues_after_single_coordinator_failure() -> None:
     assert good_entry.runtime_data.coordinator.calls == 1
 
 
-def test_force_update_propagates_cancelled_error() -> None:
-    """Cancellation must propagate when refresh scheduling is cancelled."""
+def test_force_update_handles_cancelled_error() -> None:
+    """Cancellation results are handled gracefully and do not fail the service."""
 
     class _CancelledCoordinator:
         async def async_request_refresh(self):
@@ -829,7 +830,9 @@ def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
         async def async_request_refresh(self):
             raise RuntimeError(
                 "api_key=secret-123 lat=12.345678 lon=-98.765432 "
-                "url=https://example.test/pollen?token=secret-123 payload={'raw': 'x'}"
+                "url=https://example.test/pollen?token=secret-123 payload=line1\n"
+                "token=secret-123\nlocation.latitude=12.345678\n"
+                "location.longitude=-98.765432"
             )
 
     entry = _FakeEntry(
@@ -852,7 +855,10 @@ def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
     assert "12.345678" not in text
     assert "-98.765432" not in text
     assert "https://example.test/pollen?token=secret-123" not in text
-    assert "payload={'raw': 'x'}" not in text
+    assert "payload=line1" not in text
+    assert "location.latitude=12.345678" not in text
+    assert "location.longitude=-98.765432" not in text
+    assert "Manual refresh failed for entry entry-secrets (RuntimeError):" in text
 
 
 def test_migrate_entry_moves_mode_to_options() -> None:

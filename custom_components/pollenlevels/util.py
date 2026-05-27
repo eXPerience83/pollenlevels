@@ -57,7 +57,7 @@ _LOCATION_PARAM_RE = re.compile(
     r"(?i)(location\.(?:latitude|longitude)(?:=|%3d))(-?\d+(?:\.\d+)?)"
 )
 _URL_ASSIGN_RE = re.compile(r"(?i)(url\s*=\s*)https?://\S+")
-_PAYLOAD_RE = re.compile(r"(?i)(payload\s*=\s*)(.+)$")
+_PAYLOAD_RE = re.compile(r"(?i)(payload\s*=\s*)(.+)$", re.DOTALL)
 
 
 def _stringify_for_redaction(value: object) -> str:
