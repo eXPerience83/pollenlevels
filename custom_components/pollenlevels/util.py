@@ -52,11 +52,15 @@ async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
 
 
 _REDACTION_PLACEHOLDER = "***"
-_KEY_PARAM_RE = re.compile(r"(?i)(^|[?&\s])(key(?:=|%3d))([^&\s\"']+)")
+_KEY_PARAM_RE = re.compile(
+    r"(?i)(^|[?&\s])(key(?:=|%3d))(?:\"([^\"]*)\"|'([^']*)'|([^&\s\"']+))"
+)
 _LOCATION_PARAM_RE = re.compile(
     r"(?i)(location\.(?:latitude|longitude)(?:=|%3d))(-?\d+(?:\.\d+)?)"
 )
-_URL_ASSIGN_RE = re.compile(r"(?i)(url\s*=\s*)([\"']?)https?://[^\s\"']+([\"']?)")
+_URL_ASSIGN_RE = re.compile(
+    r"(?i)(url\s*=\s*)(?:\"https?://([^\"]*)\"|'https?://([^']*)'|(https?://[^\s\"']+))"
+)
 _PAYLOAD_RE = re.compile(r"(?i)(payload\s*=\s*)([^\r\n]*)")
 
 
@@ -110,7 +114,15 @@ def redact_sensitive_values(
         s = s.replace(api_key, _REDACTION_PLACEHOLDER)
 
     s = _KEY_PARAM_RE.sub(
-        lambda match: (f"{match.group(1)}{match.group(2)}{_REDACTION_PLACEHOLDER}"),
+        lambda match: (
+            f'{match.group(1)}{match.group(2)}"{_REDACTION_PLACEHOLDER}"'
+            if match.group(3) is not None
+            else (
+                f"{match.group(1)}{match.group(2)}'{_REDACTION_PLACEHOLDER}'"
+                if match.group(4) is not None
+                else f"{match.group(1)}{match.group(2)}{_REDACTION_PLACEHOLDER}"
+            )
+        ),
         s,
     )
     s = _LOCATION_PARAM_RE.sub(
@@ -119,7 +131,16 @@ def redact_sensitive_values(
     )
 
     s = _URL_ASSIGN_RE.sub(
-        lambda match: f"{match.group(1)}{match.group(2)}***{match.group(3)}", s
+        lambda match: (
+            f'{match.group(1)}"{_REDACTION_PLACEHOLDER}"'
+            if match.group(2) is not None
+            else (
+                f"{match.group(1)}'{_REDACTION_PLACEHOLDER}'"
+                if match.group(3) is not None
+                else f"{match.group(1)}{_REDACTION_PLACEHOLDER}"
+            )
+        ),
+        s,
     )
     s = _PAYLOAD_RE.sub(r"\1***", s)
 
