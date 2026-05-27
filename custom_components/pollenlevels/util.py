@@ -56,6 +56,8 @@ _KEY_PARAM_RE = re.compile(r"(?i)(^|[?&\s])(key(?:=|%3d))([^&\s]+)")
 _LOCATION_PARAM_RE = re.compile(
     r"(?i)(location\.(?:latitude|longitude)(?:=|%3d))(-?\d+(?:\.\d+)?)"
 )
+_URL_ASSIGN_RE = re.compile(r"(?i)(url\s*=\s*)https?://\S+")
+_PAYLOAD_RE = re.compile(r"(?i)(payload\s*=\s*)(.+)$")
 
 
 def _stringify_for_redaction(value: object) -> str:
@@ -115,6 +117,9 @@ def redact_sensitive_values(
         lambda match: f"{match.group(1)}{_REDACTION_PLACEHOLDER}",
         s,
     )
+
+    s = _URL_ASSIGN_RE.sub(r"\1***", s)
+    s = _PAYLOAD_RE.sub(r"\1***", s)
 
     coordinates = sorted(
         _coordinate_values(latitude) | _coordinate_values(longitude),
