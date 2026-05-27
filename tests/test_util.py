@@ -111,14 +111,34 @@ def test_redact_sensitive_values_redacts_exact_api_key():
     assert "***" in redacted
 
 
-def test_redact_sensitive_values_redacts_key_query_parameter():
-    """Key query parameters should have their values redacted."""
+def test_redact_sensitive_values_redacts_unquoted_key_query_parameter():
+    """Unquoted key query parameters should have their values redacted."""
 
     redacted = redact_sensitive_values("https://example.test/?key=bad-key&days=5")
 
     assert "bad-key" not in redacted
     assert "key=***" in redacted
     assert "days=5" in redacted
+
+
+def test_redact_sensitive_values_redacts_quoted_key_query_parameters():
+    """Quoted key parameters should be redacted while preserving quotes."""
+
+    redacted = redact_sensitive_values("key=\"secret-one\" key='secret-two'")
+
+    assert 'key="***"' in redacted
+    assert "key='***'" in redacted
+    assert "secret-one" not in redacted
+    assert "secret-two" not in redacted
+
+
+def test_redact_sensitive_values_redacts_urlencoded_unquoted_key_parameter():
+    """URL-encoded key parameters should have their values redacted."""
+
+    redacted = redact_sensitive_values("https://example.test/?key%3Dsecret-three")
+
+    assert "key%3D***" in redacted
+    assert "secret-three" not in redacted
 
 
 def test_redact_sensitive_values_redacts_coordinate_query_parameters():
@@ -160,6 +180,63 @@ def test_redact_sensitive_values_redacts_explicit_coordinates():
     assert "40.416800" not in redacted
     assert "-3.703800" not in redacted
     assert redacted.count("***") == 2
+
+
+def test_redact_sensitive_values_redacts_single_quoted_url_assignment():
+    """Single-quoted URL assignment should keep quotes while redacting URL contents."""
+
+    redacted = redact_sensitive_values(
+        "url='https://example.test/pollen?token=secret-token&key=bad-key'"
+    )
+
+    assert "url='***'" in redacted
+    assert "https://example.test" not in redacted
+    assert "token=secret-token" not in redacted
+    assert "key=bad-key" not in redacted
+
+
+def test_redact_sensitive_values_redacts_double_quoted_url_assignment():
+    """Double-quoted URL assignment should keep quotes while redacting URL contents."""
+
+    redacted = redact_sensitive_values(
+        'url="https://example.test/pollen?token=secret-token&api_key=secret-token"',
+        api_key="secret-token",
+    )
+
+    assert 'url="***"' in redacted
+    assert "https://example.test" not in redacted
+    assert "token=secret-token" not in redacted
+    assert "api_key=secret-token" not in redacted
+
+
+def test_redact_sensitive_values_redacts_unquoted_url_assignment():
+    """Unquoted URL assignment should be redacted without exposing query values."""
+
+    redacted = redact_sensitive_values(
+        "url=https://example.test/pollen?token=abc&key=bad-key&api_key=zzz&days=3"
+    )
+
+    assert "url=***" in redacted
+    assert "https://example.test" not in redacted
+    assert "token=abc" not in redacted
+    assert "key=bad-key" not in redacted
+    assert "api_key=zzz" not in redacted
+
+
+def test_redact_sensitive_values_redacts_payload_line_without_swallowing_following_lines():
+    """Payload line is redacted while later lines are still independently sanitized."""
+
+    redacted = redact_sensitive_values(
+        "payload=line1\nkey=abc123\nlocation.latitude=40.4168",
+        latitude=40.4168,
+    )
+
+    assert "payload=line1" not in redacted
+    assert "payload=***" in redacted
+    assert "abc123" not in redacted
+    assert "key=***" in redacted
+    assert "40.4168" not in redacted
+    assert "location.latitude=***" in redacted
 
 
 def test_redact_sensitive_values_preserves_unrelated_numbers():

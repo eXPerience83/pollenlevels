@@ -333,9 +333,12 @@ class _FakeHass:
 class _ServiceRegistry:
     def __init__(self):
         self.registered: dict[tuple[str, str], Any] = {}
+        self.schemas: dict[tuple[str, str], Any] = {}
 
     def async_register(self, domain: str, service: str, handler, schema=None):
-        self.registered[(domain, service)] = handler
+        key = (domain, service)
+        self.registered[key] = handler
+        self.schemas[key] = schema
 
     async def async_call(self, domain: str, service: str):
         handler = self.registered[(domain, service)]
@@ -715,6 +718,27 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
     assert entry.runtime_data.coordinator.create_d2 is False
 
 
+def test_force_update_service_is_registered_with_empty_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """async_setup should register force_update with an empty schema."""
+
+    marker = object()
+
+    def _schema(value):
+        assert value == {}
+        return marker
+
+    monkeypatch.setattr(integration.vol, "Schema", _schema)
+
+    hass = _FakeHass()
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+
+    key = (integration.DOMAIN, "force_update")
+    assert key in hass.services.registered
+    assert hass.services.schemas[key] is marker
+
+
 def test_force_update_requests_refresh_per_entry() -> None:
     """force_update should queue refresh via runtime_data coordinators and skip missing runtime data."""
 
@@ -736,8 +760,10 @@ def test_force_update_requests_refresh_per_entry() -> None:
     entry2.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
     entry3 = _FakeEntry(entry_id="entry-3")
     entry3.runtime_data = None
+    entry4 = _FakeEntry(entry_id="entry-4")
+    entry4.runtime_data = types.SimpleNamespace()
 
-    hass = _FakeHass(entries=[entry1, entry2, entry3])
+    hass = _FakeHass(entries=[entry1, entry2, entry3, entry4])
 
     assert asyncio.run(integration.async_setup(hass, {})) is True
     assert (integration.DOMAIN, "force_update") in hass.services.registered
@@ -748,6 +774,94 @@ def test_force_update_requests_refresh_per_entry() -> None:
     assert entry2.runtime_data.coordinator.calls == ["refresh"]
     assert entry1.runtime_data.coordinator.done.is_set()
     assert entry2.runtime_data.coordinator.done.is_set()
+
+
+def test_force_update_continues_after_single_coordinator_failure() -> None:
+    """One coordinator failure should not block refreshes for other entries."""
+
+    class _OkCoordinator:
+        def __init__(self):
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    class _FailCoordinator:
+        async def async_request_refresh(self):
+            raise RuntimeError("boom")
+
+    good_entry = _FakeEntry(entry_id="entry-good")
+    good_entry.runtime_data = types.SimpleNamespace(coordinator=_OkCoordinator())
+    bad_entry = _FakeEntry(entry_id="entry-bad")
+    bad_entry.runtime_data = types.SimpleNamespace(coordinator=_FailCoordinator())
+
+    hass = _FakeHass(entries=[bad_entry, good_entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert good_entry.runtime_data.coordinator.calls == 1
+
+
+def test_force_update_handles_cancelled_error(caplog) -> None:
+    """Cancellation results are handled gracefully and do not fail the service."""
+
+    class _CancelledCoordinator:
+        async def async_request_refresh(self):
+            raise asyncio.CancelledError
+
+    entry = _FakeEntry(entry_id="entry-cancel")
+    entry.runtime_data = types.SimpleNamespace(coordinator=_CancelledCoordinator())
+
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert "Manual refresh cancelled for entry entry-cancel" in caplog.text
+
+
+def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
+    """Failure logs should avoid exposing key material and detailed location/payload data."""
+
+    class _FailCoordinator:
+        async def async_request_refresh(self):
+            raise RuntimeError(
+                "api_key=secret-123 lat=12.345678 lon=-98.765432 "
+                "url=https://example.test/pollen?token=secret-123 payload=line1\n"
+                "token=secret-123\nlocation.latitude=12.345678\n"
+                "location.longitude=-98.765432"
+            )
+
+    entry = _FakeEntry(
+        entry_id="entry-secrets",
+        data={
+            integration.CONF_API_KEY: "secret-123",
+            integration.CONF_LATITUDE: 12.345678,
+            integration.CONF_LONGITUDE: -98.765432,
+        },
+    )
+    entry.runtime_data = types.SimpleNamespace(coordinator=_FailCoordinator())
+
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    text = caplog.text
+    assert "secret-123" not in text
+    assert "12.345678" not in text
+    assert "-98.765432" not in text
+    assert "https://example.test/pollen?token=secret-123" not in text
+    assert "payload=line1" not in text
+    assert "location.latitude=12.345678" not in text
+    assert "location.longitude=-98.765432" not in text
+    assert "payload=***" in text
+    assert "token=***" in text
+    assert "location.latitude=***" in text
+    assert "location.longitude=***" in text
+    assert "Manual refresh failed for entry entry-secrets (RuntimeError):" in text
 
 
 def test_migrate_entry_moves_mode_to_options() -> None:

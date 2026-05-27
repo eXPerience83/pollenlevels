@@ -41,7 +41,7 @@ from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .sensor import ForecastSensorMode
 from .util import (
     normalize_sensor_mode,
-    redact_api_key,
+    redact_sensitive_values,
     safe_parse_int,
     validate_location_pair,
 )
@@ -158,7 +158,12 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 continue
             if isinstance(result, Exception):
                 api_key = (entry.data or {}).get(CONF_API_KEY)
-                safe_message = redact_api_key(result, api_key)
+                safe_message = redact_sensitive_values(
+                    result,
+                    api_key=api_key,
+                    latitude=(entry.data or {}).get(CONF_LATITUDE),
+                    longitude=(entry.data or {}).get(CONF_LONGITUDE),
+                )
                 _LOGGER.warning(
                     "Manual refresh failed for entry %s (%s): %s",
                     entry.entry_id,
