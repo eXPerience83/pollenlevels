@@ -858,6 +858,10 @@ def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
     assert "payload=line1" not in text
     assert "location.latitude=12.345678" not in text
     assert "location.longitude=-98.765432" not in text
+    assert "payload=***" in text
+    assert "token=***" in text
+    assert "location.latitude=***" in text
+    assert "location.longitude=***" in text
     assert "Manual refresh failed for entry entry-secrets (RuntimeError):" in text
 
 

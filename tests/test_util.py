@@ -162,6 +162,22 @@ def test_redact_sensitive_values_redacts_explicit_coordinates():
     assert redacted.count("***") == 2
 
 
+def test_redact_sensitive_values_redacts_payload_line_without_swallowing_following_lines():
+    """Payload line is redacted while later lines are still independently sanitized."""
+
+    redacted = redact_sensitive_values(
+        "payload=line1\nkey=abc123\nlocation.latitude=40.4168",
+        latitude=40.4168,
+    )
+
+    assert "payload=line1" not in redacted
+    assert "payload=***" in redacted
+    assert "abc123" not in redacted
+    assert "key=***" in redacted
+    assert "40.4168" not in redacted
+    assert "location.latitude=***" in redacted
+
+
 def test_redact_sensitive_values_preserves_unrelated_numbers():
     """Unrelated numbers should not be redacted."""
 
