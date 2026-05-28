@@ -234,11 +234,12 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
-def integration_modules(stub_init_ha_modules: None):
+def integration_modules(monkeypatch: pytest.MonkeyPatch, stub_init_ha_modules: None):
     """Import integration modules only after stubs are installed."""
     global integration, const, _BaseDataUpdateCoordinator
-    integration = importlib.import_module("custom_components.pollenlevels.__init__")
+    clear_integration_modules(monkeypatch=monkeypatch)
     const = importlib.import_module("custom_components.pollenlevels.const")
+    integration = importlib.import_module("custom_components.pollenlevels")
     _BaseDataUpdateCoordinator = _StubDataUpdateCoordinator
     return integration, const
 

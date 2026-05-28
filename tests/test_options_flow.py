@@ -3,26 +3,28 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 from types import SimpleNamespace
 
 import pytest
 
-from custom_components.pollenlevels.const import (
-    CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS,
-    CONF_LANGUAGE_CODE,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_FORECAST_DAYS,
-    DEFAULT_UPDATE_INTERVAL,
-    FORECAST_SENSORS_CHOICES,
-    MAX_FORECAST_DAYS,
-    MAX_UPDATE_INTERVAL_HOURS,
-    MIN_FORECAST_DAYS,
-)
 from tests import test_config_flow as base
+
+const = importlib.import_module("custom_components.pollenlevels.const")
+
+CONF_API_KEY = const.CONF_API_KEY
+CONF_CREATE_FORECAST_SENSORS = const.CONF_CREATE_FORECAST_SENSORS
+CONF_FORECAST_DAYS = const.CONF_FORECAST_DAYS
+CONF_LANGUAGE_CODE = const.CONF_LANGUAGE_CODE
+CONF_LATITUDE = const.CONF_LATITUDE
+CONF_LONGITUDE = const.CONF_LONGITUDE
+CONF_UPDATE_INTERVAL = const.CONF_UPDATE_INTERVAL
+DEFAULT_FORECAST_DAYS = const.DEFAULT_FORECAST_DAYS
+DEFAULT_UPDATE_INTERVAL = const.DEFAULT_UPDATE_INTERVAL
+FORECAST_SENSORS_CHOICES = const.FORECAST_SENSORS_CHOICES
+MAX_FORECAST_DAYS = const.MAX_FORECAST_DAYS
+MAX_UPDATE_INTERVAL_HOURS = const.MAX_UPDATE_INTERVAL_HOURS
+MIN_FORECAST_DAYS = const.MIN_FORECAST_DAYS
 
 PollenLevelsOptionsFlow = base.cf.PollenLevelsOptionsFlow
 _StubConfigEntry = base._StubConfigEntry
