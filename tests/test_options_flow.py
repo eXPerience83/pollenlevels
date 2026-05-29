@@ -135,12 +135,7 @@ def options_flow_env(monkeypatch: pytest.MonkeyPatch) -> OptionsFlowEnv:
     def _parse_http_date(value: str):
         try:
             return email.utils.parsedate_to_datetime(value)
-        except (
-            TypeError,
-            ValueError,
-            IndexError,
-            OverflowError,
-        ):
+        except TypeError, ValueError, IndexError, OverflowError:
             return None
 
     dt_mod.parse_http_date = _parse_http_date
