@@ -280,7 +280,9 @@ def sensor_modules(monkeypatch: pytest.MonkeyPatch) -> SensorModules:
         ),
     )
     yield modules
-    clear_integration_modules(monkeypatch=monkeypatch)
+    # Remove imported integration modules directly so pytest does not restore
+    # modules that were imported against these Home Assistant stubs.
+    clear_integration_modules()
 
 
 class DummyHass:

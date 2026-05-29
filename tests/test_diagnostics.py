@@ -114,7 +114,9 @@ def diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> DiagnosticsModules:
         CONF_LONGITUDE=imported_conf_longitude,
     )
     yield modules
-    clear_integration_modules(monkeypatch=monkeypatch)
+    # Remove imported integration modules directly so pytest does not restore
+    # modules that were imported against these Home Assistant stubs.
+    clear_integration_modules()
 
 
 @pytest.mark.asyncio
