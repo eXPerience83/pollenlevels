@@ -7,22 +7,23 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.pollenlevels.const import (
-    CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS,
-    CONF_LANGUAGE_CODE,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_FORECAST_DAYS,
-    DEFAULT_UPDATE_INTERVAL,
-    FORECAST_SENSORS_CHOICES,
-    MAX_FORECAST_DAYS,
-    MAX_UPDATE_INTERVAL_HOURS,
-    MIN_FORECAST_DAYS,
-)
+# Importing test_config_flow first installs the Home Assistant stubs needed for
+# importing integration modules during collection.
 from tests import test_config_flow as base
+
+CONF_API_KEY = base.cf.CONF_API_KEY
+CONF_CREATE_FORECAST_SENSORS = base.cf.CONF_CREATE_FORECAST_SENSORS
+CONF_FORECAST_DAYS = base.cf.CONF_FORECAST_DAYS
+CONF_LANGUAGE_CODE = base.cf.CONF_LANGUAGE_CODE
+CONF_LATITUDE = base.cf.CONF_LATITUDE
+CONF_LONGITUDE = base.cf.CONF_LONGITUDE
+CONF_UPDATE_INTERVAL = base.cf.CONF_UPDATE_INTERVAL
+DEFAULT_FORECAST_DAYS = base.cf.DEFAULT_FORECAST_DAYS
+DEFAULT_UPDATE_INTERVAL = base.cf.DEFAULT_UPDATE_INTERVAL
+FORECAST_SENSORS_CHOICES = base.cf.FORECAST_SENSORS_CHOICES
+MAX_FORECAST_DAYS = base.cf.MAX_FORECAST_DAYS
+MAX_UPDATE_INTERVAL_HOURS = base.cf.MAX_UPDATE_INTERVAL_HOURS
+MIN_FORECAST_DAYS = base.cf.MIN_FORECAST_DAYS
 
 PollenLevelsOptionsFlow = base.cf.PollenLevelsOptionsFlow
 _StubConfigEntry = base._StubConfigEntry

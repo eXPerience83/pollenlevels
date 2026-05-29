@@ -13,7 +13,6 @@ import pytest
 
 from tests._ha_stubs import (
     clear_integration_modules,
-    force_module,
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
@@ -24,11 +23,9 @@ from tests._ha_stubs import (
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-clear_integration_modules()
-stub_custom_components_packages(root=ROOT)
-
-# Provide the additional stubs required by __init__.
-homeassistant_mod = stub_homeassistant_package()
+integration = None
+const = None
+_BaseDataUpdateCoordinator = None
 
 
 class _StubConfigEntry:
@@ -37,27 +34,12 @@ class _StubConfigEntry:
         return cls
 
 
-stub_config_entry_class(_StubConfigEntry)
-
-core_mod = types.ModuleType("homeassistant.core")
-
-
 class _StubHomeAssistant:  # pragma: no cover - structure only
     pass
 
 
 class _StubServiceCall:  # pragma: no cover - structure only
     pass
-
-
-core_mod.HomeAssistant = _StubHomeAssistant
-core_mod.ServiceCall = _StubServiceCall
-force_module("homeassistant.core", core_mod)
-
-ha_components_mod = types.ModuleType("homeassistant.components")
-force_module("homeassistant.components", ha_components_mod)
-
-sensor_mod = types.ModuleType("homeassistant.components.sensor")
 
 
 class _StubSensorEntity:  # pragma: no cover - structure only
@@ -83,22 +65,6 @@ class _StubSensorStateClass:  # pragma: no cover - structure only
     MEASUREMENT = "measurement"
 
 
-sensor_mod.SensorEntity = _StubSensorEntity
-sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
-sensor_mod.SensorStateClass = _StubSensorStateClass
-force_module("homeassistant.components.sensor", sensor_mod)
-
-const_mod = types.ModuleType("homeassistant.const")
-const_mod.ATTR_ATTRIBUTION = "Attribution"
-force_module("homeassistant.const", const_mod)
-
-aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
-aiohttp_client_mod.async_get_clientsession = lambda _hass: None
-force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
-
-aiohttp_mod = types.ModuleType("aiohttp")
-
-
 class _StubClientError(Exception):
     pass
 
@@ -112,89 +78,8 @@ class _StubClientTimeout:
         self.total = total
 
 
-aiohttp_mod.ClientError = _StubClientError
-aiohttp_mod.ClientSession = _StubClientSession
-aiohttp_mod.ClientTimeout = _StubClientTimeout
-aiohttp_mod.ContentTypeError = ValueError
-force_module("aiohttp", aiohttp_mod)
-
-cv_mod = types.ModuleType("homeassistant.helpers.config_validation")
-cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
-force_module("homeassistant.helpers.config_validation", cv_mod)
-
-vol_mod = types.ModuleType("voluptuous")
-force_module("voluptuous", vol_mod)
-if not hasattr(vol_mod, "Schema"):
-    vol_mod.Schema = lambda *args, **kwargs: None
-
-helpers_mod = types.ModuleType("homeassistant.helpers")
-force_module("homeassistant.helpers", helpers_mod)
-
-entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
-
-
-def _stub_async_get(_hass):  # pragma: no cover - structure only
-    class _Registry:
-        @staticmethod
-        def async_entries_for_config_entry(_registry, _entry_id):
-            return []
-
-    return _Registry()
-
-
-entity_registry_mod.async_get = _stub_async_get
-entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
-force_module("homeassistant.helpers.entity_registry", entity_registry_mod)
-
-entity_mod = types.ModuleType("homeassistant.helpers.entity")
-
-
 class _StubEntityCategory:
     DIAGNOSTIC = "diagnostic"
-
-
-entity_mod.EntityCategory = _StubEntityCategory
-force_module("homeassistant.helpers.entity", entity_mod)
-
-dt_mod = types.ModuleType("homeassistant.util.dt")
-
-
-def _stub_utcnow():
-    from datetime import UTC, datetime
-
-    return datetime.now(UTC)
-
-
-dt_mod.utcnow = _stub_utcnow
-
-
-def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
-    from datetime import UTC, datetime
-    from email.utils import parsedate_to_datetime
-
-    try:
-        parsed = parsedate_to_datetime(value) if value is not None else None
-    except TypeError, ValueError, IndexError:
-        return None
-
-    if parsed is None:
-        return None
-
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=UTC)
-
-    if isinstance(parsed, datetime):
-        return parsed
-
-    return None
-
-
-dt_mod.parse_http_date = _stub_parse_http_date
-force_module("homeassistant.util.dt", dt_mod)
-
-util_mod = types.ModuleType("homeassistant.util")
-util_mod.dt = dt_mod
-force_module("homeassistant.util", util_mod)
 
 
 class _StubConfigEntryNotReady(Exception):
@@ -234,21 +119,131 @@ class _StubDataUpdateCoordinator:
         return asyncio.create_task(self.async_refresh())
 
 
-stub_exceptions(
-    ConfigEntryNotReady=_StubConfigEntryNotReady,
-    ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
-)
-stub_update_coordinator_module(
-    update_failed=_StubUpdateFailed,
-    data_update_coordinator=_StubDataUpdateCoordinator,
-    coordinator_entity=_StubCoordinatorEntity,
-)
-_BaseDataUpdateCoordinator = _StubDataUpdateCoordinator
+def _stub_utcnow():
+    from datetime import UTC, datetime
 
-integration = importlib.import_module(
-    "custom_components.pollenlevels.__init__"
-)  # noqa: E402
-const = importlib.import_module("custom_components.pollenlevels.const")  # noqa: E402
+    return datetime.now(UTC)
+
+
+def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
+    from datetime import UTC, datetime
+    from email.utils import parsedate_to_datetime
+
+    try:
+        parsed = parsedate_to_datetime(value) if value is not None else None
+    except TypeError, ValueError, IndexError:
+        return None
+
+    if parsed is None:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+
+    if isinstance(parsed, datetime):
+        return parsed
+
+    return None
+
+
+def _stub_async_get(_hass):  # pragma: no cover - structure only
+    class _Registry:
+        @staticmethod
+        def async_entries_for_config_entry(_registry, _entry_id):
+            return []
+
+    return _Registry()
+
+
+@pytest.fixture
+def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Install only the Home Assistant stubs needed by ``__init__`` imports."""
+    clear_integration_modules(monkeypatch=monkeypatch)
+    stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
+    stub_homeassistant_package(monkeypatch=monkeypatch)
+    stub_config_entry_class(_StubConfigEntry, monkeypatch=monkeypatch)
+    core_mod = types.ModuleType("homeassistant.core")
+    core_mod.HomeAssistant = _StubHomeAssistant
+    core_mod.ServiceCall = _StubServiceCall
+    monkeypatch.setitem(sys.modules, "homeassistant.core", core_mod)
+
+    ha_components_mod = types.ModuleType("homeassistant.components")
+    monkeypatch.setitem(sys.modules, "homeassistant.components", ha_components_mod)
+
+    sensor_mod = types.ModuleType("homeassistant.components.sensor")
+    sensor_mod.SensorEntity = _StubSensorEntity
+    sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
+    sensor_mod.SensorStateClass = _StubSensorStateClass
+    monkeypatch.setitem(sys.modules, "homeassistant.components.sensor", sensor_mod)
+
+    const_mod = types.ModuleType("homeassistant.const")
+    const_mod.ATTR_ATTRIBUTION = "Attribution"
+    monkeypatch.setitem(sys.modules, "homeassistant.const", const_mod)
+
+    aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
+    aiohttp_client_mod.async_get_clientsession = lambda _hass: None
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.aiohttp_client", aiohttp_client_mod
+    )
+    aiohttp_mod = types.ModuleType("aiohttp")
+    aiohttp_mod.ClientError = _StubClientError
+    aiohttp_mod.ClientSession = _StubClientSession
+    aiohttp_mod.ClientTimeout = _StubClientTimeout
+    aiohttp_mod.ContentTypeError = ValueError
+    monkeypatch.setitem(sys.modules, "aiohttp", aiohttp_mod)
+
+    cv_mod = types.ModuleType("homeassistant.helpers.config_validation")
+    cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers.config_validation", cv_mod)
+
+    vol_mod = types.ModuleType("voluptuous")
+    monkeypatch.setitem(sys.modules, "voluptuous", vol_mod)
+    vol_mod.Schema = lambda *args, **kwargs: None
+
+    helpers_mod = types.ModuleType("homeassistant.helpers")
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers", helpers_mod)
+    entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
+    entity_registry_mod.async_get = _stub_async_get
+    entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.entity_registry", entity_registry_mod
+    )
+
+    entity_mod = types.ModuleType("homeassistant.helpers.entity")
+    entity_mod.EntityCategory = _StubEntityCategory
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers.entity", entity_mod)
+    dt_mod = types.ModuleType("homeassistant.util.dt")
+    dt_mod.utcnow = _stub_utcnow
+    dt_mod.parse_http_date = _stub_parse_http_date
+    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
+
+    util_mod = types.ModuleType("homeassistant.util")
+    util_mod.dt = dt_mod
+    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
+    stub_exceptions(
+        ConfigEntryNotReady=_StubConfigEntryNotReady,
+        ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
+        monkeypatch=monkeypatch,
+    )
+    stub_update_coordinator_module(
+        update_failed=_StubUpdateFailed,
+        data_update_coordinator=_StubDataUpdateCoordinator,
+        coordinator_entity=_StubCoordinatorEntity,
+        monkeypatch=monkeypatch,
+    )
+
+
+@pytest.fixture(autouse=True)
+def integration_modules(monkeypatch: pytest.MonkeyPatch, stub_init_ha_modules: None):
+    """Import integration modules only after stubs are installed."""
+    global integration, const, _BaseDataUpdateCoordinator
+    # Remove the package stub installed by stub_custom_components_packages so
+    # importing custom_components.pollenlevels executes the real __init__.py.
+    clear_integration_modules(monkeypatch=monkeypatch)
+    const = importlib.import_module("custom_components.pollenlevels.const")
+    integration = importlib.import_module("custom_components.pollenlevels")
+    _BaseDataUpdateCoordinator = _StubDataUpdateCoordinator
+    return integration, const
 
 
 class _FakeConfigEntries:
