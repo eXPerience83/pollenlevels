@@ -6,7 +6,7 @@ import datetime as dt
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import Any
+from typing import Any, NamedTuple
 
 import pytest
 
@@ -16,13 +16,17 @@ from tests._ha_stubs import (
     stub_custom_components_packages,
 )
 
-diag: ModuleType
-PollenLevelsRuntimeData: type[object]
-CONF_API_KEY: str
-CONF_FORECAST_DAYS: str
-CONF_LANGUAGE_CODE: str
-CONF_LATITUDE: str
-CONF_LONGITUDE: str
+
+class DiagnosticsModules(NamedTuple):
+    """Diagnostics modules/constants imported under fixture-scoped HA stubs."""
+
+    diag: ModuleType
+    PollenLevelsRuntimeData: type[object]
+    CONF_API_KEY: str
+    CONF_FORECAST_DAYS: str
+    CONF_LANGUAGE_CODE: str
+    CONF_LATITUDE: str
+    CONF_LONGITUDE: str
 
 
 class _ConfigEntry:
@@ -82,13 +86,9 @@ def _install_diagnostics_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-@pytest.fixture(autouse=True)
-def _diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.fixture
+def diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> DiagnosticsModules:
     """Import diagnostics with fixture-scoped Home Assistant stubs."""
-
-    global diag, PollenLevelsRuntimeData
-    global CONF_API_KEY, CONF_FORECAST_DAYS, CONF_LANGUAGE_CODE
-    global CONF_LATITUDE, CONF_LONGITUDE
 
     _install_diagnostics_import_stubs(monkeypatch)
 
@@ -104,28 +104,32 @@ def _diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> None:
         PollenLevelsRuntimeData as ImportedRuntimeData,
     )
 
-    diag = imported_diag
-    PollenLevelsRuntimeData = ImportedRuntimeData
-    CONF_API_KEY = imported_conf_api_key
-    CONF_FORECAST_DAYS = imported_conf_forecast_days
-    CONF_LANGUAGE_CODE = imported_conf_language_code
-    CONF_LATITUDE = imported_conf_latitude
-    CONF_LONGITUDE = imported_conf_longitude
-    yield
+    modules = DiagnosticsModules(
+        diag=imported_diag,
+        PollenLevelsRuntimeData=ImportedRuntimeData,
+        CONF_API_KEY=imported_conf_api_key,
+        CONF_FORECAST_DAYS=imported_conf_forecast_days,
+        CONF_LANGUAGE_CODE=imported_conf_language_code,
+        CONF_LATITUDE=imported_conf_latitude,
+        CONF_LONGITUDE=imported_conf_longitude,
+    )
+    yield modules
     clear_integration_modules(monkeypatch=monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_diagnostics_rounds_coordinates_and_truncates_keys() -> None:
+async def test_diagnostics_rounds_coordinates_and_truncates_keys(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
     """Diagnostics should use rounded coordinates and limit data_keys length."""
 
     data = {
-        CONF_API_KEY: "secret-token",
-        CONF_LATITUDE: 12.3456,
-        CONF_LONGITUDE: 78.9876,
-        CONF_LANGUAGE_CODE: "en",
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LATITUDE: 12.3456,
+        diagnostics_modules.CONF_LONGITUDE: 78.9876,
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {CONF_FORECAST_DAYS: 3}
+    options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
@@ -138,15 +142,17 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys() -> None:
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         data={f"type_{idx}": {} for idx in range(60)},
     )
-    entry.runtime_data = PollenLevelsRuntimeData(
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
         coordinator=coordinator, client=object()
     )
 
-    diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
 
     assert diagnostics["request_params_example"]["key"] == "***"
-    assert CONF_LATITUDE not in diagnostics["entry"]["data"]
-    assert CONF_LONGITUDE not in diagnostics["entry"]["data"]
+    assert diagnostics_modules.CONF_LATITUDE not in diagnostics["entry"]["data"]
+    assert diagnostics_modules.CONF_LONGITUDE not in diagnostics["entry"]["data"]
     assert diagnostics["request_params_example"]["location.latitude"] == 12.3
     assert diagnostics["request_params_example"]["location.longitude"] == 79.0
     assert diagnostics["coordinator"]["data_keys_total"] == 60
@@ -163,16 +169,16 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys() -> None:
     ],
 )
 async def test_diagnostics_clamps_request_days(
-    raw_days: Any, expected_days: int
+    diagnostics_modules: DiagnosticsModules, raw_days: Any, expected_days: int
 ) -> None:
     """Diagnostics request params should always show a supported day count."""
 
     data = {
-        CONF_LATITUDE: 12.3,
-        CONF_LONGITUDE: 45.6,
-        CONF_LANGUAGE_CODE: "en",
+        diagnostics_modules.CONF_LATITUDE: 12.3,
+        diagnostics_modules.CONF_LONGITUDE: 45.6,
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {CONF_FORECAST_DAYS: raw_days}
+    options = {diagnostics_modules.CONF_FORECAST_DAYS: raw_days}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
@@ -185,25 +191,29 @@ async def test_diagnostics_clamps_request_days(
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         data={"type_grass": {"source": "type"}},
     )
-    entry.runtime_data = PollenLevelsRuntimeData(
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
         coordinator=coordinator, client=object()
     )
 
-    diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
 
     assert diagnostics["request_params_example"]["days"] == expected_days
 
 
 @pytest.mark.asyncio
-async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples() -> None:
+async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
     """Rounded coordinate helpers should drop non-finite values."""
 
     data = {
-        CONF_LATITUDE: "nan",
-        CONF_LONGITUDE: float("inf"),
-        CONF_LANGUAGE_CODE: "en",
+        diagnostics_modules.CONF_LATITUDE: "nan",
+        diagnostics_modules.CONF_LONGITUDE: float("inf"),
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {CONF_FORECAST_DAYS: 2}
+    options = {diagnostics_modules.CONF_FORECAST_DAYS: 2}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
@@ -216,11 +226,13 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples() -> No
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         data={"type_grass": {"source": "type"}},
     )
-    entry.runtime_data = PollenLevelsRuntimeData(
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
         coordinator=coordinator, client=object()
     )
 
-    diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
 
     assert diagnostics["approximate_location"]["latitude_rounded"] is None
     assert diagnostics["approximate_location"]["longitude_rounded"] is None
@@ -229,15 +241,17 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples() -> No
 
 
 @pytest.mark.asyncio
-async def test_diagnostics_includes_daily_summary_sensor_snapshot() -> None:
+async def test_diagnostics_includes_daily_summary_sensor_snapshot(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
     """Diagnostics should summarize the daily summary sensors from coordinator data."""
 
     data = {
-        CONF_LATITUDE: 12.3,
-        CONF_LONGITUDE: 45.6,
-        CONF_LANGUAGE_CODE: "en",
+        diagnostics_modules.CONF_LATITUDE: 12.3,
+        diagnostics_modules.CONF_LONGITUDE: 45.6,
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {CONF_FORECAST_DAYS: 3}
+    options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
@@ -295,11 +309,13 @@ async def test_diagnostics_includes_daily_summary_sensor_snapshot() -> None:
             },
         },
     )
-    entry.runtime_data = PollenLevelsRuntimeData(
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
         coordinator=coordinator, client=object()
     )
 
-    diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
 
     daily_summary = diagnostics["daily_summary"]
     assert daily_summary["plants_in_season_today"] == {
@@ -333,7 +349,9 @@ async def test_diagnostics_includes_daily_summary_sensor_snapshot() -> None:
 
 
 @pytest.mark.asyncio
-async def test_diagnostics_daily_summary_uses_empty_states_without_data() -> None:
+async def test_diagnostics_daily_summary_uses_empty_states_without_data(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
     """Diagnostics daily summary should be present even without coordinator data."""
 
     entry = _ConfigEntry(data={}, options={}, entry_id="entry", title="Home")
@@ -346,11 +364,13 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data() -> Non
         last_updated=None,
         data={},
     )
-    entry.runtime_data = PollenLevelsRuntimeData(
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
         coordinator=coordinator, client=object()
     )
 
-    diagnostics = await diag.async_get_config_entry_diagnostics(None, entry)
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
 
     daily_summary = diagnostics["daily_summary"]
     assert daily_summary["plants_in_season_today"]["state"] is None
