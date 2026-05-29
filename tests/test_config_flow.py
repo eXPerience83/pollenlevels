@@ -223,9 +223,9 @@ def _latitude(value=None):
         lat = float(value)
     except TypeError, ValueError:
         # Mirror Home Assistant's cv.latitude behavior for invalid types.
-        raise cf.vol.Invalid("latitude_type") from None
+        raise _StubInvalid("latitude_type") from None
     if lat < -90 or lat > 90:
-        raise cf.vol.Invalid("latitude_range")
+        raise _StubInvalid("latitude_range")
     return lat
 
 
@@ -234,10 +234,10 @@ def _longitude(value=None):
         lon = float(value)
     except TypeError, ValueError:
         # Mirror Home Assistant's cv.longitude behavior for invalid types.
-        raise cf.vol.Invalid("longitude_type") from None
+        raise _StubInvalid("longitude_type") from None
 
     if lon < -180 or lon > 180:
-        raise cf.vol.Invalid("longitude_range")
+        raise _StubInvalid("longitude_range")
 
     return lon
 
@@ -1019,13 +1019,14 @@ def test_validate_input_update_interval_non_numeric_sets_error(
 )
 def test_validate_input_http_auth_errors_map_correctly(
     monkeypatch: pytest.MonkeyPatch,
+    config_flow_stubs: ConfigFlowStubs,
     exception_name: str,
     message: str,
     expected: dict,
 ) -> None:
     """HTTP auth failures during validation should map correctly."""
 
-    error = globals()[exception_name](message)
+    error = getattr(config_flow_stubs, exception_name)(message)
     calls = _patch_client_fetch(monkeypatch, error=error)
 
     flow = PollenLevelsConfigFlow()
