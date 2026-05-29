@@ -7,16 +7,18 @@ from __future__ import annotations
 import ast
 import asyncio
 import email.utils
+import importlib
 import sys
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 import pytest
 
 from tests._ha_stubs import (
     clear_integration_modules,
-    force_module,
     stub_custom_components_packages,
     stub_exceptions,
     stub_homeassistant_package,
@@ -28,14 +30,8 @@ sys.path.insert(0, str(ROOT))
 
 
 # ---------------------------------------------------------------------------
-# Minimal package and dependency stubs so the config flow can be imported.
+# Minimal package and dependency stubs installed by fixtures before imports.
 # ---------------------------------------------------------------------------
-clear_integration_modules()
-stub_custom_components_packages(root=ROOT)
-
-ha_mod = stub_homeassistant_package()
-
-config_entries_mod = ModuleType("homeassistant.config_entries")
 
 
 class _StubConfigFlow:
@@ -96,102 +92,8 @@ class _StubConfigEntry:
         self.title = raw.strip() or "Pollen Levels"
 
 
-config_entries_mod.ConfigFlow = _StubConfigFlow
-config_entries_mod.OptionsFlow = _StubOptionsFlow
-config_entries_mod.OptionsFlowWithReload = _StubOptionsFlowWithReload
-config_entries_mod.ConfigEntry = _StubConfigEntry
-force_module("homeassistant.config_entries", config_entries_mod)
-
-
 class _StubConfigEntryAuthFailed(Exception):
     pass
-
-
-stub_exceptions(ConfigEntryAuthFailed=_StubConfigEntryAuthFailed)
-
-const_mod = ModuleType("homeassistant.const")
-const_mod.CONF_LATITUDE = "latitude"
-const_mod.CONF_LOCATION = "location"
-const_mod.CONF_LONGITUDE = "longitude"
-const_mod.CONF_NAME = "name"
-force_module("homeassistant.const", const_mod)
-
-helpers_mod = ModuleType("homeassistant.helpers")
-force_module("homeassistant.helpers", helpers_mod)
-
-config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
-
-
-def _latitude(value=None):
-    try:
-        lat = float(value)
-    except TypeError, ValueError:
-        # Mirror Home Assistant's cv.latitude behavior for invalid types
-        raise cf.vol.Invalid("latitude_type") from None
-    if lat < -90 or lat > 90:
-        raise cf.vol.Invalid("latitude_range")
-    return lat
-
-
-def _longitude(value=None):
-    try:
-        lon = float(value)
-    except TypeError, ValueError:
-        # Mirror Home Assistant's cv.longitude behavior for invalid types
-        raise cf.vol.Invalid("longitude_type") from None
-
-    if lon < -180 or lon > 180:
-        raise cf.vol.Invalid("longitude_range")
-
-    return lon
-
-
-config_validation_mod.latitude = _latitude
-config_validation_mod.longitude = _longitude
-config_validation_mod.string = lambda value=None: value
-force_module("homeassistant.helpers.config_validation", config_validation_mod)
-
-aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
-
-
-class _StubResponse:
-    """Async response stub matching aiohttp.ClientResponse for tests."""
-
-    def __init__(self, *, status: int = 200, body: bytes = b"{}") -> None:
-        self.status = status
-        self._body = body
-
-    async def read(self) -> bytes:
-        """Return the fake response body."""
-
-        return self._body
-
-    async def __aenter__(self) -> _StubResponse:
-        """Support the async context manager protocol."""
-
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb) -> None:
-        """Support the async context manager protocol."""
-
-        return None
-
-
-class _StubSession:
-    """Async session stub exposing a get() method."""
-
-    def __init__(self, *, status: int = 200, body: bytes = b"{}") -> None:
-        self._status = status
-        self._body = body
-
-    def get(self, *args, **kwargs) -> _StubResponse:
-        """Return an async context manager response stub."""
-
-        return _StubResponse(status=self._status, body=self._body)
-
-
-aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
-force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
 
 
 class _StubUpdateFailed(Exception):
@@ -219,30 +121,11 @@ class _StubCoordinatorEntity:
         self.coordinator = coordinator
 
 
-stub_update_coordinator_module(
-    update_failed=_StubUpdateFailed,
-    data_update_coordinator=_StubDataUpdateCoordinator,
-    coordinator_entity=_StubCoordinatorEntity,
-)
-
-util_mod = ModuleType("homeassistant.util")
-dt_mod = ModuleType("homeassistant.util.dt")
-
-
 def _parse_http_date(value: str):
     try:
         return email.utils.parsedate_to_datetime(value)
     except TypeError, ValueError, IndexError, OverflowError:
         return None
-
-
-dt_mod.parse_http_date = _parse_http_date
-dt_mod.utcnow = lambda: datetime.now(UTC)
-util_mod.dt = dt_mod
-force_module("homeassistant.util", util_mod)
-force_module("homeassistant.util.dt", dt_mod)
-
-selector_mod = ModuleType("homeassistant.helpers.selector")
 
 
 class _LocationSelectorConfig:
@@ -311,26 +194,6 @@ class _SelectSelector:
         self.config = config
 
 
-selector_mod.LocationSelector = _LocationSelector
-selector_mod.LocationSelectorConfig = _LocationSelectorConfig
-selector_mod.NumberSelector = _NumberSelector
-selector_mod.NumberSelectorConfig = _NumberSelectorConfig
-selector_mod.NumberSelectorMode = _NumberSelectorMode
-selector_mod.TextSelector = _TextSelector
-selector_mod.TextSelectorConfig = _TextSelectorConfig
-selector_mod.TextSelectorType = _TextSelectorType
-selector_mod.SelectSelector = _SelectSelector
-selector_mod.SelectSelectorConfig = _SelectSelectorConfig
-selector_mod.SelectSelectorMode = _SelectSelectorMode
-selector_mod.section = lambda key: key
-force_module("homeassistant.helpers.selector", selector_mod)
-
-ha_mod.helpers = helpers_mod
-ha_mod.config_entries = config_entries_mod
-
-aiohttp_mod = ModuleType("aiohttp")
-
-
 class _StubClientError(Exception):
     pass
 
@@ -344,15 +207,6 @@ class _StubClientSession:
     pass
 
 
-aiohttp_mod.ClientError = _StubClientError
-aiohttp_mod.ClientTimeout = _StubClientTimeout
-aiohttp_mod.ClientSession = _StubClientSession
-aiohttp_mod.ContentTypeError = ValueError
-force_module("aiohttp", aiohttp_mod)
-
-vol_mod = ModuleType("voluptuous")
-
-
 class _StubInvalid(Exception):
     def __init__(self, error_message=""):
         super().__init__(error_message)
@@ -364,44 +218,253 @@ class _StubSchema:
         self.schema = schema
 
 
-vol_mod.Invalid = _StubInvalid
-vol_mod.Schema = lambda schema, **kwargs: _StubSchema(schema)
-vol_mod.Optional = lambda key, **kwargs: key
-vol_mod.Required = lambda key, **kwargs: key
-vol_mod.All = lambda *args, **kwargs: None
-vol_mod.Coerce = lambda *args, **kwargs: None
-vol_mod.Range = lambda *args, **kwargs: None
-vol_mod.In = lambda *args, **kwargs: None
-force_module("voluptuous", vol_mod)
+def _latitude(value=None):
+    try:
+        lat = float(value)
+    except TypeError, ValueError:
+        # Mirror Home Assistant's cv.latitude behavior for invalid types.
+        raise cf.vol.Invalid("latitude_type") from None
+    if lat < -90 or lat > 90:
+        raise cf.vol.Invalid("latitude_range")
+    return lat
 
-from homeassistant.const import (
-    CONF_LATITUDE,
-    CONF_LOCATION,
-    CONF_LONGITUDE,
-    CONF_NAME,
-)
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from custom_components.pollenlevels import config_flow as cf
-from custom_components.pollenlevels.config_flow import (
-    PollenLevelsConfigFlow,
-    _language_error_to_form_key,
-)
-from custom_components.pollenlevels.const import (
-    CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS,
-    CONF_LANGUAGE_CODE,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_ENTRY_TITLE,
-    DEFAULT_FORECAST_DAYS,
-    DEFAULT_UPDATE_INTERVAL,
-    FORECAST_SENSORS_CHOICES,
-    MAX_FORECAST_DAYS,
-    MAX_UPDATE_INTERVAL_HOURS,
-    MIN_FORECAST_DAYS,
-)
+def _longitude(value=None):
+    try:
+        lon = float(value)
+    except TypeError, ValueError:
+        # Mirror Home Assistant's cv.longitude behavior for invalid types.
+        raise cf.vol.Invalid("longitude_type") from None
+
+    if lon < -180 or lon > 180:
+        raise cf.vol.Invalid("longitude_range")
+
+    return lon
+
+
+class _StubSession:
+    """Async session stub exposing a get() method."""
+
+    def __init__(self, *, status: int = 200, body: bytes = b"{}") -> None:
+        self._status = status
+        self._body = body
+
+    def get(self, *args, **kwargs) -> _StubResponse:
+        """Return an async context manager response stub."""
+
+        return _StubResponse(self._status, body=self._body)
+
+
+def _install_homeassistant_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
+    clear_integration_modules(monkeypatch=monkeypatch)
+    stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
+
+    ha_mod = stub_homeassistant_package(monkeypatch=monkeypatch)
+
+    config_entries_mod = ModuleType("homeassistant.config_entries")
+    config_entries_mod.ConfigFlow = _StubConfigFlow
+    config_entries_mod.OptionsFlow = _StubOptionsFlow
+    config_entries_mod.OptionsFlowWithReload = _StubOptionsFlowWithReload
+    config_entries_mod.ConfigEntry = _StubConfigEntry
+    monkeypatch.setitem(sys.modules, "homeassistant.config_entries", config_entries_mod)
+
+    stub_exceptions(
+        ConfigEntryAuthFailed=_StubConfigEntryAuthFailed, monkeypatch=monkeypatch
+    )
+
+    const_mod = ModuleType("homeassistant.const")
+    const_mod.CONF_LATITUDE = "latitude"
+    const_mod.CONF_LOCATION = "location"
+    const_mod.CONF_LONGITUDE = "longitude"
+    const_mod.CONF_NAME = "name"
+    monkeypatch.setitem(sys.modules, "homeassistant.const", const_mod)
+
+    helpers_mod = ModuleType("homeassistant.helpers")
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers", helpers_mod)
+
+    config_validation_mod = ModuleType("homeassistant.helpers.config_validation")
+    config_validation_mod.latitude = _latitude
+    config_validation_mod.longitude = _longitude
+    config_validation_mod.string = lambda value=None: value
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.config_validation", config_validation_mod
+    )
+
+    aiohttp_client_mod = ModuleType("homeassistant.helpers.aiohttp_client")
+    aiohttp_client_mod.async_get_clientsession = lambda hass: _StubSession()
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.aiohttp_client", aiohttp_client_mod
+    )
+
+    stub_update_coordinator_module(
+        update_failed=_StubUpdateFailed,
+        data_update_coordinator=_StubDataUpdateCoordinator,
+        coordinator_entity=_StubCoordinatorEntity,
+        monkeypatch=monkeypatch,
+    )
+
+    util_mod = ModuleType("homeassistant.util")
+    dt_mod = ModuleType("homeassistant.util.dt")
+    dt_mod.parse_http_date = _parse_http_date
+    dt_mod.utcnow = lambda: datetime.now(UTC)
+    util_mod.dt = dt_mod
+    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
+    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
+
+    selector_mod = ModuleType("homeassistant.helpers.selector")
+    selector_mod.LocationSelector = _LocationSelector
+    selector_mod.LocationSelectorConfig = _LocationSelectorConfig
+    selector_mod.NumberSelector = _NumberSelector
+    selector_mod.NumberSelectorConfig = _NumberSelectorConfig
+    selector_mod.NumberSelectorMode = _NumberSelectorMode
+    selector_mod.TextSelector = _TextSelector
+    selector_mod.TextSelectorConfig = _TextSelectorConfig
+    selector_mod.TextSelectorType = _TextSelectorType
+    selector_mod.SelectSelector = _SelectSelector
+    selector_mod.SelectSelectorConfig = _SelectSelectorConfig
+    selector_mod.SelectSelectorMode = _SelectSelectorMode
+    selector_mod.section = lambda key: key
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers.selector", selector_mod)
+
+    ha_mod.helpers = helpers_mod
+    ha_mod.config_entries = config_entries_mod
+
+    aiohttp_mod = ModuleType("aiohttp")
+    aiohttp_mod.ClientError = _StubClientError
+    aiohttp_mod.ClientTimeout = _StubClientTimeout
+    aiohttp_mod.ClientSession = _StubClientSession
+    aiohttp_mod.ContentTypeError = ValueError
+    monkeypatch.setitem(sys.modules, "aiohttp", aiohttp_mod)
+
+    vol_mod = ModuleType("voluptuous")
+    vol_mod.Invalid = _StubInvalid
+    vol_mod.Schema = lambda schema, **kwargs: _StubSchema(schema)
+    vol_mod.Optional = lambda key, **kwargs: key
+    vol_mod.Required = lambda key, **kwargs: key
+    vol_mod.All = lambda *args, **kwargs: None
+    vol_mod.Coerce = lambda *args, **kwargs: None
+    vol_mod.Range = lambda *args, **kwargs: None
+    vol_mod.In = lambda *args, **kwargs: None
+    monkeypatch.setitem(sys.modules, "voluptuous", vol_mod)
+
+
+@dataclass(frozen=True)
+class ConfigFlowStubs:
+    """Fixture-provided config flow imports and Home Assistant stubs."""
+
+    config_flow: ModuleType
+    PollenLevelsConfigFlow: type[object]
+    PollenLevelsOptionsFlow: type[object]
+    StubConfigEntry: type[_StubConfigEntry]
+    ConfigEntryAuthFailed: type[Exception]
+    UpdateFailed: type[Exception]
+    CONF_LATITUDE: str
+    CONF_LOCATION: str
+    CONF_LONGITUDE: str
+    CONF_NAME: str
+    CONF_API_KEY: str
+    CONF_CREATE_FORECAST_SENSORS: str
+    CONF_FORECAST_DAYS: str
+    CONF_LANGUAGE_CODE: str
+    CONF_UPDATE_INTERVAL: str
+    DEFAULT_ENTRY_TITLE: str
+    DEFAULT_FORECAST_DAYS: int
+    DEFAULT_UPDATE_INTERVAL: int
+    FORECAST_SENSORS_CHOICES: tuple[str, ...]
+    MAX_FORECAST_DAYS: int
+    MAX_UPDATE_INTERVAL_HOURS: int
+    MIN_FORECAST_DAYS: int
+
+
+cf: Any = None
+PollenLevelsConfigFlow: Any = None
+_language_error_to_form_key: Any = None
+ConfigEntryAuthFailed: Any = None
+UpdateFailed: Any = None
+CONF_LATITUDE = ""
+CONF_LOCATION = ""
+CONF_LONGITUDE = ""
+CONF_NAME = ""
+CONF_API_KEY = ""
+CONF_CREATE_FORECAST_SENSORS = ""
+CONF_FORECAST_DAYS = ""
+CONF_LANGUAGE_CODE = ""
+CONF_UPDATE_INTERVAL = ""
+DEFAULT_ENTRY_TITLE = ""
+DEFAULT_FORECAST_DAYS = 0
+DEFAULT_UPDATE_INTERVAL = 0
+FORECAST_SENSORS_CHOICES: tuple[str, ...] = ()
+MAX_FORECAST_DAYS = 0
+MAX_UPDATE_INTERVAL_HOURS = 0
+MIN_FORECAST_DAYS = 0
+
+
+@pytest.fixture(name="config_flow_stubs", autouse=True)
+def config_flow_stubs_fixture(monkeypatch: pytest.MonkeyPatch) -> ConfigFlowStubs:
+    """Install scoped stubs and import the config flow under those stubs."""
+
+    _install_homeassistant_stubs(monkeypatch)
+
+    ha_const = importlib.import_module("homeassistant.const")
+    ha_exceptions = importlib.import_module("homeassistant.exceptions")
+    ha_update_coordinator = importlib.import_module(
+        "homeassistant.helpers.update_coordinator"
+    )
+    cf_module = importlib.import_module("custom_components.pollenlevels.config_flow")
+    const = importlib.import_module("custom_components.pollenlevels.const")
+
+    stubs = ConfigFlowStubs(
+        config_flow=cf_module,
+        PollenLevelsConfigFlow=cf_module.PollenLevelsConfigFlow,
+        PollenLevelsOptionsFlow=cf_module.PollenLevelsOptionsFlow,
+        StubConfigEntry=_StubConfigEntry,
+        ConfigEntryAuthFailed=ha_exceptions.ConfigEntryAuthFailed,
+        UpdateFailed=ha_update_coordinator.UpdateFailed,
+        CONF_LATITUDE=ha_const.CONF_LATITUDE,
+        CONF_LOCATION=ha_const.CONF_LOCATION,
+        CONF_LONGITUDE=ha_const.CONF_LONGITUDE,
+        CONF_NAME=ha_const.CONF_NAME,
+        CONF_API_KEY=const.CONF_API_KEY,
+        CONF_CREATE_FORECAST_SENSORS=const.CONF_CREATE_FORECAST_SENSORS,
+        CONF_FORECAST_DAYS=const.CONF_FORECAST_DAYS,
+        CONF_LANGUAGE_CODE=const.CONF_LANGUAGE_CODE,
+        CONF_UPDATE_INTERVAL=const.CONF_UPDATE_INTERVAL,
+        DEFAULT_ENTRY_TITLE=const.DEFAULT_ENTRY_TITLE,
+        DEFAULT_FORECAST_DAYS=const.DEFAULT_FORECAST_DAYS,
+        DEFAULT_UPDATE_INTERVAL=const.DEFAULT_UPDATE_INTERVAL,
+        FORECAST_SENSORS_CHOICES=const.FORECAST_SENSORS_CHOICES,
+        MAX_FORECAST_DAYS=const.MAX_FORECAST_DAYS,
+        MAX_UPDATE_INTERVAL_HOURS=const.MAX_UPDATE_INTERVAL_HOURS,
+        MIN_FORECAST_DAYS=const.MIN_FORECAST_DAYS,
+    )
+
+    globals().update(
+        {
+            "cf": stubs.config_flow,
+            "PollenLevelsConfigFlow": stubs.PollenLevelsConfigFlow,
+            "_language_error_to_form_key": cf_module._language_error_to_form_key,
+            "ConfigEntryAuthFailed": stubs.ConfigEntryAuthFailed,
+            "UpdateFailed": stubs.UpdateFailed,
+            "CONF_LATITUDE": stubs.CONF_LATITUDE,
+            "CONF_LOCATION": stubs.CONF_LOCATION,
+            "CONF_LONGITUDE": stubs.CONF_LONGITUDE,
+            "CONF_NAME": stubs.CONF_NAME,
+            "CONF_API_KEY": stubs.CONF_API_KEY,
+            "CONF_CREATE_FORECAST_SENSORS": stubs.CONF_CREATE_FORECAST_SENSORS,
+            "CONF_FORECAST_DAYS": stubs.CONF_FORECAST_DAYS,
+            "CONF_LANGUAGE_CODE": stubs.CONF_LANGUAGE_CODE,
+            "CONF_UPDATE_INTERVAL": stubs.CONF_UPDATE_INTERVAL,
+            "DEFAULT_ENTRY_TITLE": stubs.DEFAULT_ENTRY_TITLE,
+            "DEFAULT_FORECAST_DAYS": stubs.DEFAULT_FORECAST_DAYS,
+            "DEFAULT_UPDATE_INTERVAL": stubs.DEFAULT_UPDATE_INTERVAL,
+            "FORECAST_SENSORS_CHOICES": stubs.FORECAST_SENSORS_CHOICES,
+            "MAX_FORECAST_DAYS": stubs.MAX_FORECAST_DAYS,
+            "MAX_UPDATE_INTERVAL_HOURS": stubs.MAX_UPDATE_INTERVAL_HOURS,
+            "MIN_FORECAST_DAYS": stubs.MIN_FORECAST_DAYS,
+        }
+    )
+
+    return stubs
 
 
 class _StubResponse:
@@ -685,9 +748,9 @@ def _build_options_flow(data: dict | None = None) -> cf.PollenLevelsOptionsFlow:
 @pytest.mark.parametrize(
     ("raw_value", "expected"),
     [
-        ("not-a-number", DEFAULT_UPDATE_INTERVAL),
+        ("not-a-number", 6),
         (0, 1),
-        (999, MAX_UPDATE_INTERVAL_HOURS),
+        (999, 24),
     ],
 )
 def test_setup_schema_update_interval_default_is_sanitized(
@@ -717,9 +780,9 @@ def test_setup_schema_update_interval_default_is_sanitized(
 @pytest.mark.parametrize(
     ("raw_value", "expected"),
     [
-        ("999", str(MAX_FORECAST_DAYS)),
-        (-5, str(MIN_FORECAST_DAYS)),
-        ("abc", str(DEFAULT_FORECAST_DAYS)),
+        ("999", "5"),
+        (-5, "1"),
+        ("abc", "2"),
     ],
 )
 def test_setup_schema_forecast_days_default_is_sanitized(
@@ -948,17 +1011,21 @@ def test_validate_input_update_interval_non_numeric_sets_error(
 
 
 @pytest.mark.parametrize(
-    ("error", "expected"),
+    ("exception_name", "message", "expected"),
     [
-        (ConfigEntryAuthFailed("HTTP 401"), {"base": "invalid_auth"}),
-        (UpdateFailed("HTTP 403"), {"base": "cannot_connect"}),
+        ("ConfigEntryAuthFailed", "HTTP 401", {"base": "invalid_auth"}),
+        ("UpdateFailed", "HTTP 403", {"base": "cannot_connect"}),
     ],
 )
 def test_validate_input_http_auth_errors_map_correctly(
-    monkeypatch: pytest.MonkeyPatch, error: Exception, expected: dict
+    monkeypatch: pytest.MonkeyPatch,
+    exception_name: str,
+    message: str,
+    expected: dict,
 ) -> None:
     """HTTP auth failures during validation should map correctly."""
 
+    error = globals()[exception_name](message)
     calls = _patch_client_fetch(monkeypatch, error=error)
 
     flow = PollenLevelsConfigFlow()
