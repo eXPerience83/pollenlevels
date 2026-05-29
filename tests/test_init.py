@@ -6,6 +6,7 @@ import asyncio
 import importlib
 import sys
 import types
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -23,9 +24,12 @@ from tests._ha_stubs import (
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-integration = None
-const = None
-_BaseDataUpdateCoordinator = None
+
+@dataclass(frozen=True)
+class _InitModules:
+    integration: types.ModuleType
+    const: types.ModuleType
+    base_data_update_coordinator: type[_StubDataUpdateCoordinator]
 
 
 class _StubConfigEntry:
@@ -233,17 +237,21 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-@pytest.fixture(autouse=True)
-def integration_modules(monkeypatch: pytest.MonkeyPatch, stub_init_ha_modules: None):
+@pytest.fixture
+def integration_modules(
+    monkeypatch: pytest.MonkeyPatch, stub_init_ha_modules: None
+) -> _InitModules:
     """Import integration modules only after stubs are installed."""
-    global integration, const, _BaseDataUpdateCoordinator
     # Remove the package stub installed by stub_custom_components_packages so
     # importing custom_components.pollenlevels executes the real __init__.py.
     clear_integration_modules(monkeypatch=monkeypatch)
     const = importlib.import_module("custom_components.pollenlevels.const")
     integration = importlib.import_module("custom_components.pollenlevels")
-    _BaseDataUpdateCoordinator = _StubDataUpdateCoordinator
-    return integration, const
+    return _InitModules(
+        integration=integration,
+        const=const,
+        base_data_update_coordinator=_StubDataUpdateCoordinator,
+    )
 
 
 class _FakeConfigEntries:
@@ -291,6 +299,7 @@ class _FakeConfigEntries:
 class _FakeEntry:
     def __init__(
         self,
+        integration: types.ModuleType,
         *,
         entry_id: str = "entry-1",
         title: str = "Pollen Levels",
@@ -340,21 +349,25 @@ class _ServiceRegistry:
         await handler(_StubServiceCall())
 
 
-def test_setup_entry_propagates_auth_failed() -> None:
+def test_setup_entry_propagates_auth_failed(integration_modules: _InitModules) -> None:
     """ConfigEntryAuthFailed should bubble up for reauthentication."""
+    integration = integration_modules.integration
 
     hass = _FakeHass(forward_exception=integration.ConfigEntryAuthFailed("bad key"))
-    entry = _FakeEntry()
+    entry = _FakeEntry(integration)
 
     with pytest.raises(integration.ConfigEntryAuthFailed):
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
-def test_setup_entry_clears_runtime_data_on_forward_auth_failed() -> None:
+def test_setup_entry_clears_runtime_data_on_forward_auth_failed(
+    integration_modules: _InitModules,
+) -> None:
     """runtime_data is cleared when forwarding raises ConfigEntryAuthFailed."""
+    integration = integration_modules.integration
 
     hass = _FakeHass(forward_exception=integration.ConfigEntryAuthFailed("bad key"))
-    entry = _FakeEntry()
+    entry = _FakeEntry(integration)
 
     with pytest.raises(integration.ConfigEntryAuthFailed):
         asyncio.run(integration.async_setup_entry(hass, entry))
@@ -362,11 +375,14 @@ def test_setup_entry_clears_runtime_data_on_forward_auth_failed() -> None:
     assert entry.runtime_data is None
 
 
-def test_setup_entry_clears_runtime_data_on_forward_not_ready() -> None:
+def test_setup_entry_clears_runtime_data_on_forward_not_ready(
+    integration_modules: _InitModules,
+) -> None:
     """runtime_data is cleared when forwarding raises ConfigEntryNotReady."""
+    integration = integration_modules.integration
 
     hass = _FakeHass(forward_exception=integration.ConfigEntryNotReady("retry"))
-    entry = _FakeEntry()
+    entry = _FakeEntry(integration)
 
     with pytest.raises(integration.ConfigEntryNotReady):
         asyncio.run(integration.async_setup_entry(hass, entry))
@@ -374,14 +390,17 @@ def test_setup_entry_clears_runtime_data_on_forward_not_ready() -> None:
     assert entry.runtime_data is None
 
 
-def test_setup_entry_clears_runtime_data_on_forward_generic_error() -> None:
+def test_setup_entry_clears_runtime_data_on_forward_generic_error(
+    integration_modules: _InitModules,
+) -> None:
     """runtime_data is cleared when forwarding raises an unexpected exception."""
+    integration = integration_modules.integration
 
     class _Boom(Exception):
         pass
 
     hass = _FakeHass(forward_exception=_Boom("boom"))
-    entry = _FakeEntry()
+    entry = _FakeEntry(integration)
 
     with pytest.raises(integration.ConfigEntryNotReady):
         asyncio.run(integration.async_setup_entry(hass, entry))
@@ -389,63 +408,79 @@ def test_setup_entry_clears_runtime_data_on_forward_generic_error() -> None:
     assert entry.runtime_data is None
 
 
-def test_setup_entry_missing_api_key_raises_auth_failed() -> None:
+def test_setup_entry_missing_api_key_raises_auth_failed(
+    integration_modules: _InitModules,
+) -> None:
     """Missing API key should trigger ConfigEntryAuthFailed."""
+    integration = integration_modules.integration
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-        }
+        },
     )
 
     with pytest.raises(integration.ConfigEntryAuthFailed):
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
-def test_setup_entry_whitespace_api_key_raises_auth_failed() -> None:
+def test_setup_entry_whitespace_api_key_raises_auth_failed(
+    integration_modules: _InitModules,
+) -> None:
     """Whitespace-only API key should trigger ConfigEntryAuthFailed."""
+    integration = integration_modules.integration
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "   ",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-        }
+        },
     )
 
     with pytest.raises(integration.ConfigEntryAuthFailed):
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
-def test_setup_entry_invalid_coordinates_raise_not_ready() -> None:
+def test_setup_entry_invalid_coordinates_raise_not_ready(
+    integration_modules: _InitModules,
+) -> None:
     """Invalid coordinates should trigger ConfigEntryNotReady."""
+    integration = integration_modules.integration
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: "not-a-number",
             integration.CONF_LONGITUDE: 2.0,
-        }
+        },
     )
 
     with pytest.raises(integration.ConfigEntryNotReady):
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
-def test_setup_entry_invalid_coordinates_do_not_log_precise_values(caplog) -> None:
+def test_setup_entry_invalid_coordinates_do_not_log_precise_values(
+    integration_modules: _InitModules, caplog
+) -> None:
     """Invalid coordinates should fail without logging precise coordinate values."""
+    integration = integration_modules.integration
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 91.123456,
             integration.CONF_LONGITUDE: 2.654321,
-        }
+        },
     )
 
     with pytest.raises(integration.ConfigEntryNotReady):
@@ -456,8 +491,11 @@ def test_setup_entry_invalid_coordinates_do_not_log_precise_values(caplog) -> No
     assert "2.654321" not in log_text
 
 
-def test_setup_entry_nonfinite_or_out_of_range_coordinates_raise_not_ready() -> None:
+def test_setup_entry_nonfinite_or_out_of_range_coordinates_raise_not_ready(
+    integration_modules: _InitModules,
+) -> None:
     """Non-finite or out-of-range coordinates should trigger ConfigEntryNotReady."""
+    integration = integration_modules.integration
 
     bad_pairs = [
         (float("inf"), 2.0),
@@ -469,43 +507,52 @@ def test_setup_entry_nonfinite_or_out_of_range_coordinates_raise_not_ready() -> 
     for lat, lon in bad_pairs:
         hass = _FakeHass()
         entry = _FakeEntry(
+            integration,
             data={
                 integration.CONF_API_KEY: "key",
                 integration.CONF_LATITUDE: lat,
                 integration.CONF_LONGITUDE: lon,
-            }
+            },
         )
 
         with pytest.raises(integration.ConfigEntryNotReady):
             asyncio.run(integration.async_setup_entry(hass, entry))
 
 
-def test_setup_entry_boolean_coordinates_raise_not_ready() -> None:
+def test_setup_entry_boolean_coordinates_raise_not_ready(
+    integration_modules: _InitModules,
+) -> None:
     """Boolean coordinates should trigger ConfigEntryNotReady."""
+    integration = integration_modules.integration
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: True,
             integration.CONF_LONGITUDE: 2.0,
-        }
+        },
     )
 
     with pytest.raises(integration.ConfigEntryNotReady):
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
-def test_setup_entry_numeric_string_coordinates_are_allowed() -> None:
+def test_setup_entry_numeric_string_coordinates_are_allowed(
+    integration_modules: _InitModules,
+) -> None:
     """Numeric string coordinates should still set up normally."""
+    integration = integration_modules.integration
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: "1.5",
             integration.CONF_LONGITUDE: "2.5",
-        }
+        },
     )
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
@@ -514,29 +561,37 @@ def test_setup_entry_numeric_string_coordinates_are_allowed() -> None:
     assert entry.runtime_data.coordinator.lon == pytest.approx(2.5)
 
 
-def test_setup_entry_boundary_coordinates_are_allowed() -> None:
+def test_setup_entry_boundary_coordinates_are_allowed(
+    integration_modules: _InitModules,
+) -> None:
     """Coordinate values on valid boundaries should still set up successfully."""
+    integration = integration_modules.integration
 
     for lat, lon in [(-90.0, -180.0), (90.0, 180.0)]:
         hass = _FakeHass()
         entry = _FakeEntry(
+            integration,
             data={
                 integration.CONF_API_KEY: "key",
                 integration.CONF_LATITUDE: lat,
                 integration.CONF_LONGITUDE: lon,
-            }
+            },
         )
 
         assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
 
 def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
+    integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Decimal options should not be truncated silently during setup."""
+    integration = integration_modules.integration
+    base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -550,7 +605,7 @@ def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
 
     seen: dict[str, int] = {}
 
-    class _StubCoordinator(_BaseDataUpdateCoordinator):
+    class _StubCoordinator(base_data_update_coordinator):
         def __init__(self, *args, **kwargs):
             seen["hours"] = kwargs["hours"]
             seen["forecast_days"] = kwargs["forecast_days"]
@@ -566,26 +621,30 @@ def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
     assert seen["forecast_days"] == integration.DEFAULT_FORECAST_DAYS
 
 
-def test_setup_entry_wraps_generic_error() -> None:
+def test_setup_entry_wraps_generic_error(integration_modules: _InitModules) -> None:
     """Unexpected errors convert to ConfigEntryNotReady for retries."""
+    integration = integration_modules.integration
 
     class _Boom(Exception):
         pass
 
     hass = _FakeHass(forward_exception=_Boom("boom"))
-    entry = _FakeEntry()
+    entry = _FakeEntry(integration)
 
     with pytest.raises(integration.ConfigEntryNotReady):
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
 def test_setup_entry_success_and_unload(
+    integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Happy path should forward setup and unload cleanly."""
+    integration = integration_modules.integration
+    base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
     hass = _FakeHass()
-    entry = _FakeEntry()
+    entry = _FakeEntry(integration)
 
     class _StubClient:
         def __init__(self, _session, _api_key):
@@ -595,7 +654,7 @@ def test_setup_entry_success_and_unload(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(_BaseDataUpdateCoordinator):
+    class _StubCoordinator(base_data_update_coordinator):
         def __init__(self, *args, **kwargs):
             self.api_key = kwargs["api_key"]
             self.lat = kwargs["lat"]
@@ -631,12 +690,17 @@ def test_setup_entry_success_and_unload(
 
 
 def test_setup_entry_normalizes_forecast_sensor_mode(
+    integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Setup should normalize stored forecast mode values before coordinator flags."""
+    integration = integration_modules.integration
+    base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
     hass = _FakeHass()
-    entry = _FakeEntry(options={integration.CONF_CREATE_FORECAST_SENSORS: " D+1 "})
+    entry = _FakeEntry(
+        integration, options={integration.CONF_CREATE_FORECAST_SENSORS: " D+1 "}
+    )
 
     class _StubClient:
         def __init__(self, _session, _api_key):
@@ -646,7 +710,7 @@ def test_setup_entry_normalizes_forecast_sensor_mode(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(_BaseDataUpdateCoordinator):
+    class _StubCoordinator(base_data_update_coordinator):
         def __init__(self, *args, **kwargs):
             self.create_d1 = kwargs["create_d1"]
             self.create_d2 = kwargs["create_d2"]
@@ -670,16 +734,20 @@ def test_setup_entry_normalizes_forecast_sensor_mode(
 
 
 def test_setup_entry_disables_d1_when_forecast_days_is_one(
+    integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Setup should disable D+1/D+2 creation when forecast days disallow them."""
+    integration = integration_modules.integration
+    base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
     hass = _FakeHass()
     entry = _FakeEntry(
+        integration,
         options={
             integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
             integration.CONF_FORECAST_DAYS: 1,
-        }
+        },
     )
 
     class _StubClient:
@@ -690,7 +758,7 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
         async def async_fetch_pollen_data(self, **_kwargs):
             return {"region": {"source": "meta"}, "dailyInfo": []}
 
-    class _StubCoordinator(_BaseDataUpdateCoordinator):
+    class _StubCoordinator(base_data_update_coordinator):
         def __init__(self, *args, **kwargs):
             self.create_d1 = kwargs["create_d1"]
             self.create_d2 = kwargs["create_d2"]
@@ -714,9 +782,11 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
 
 
 def test_force_update_service_is_registered_with_empty_schema(
+    integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """async_setup should register force_update with an empty schema."""
+    integration = integration_modules.integration
 
     marker = object()
 
@@ -734,8 +804,11 @@ def test_force_update_service_is_registered_with_empty_schema(
     assert hass.services.schemas[key] is marker
 
 
-def test_force_update_requests_refresh_per_entry() -> None:
+def test_force_update_requests_refresh_per_entry(
+    integration_modules: _InitModules,
+) -> None:
     """force_update should queue refresh via runtime_data coordinators and skip missing runtime data."""
+    integration = integration_modules.integration
 
     class _StubCoordinator:
         def __init__(self):
@@ -749,13 +822,13 @@ def test_force_update_requests_refresh_per_entry() -> None:
         async def async_request_refresh(self):
             await self._mark()
 
-    entry1 = _FakeEntry(entry_id="entry-1")
+    entry1 = _FakeEntry(integration, entry_id="entry-1")
     entry1.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
-    entry2 = _FakeEntry(entry_id="entry-2")
+    entry2 = _FakeEntry(integration, entry_id="entry-2")
     entry2.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
-    entry3 = _FakeEntry(entry_id="entry-3")
+    entry3 = _FakeEntry(integration, entry_id="entry-3")
     entry3.runtime_data = None
-    entry4 = _FakeEntry(entry_id="entry-4")
+    entry4 = _FakeEntry(integration, entry_id="entry-4")
     entry4.runtime_data = types.SimpleNamespace()
 
     hass = _FakeHass(entries=[entry1, entry2, entry3, entry4])
@@ -771,8 +844,11 @@ def test_force_update_requests_refresh_per_entry() -> None:
     assert entry2.runtime_data.coordinator.done.is_set()
 
 
-def test_force_update_continues_after_single_coordinator_failure() -> None:
+def test_force_update_continues_after_single_coordinator_failure(
+    integration_modules: _InitModules,
+) -> None:
     """One coordinator failure should not block refreshes for other entries."""
+    integration = integration_modules.integration
 
     class _OkCoordinator:
         def __init__(self):
@@ -785,9 +861,9 @@ def test_force_update_continues_after_single_coordinator_failure() -> None:
         async def async_request_refresh(self):
             raise RuntimeError("boom")
 
-    good_entry = _FakeEntry(entry_id="entry-good")
+    good_entry = _FakeEntry(integration, entry_id="entry-good")
     good_entry.runtime_data = types.SimpleNamespace(coordinator=_OkCoordinator())
-    bad_entry = _FakeEntry(entry_id="entry-bad")
+    bad_entry = _FakeEntry(integration, entry_id="entry-bad")
     bad_entry.runtime_data = types.SimpleNamespace(coordinator=_FailCoordinator())
 
     hass = _FakeHass(entries=[bad_entry, good_entry])
@@ -798,14 +874,17 @@ def test_force_update_continues_after_single_coordinator_failure() -> None:
     assert good_entry.runtime_data.coordinator.calls == 1
 
 
-def test_force_update_handles_per_entry_cancelled_error(caplog) -> None:
+def test_force_update_handles_per_entry_cancelled_error(
+    integration_modules: _InitModules, caplog
+) -> None:
     """Per-entry cancellation results should not abort the global service."""
+    integration = integration_modules.integration
 
     class _CancelledCoordinator:
         async def async_request_refresh(self):
             raise asyncio.CancelledError
 
-    entry = _FakeEntry(entry_id="entry-cancel")
+    entry = _FakeEntry(integration, entry_id="entry-cancel")
     entry.runtime_data = types.SimpleNamespace(coordinator=_CancelledCoordinator())
 
     hass = _FakeHass(entries=[entry])
@@ -817,8 +896,11 @@ def test_force_update_handles_per_entry_cancelled_error(caplog) -> None:
     assert "Manual refresh cancelled for entry entry-cancel" in caplog.text
 
 
-def test_force_update_no_coordinators_is_noop(caplog) -> None:
+def test_force_update_no_coordinators_is_noop(
+    integration_modules: _InitModules, caplog
+) -> None:
     """Calling force_update with no coordinators should be a safe no-op."""
+    integration = integration_modules.integration
 
     hass = _FakeHass(entries=[])
 
@@ -829,8 +911,11 @@ def test_force_update_no_coordinators_is_noop(caplog) -> None:
     assert "No coordinators available for force_update" in caplog.text
 
 
-def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
+def test_force_update_logs_do_not_expose_secrets(
+    integration_modules: _InitModules, caplog
+) -> None:
     """Failure logs should avoid exposing key material and detailed location/payload data."""
+    integration = integration_modules.integration
 
     class _FailCoordinator:
         async def async_request_refresh(self):
@@ -842,6 +927,7 @@ def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
             )
 
     entry = _FakeEntry(
+        integration,
         entry_id="entry-secrets",
         data={
             integration.CONF_API_KEY: "secret-123",
@@ -871,9 +957,12 @@ def test_force_update_logs_do_not_expose_secrets(caplog) -> None:
     assert "Manual refresh failed for entry entry-secrets (RuntimeError):" in text
 
 
-def test_migrate_entry_moves_mode_to_options() -> None:
+def test_migrate_entry_moves_mode_to_options(integration_modules: _InitModules) -> None:
     """Migration should copy per-day sensor mode from data to options."""
+    integration = integration_modules.integration
+
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -894,9 +983,15 @@ def test_migrate_entry_moves_mode_to_options() -> None:
     assert entry.version == 3
 
 
-def test_migrate_entry_normalizes_invalid_mode() -> None:
+def test_migrate_entry_normalizes_invalid_mode(
+    integration_modules: _InitModules,
+) -> None:
     """Migration should normalize invalid per-day sensor mode values."""
+    integration = integration_modules.integration
+    const = integration_modules.const
+
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -916,9 +1011,15 @@ def test_migrate_entry_normalizes_invalid_mode() -> None:
     assert entry.version == 3
 
 
-def test_migrate_entry_normalizes_invalid_mode_in_options() -> None:
+def test_migrate_entry_normalizes_invalid_mode_in_options(
+    integration_modules: _InitModules,
+) -> None:
     """Migration should normalize invalid per-day sensor mode values in options."""
+    integration = integration_modules.integration
+    const = integration_modules.const
+
     entry = _FakeEntry(
+        integration,
         data={},
         options={integration.CONF_CREATE_FORECAST_SENSORS: "bad-value"},
         version=1,
@@ -933,11 +1034,14 @@ def test_migrate_entry_normalizes_invalid_mode_in_options() -> None:
     assert entry.version == 3
 
 
-def test_migrate_entry_normalizes_invalid_mode_in_options_when_version_current() -> (
-    None
-):
+def test_migrate_entry_normalizes_invalid_mode_in_options_when_version_current(
+    integration_modules: _InitModules,
+) -> None:
     """Migration should normalize invalid mode values even at the target version."""
+    integration = integration_modules.integration
+
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -953,9 +1057,14 @@ def test_migrate_entry_normalizes_invalid_mode_in_options_when_version_current()
     assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
-def test_migrate_entry_marks_version_when_no_changes() -> None:
+def test_migrate_entry_marks_version_when_no_changes(
+    integration_modules: _InitModules,
+) -> None:
     """Migration should still bump the version when no changes are needed."""
+    integration = integration_modules.integration
+
     entry = _FakeEntry(
+        integration,
         options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1"},
         version=1,
     )
@@ -965,9 +1074,14 @@ def test_migrate_entry_marks_version_when_no_changes() -> None:
     assert entry.version == 3
 
 
-def test_migrate_entry_cleans_legacy_keys_when_version_current() -> None:
+def test_migrate_entry_cleans_legacy_keys_when_version_current(
+    integration_modules: _InitModules,
+) -> None:
     """Migration should remove legacy keys even if already at target version."""
+    integration = integration_modules.integration
+
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -987,9 +1101,14 @@ def test_migrate_entry_cleans_legacy_keys_when_version_current() -> None:
     assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
-def test_migrate_entry_does_not_downgrade_version() -> None:
+def test_migrate_entry_does_not_downgrade_version(
+    integration_modules: _InitModules,
+) -> None:
     """Migration should preserve versions newer than the target."""
+    integration = integration_modules.integration
+
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -1007,9 +1126,14 @@ def test_migrate_entry_does_not_downgrade_version() -> None:
     assert entry.version == integration.TARGET_ENTRY_VERSION + 1
 
 
-def test_migrate_entry_removes_mode_from_data_when_in_options() -> None:
+def test_migrate_entry_removes_mode_from_data_when_in_options(
+    integration_modules: _InitModules,
+) -> None:
     """Migration should remove per-day sensor mode from data when already in options."""
+    integration = integration_modules.integration
+
     entry = _FakeEntry(
+        integration,
         data={
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
@@ -1027,9 +1151,13 @@ def test_migrate_entry_removes_mode_from_data_when_in_options() -> None:
 
 
 @pytest.mark.parametrize("version", [None, "x"])
-def test_migrate_entry_handles_non_int_version(version: object) -> None:
+def test_migrate_entry_handles_non_int_version(
+    integration_modules: _InitModules, version: object
+) -> None:
     """Migration should normalize non-integer versions before bumping."""
-    entry = _FakeEntry(options={}, version=version)
+    integration = integration_modules.integration
+
+    entry = _FakeEntry(integration, options={}, version=version)
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
