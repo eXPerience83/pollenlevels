@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import Any
 
 import pytest
 
@@ -376,29 +375,6 @@ class ConfigFlowStubs:
     MIN_FORECAST_DAYS: int
 
 
-cf: Any = None
-PollenLevelsConfigFlow: Any = None
-_language_error_to_form_key: Any = None
-ConfigEntryAuthFailed: Any = None
-UpdateFailed: Any = None
-CONF_LATITUDE = ""
-CONF_LOCATION = ""
-CONF_LONGITUDE = ""
-CONF_NAME = ""
-CONF_API_KEY = ""
-CONF_CREATE_FORECAST_SENSORS = ""
-CONF_FORECAST_DAYS = ""
-CONF_LANGUAGE_CODE = ""
-CONF_UPDATE_INTERVAL = ""
-DEFAULT_ENTRY_TITLE = ""
-DEFAULT_FORECAST_DAYS = 0
-DEFAULT_UPDATE_INTERVAL = 0
-FORECAST_SENSORS_CHOICES: tuple[str, ...] = ()
-MAX_FORECAST_DAYS = 0
-MAX_UPDATE_INTERVAL_HOURS = 0
-MIN_FORECAST_DAYS = 0
-
-
 @pytest.fixture(name="config_flow_stubs", autouse=True)
 def config_flow_stubs_fixture(monkeypatch: pytest.MonkeyPatch) -> ConfigFlowStubs:
     """Install scoped stubs and import the config flow under those stubs."""
@@ -436,32 +412,6 @@ def config_flow_stubs_fixture(monkeypatch: pytest.MonkeyPatch) -> ConfigFlowStub
         MAX_FORECAST_DAYS=const.MAX_FORECAST_DAYS,
         MAX_UPDATE_INTERVAL_HOURS=const.MAX_UPDATE_INTERVAL_HOURS,
         MIN_FORECAST_DAYS=const.MIN_FORECAST_DAYS,
-    )
-
-    globals().update(
-        {
-            "cf": stubs.config_flow,
-            "PollenLevelsConfigFlow": stubs.PollenLevelsConfigFlow,
-            "_language_error_to_form_key": cf_module._language_error_to_form_key,
-            "ConfigEntryAuthFailed": stubs.ConfigEntryAuthFailed,
-            "UpdateFailed": stubs.UpdateFailed,
-            "CONF_LATITUDE": stubs.CONF_LATITUDE,
-            "CONF_LOCATION": stubs.CONF_LOCATION,
-            "CONF_LONGITUDE": stubs.CONF_LONGITUDE,
-            "CONF_NAME": stubs.CONF_NAME,
-            "CONF_API_KEY": stubs.CONF_API_KEY,
-            "CONF_CREATE_FORECAST_SENSORS": stubs.CONF_CREATE_FORECAST_SENSORS,
-            "CONF_FORECAST_DAYS": stubs.CONF_FORECAST_DAYS,
-            "CONF_LANGUAGE_CODE": stubs.CONF_LANGUAGE_CODE,
-            "CONF_UPDATE_INTERVAL": stubs.CONF_UPDATE_INTERVAL,
-            "DEFAULT_ENTRY_TITLE": stubs.DEFAULT_ENTRY_TITLE,
-            "DEFAULT_FORECAST_DAYS": stubs.DEFAULT_FORECAST_DAYS,
-            "DEFAULT_UPDATE_INTERVAL": stubs.DEFAULT_UPDATE_INTERVAL,
-            "FORECAST_SENSORS_CHOICES": stubs.FORECAST_SENSORS_CHOICES,
-            "MAX_FORECAST_DAYS": stubs.MAX_FORECAST_DAYS,
-            "MAX_UPDATE_INTERVAL_HOURS": stubs.MAX_UPDATE_INTERVAL_HOURS,
-            "MIN_FORECAST_DAYS": stubs.MIN_FORECAST_DAYS,
-        }
     )
 
     return stubs
@@ -560,31 +510,38 @@ def _collect_error_keys_from_config_flow() -> set[str]:
     return error_keys
 
 
-def test_validate_input_invalid_language_key_mapping() -> None:
+def test_validate_input_invalid_language_key_mapping(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Invalid language formats should surface the translation key."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             {
-                CONF_API_KEY: "test-key",
-                CONF_LOCATION: {CONF_LATITUDE: "1", CONF_LONGITUDE: "2"},
-                CONF_LANGUAGE_CODE: "bad code",
+                config_flow_stubs.CONF_API_KEY: "test-key",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: "1",
+                    config_flow_stubs.CONF_LONGITUDE: "2",
+                },
+                config_flow_stubs.CONF_LANGUAGE_CODE: "bad code",
             },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_LANGUAGE_CODE: "invalid_language_format"}
+    assert errors == {config_flow_stubs.CONF_LANGUAGE_CODE: "invalid_language_format"}
     assert normalized is None
 
 
-def test_validate_input_empty_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validate_input_empty_api_key(
+    config_flow_stubs: ConfigFlowStubs, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Blank or whitespace API keys should be rejected without HTTP calls."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     session_called = False
@@ -594,108 +551,137 @@ def test_validate_input_empty_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
         session_called = True
         raise AssertionError("async_get_clientsession should not be called")
 
-    monkeypatch.setattr(cf, "async_get_clientsession", _raise_session)
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow, "async_get_clientsession", _raise_session
+    )
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             {
-                CONF_API_KEY: "   ",
-                CONF_LOCATION: {CONF_LATITUDE: 1.0, CONF_LONGITUDE: 2.0},
+                config_flow_stubs.CONF_API_KEY: "   ",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 1.0,
+                    config_flow_stubs.CONF_LONGITUDE: 2.0,
+                },
             },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_API_KEY: "empty"}
+    assert errors == {config_flow_stubs.CONF_API_KEY: "empty"}
     assert normalized is None
     assert session_called is False
 
 
-def test_language_error_to_form_key_mapping() -> None:
+def test_language_error_to_form_key_mapping(config_flow_stubs: ConfigFlowStubs) -> None:
     """voluptuous error messages map to localized form keys."""
 
-    assert _language_error_to_form_key(cf.vol.Invalid("empty")) == "empty"
     assert (
-        _language_error_to_form_key(cf.vol.Invalid("invalid_language"))
+        config_flow_stubs.config_flow._language_error_to_form_key(
+            config_flow_stubs.config_flow.vol.Invalid("empty")
+        )
+        == "empty"
+    )
+    assert (
+        config_flow_stubs.config_flow._language_error_to_form_key(
+            config_flow_stubs.config_flow.vol.Invalid("invalid_language")
+        )
         == "invalid_language_format"
     )
 
 
-def test_validate_input_invalid_coordinates() -> None:
+def test_validate_input_invalid_coordinates(config_flow_stubs: ConfigFlowStubs) -> None:
     """Non-numeric coordinates should surface a dedicated error."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             {
-                CONF_API_KEY: "test-key",
-                CONF_LOCATION: {CONF_LATITUDE: "north", CONF_LONGITUDE: "west"},
+                config_flow_stubs.CONF_API_KEY: "test-key",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: "north",
+                    config_flow_stubs.CONF_LONGITUDE: "west",
+                },
             },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_LOCATION: "invalid_coordinates"}
+    assert errors == {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"}
     assert normalized is None
 
 
-def test_validate_input_out_of_range_coordinates() -> None:
+def test_validate_input_out_of_range_coordinates(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Coordinates outside valid ranges should be rejected."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             {
-                CONF_API_KEY: "test-key",
-                CONF_LOCATION: {CONF_LATITUDE: "200", CONF_LONGITUDE: "-300"},
+                config_flow_stubs.CONF_API_KEY: "test-key",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: "200",
+                    config_flow_stubs.CONF_LONGITUDE: "-300",
+                },
             },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_LOCATION: "invalid_coordinates"}
+    assert errors == {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"}
     assert normalized is None
 
 
-def test_validate_input_missing_longitude() -> None:
+def test_validate_input_missing_longitude(config_flow_stubs: ConfigFlowStubs) -> None:
     """Missing longitude should trigger an invalid_coordinates error."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            {CONF_API_KEY: "test-key", CONF_LOCATION: {CONF_LATITUDE: 10.0}},
+            {
+                config_flow_stubs.CONF_API_KEY: "test-key",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 10.0
+                },
+            },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_LOCATION: "invalid_coordinates"}
+    assert errors == {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"}
     assert normalized is None
 
 
-def test_validate_input_non_dict_location() -> None:
+def test_validate_input_non_dict_location(config_flow_stubs: ConfigFlowStubs) -> None:
     """Non-dictionary location payloads are invalid."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            {CONF_API_KEY: "test-key", CONF_LOCATION: "not-a-dict"},
+            {
+                config_flow_stubs.CONF_API_KEY: "test-key",
+                config_flow_stubs.CONF_LOCATION: "not-a-dict",
+            },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_LOCATION: "invalid_coordinates"}
+    assert errors == {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"}
     assert normalized is None
 
 
 def _patch_client_fetch(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
     *,
     result: dict | None = None,
@@ -710,28 +696,37 @@ def _patch_client_fetch(
         return result or {"dailyInfo": [{"day": "D0"}]}
 
     monkeypatch.setattr(
-        cf.GooglePollenApiClient,
+        config_flow_stubs.config_flow.GooglePollenApiClient,
         "async_fetch_pollen_data",
         _fake_fetch,
     )
     return calls
 
 
-def _base_user_input() -> dict:
+def _base_user_input(config_flow_stubs) -> dict:
     return {
-        CONF_API_KEY: "test-key",
-        CONF_NAME: "Test Location",
-        CONF_LOCATION: {CONF_LATITUDE: "1.0", CONF_LONGITUDE: "2.0"},
+        config_flow_stubs.CONF_API_KEY: "test-key",
+        config_flow_stubs.CONF_NAME: "Test Location",
+        config_flow_stubs.CONF_LOCATION: {
+            config_flow_stubs.CONF_LATITUDE: "1.0",
+            config_flow_stubs.CONF_LONGITUDE: "2.0",
+        },
     }
 
 
-def _build_options_flow(data: dict | None = None) -> cf.PollenLevelsOptionsFlow:
+def _build_options_flow(
+    config_flow_stubs: ConfigFlowStubs, data: dict | None = None
+) -> object:
     """Build an options flow with simple form/create-entry callbacks."""
 
-    entry = cf.config_entries.ConfigEntry(
-        data=data or {CONF_FORECAST_DAYS: 3, CONF_CREATE_FORECAST_SENSORS: "none"}
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data=data
+        or {
+            config_flow_stubs.CONF_FORECAST_DAYS: 3,
+            config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
+        }
     )
-    flow = cf.PollenLevelsOptionsFlow()
+    flow = config_flow_stubs.config_flow.PollenLevelsOptionsFlow()
     flow.config_entry = entry
     flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
     flow.async_show_form = lambda **kwargs: {  # type: ignore[method-assign]
@@ -754,6 +749,7 @@ def _build_options_flow(data: dict | None = None) -> cf.PollenLevelsOptionsFlow:
     ],
 )
 def test_setup_schema_update_interval_default_is_sanitized(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
     raw_value: object,
     expected: int,
@@ -763,16 +759,20 @@ def test_setup_schema_update_interval_default_is_sanitized(
     captured_defaults: list[int | None] = []
 
     def _capture_optional(key, **kwargs):
-        if key == CONF_UPDATE_INTERVAL:
+        if key == config_flow_stubs.CONF_UPDATE_INTERVAL:
             captured_defaults.append(kwargs.get("default"))
         return key
 
-    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow.vol, "Optional", _capture_optional
+    )
 
     hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
     )
-    cf._build_step_user_schema(hass, {CONF_UPDATE_INTERVAL: raw_value})
+    config_flow_stubs.config_flow._build_step_user_schema(
+        hass, {config_flow_stubs.CONF_UPDATE_INTERVAL: raw_value}
+    )
 
     assert captured_defaults == [expected]
 
@@ -786,6 +786,7 @@ def test_setup_schema_update_interval_default_is_sanitized(
     ],
 )
 def test_setup_schema_forecast_days_default_is_sanitized(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
     raw_value: object,
     expected: str,
@@ -795,21 +796,26 @@ def test_setup_schema_forecast_days_default_is_sanitized(
     captured_defaults: list[str | None] = []
 
     def _capture_optional(key, **kwargs):
-        if key == CONF_FORECAST_DAYS:
+        if key == config_flow_stubs.CONF_FORECAST_DAYS:
             captured_defaults.append(kwargs.get("default"))
         return key
 
-    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow.vol, "Optional", _capture_optional
+    )
 
     hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
     )
-    cf._build_step_user_schema(hass, {CONF_FORECAST_DAYS: raw_value})
+    config_flow_stubs.config_flow._build_step_user_schema(
+        hass, {config_flow_stubs.CONF_FORECAST_DAYS: raw_value}
+    )
 
     assert captured_defaults == [expected]
 
 
 def test_setup_schema_sensor_mode_default_is_sanitized(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Per-day sensor defaults should fall back to a valid selector choice."""
@@ -817,59 +823,71 @@ def test_setup_schema_sensor_mode_default_is_sanitized(
     captured_defaults: list[str | None] = []
 
     def _capture_optional(key, **kwargs):
-        if key == CONF_CREATE_FORECAST_SENSORS:
+        if key == config_flow_stubs.CONF_CREATE_FORECAST_SENSORS:
             captured_defaults.append(kwargs.get("default"))
         return key
 
-    monkeypatch.setattr(cf.vol, "Optional", _capture_optional)
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow.vol, "Optional", _capture_optional
+    )
 
     hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
     )
-    cf._build_step_user_schema(hass, {CONF_CREATE_FORECAST_SENSORS: "bad"})
+    config_flow_stubs.config_flow._build_step_user_schema(
+        hass, {config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "bad"}
+    )
 
-    assert captured_defaults == [FORECAST_SENSORS_CHOICES[0]]
+    assert captured_defaults == [config_flow_stubs.FORECAST_SENSORS_CHOICES[0]]
 
 
-def test_step_user_schema_masks_api_key_field() -> None:
+def test_step_user_schema_masks_api_key_field(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Initial setup form should render API key as a password selector."""
 
     hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
     )
 
-    schema = cf._build_step_user_schema(hass, {})
-    api_selector = schema.schema[CONF_API_KEY]
+    schema = config_flow_stubs.config_flow._build_step_user_schema(hass, {})
+    api_selector = schema.schema[config_flow_stubs.CONF_API_KEY]
 
-    assert isinstance(api_selector, cf.TextSelector)
-    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
+    assert isinstance(api_selector, config_flow_stubs.config_flow.TextSelector)
+    assert (
+        api_selector.config.type
+        == config_flow_stubs.config_flow.TextSelectorType.PASSWORD
+    )
 
 
 def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Reauth form should mask API key input and avoid prefilling secrets."""
 
     captured_default: dict[str, object] = {}
-    orig_required = cf.vol.Required
+    orig_required = config_flow_stubs.config_flow.vol.Required
 
     def _capture_required(key, **kwargs):
-        if key == CONF_API_KEY:
+        if key == config_flow_stubs.CONF_API_KEY:
             captured_default["api_key"] = kwargs.get("default")
         return orig_required(key, **kwargs)
 
-    monkeypatch.setattr(cf.vol, "Required", _capture_required)
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow.vol, "Required", _capture_required
+    )
 
-    entry = cf.config_entries.ConfigEntry(
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={
-            CONF_API_KEY: "old-key",
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
         },
         entry_id="entry-id",
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
     flow.context = {"entry_id": "entry-id"}
     flow._get_reauth_entry = lambda: entry  # type: ignore[method-assign]
@@ -889,36 +907,42 @@ def test_reauth_confirm_schema_masks_api_key_and_uses_blank_default(
     assert captured_default["api_key"] == ""
     schema = captured["schema"]
     assert hasattr(schema, "schema")
-    api_selector = schema.schema[CONF_API_KEY]
-    assert isinstance(api_selector, cf.TextSelector)
-    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
+    api_selector = schema.schema[config_flow_stubs.CONF_API_KEY]
+    assert isinstance(api_selector, config_flow_stubs.config_flow.TextSelector)
+    assert (
+        api_selector.config.type
+        == config_flow_stubs.config_flow.TextSelectorType.PASSWORD
+    )
 
 
 def test_reconfigure_schema_masks_api_key_and_uses_blank_default(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Reconfigure form should mask API key input and avoid prefilling secrets."""
 
     captured_default: dict[str, object] = {}
-    orig_required = cf.vol.Required
+    orig_required = config_flow_stubs.config_flow.vol.Required
 
     def _capture_required(key, **kwargs):
-        if key == CONF_API_KEY:
+        if key == config_flow_stubs.CONF_API_KEY:
             captured_default["api_key"] = kwargs.get("default")
         return orig_required(key, **kwargs)
 
-    monkeypatch.setattr(cf.vol, "Required", _capture_required)
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow.vol, "Required", _capture_required
+    )
 
-    entry = cf.config_entries.ConfigEntry(
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={
-            CONF_API_KEY: "old-key",
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
         },
         entry_id="entry-id",
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=SimpleNamespace())
     flow.context = {"entry_id": "entry-id"}
     flow._get_reconfigure_entry = lambda: entry  # type: ignore[method-assign]
@@ -938,46 +962,58 @@ def test_reconfigure_schema_masks_api_key_and_uses_blank_default(
     assert captured_default["api_key"] == ""
     schema = captured["schema"]
     assert hasattr(schema, "schema")
-    api_selector = schema.schema[CONF_API_KEY]
-    assert isinstance(api_selector, cf.TextSelector)
-    assert api_selector.config.type == cf.TextSelectorType.PASSWORD
+    api_selector = schema.schema[config_flow_stubs.CONF_API_KEY]
+    assert isinstance(api_selector, config_flow_stubs.config_flow.TextSelector)
+    assert (
+        api_selector.config.type
+        == config_flow_stubs.config_flow.TextSelectorType.PASSWORD
+    )
 
 
 def test_validate_input_update_interval_below_min_sets_error(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Sub-1 update intervals should surface a field error and skip I/O."""
 
-    calls = _patch_client_fetch(monkeypatch)
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
-    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: 0}
+    user_input = {
+        **_base_user_input(config_flow_stubs),
+        config_flow_stubs.CONF_UPDATE_INTERVAL: 0,
+    }
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(user_input, check_unique_id=False)
     )
 
-    assert errors == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+    assert errors == {config_flow_stubs.CONF_UPDATE_INTERVAL: "invalid_update_interval"}
     assert normalized is None
     assert not calls
 
 
 def test_validate_input_update_interval_float_string(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Float-like strings should coerce to int and allow validation to proceed."""
 
     calls = _patch_client_fetch(
+        config_flow_stubs,
         monkeypatch,
         result={"dailyInfo": [{"indexInfo": []}]},
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
-    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: "1.0"}
+    user_input = {
+        **_base_user_input(config_flow_stubs),
+        config_flow_stubs.CONF_UPDATE_INTERVAL: "1.0",
+    }
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(user_input, check_unique_id=False)
@@ -985,27 +1021,31 @@ def test_validate_input_update_interval_float_string(
 
     assert errors == {}
     assert normalized is not None
-    assert normalized[CONF_UPDATE_INTERVAL] == 1
+    assert normalized[config_flow_stubs.CONF_UPDATE_INTERVAL] == 1
     assert calls
 
 
 def test_validate_input_update_interval_non_numeric_sets_error(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Non-numeric update intervals should surface a field error and skip I/O."""
 
-    calls = _patch_client_fetch(monkeypatch)
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
-    user_input = {**_base_user_input(), CONF_UPDATE_INTERVAL: "abc"}
+    user_input = {
+        **_base_user_input(config_flow_stubs),
+        config_flow_stubs.CONF_UPDATE_INTERVAL: "abc",
+    }
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(user_input, check_unique_id=False)
     )
 
-    assert errors == {CONF_UPDATE_INTERVAL: "invalid_update_interval"}
+    assert errors == {config_flow_stubs.CONF_UPDATE_INTERVAL: "invalid_update_interval"}
     assert normalized is None
     assert not calls
 
@@ -1013,7 +1053,11 @@ def test_validate_input_update_interval_non_numeric_sets_error(
 @pytest.mark.parametrize(
     ("exception_name", "message", "expected"),
     [
-        ("ConfigEntryAuthFailed", "HTTP 401", {"base": "invalid_auth"}),
+        (
+            "ConfigEntryAuthFailed",
+            "HTTP 401",
+            {"base": "invalid_auth"},
+        ),
         ("UpdateFailed", "HTTP 403", {"base": "cannot_connect"}),
     ],
 )
@@ -1027,13 +1071,15 @@ def test_validate_input_http_auth_errors_map_correctly(
     """HTTP auth failures during validation should map correctly."""
 
     error = getattr(config_flow_stubs, exception_name)(message)
-    calls = _patch_client_fetch(monkeypatch, error=error)
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch, error=error)
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+        flow._async_validate_input(
+            _base_user_input(config_flow_stubs), check_unique_id=False
+        )
     )
 
     assert calls
@@ -1042,21 +1088,24 @@ def test_validate_input_http_auth_errors_map_correctly(
 
 
 def test_validate_input_http_429_code_only_uses_quota_fallback(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Code-only quota messages should be replaced by a friendly fallback."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.config_flow.PollenQuotaExceededError("HTTP 429"),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1069,19 +1118,26 @@ def test_validate_input_http_429_code_only_uses_quota_fallback(
 
 
 def test_validate_input_http_429_sets_quota_exceeded(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """HTTP 429 during validation should map to quota_exceeded."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429 Too Many Requests")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.config_flow.PollenQuotaExceededError(
+            "HTTP 429 Too Many Requests"
+        ),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+        flow._async_validate_input(
+            _base_user_input(config_flow_stubs), check_unique_id=False
+        )
     )
 
     assert calls
@@ -1090,19 +1146,24 @@ def test_validate_input_http_429_sets_quota_exceeded(
 
 
 def test_validate_input_http_500_sets_cannot_connect(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Unexpected HTTP failures should map to cannot_connect."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.UpdateFailed("HTTP 500 Internal Server Error"),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+        flow._async_validate_input(
+            _base_user_input(config_flow_stubs), check_unique_id=False
+        )
     )
 
     assert calls
@@ -1111,19 +1172,22 @@ def test_validate_input_http_500_sets_cannot_connect(
 
 
 def test_validate_input_http_code_only_uses_connect_fallback(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Code-only UpdateFailed messages should use a friendly connect fallback."""
 
-    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed("HTTP 500"))
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, error=config_flow_stubs.UpdateFailed("HTTP 500")
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1138,21 +1202,24 @@ def test_validate_input_http_code_only_uses_connect_fallback(
 
 
 def test_validate_input_http_500_sets_error_message_placeholder(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """HTTP 500 should populate the cannot_connect error_message placeholder."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.UpdateFailed("HTTP 500 Internal Server Error"),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1165,24 +1232,29 @@ def test_validate_input_http_500_sets_error_message_placeholder(
 
 
 def test_validate_input_update_failed_redacts_api_key_and_coordinates(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """UpdateFailed placeholders should redact API keys and precise coordinates."""
 
-    user_input = _base_user_input()
+    user_input = _base_user_input(config_flow_stubs)
     latitude = "48.8566123"
     longitude = "2.3522456"
-    user_input[CONF_LOCATION] = {CONF_LATITUDE: latitude, CONF_LONGITUDE: longitude}
-    api_key = user_input[CONF_API_KEY]
+    user_input[config_flow_stubs.CONF_LOCATION] = {
+        config_flow_stubs.CONF_LATITUDE: latitude,
+        config_flow_stubs.CONF_LONGITUDE: longitude,
+    }
+    api_key = user_input[config_flow_stubs.CONF_API_KEY]
     calls = _patch_client_fetch(
+        config_flow_stubs,
         monkeypatch,
-        error=UpdateFailed(
+        error=config_flow_stubs.UpdateFailed(
             f"API key {api_key} failed for "
             f"location.latitude={latitude} location.longitude={longitude}"
         ),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
@@ -1205,21 +1277,24 @@ def test_validate_input_update_failed_redacts_api_key_and_coordinates(
 
 
 def test_validate_input_clears_error_message_placeholder_on_validation_error(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Field-level validation errors should clear stale error_message placeholders."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.UpdateFailed("HTTP 500 Internal Server Error"),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1229,61 +1304,71 @@ def test_validate_input_clears_error_message_placeholder_on_validation_error(
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
     assert placeholders.get("error_message")
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            {**_base_user_input(), CONF_LANGUAGE_CODE: "bad code"},
-            check_unique_id=False,
-            description_placeholders=placeholders,
-        )
-    )
-
-    assert errors == {CONF_LANGUAGE_CODE: "invalid_language_format"}
-    assert normalized is None
-    assert "error_message" not in placeholders
-
-
-def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """invalid_option_combo should clear stale error_message placeholders."""
-
-    calls = _patch_client_fetch(
-        monkeypatch, error=UpdateFailed("HTTP 500 Internal Server Error")
-    )
-
-    flow = PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace()
-    placeholders: dict[str, str] = {}
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(),
-            check_unique_id=False,
-            description_placeholders=placeholders,
-        )
-    )
-
-    assert calls
-    assert errors == {"base": "cannot_connect"}
-    assert normalized is None
-    assert placeholders.get("error_message")
-
-    _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             {
-                **_base_user_input(),
-                CONF_FORECAST_DAYS: 1,
-                CONF_CREATE_FORECAST_SENSORS: "D+1",
+                **_base_user_input(config_flow_stubs),
+                config_flow_stubs.CONF_LANGUAGE_CODE: "bad code",
             },
             check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
 
-    assert errors == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
+    assert errors == {config_flow_stubs.CONF_LANGUAGE_CODE: "invalid_language_format"}
+    assert normalized is None
+    assert "error_message" not in placeholders
+
+
+def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
+    config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """invalid_option_combo should clear stale error_message placeholders."""
+
+    calls = _patch_client_fetch(
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.UpdateFailed("HTTP 500 Internal Server Error"),
+    )
+
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+    placeholders: dict[str, str] = {}
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            _base_user_input(config_flow_stubs),
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert calls
+    assert errors == {"base": "cannot_connect"}
+    assert normalized is None
+    assert placeholders.get("error_message")
+
+    _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+    )
+
+    errors, normalized = asyncio.run(
+        flow._async_validate_input(
+            {
+                **_base_user_input(config_flow_stubs),
+                config_flow_stubs.CONF_FORECAST_DAYS: 1,
+                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            },
+            check_unique_id=False,
+            description_placeholders=placeholders,
+        )
+    )
+
+    assert errors == {
+        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"
+    }
     assert normalized is None
     assert "error_message" not in placeholders
 
@@ -1293,26 +1378,29 @@ def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
     [(1, "D+1"), (2, "D+1+2")],
 )
 def test_validate_input_invalid_forecast_mode_combinations(
+    config_flow_stubs: ConfigFlowStubs,
     forecast_days: int,
     mode: str,
 ) -> None:
     """User flow should reject forecast modes requiring more forecast days."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             {
-                **_base_user_input(),
-                CONF_FORECAST_DAYS: forecast_days,
-                CONF_CREATE_FORECAST_SENSORS: mode,
+                **_base_user_input(config_flow_stubs),
+                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
+                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
             },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
+    assert errors == {
+        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"
+    }
     assert normalized is None
 
 
@@ -1321,23 +1409,26 @@ def test_validate_input_invalid_forecast_mode_combinations(
     [(2, "D+1"), (3, "D+1+2"), (1, "none")],
 )
 def test_validate_input_valid_forecast_mode_combinations_are_accepted(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
     forecast_days: int,
     mode: str,
 ) -> None:
     """User flow should accept forecast mode combinations that have enough days."""
 
-    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             {
-                **_base_user_input(),
-                CONF_FORECAST_DAYS: forecast_days,
-                CONF_CREATE_FORECAST_SENSORS: mode,
+                **_base_user_input(config_flow_stubs),
+                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
+                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
             },
             check_unique_id=False,
         )
@@ -1346,24 +1437,29 @@ def test_validate_input_valid_forecast_mode_combinations_are_accepted(
     assert calls
     assert errors == {}
     assert normalized is not None
-    assert normalized[CONF_FORECAST_DAYS] == forecast_days
-    assert normalized[CONF_CREATE_FORECAST_SENSORS] == mode
+    assert normalized[config_flow_stubs.CONF_FORECAST_DAYS] == forecast_days
+    assert normalized[config_flow_stubs.CONF_CREATE_FORECAST_SENSORS] == mode
 
 
-def test_validate_input_invalid_forecast_days_returns_error() -> None:
+def test_validate_input_invalid_forecast_days_returns_error(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Invalid forecast days should keep the dedicated field error key."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            {**_base_user_input(), CONF_FORECAST_DAYS: "not-a-number"},
+            {
+                **_base_user_input(config_flow_stubs),
+                config_flow_stubs.CONF_FORECAST_DAYS: "not-a-number",
+            },
             check_unique_id=False,
         )
     )
 
-    assert errors == {CONF_FORECAST_DAYS: "invalid_forecast_days"}
+    assert errors == {config_flow_stubs.CONF_FORECAST_DAYS: "invalid_forecast_days"}
     assert normalized is None
 
 
@@ -1372,24 +1468,27 @@ def test_validate_input_invalid_forecast_days_returns_error() -> None:
     [(1, "D+1"), (2, "D+1+2")],
 )
 def test_options_flow_invalid_forecast_mode_combinations(
+    config_flow_stubs: ConfigFlowStubs,
     forecast_days: int,
     mode: str,
 ) -> None:
     """Options flow should reject forecast modes requiring more forecast days."""
 
-    flow = _build_options_flow()
+    flow = _build_options_flow(config_flow_stubs)
 
     result = asyncio.run(
         flow.async_step_init(
             {
-                CONF_FORECAST_DAYS: forecast_days,
-                CONF_CREATE_FORECAST_SENSORS: mode,
+                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
+                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
             }
         )
     )
 
     assert result["type"] == "form"
-    assert result["errors"] == {CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"}
+    assert result["errors"] == {
+        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"
+    }
 
 
 @pytest.mark.parametrize(
@@ -1397,55 +1496,68 @@ def test_options_flow_invalid_forecast_mode_combinations(
     [(2, "D+1"), (3, "D+1+2"), (1, "none")],
 )
 def test_options_flow_valid_forecast_mode_combinations_are_accepted(
+    config_flow_stubs: ConfigFlowStubs,
     forecast_days: int,
     mode: str,
 ) -> None:
     """Options flow should accept forecast mode combinations with enough days."""
 
-    flow = _build_options_flow()
+    flow = _build_options_flow(config_flow_stubs)
 
     result = asyncio.run(
         flow.async_step_init(
             {
-                CONF_FORECAST_DAYS: forecast_days,
-                CONF_CREATE_FORECAST_SENSORS: mode,
+                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
+                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
             }
         )
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"][CONF_FORECAST_DAYS] == forecast_days
-    assert result["data"][CONF_CREATE_FORECAST_SENSORS] == mode
+    assert result["data"][config_flow_stubs.CONF_FORECAST_DAYS] == forecast_days
+    assert result["data"][config_flow_stubs.CONF_CREATE_FORECAST_SENSORS] == mode
 
 
-def test_options_flow_invalid_forecast_days_returns_error() -> None:
+def test_options_flow_invalid_forecast_days_returns_error(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Options flow should keep the dedicated invalid forecast days field error."""
 
-    flow = _build_options_flow({CONF_FORECAST_DAYS: 3})
+    flow = _build_options_flow(
+        config_flow_stubs, {config_flow_stubs.CONF_FORECAST_DAYS: 3}
+    )
 
-    result = asyncio.run(flow.async_step_init({CONF_FORECAST_DAYS: "not-a-number"}))
+    result = asyncio.run(
+        flow.async_step_init({config_flow_stubs.CONF_FORECAST_DAYS: "not-a-number"})
+    )
 
     assert result["type"] == "form"
-    assert result["errors"] == {CONF_FORECAST_DAYS: "invalid_forecast_days"}
+    assert result["errors"] == {
+        config_flow_stubs.CONF_FORECAST_DAYS: "invalid_forecast_days"
+    }
 
 
 def test_validate_input_auth_error_sets_error_message_placeholder(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Auth failures should populate the invalid_auth error_message placeholder."""
 
     calls = _patch_client_fetch(
+        config_flow_stubs,
         monkeypatch,
-        error=ConfigEntryAuthFailed("HTTP 401: Forbidden for this project"),
+        error=config_flow_stubs.ConfigEntryAuthFailed(
+            "HTTP 401: Forbidden for this project"
+        ),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1458,19 +1570,24 @@ def test_validate_input_auth_error_sets_error_message_placeholder(
 
 
 def test_validate_input_auth_error_empty_message_uses_fallback_placeholder(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Auth failures with empty text should use the default placeholder message."""
 
-    calls = _patch_client_fetch(monkeypatch, error=ConfigEntryAuthFailed(""))
+    calls = _patch_client_fetch(
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.ConfigEntryAuthFailed(""),
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1483,24 +1600,26 @@ def test_validate_input_auth_error_empty_message_uses_fallback_placeholder(
 
 
 def test_validate_input_quota_error_maps_to_quota_exceeded(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Dedicated quota errors should map to quota_exceeded."""
 
     calls = _patch_client_fetch(
+        config_flow_stubs,
         monkeypatch,
-        error=cf.PollenQuotaExceededError(
+        error=config_flow_stubs.config_flow.PollenQuotaExceededError(
             "HTTP 429: API key not valid. Please pass a valid API key."
         ),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1513,19 +1632,22 @@ def test_validate_input_quota_error_maps_to_quota_exceeded(
 
 
 def test_validate_input_update_failed_empty_message_uses_connect_fallback(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """UpdateFailed with empty text should use cannot_connect fallback message."""
 
-    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed(""))
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, error=config_flow_stubs.UpdateFailed("")
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1540,22 +1662,27 @@ def test_validate_input_update_failed_empty_message_uses_connect_fallback(
 
 
 def test_validate_input_http_429_whitespace_redacted_uses_quota_fallback(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Whitespace-only redacted quota messages should still use fallback text."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.config_flow.PollenQuotaExceededError("HTTP 429"),
     )
-    monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "   ")
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow, "redact_api_key", lambda *_args, **_kwargs: "   "
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1568,20 +1695,25 @@ def test_validate_input_http_429_whitespace_redacted_uses_quota_fallback(
 
 
 def test_validate_input_update_failed_whitespace_redacted_uses_connect_fallback(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Whitespace-only redacted UpdateFailed messages should use connect fallback."""
 
-    calls = _patch_client_fetch(monkeypatch, error=UpdateFailed("HTTP 500"))
-    monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "   ")
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, error=config_flow_stubs.UpdateFailed("HTTP 500")
+    )
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow, "redact_api_key", lambda *_args, **_kwargs: "   "
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1596,22 +1728,27 @@ def test_validate_input_update_failed_whitespace_redacted_uses_connect_fallback(
 
 
 def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Quota-exceeded errors should use fallback text when redaction is empty."""
 
     calls = _patch_client_fetch(
-        monkeypatch, error=cf.PollenQuotaExceededError("HTTP 429")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.config_flow.PollenQuotaExceededError("HTTP 429"),
     )
-    monkeypatch.setattr(cf, "redact_api_key", lambda *_args, **_kwargs: "")
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow, "redact_api_key", lambda *_args, **_kwargs: ""
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1624,19 +1761,20 @@ def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
 
 
 def test_validate_input_timeout_sets_fallback_error_message(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """TimeoutError without a message should still provide a user-friendly fallback."""
 
-    calls = _patch_client_fetch(monkeypatch, error=TimeoutError())
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch, error=TimeoutError())
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1649,19 +1787,24 @@ def test_validate_input_timeout_sets_fallback_error_message(
 
 
 def test_validate_input_client_error_sets_fallback_error_message(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """ClientError without details should still provide a network fallback message."""
 
-    calls = _patch_client_fetch(monkeypatch, error=cf.aiohttp.ClientError())
+    calls = _patch_client_fetch(
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.config_flow.aiohttp.ClientError(),
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
-            _base_user_input(),
+            _base_user_input(config_flow_stubs),
             check_unique_id=False,
             description_placeholders=placeholders,
         )
@@ -1676,21 +1819,25 @@ def test_validate_input_client_error_sets_fallback_error_message(
 
 
 def test_validate_input_redacts_api_key_in_error_message(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Error placeholders should redact API keys returned by the service."""
 
     calls = _patch_client_fetch(
+        config_flow_stubs,
         monkeypatch,
-        error=ConfigEntryAuthFailed("HTTP 401: API key test-key not valid"),
+        error=config_flow_stubs.ConfigEntryAuthFailed(
+            "HTTP 401: API key test-key not valid"
+        ),
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
     placeholders: dict[str, str] = {}
 
-    user_input = _base_user_input()
-    user_input[cf.CONF_API_KEY] = "test-key"
+    user_input = _base_user_input(config_flow_stubs)
+    user_input[config_flow_stubs.CONF_API_KEY] = "test-key"
 
     errors, normalized = asyncio.run(
         flow._async_validate_input(
@@ -1709,17 +1856,22 @@ def test_validate_input_redacts_api_key_in_error_message(
 
 
 def test_validate_input_http_200_non_list_dailyinfo_sets_cannot_connect(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A non-list dailyInfo in HTTP 200 should be treated as invalid."""
 
-    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": "invalid"})
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": "invalid"}
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+        flow._async_validate_input(
+            _base_user_input(config_flow_stubs), check_unique_id=False
+        )
     )
 
     assert calls
@@ -1728,17 +1880,22 @@ def test_validate_input_http_200_non_list_dailyinfo_sets_cannot_connect(
 
 
 def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A dailyInfo list with non-dict items should be treated as invalid."""
 
-    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": ["invalid-item"]})
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": ["invalid-item"]}
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+        flow._async_validate_input(
+            _base_user_input(config_flow_stubs), check_unique_id=False
+        )
     )
 
     assert calls
@@ -1747,6 +1904,7 @@ def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
 
 
 def test_validate_input_unexpected_exception_sets_unknown(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Unexpected exceptions should map to an unknown error."""
@@ -1754,13 +1912,17 @@ def test_validate_input_unexpected_exception_sets_unknown(
     def _raise_session(hass):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(cf, "async_get_clientsession", _raise_session)
+    monkeypatch.setattr(
+        config_flow_stubs.config_flow, "async_get_clientsession", _raise_session
+    )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(_base_user_input(), check_unique_id=False)
+        flow._async_validate_input(
+            _base_user_input(config_flow_stubs), check_unique_id=False
+        )
     )
 
     assert errors == {"base": "unknown"}
@@ -1768,13 +1930,16 @@ def test_validate_input_unexpected_exception_sets_unknown(
 
 
 def test_validate_input_happy_path_sets_unique_id_and_normalizes(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Successful validation should normalize data and set unique ID."""
 
-    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+    )
 
-    class _TrackingFlow(PollenLevelsConfigFlow):
+    class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
         def __init__(self) -> None:
             super().__init__()
             self.unique_ids: list[str] = []
@@ -1794,8 +1959,8 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     )
 
     user_input = {
-        **_base_user_input(),
-        CONF_LANGUAGE_CODE: " es ",
+        **_base_user_input(config_flow_stubs),
+        config_flow_stubs.CONF_LANGUAGE_CODE: " es ",
     }
 
     errors, normalized = asyncio.run(
@@ -1805,21 +1970,24 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     assert calls
     assert errors == {}
     assert normalized is not None
-    assert normalized[CONF_LATITUDE] == pytest.approx(1.0)
-    assert normalized[CONF_LONGITUDE] == pytest.approx(2.0)
-    assert normalized[CONF_LANGUAGE_CODE] == "es"
+    assert normalized[config_flow_stubs.CONF_LATITUDE] == pytest.approx(1.0)
+    assert normalized[config_flow_stubs.CONF_LONGITUDE] == pytest.approx(2.0)
+    assert normalized[config_flow_stubs.CONF_LANGUAGE_CODE] == "es"
     assert flow.unique_ids == ["1.0000_2.0000"]
     assert flow.abort_calls == 1
 
 
 def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
+    config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Unique-id format should match legacy 4-decimal duplicate detection."""
 
-    calls = _patch_client_fetch(monkeypatch, result={"dailyInfo": [{"day": "D0"}]})
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+    )
 
-    class _TrackingFlow(PollenLevelsConfigFlow):
+    class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
         def __init__(self) -> None:
             super().__init__()
             self.unique_ids: list[str] = []
@@ -1835,12 +2003,18 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
     flow.hass = SimpleNamespace(config=SimpleNamespace())
 
     first = {
-        **_base_user_input(),
-        CONF_LOCATION: {CONF_LATITUDE: "1.0000044", CONF_LONGITUDE: "2.0000044"},
+        **_base_user_input(config_flow_stubs),
+        config_flow_stubs.CONF_LOCATION: {
+            config_flow_stubs.CONF_LATITUDE: "1.0000044",
+            config_flow_stubs.CONF_LONGITUDE: "2.0000044",
+        },
     }
     second = {
-        **_base_user_input(),
-        CONF_LOCATION: {CONF_LATITUDE: "1.0000046", CONF_LONGITUDE: "2.0000046"},
+        **_base_user_input(config_flow_stubs),
+        config_flow_stubs.CONF_LOCATION: {
+            config_flow_stubs.CONF_LATITUDE: "1.0000046",
+            config_flow_stubs.CONF_LONGITUDE: "2.0000046",
+        },
     }
 
     first_errors, first_normalized = asyncio.run(
@@ -1859,15 +2033,17 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
     assert flow.unique_ids[0] == flow.unique_ids[1] == "1.0000_2.0000"
 
 
-def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
+def test_reauth_confirm_updates_existing_entry_and_reloads(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Re-auth confirmation should update existing entry credentials and reload."""
 
-    entry = cf.config_entries.ConfigEntry(
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={
-            CONF_API_KEY: "old-key",
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
-            CONF_LANGUAGE_CODE: "en",
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+            config_flow_stubs.CONF_LANGUAGE_CODE: "en",
         },
         entry_id="entry-id",
     )
@@ -1888,11 +2064,15 @@ def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
 
     recorder = _Recorder()
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
 
-    normalized = {**entry.data, CONF_API_KEY: "new-key", CONF_FORECAST_DAYS: 3}
+    normalized = {
+        **entry.data,
+        config_flow_stubs.CONF_API_KEY: "new-key",
+        config_flow_stubs.CONF_FORECAST_DAYS: 3,
+    }
 
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
@@ -1903,7 +2083,9 @@ def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
 
     async def run_flow():
         await flow.async_step_reauth(entry.data)
-        return await flow.async_step_reauth_confirm({CONF_API_KEY: "new-key"})
+        return await flow.async_step_reauth_confirm(
+            {config_flow_stubs.CONF_API_KEY: "new-key"}
+        )
 
     result = asyncio.run(run_flow())
 
@@ -1912,7 +2094,7 @@ def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
         entry,
         {
             **entry.data,
-            CONF_API_KEY: "new-key",
+            config_flow_stubs.CONF_API_KEY: "new-key",
         },
     )
     assert recorder.reloaded == "entry-id"
@@ -1926,21 +2108,21 @@ def test_reauth_confirm_updates_existing_entry_and_reloads() -> None:
     ],
 )
 def test_api_key_confirm_description_placeholders_round_coordinates(
-    step_method_name: str, entry_getter: str
+    config_flow_stubs: ConfigFlowStubs, step_method_name: str, entry_getter: str
 ) -> None:
     """Reauth/reconfigure placeholders should round visible coordinates."""
 
-    entry = cf.config_entries.ConfigEntry(
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={
-            CONF_API_KEY: "old-key",
-            CONF_LATITUDE: 39.123456,
-            CONF_LONGITUDE: -0.123456,
-            CONF_LANGUAGE_CODE: "en",
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 39.123456,
+            config_flow_stubs.CONF_LONGITUDE: -0.123456,
+            config_flow_stubs.CONF_LANGUAGE_CODE: "en",
         },
         entry_id="entry-id",
     )
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(
         config_entries=SimpleNamespace(
             async_update_entry=lambda *args, **kwargs: None,
@@ -1951,7 +2133,7 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     setattr(flow, entry_getter, lambda: entry)
 
     captured: dict[str, object] = {}
-    normalized = {**entry.data, CONF_API_KEY: "new-key"}
+    normalized = {**entry.data, config_flow_stubs.CONF_API_KEY: "new-key"}
 
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
@@ -1963,7 +2145,7 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
 
     step_method = getattr(flow, step_method_name)
-    asyncio.run(step_method({CONF_API_KEY: "new-key"}))
+    asyncio.run(step_method({config_flow_stubs.CONF_API_KEY: "new-key"}))
 
     placeholders = captured["description_placeholders"]
     assert placeholders is not None
@@ -1971,23 +2153,28 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     assert placeholders["longitude"] == "-0.12"
 
     combined_input = captured["user_input"]
-    assert combined_input[CONF_LATITUDE] == 39.123456
-    assert combined_input[CONF_LONGITUDE] == -0.123456
+    assert combined_input[config_flow_stubs.CONF_LATITUDE] == 39.123456
+    assert combined_input[config_flow_stubs.CONF_LONGITUDE] == -0.123456
 
 
-def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
+def test_reauth_confirm_does_not_reintroduce_option_fields_in_data(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Reauth should only update API key in data, preserving option boundaries."""
 
-    entry = cf.config_entries.ConfigEntry(
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={
-            CONF_API_KEY: "old-key",
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
-            CONF_LANGUAGE_CODE: "en",
-            CONF_UPDATE_INTERVAL: 6,
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+            config_flow_stubs.CONF_LANGUAGE_CODE: "en",
+            config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
             # Intentionally no CONF_FORECAST_DAYS in data.
         },
-        options={CONF_FORECAST_DAYS: 5, CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        options={
+            config_flow_stubs.CONF_FORECAST_DAYS: 5,
+            config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
         entry_id="entry-id",
     )
 
@@ -2006,16 +2193,16 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
 
     recorder = _Recorder()
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
 
     # Validation may normalize and include option-backed fields.
     normalized = {
         **entry.data,
-        CONF_API_KEY: "new-key",
-        CONF_FORECAST_DAYS: 2,
-        CONF_CREATE_FORECAST_SENSORS: "none",
+        config_flow_stubs.CONF_API_KEY: "new-key",
+        config_flow_stubs.CONF_FORECAST_DAYS: 2,
+        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
     }
 
     async def fake_validate(
@@ -2027,7 +2214,9 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
 
     async def run_flow():
         await flow.async_step_reauth(entry.data)
-        return await flow.async_step_reauth_confirm({CONF_API_KEY: "new-key"})
+        return await flow.async_step_reauth_confirm(
+            {config_flow_stubs.CONF_API_KEY: "new-key"}
+        )
 
     result = asyncio.run(run_flow())
 
@@ -2035,20 +2224,22 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data() -> None:
     assert recorder.updated is not None
     updated_entry, updated_data = recorder.updated
     assert updated_entry is entry
-    assert updated_data[CONF_API_KEY] == "new-key"
-    assert CONF_FORECAST_DAYS not in updated_data
-    assert CONF_CREATE_FORECAST_SENSORS not in updated_data
+    assert updated_data[config_flow_stubs.CONF_API_KEY] == "new-key"
+    assert config_flow_stubs.CONF_FORECAST_DAYS not in updated_data
+    assert config_flow_stubs.CONF_CREATE_FORECAST_SENSORS not in updated_data
 
 
-def test_reconfigure_updates_existing_entry_and_reloads() -> None:
+def test_reconfigure_updates_existing_entry_and_reloads(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Reconfigure confirmation should update existing entry credentials and reload."""
 
-    entry = cf.config_entries.ConfigEntry(
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={
-            CONF_API_KEY: "old-key",
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
-            CONF_LANGUAGE_CODE: "en",
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+            config_flow_stubs.CONF_LANGUAGE_CODE: "en",
         },
         entry_id="entry-id",
     )
@@ -2069,7 +2260,7 @@ def test_reconfigure_updates_existing_entry_and_reloads() -> None:
 
     recorder = _Recorder()
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
     created: dict[str, bool] = {"called": False}
@@ -2080,7 +2271,11 @@ def test_reconfigure_updates_existing_entry_and_reloads() -> None:
 
     flow.async_create_entry = _capture_create_entry  # type: ignore[method-assign]
 
-    normalized = {**entry.data, CONF_API_KEY: "new-key", CONF_UPDATE_INTERVAL: 12}
+    normalized = {
+        **entry.data,
+        config_flow_stubs.CONF_API_KEY: "new-key",
+        config_flow_stubs.CONF_UPDATE_INTERVAL: 12,
+    }
 
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
@@ -2092,7 +2287,9 @@ def test_reconfigure_updates_existing_entry_and_reloads() -> None:
     async def run_flow():
         first = await flow.async_step_reconfigure()
         assert first == {"step_id": "reconfigure"}
-        return await flow.async_step_reconfigure({CONF_API_KEY: "new-key"})
+        return await flow.async_step_reconfigure(
+            {config_flow_stubs.CONF_API_KEY: "new-key"}
+        )
 
     result = asyncio.run(run_flow())
 
@@ -2101,26 +2298,28 @@ def test_reconfigure_updates_existing_entry_and_reloads() -> None:
         entry,
         {
             **entry.data,
-            CONF_API_KEY: "new-key",
+            config_flow_stubs.CONF_API_KEY: "new-key",
         },
     )
     assert recorder.reloaded == "entry-id"
     assert created["called"] is False
 
 
-def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
+def test_reconfigure_does_not_reintroduce_option_fields_in_data(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Reconfigure should only update API key in data, preserving option boundaries."""
 
-    entry = cf.config_entries.ConfigEntry(
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={
-            CONF_API_KEY: "old-key",
-            CONF_LATITUDE: 1.0,
-            CONF_LONGITUDE: 2.0,
-            CONF_LANGUAGE_CODE: "en",
-            CONF_UPDATE_INTERVAL: 6,
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+            config_flow_stubs.CONF_LANGUAGE_CODE: "en",
+            config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
             # Intentionally no CONF_CREATE_FORECAST_SENSORS in data.
         },
-        options={CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        options={config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1"},
         entry_id="entry-id",
     )
 
@@ -2139,7 +2338,7 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
 
     recorder = _Recorder()
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(config_entries=recorder)
     flow.context = {"entry_id": "entry-id"}
     created: dict[str, bool] = {"called": False}
@@ -2153,8 +2352,8 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
     # Validation may normalize and include option-backed fields.
     normalized = {
         **entry.data,
-        CONF_API_KEY: "new-key",
-        CONF_CREATE_FORECAST_SENSORS: "none",
+        config_flow_stubs.CONF_API_KEY: "new-key",
+        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
     }
 
     async def fake_validate(
@@ -2167,7 +2366,9 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
     async def run_flow():
         first = await flow.async_step_reconfigure()
         assert first == {"step_id": "reconfigure"}
-        return await flow.async_step_reconfigure({CONF_API_KEY: "new-key"})
+        return await flow.async_step_reconfigure(
+            {config_flow_stubs.CONF_API_KEY: "new-key"}
+        )
 
     result = asyncio.run(run_flow())
 
@@ -2175,41 +2376,46 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data() -> None:
     assert recorder.updated is not None
     updated_entry, updated_data = recorder.updated
     assert updated_entry is entry
-    assert updated_data[CONF_API_KEY] == "new-key"
-    assert CONF_CREATE_FORECAST_SENSORS not in updated_data
+    assert updated_data[config_flow_stubs.CONF_API_KEY] == "new-key"
+    assert config_flow_stubs.CONF_CREATE_FORECAST_SENSORS not in updated_data
     assert created["called"] is False
 
 
-def test_async_step_user_uses_custom_entry_name() -> None:
+def test_async_step_user_uses_custom_entry_name(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Config flow should honor a custom entry title provided by the user."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
     )
 
     normalized = {
-        CONF_API_KEY: "test-key",
-        CONF_LATITUDE: 1.0,
-        CONF_LONGITUDE: 2.0,
-        CONF_LANGUAGE_CODE: "en",
+        config_flow_stubs.CONF_API_KEY: "test-key",
+        config_flow_stubs.CONF_LATITUDE: 1.0,
+        config_flow_stubs.CONF_LONGITUDE: 2.0,
+        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
     ):
         assert check_unique_id is True
-        assert user_input[CONF_NAME].strip() == "Custom Name"
+        assert user_input[config_flow_stubs.CONF_NAME].strip() == "Custom Name"
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
 
     user_input = {
-        CONF_API_KEY: "test-key",
-        CONF_NAME: " Custom Name ",
-        CONF_LOCATION: {CONF_LATITUDE: 1.0, CONF_LONGITUDE: 2.0},
-        CONF_UPDATE_INTERVAL: 6,
-        CONF_LANGUAGE_CODE: "en",
+        config_flow_stubs.CONF_API_KEY: "test-key",
+        config_flow_stubs.CONF_NAME: " Custom Name ",
+        config_flow_stubs.CONF_LOCATION: {
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
+        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
     result = asyncio.run(flow.async_step_user(user_input))
@@ -2218,70 +2424,79 @@ def test_async_step_user_uses_custom_entry_name() -> None:
     assert result["data"] == normalized
 
 
-def test_async_step_user_defaults_entry_name() -> None:
+def test_async_step_user_defaults_entry_name(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
     """Blank entry names should fall back to the default integration title."""
 
-    flow = PollenLevelsConfigFlow()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
     )
 
     normalized = {
-        CONF_API_KEY: "test-key",
-        CONF_LATITUDE: 1.0,
-        CONF_LONGITUDE: 2.0,
-        CONF_LANGUAGE_CODE: "en",
+        config_flow_stubs.CONF_API_KEY: "test-key",
+        config_flow_stubs.CONF_LATITUDE: 1.0,
+        config_flow_stubs.CONF_LONGITUDE: 2.0,
+        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
     ):
-        assert user_input[CONF_NAME] == "   "
+        assert user_input[config_flow_stubs.CONF_NAME] == "   "
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
 
     user_input = {
-        CONF_API_KEY: "test-key",
-        CONF_NAME: "   ",
-        CONF_LOCATION: {CONF_LATITUDE: 1.0, CONF_LONGITUDE: 2.0},
-        CONF_UPDATE_INTERVAL: 6,
-        CONF_LANGUAGE_CODE: "en",
+        config_flow_stubs.CONF_API_KEY: "test-key",
+        config_flow_stubs.CONF_NAME: "   ",
+        config_flow_stubs.CONF_LOCATION: {
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
+        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
     result = asyncio.run(flow.async_step_user(user_input))
 
-    assert result["title"] == DEFAULT_ENTRY_TITLE
+    assert result["title"] == config_flow_stubs.DEFAULT_ENTRY_TITLE
     assert result["data"] == normalized
 
 
 @pytest.mark.parametrize("raw", ["inf", "-inf", "nan"])
-def test_parse_int_option_non_finite_returns_error(raw: str) -> None:
+def test_parse_int_option_non_finite_returns_error(
+    config_flow_stubs: ConfigFlowStubs, raw: str
+) -> None:
     """Non-finite numeric values should be rejected safely."""
 
-    parsed, err = cf._parse_int_option(
+    parsed, err = config_flow_stubs.config_flow._parse_int_option(
         raw,
-        default=cf.DEFAULT_UPDATE_INTERVAL,
-        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
-        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        default=config_flow_stubs.config_flow.DEFAULT_UPDATE_INTERVAL,
+        min_value=config_flow_stubs.config_flow.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=config_flow_stubs.config_flow.MAX_UPDATE_INTERVAL_HOURS,
         error_key="invalid_update_interval",
     )
 
-    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert parsed == config_flow_stubs.config_flow.DEFAULT_UPDATE_INTERVAL
     assert err == "invalid_update_interval"
 
 
 @pytest.mark.parametrize("raw", ["2.9", 2.1])
-def test_parse_int_option_decimal_returns_error(raw: object) -> None:
+def test_parse_int_option_decimal_returns_error(
+    config_flow_stubs: ConfigFlowStubs, raw: object
+) -> None:
     """Decimal values should be rejected for integer-only options."""
 
-    parsed, err = cf._parse_int_option(
+    parsed, err = config_flow_stubs.config_flow._parse_int_option(
         raw,
-        default=cf.DEFAULT_UPDATE_INTERVAL,
-        min_value=cf.MIN_UPDATE_INTERVAL_HOURS,
-        max_value=cf.MAX_UPDATE_INTERVAL_HOURS,
+        default=config_flow_stubs.config_flow.DEFAULT_UPDATE_INTERVAL,
+        min_value=config_flow_stubs.config_flow.MIN_UPDATE_INTERVAL_HOURS,
+        max_value=config_flow_stubs.config_flow.MAX_UPDATE_INTERVAL_HOURS,
         error_key="invalid_update_interval",
     )
 
-    assert parsed == cf.DEFAULT_UPDATE_INTERVAL
+    assert parsed == config_flow_stubs.config_flow.DEFAULT_UPDATE_INTERVAL
     assert err == "invalid_update_interval"
