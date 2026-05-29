@@ -5,7 +5,7 @@ Key points:
 - Normalizes language (trim/omit when empty) before calling the API.
 - Redacts API keys in debug logs.
 - Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
-- Timeout handling: on modern Python (3.11+), built-in `TimeoutError` also covers
+- Timeout handling: on Python 3.14, built-in `TimeoutError` also covers
   `asyncio.TimeoutError`, so catching `TimeoutError` is sufficient and preferred.
 """
 
