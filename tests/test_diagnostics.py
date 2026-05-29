@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -11,32 +12,17 @@ import pytest
 
 from tests._ha_stubs import (
     clear_integration_modules,
-    force_module,
     stub_config_entry_class,
     stub_custom_components_packages,
 )
 
-components_mod = ModuleType("homeassistant.components")
-diagnostics_mod = ModuleType("homeassistant.components.diagnostics")
-
-
-def _async_redact_data(data: dict[str, Any], _redact: set[str]) -> dict[str, Any]:
-    def _walk(value):
-        if isinstance(value, dict):
-            return {
-                k: ("**REDACTED**" if k in _redact else _walk(v))
-                for k, v in value.items()
-            }
-        if isinstance(value, list):
-            return [_walk(v) for v in value]
-        return value
-
-    return _walk(data)
-
-
-diagnostics_mod.async_redact_data = _async_redact_data
-force_module("homeassistant.components", components_mod)
-force_module("homeassistant.components.diagnostics", diagnostics_mod)
+diag: ModuleType
+PollenLevelsRuntimeData: type[object]
+CONF_API_KEY: str
+CONF_FORECAST_DAYS: str
+CONF_LANGUAGE_CODE: str
+CONF_LATITUDE: str
+CONF_LONGITUDE: str
 
 
 class _ConfigEntry:
@@ -55,33 +41,78 @@ class _ConfigEntry:
         self.runtime_data = None
 
 
-stub_config_entry_class(_ConfigEntry)
+def _install_diagnostics_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Install minimal Home Assistant stubs needed by diagnostics imports."""
 
-core_mod = ModuleType("homeassistant.core")
+    components_mod = ModuleType("homeassistant.components")
+    diagnostics_mod = ModuleType("homeassistant.components.diagnostics")
+
+    def _async_redact_data(data: dict[str, Any], _redact: set[str]) -> dict[str, Any]:
+        def _walk(value):
+            if isinstance(value, dict):
+                return {
+                    k: ("**REDACTED**" if k in _redact else _walk(v))
+                    for k, v in value.items()
+                }
+            if isinstance(value, list):
+                return [_walk(v) for v in value]
+            return value
+
+        return _walk(data)
+
+    diagnostics_mod.async_redact_data = _async_redact_data
+    monkeypatch.setitem(sys.modules, "homeassistant.components", components_mod)
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.components.diagnostics", diagnostics_mod
+    )
+
+    stub_config_entry_class(_ConfigEntry, monkeypatch=monkeypatch)
+
+    core_mod = ModuleType("homeassistant.core")
+
+    class _HomeAssistant:
+        pass
+
+    core_mod.HomeAssistant = _HomeAssistant
+    monkeypatch.setitem(sys.modules, "homeassistant.core", core_mod)
+
+    clear_integration_modules(monkeypatch=monkeypatch)
+    stub_custom_components_packages(
+        root=Path(__file__).resolve().parents[1], monkeypatch=monkeypatch
+    )
 
 
-class _HomeAssistant:
-    pass
+@pytest.fixture(autouse=True)
+def _diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Import diagnostics with fixture-scoped Home Assistant stubs."""
 
+    global diag, PollenLevelsRuntimeData
+    global CONF_API_KEY, CONF_FORECAST_DAYS, CONF_LANGUAGE_CODE
+    global CONF_LATITUDE, CONF_LONGITUDE
 
-core_mod.HomeAssistant = _HomeAssistant
-force_module("homeassistant.core", core_mod)
+    _install_diagnostics_import_stubs(monkeypatch)
 
-clear_integration_modules()
-stub_custom_components_packages(root=Path(__file__).resolve().parents[1])
+    from custom_components.pollenlevels import diagnostics as imported_diag
+    from custom_components.pollenlevels.const import (
+        CONF_API_KEY as imported_conf_api_key,
+        CONF_FORECAST_DAYS as imported_conf_forecast_days,
+        CONF_LANGUAGE_CODE as imported_conf_language_code,
+        CONF_LATITUDE as imported_conf_latitude,
+        CONF_LONGITUDE as imported_conf_longitude,
+    )
+    from custom_components.pollenlevels.runtime import (
+        PollenLevelsRuntimeData as ImportedRuntimeData,
+    )
 
-from custom_components.pollenlevels import diagnostics as diag  # noqa: E402
-from custom_components.pollenlevels.const import (  # noqa: E402
-    CONF_API_KEY,
-    CONF_FORECAST_DAYS,
-    CONF_LANGUAGE_CODE,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    DEFAULT_FORECAST_DAYS,
-    MAX_FORECAST_DAYS,
-    MIN_FORECAST_DAYS,
-)
-from custom_components.pollenlevels.runtime import PollenLevelsRuntimeData  # noqa: E402
+    diag = imported_diag
+    PollenLevelsRuntimeData = ImportedRuntimeData
+    CONF_API_KEY = imported_conf_api_key
+    CONF_FORECAST_DAYS = imported_conf_forecast_days
+    CONF_LANGUAGE_CODE = imported_conf_language_code
+    CONF_LATITUDE = imported_conf_latitude
+    CONF_LONGITUDE = imported_conf_longitude
+    yield
+    clear_integration_modules(monkeypatch=monkeypatch)
 
 
 @pytest.mark.asyncio
@@ -126,9 +157,9 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys() -> None:
 @pytest.mark.parametrize(
     ("raw_days", "expected_days"),
     [
-        (999, MAX_FORECAST_DAYS),
-        (-3, MIN_FORECAST_DAYS),
-        ("nan", DEFAULT_FORECAST_DAYS),
+        (999, 5),
+        (-3, 1),
+        ("nan", 2),
     ],
 )
 async def test_diagnostics_clamps_request_days(

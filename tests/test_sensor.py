@@ -14,7 +14,6 @@ import pytest
 
 from tests._ha_stubs import (
     clear_integration_modules,
-    force_module,
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
@@ -25,256 +24,259 @@ from tests._ha_stubs import (
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-# Ensure the custom_components namespace exists for relative imports.
-clear_integration_modules()
-stub_custom_components_packages(root=ROOT)
-
-# ---------------------------------------------------------------------------
-# Minimal Home Assistant stubs to import the integration module under test.
-# ---------------------------------------------------------------------------
-ha = stub_homeassistant_package()
-
-ha.components = types.ModuleType("homeassistant.components")
-force_module("homeassistant.components", ha.components)
-
-sensor_mod = types.ModuleType("homeassistant.components.sensor")
+const: types.ModuleType
+client_mod: types.ModuleType
+coordinator_mod: types.ModuleType
+sensor: types.ModuleType
 
 
-class _StubSensorEntity:  # pragma: no cover - no runtime behavior needed
-    def __init__(self, *args, **kwargs):
-        self._attr_unique_id = None
-        self._attr_device_info: dict[str, Any] | None = None
+def _install_sensor_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Install minimal Home Assistant stubs needed by sensor imports."""
 
-    @property
-    def unique_id(self):
-        return getattr(self, "_attr_unique_id", None)
+    clear_integration_modules(monkeypatch=monkeypatch)
+    stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
 
-    @property
-    def device_info(self):
-        return getattr(self, "_attr_device_info", None)
+    ha = stub_homeassistant_package(monkeypatch=monkeypatch)
 
+    ha.components = types.ModuleType("homeassistant.components")
+    monkeypatch.setitem(sys.modules, "homeassistant.components", ha.components)
 
-class _StubSensorDeviceClass:
-    DATE = "date"
-    TIMESTAMP = "timestamp"
+    sensor_mod = types.ModuleType("homeassistant.components.sensor")
 
+    class _StubSensorEntity:  # pragma: no cover - no runtime behavior needed
+        def __init__(self, *args, **kwargs):
+            self._attr_unique_id = None
+            self._attr_device_info: dict[str, Any] | None = None
 
-class _StubSensorStateClass:
-    MEASUREMENT = "measurement"
+        @property
+        def unique_id(self):
+            return getattr(self, "_attr_unique_id", None)
 
+        @property
+        def device_info(self):
+            return getattr(self, "_attr_device_info", None)
 
-sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
-sensor_mod.SensorEntity = _StubSensorEntity
-sensor_mod.SensorStateClass = _StubSensorStateClass
-force_module("homeassistant.components.sensor", sensor_mod)
+    class _StubSensorDeviceClass:
+        DATE = "date"
+        TIMESTAMP = "timestamp"
 
-const_mod = types.ModuleType("homeassistant.const")
-force_module("homeassistant.const", const_mod)
+    class _StubSensorStateClass:
+        MEASUREMENT = "measurement"
 
-const_mod.ATTR_ATTRIBUTION = "Attribution"
-const_mod.CONF_NAME = "name"
-const_mod.CONF_LOCATION = "location"
-const_mod.CONF_LATITUDE = "latitude"
-const_mod.CONF_LONGITUDE = "longitude"
+    sensor_mod.SensorDeviceClass = _StubSensorDeviceClass
+    sensor_mod.SensorEntity = _StubSensorEntity
+    sensor_mod.SensorStateClass = _StubSensorStateClass
+    monkeypatch.setitem(sys.modules, "homeassistant.components.sensor", sensor_mod)
 
+    const_mod = types.ModuleType("homeassistant.const")
+    monkeypatch.setitem(sys.modules, "homeassistant.const", const_mod)
 
-class _StubConfigEntryNotReady(Exception):
-    pass
+    const_mod.ATTR_ATTRIBUTION = "Attribution"
+    const_mod.CONF_NAME = "name"
+    const_mod.CONF_LOCATION = "location"
+    const_mod.CONF_LATITUDE = "latitude"
+    const_mod.CONF_LONGITUDE = "longitude"
 
+    class _StubConfigEntryNotReady(Exception):
+        pass
 
-class _StubConfigEntryAuthFailed(Exception):
-    pass
+    class _StubConfigEntryAuthFailed(Exception):
+        pass
 
+    stub_exceptions(
+        monkeypatch=monkeypatch,
+        ConfigEntryNotReady=_StubConfigEntryNotReady,
+        ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
+    )
 
-stub_exceptions(
-    ConfigEntryNotReady=_StubConfigEntryNotReady,
-    ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
-)
+    class _StubConfigEntry:
+        @classmethod
+        def __class_getitem__(cls, _item):
+            return cls
 
+    stub_config_entry_class(_StubConfigEntry, monkeypatch=monkeypatch)
 
-class _StubConfigEntry:
-    @classmethod
-    def __class_getitem__(cls, _item):
-        return cls
+    helpers_mod = types.ModuleType("homeassistant.helpers")
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers", helpers_mod)
 
+    entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
 
-stub_config_entry_class(_StubConfigEntry)
+    def _stub_async_get(_hass):  # pragma: no cover - not exercised in tests
+        class _Registry:
+            @staticmethod
+            def async_entries_for_config_entry(_registry, _entry_id):
+                return []
 
-helpers_mod = types.ModuleType("homeassistant.helpers")
-force_module("homeassistant.helpers", helpers_mod)
+        return _Registry()
 
-entity_registry_mod = types.ModuleType("homeassistant.helpers.entity_registry")
+    entity_registry_mod.async_get = _stub_async_get
+    entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.entity_registry", entity_registry_mod
+    )
 
+    aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
+    aiohttp_client_mod.async_get_clientsession = lambda hass: None
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.aiohttp_client", aiohttp_client_mod
+    )
 
-def _stub_async_get(_hass):  # pragma: no cover - not exercised in tests
-    class _Registry:
-        @staticmethod
-        def async_entries_for_config_entry(_registry, _entry_id):
-            return []
+    entity_mod = types.ModuleType("homeassistant.helpers.entity")
 
-    return _Registry()
+    class _StubEntityCategory:
+        DIAGNOSTIC = "diagnostic"
 
+    entity_mod.EntityCategory = _StubEntityCategory
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers.entity", entity_mod)
 
-entity_registry_mod.async_get = _stub_async_get
-entity_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
-force_module("homeassistant.helpers.entity_registry", entity_registry_mod)
+    entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
 
-aiohttp_client_mod = types.ModuleType("homeassistant.helpers.aiohttp_client")
-aiohttp_client_mod.async_get_clientsession = lambda hass: None
-force_module("homeassistant.helpers.aiohttp_client", aiohttp_client_mod)
+    def _add_entities_callback_stub(entities, update_before_add: bool = False) -> None:
+        return None
 
-entity_mod = types.ModuleType("homeassistant.helpers.entity")
+    entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.entity_platform", entity_platform_mod
+    )
 
+    class _StubUpdateFailed(Exception):
+        pass
 
-class _StubEntityCategory:
-    DIAGNOSTIC = "diagnostic"
+    class _StubDataUpdateCoordinator:
+        def __init__(self, hass, logger, *, name: str, update_interval):
+            self.hass = hass
+            self.logger = logger
+            self.name = name
+            self.update_interval = update_interval
+            self.data = None
+            self.last_updated = None
 
+        async def async_config_entry_first_refresh(self):
+            """Simulate a successful first refresh with minimal payload."""
 
-entity_mod.EntityCategory = _StubEntityCategory
-force_module("homeassistant.helpers.entity", entity_mod)
+            if self.data is None:
+                # Provide minimal successful payload so entity setup can proceed
+                self.data = {
+                    "date": {"source": "meta"},
+                    "region": {"source": "meta"},
+                }
+            if self.last_updated is None:
+                self.last_updated = "now"
 
-entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
+            return None
 
+    class _StubCoordinatorEntity:
+        def __init__(self, coordinator):
+            self.coordinator = coordinator
+            self._attr_unique_id = None
+            self._attr_device_info = None
 
-def _add_entities_callback_stub(entities, update_before_add: bool = False) -> None:
-    return None
+        @property
+        def unique_id(self):  # pragma: no cover - simple data holder
+            return self._attr_unique_id
 
+        @property
+        def device_info(self):  # pragma: no cover - simple data holder
+            return self._attr_device_info
 
-entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
-force_module("homeassistant.helpers.entity_platform", entity_platform_mod)
+    stub_update_coordinator_module(
+        update_failed=_StubUpdateFailed,
+        data_update_coordinator=_StubDataUpdateCoordinator,
+        coordinator_entity=_StubCoordinatorEntity,
+        monkeypatch=monkeypatch,
+    )
 
+    dt_mod = types.ModuleType("homeassistant.util.dt")
 
-class _StubUpdateFailed(Exception):
-    pass
+    def _stub_utcnow():
+        """Return a timezone-aware UTC datetime, similar to Home Assistant."""
 
+        from datetime import UTC, datetime
 
-class _StubDataUpdateCoordinator:
-    def __init__(self, hass, logger, *, name: str, update_interval):
-        self.hass = hass
-        self.logger = logger
-        self.name = name
-        self.update_interval = update_interval
-        self.data = None
-        self.last_updated = None
+        return datetime.now(UTC)
 
-    async def async_config_entry_first_refresh(self):
-        """Simulate a successful first refresh with minimal payload."""
+    dt_mod.utcnow = _stub_utcnow
 
-        if self.data is None:
-            # Provide minimal successful payload so entity setup can proceed
-            self.data = {
-                "date": {"source": "meta"},
-                "region": {"source": "meta"},
-            }
-        if self.last_updated is None:
-            self.last_updated = "now"
+    def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
+        from datetime import UTC, datetime
+        from email.utils import parsedate_to_datetime
+
+        try:
+            parsed = parsedate_to_datetime(value) if value is not None else None
+        except TypeError, ValueError, IndexError:
+            return None
+
+        if parsed is None:
+            return None
+
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+
+        if isinstance(parsed, datetime):
+            return parsed
 
         return None
 
+    dt_mod.parse_http_date = _stub_parse_http_date
+    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
 
-class _StubCoordinatorEntity:
-    def __init__(self, coordinator):
-        self.coordinator = coordinator
-        self._attr_unique_id = None
-        self._attr_device_info = None
+    util_mod = types.ModuleType("homeassistant.util")
+    util_mod.dt = dt_mod
+    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
 
-    @property
-    def unique_id(self):  # pragma: no cover - simple data holder
-        return self._attr_unique_id
+    aiohttp_mod = types.ModuleType("aiohttp")
 
-    @property
-    def device_info(self):  # pragma: no cover - simple data holder
-        return self._attr_device_info
+    class _StubClientError(Exception):
+        pass
 
+    class _StubClientSession:  # pragma: no cover - structure only
+        pass
 
-stub_update_coordinator_module(
-    update_failed=_StubUpdateFailed,
-    data_update_coordinator=_StubDataUpdateCoordinator,
-    coordinator_entity=_StubCoordinatorEntity,
-)
+    class _StubClientTimeout:
+        def __init__(self, total: float | None = None):
+            self.total = total
 
-dt_mod = types.ModuleType("homeassistant.util.dt")
-
-
-def _stub_utcnow():
-    """Return a timezone-aware UTC datetime, similar to Home Assistant."""
-
-    from datetime import UTC, datetime
-
-    return datetime.now(UTC)
+    aiohttp_mod.ClientError = _StubClientError
+    aiohttp_mod.ClientSession = _StubClientSession
+    aiohttp_mod.ClientTimeout = _StubClientTimeout
+    aiohttp_mod.ContentTypeError = ValueError
+    monkeypatch.setitem(sys.modules, "aiohttp", aiohttp_mod)
 
 
-dt_mod.utcnow = _stub_utcnow
-
-
-def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
-    from datetime import UTC, datetime
-    from email.utils import parsedate_to_datetime
-
-    try:
-        parsed = parsedate_to_datetime(value) if value is not None else None
-    except TypeError, ValueError, IndexError:
-        return None
-
-    if parsed is None:
-        return None
-
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=UTC)
-
-    if isinstance(parsed, datetime):
-        return parsed
-
-    return None
-
-
-dt_mod.parse_http_date = _stub_parse_http_date
-force_module("homeassistant.util.dt", dt_mod)
-
-util_mod = types.ModuleType("homeassistant.util")
-util_mod.dt = dt_mod
-force_module("homeassistant.util", util_mod)
-
-aiohttp_mod = types.ModuleType("aiohttp")
-
-
-class _StubClientError(Exception):
-    pass
-
-
-class _StubClientSession:  # pragma: no cover - structure only
-    pass
-
-
-class _StubClientTimeout:
-    def __init__(self, total: float | None = None):
-        self.total = total
-
-
-aiohttp_mod.ClientError = _StubClientError
-aiohttp_mod.ClientSession = _StubClientSession
-aiohttp_mod.ClientTimeout = _StubClientTimeout
-aiohttp_mod.ContentTypeError = ValueError
-force_module("aiohttp", aiohttp_mod)
-
-
-def _load_module(module_name: str, relative_path: str):
+def _load_module(
+    module_name: str, relative_path: str, monkeypatch: pytest.MonkeyPatch
+) -> types.ModuleType:
     spec = importlib.util.spec_from_file_location(
         module_name, ROOT / "custom_components" / "pollenlevels" / relative_path
     )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
-    sys.modules[module_name] = module
+    monkeypatch.setitem(sys.modules, module_name, module)
     return module
 
 
-const = _load_module("custom_components.pollenlevels.const", "const.py")
-client_mod = _load_module("custom_components.pollenlevels.client", "client.py")
-coordinator_mod = _load_module(
-    "custom_components.pollenlevels.coordinator", "coordinator.py"
-)
-sensor = _load_module("custom_components.pollenlevels.sensor", "sensor.py")
+@pytest.fixture(autouse=True)
+def _sensor_import_modules(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Import sensor dependencies with fixture-scoped Home Assistant stubs."""
+
+    global const, client_mod, coordinator_mod, sensor
+
+    _install_sensor_import_stubs(monkeypatch)
+    const = _load_module(
+        "custom_components.pollenlevels.const", "const.py", monkeypatch
+    )
+    client_mod = _load_module(
+        "custom_components.pollenlevels.client", "client.py", monkeypatch
+    )
+    coordinator_mod = _load_module(
+        "custom_components.pollenlevels.coordinator", "coordinator.py", monkeypatch
+    )
+    sensor = _load_module(
+        "custom_components.pollenlevels.sensor", "sensor.py", monkeypatch
+    )
+    yield
+    clear_integration_modules(monkeypatch=monkeypatch)
 
 
 class DummyHass:
