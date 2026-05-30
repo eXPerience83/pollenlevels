@@ -8,22 +8,9 @@ import sys
 
 import pytest
 
-from tests._ha_stubs import (
-    StubClientError,
-    StubClientSession,
-    StubClientTimeout,
-    stub_aiohttp_module,
-)
+from tests._ha_stubs import stub_aiohttp_module
 
-aiohttp_mod = sys.modules.setdefault("aiohttp", stub_aiohttp_module(install=False))
-if not hasattr(aiohttp_mod, "ClientError"):
-    aiohttp_mod.ClientError = StubClientError
-if not hasattr(aiohttp_mod, "ClientSession"):
-    aiohttp_mod.ClientSession = StubClientSession
-if not hasattr(aiohttp_mod, "ClientTimeout"):
-    aiohttp_mod.ClientTimeout = StubClientTimeout
-if not hasattr(aiohttp_mod, "ContentTypeError"):
-    aiohttp_mod.ContentTypeError = ValueError
+sys.modules.setdefault("aiohttp", stub_aiohttp_module(install=False))
 
 
 def pytest_configure(config: pytest.Config) -> None:
