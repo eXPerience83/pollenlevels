@@ -1962,6 +1962,11 @@ def test_cleanup_per_day_entities_removes_disabled_days(
         ),
     ]
     entity_ids = [entry.entity_id for entry in entries]
+    assert entity_ids == [
+        "sensor.pollen_type_grass",
+        "sensor.pollen_type_grass_d1",
+        "sensor.pollen_type_grass_d2",
+    ]
     assert all(entity_id.startswith("sensor.") for entity_id in entity_ids)
     assert all("sensor_modules." not in entity_id for entity_id in entity_ids)
     assert all(entity_id.startswith("sensor.") for entity_id in expected_entities)
