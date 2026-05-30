@@ -1927,8 +1927,8 @@ def test_coordinator_type_keys_are_deterministic_sorted(
         "expected_entities",
     ),
     [
-        (False, True, 1, ["sensor_modules.sensor.pollen_type_grass_d1"]),
-        (True, False, 1, ["sensor_modules.sensor.pollen_type_grass_d2"]),
+        (False, True, 1, ["sensor.pollen_type_grass_d1"]),
+        (True, False, 1, ["sensor.pollen_type_grass_d2"]),
     ],
 )
 def test_cleanup_per_day_entities_removes_disabled_days(
@@ -1943,19 +1943,19 @@ def test_cleanup_per_day_entities_removes_disabled_days(
 
     entries = [
         RegistryEntry(
-            "sensor_modules.sensor.pollen_type_grass",
+            "sensor.pollen_type_grass",
             "entry_type_grass",
             "sensor",
             sensor_modules.sensor.DOMAIN,
         ),
         RegistryEntry(
-            "sensor_modules.sensor.pollen_type_grass_d1",
+            "sensor.pollen_type_grass_d1",
             "entry_type_grass_d1",
             "sensor",
             sensor_modules.sensor.DOMAIN,
         ),
         RegistryEntry(
-            "sensor_modules.sensor.pollen_type_grass_d2",
+            "sensor.pollen_type_grass_d2",
             "entry_type_grass_d2",
             "sensor",
             sensor_modules.sensor.DOMAIN,
