@@ -10,23 +10,10 @@ from typing import Any
 
 import pytest
 
+from tests._ha_stubs import stub_aiohttp_module
+
 ROOT = Path(__file__).resolve().parents[1]
 _SENTINEL = object()
-
-
-class _StubClientError(Exception):
-    """Minimal aiohttp ClientError stub."""
-
-
-class _StubClientSession:
-    """Minimal aiohttp ClientSession stub."""
-
-
-class _StubClientTimeout:
-    """Minimal aiohttp ClientTimeout stub."""
-
-    def __init__(self, total: float | None = None) -> None:
-        self.total = total
 
 
 class _StubConfigEntryAuthFailed(Exception):
@@ -69,12 +56,7 @@ def _install_client_import_stubs() -> dict[str, object]:
     pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
     _set_module(snapshot, "custom_components.pollenlevels", pollenlevels_pkg)
 
-    aiohttp_mod = types.ModuleType("aiohttp")
-    aiohttp_mod.ClientError = _StubClientError
-    aiohttp_mod.ClientSession = _StubClientSession
-    aiohttp_mod.ClientTimeout = _StubClientTimeout
-    aiohttp_mod.ContentTypeError = ValueError
-    _set_module(snapshot, "aiohttp", aiohttp_mod)
+    _set_module(snapshot, "aiohttp", stub_aiohttp_module(install=False))
 
     ha_mod = types.ModuleType("homeassistant")
     _set_module(snapshot, "homeassistant", ha_mod)

@@ -18,6 +18,7 @@ import pytest
 
 from tests._ha_stubs import (
     clear_integration_modules,
+    stub_aiohttp_module,
     stub_custom_components_packages,
     stub_exceptions,
     stub_homeassistant_package,
@@ -193,19 +194,6 @@ class _SelectSelector:
         self.config = config
 
 
-class _StubClientError(Exception):
-    pass
-
-
-class _StubClientTimeout:
-    def __init__(self, *, total: float | int):
-        self.total = total
-
-
-class _StubClientSession:
-    pass
-
-
 class _StubInvalid(Exception):
     def __init__(self, error_message=""):
         super().__init__(error_message)
@@ -328,12 +316,7 @@ def _install_homeassistant_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     ha_mod.helpers = helpers_mod
     ha_mod.config_entries = config_entries_mod
 
-    aiohttp_mod = ModuleType("aiohttp")
-    aiohttp_mod.ClientError = _StubClientError
-    aiohttp_mod.ClientTimeout = _StubClientTimeout
-    aiohttp_mod.ClientSession = _StubClientSession
-    aiohttp_mod.ContentTypeError = ValueError
-    monkeypatch.setitem(sys.modules, "aiohttp", aiohttp_mod)
+    stub_aiohttp_module(monkeypatch=monkeypatch)
 
     vol_mod = ModuleType("voluptuous")
     vol_mod.Invalid = _StubInvalid

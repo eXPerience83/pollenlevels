@@ -5,32 +5,23 @@ from __future__ import annotations
 import asyncio
 import inspect
 import sys
-from types import ModuleType
 
 import pytest
 
-aiohttp_mod = sys.modules.setdefault("aiohttp", ModuleType("aiohttp"))
+from tests._ha_stubs import (
+    StubClientError,
+    StubClientSession,
+    StubClientTimeout,
+    stub_aiohttp_module,
+)
 
-
-class _StubClientError(Exception):
-    pass
-
-
-class _StubClientSession:  # pragma: no cover - structure only
-    pass
-
-
-class _StubClientTimeout:
-    def __init__(self, total: float | None = None):
-        self.total = total
-
-
+aiohttp_mod = sys.modules.setdefault("aiohttp", stub_aiohttp_module(install=False))
 if not hasattr(aiohttp_mod, "ClientError"):
-    aiohttp_mod.ClientError = _StubClientError
+    aiohttp_mod.ClientError = StubClientError
 if not hasattr(aiohttp_mod, "ClientSession"):
-    aiohttp_mod.ClientSession = _StubClientSession
+    aiohttp_mod.ClientSession = StubClientSession
 if not hasattr(aiohttp_mod, "ClientTimeout"):
-    aiohttp_mod.ClientTimeout = _StubClientTimeout
+    aiohttp_mod.ClientTimeout = StubClientTimeout
 if not hasattr(aiohttp_mod, "ContentTypeError"):
     aiohttp_mod.ContentTypeError = ValueError
 

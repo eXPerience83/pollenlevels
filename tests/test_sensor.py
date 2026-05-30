@@ -14,6 +14,7 @@ import pytest
 
 from tests._ha_stubs import (
     clear_integration_modules,
+    stub_aiohttp_module,
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
@@ -228,23 +229,7 @@ def _install_sensor_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     util_mod.dt = dt_mod
     monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
 
-    aiohttp_mod = types.ModuleType("aiohttp")
-
-    class _StubClientError(Exception):
-        pass
-
-    class _StubClientSession:  # pragma: no cover - structure only
-        pass
-
-    class _StubClientTimeout:
-        def __init__(self, total: float | None = None):
-            self.total = total
-
-    aiohttp_mod.ClientError = _StubClientError
-    aiohttp_mod.ClientSession = _StubClientSession
-    aiohttp_mod.ClientTimeout = _StubClientTimeout
-    aiohttp_mod.ContentTypeError = ValueError
-    monkeypatch.setitem(sys.modules, "aiohttp", aiohttp_mod)
+    stub_aiohttp_module(monkeypatch=monkeypatch)
 
 
 def _load_module(
