@@ -11,6 +11,38 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class StubClientError(Exception):
+    """Minimal aiohttp ClientError stub."""
+
+
+class StubClientSession:  # pragma: no cover - structure only
+    """Minimal aiohttp ClientSession stub."""
+
+
+class StubClientTimeout:
+    """Minimal aiohttp ClientTimeout stub."""
+
+    def __init__(self, total: float | int | None = None) -> None:
+        self.total = total
+
+
+def stub_aiohttp_module(
+    *,
+    monkeypatch: pytest.MonkeyPatch | None = None,
+    install: bool = True,
+) -> ModuleType:
+    """Build and optionally install a lightweight ``aiohttp`` stub module."""
+
+    module = ModuleType("aiohttp")
+    module.ClientError = StubClientError
+    module.ClientSession = StubClientSession
+    module.ClientTimeout = StubClientTimeout
+    module.ContentTypeError = ValueError
+    if not install:
+        return module
+    return _set_module("aiohttp", module, monkeypatch=monkeypatch)
+
+
 def force_module(name: str, module: ModuleType) -> ModuleType:
     """Force a module into ``sys.modules`` and return it."""
 
