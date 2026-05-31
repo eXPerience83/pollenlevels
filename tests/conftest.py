@@ -4,13 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import sys
 
 import pytest
-
-from tests._ha_stubs import stub_aiohttp_module
-
-sys.modules.setdefault("aiohttp", stub_aiohttp_module(install=False))
 
 
 def pytest_configure(config: pytest.Config) -> None:
