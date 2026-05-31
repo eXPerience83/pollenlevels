@@ -112,6 +112,13 @@ class ImportTimeStubVisitor(ast.NodeVisitor):
         self.scope_depth -= 1
 
     def _check_assignment_target(self, target: ast.expr) -> None:
+        if isinstance(target, (ast.Tuple, ast.List)):
+            for element in target.elts:
+                self._check_assignment_target(element)
+            return
+        if isinstance(target, ast.Starred):
+            self._check_assignment_target(target.value)
+            return
         if self._is_sys_modules(target):
             self.violations.append(
                 (target.lineno, "top-level sys.modules reassignment")
@@ -120,6 +127,13 @@ class ImportTimeStubVisitor(ast.NodeVisitor):
             self.violations.append((target.lineno, "top-level sys.modules assignment"))
 
     def _check_delete_target(self, target: ast.expr) -> None:
+        if isinstance(target, (ast.Tuple, ast.List)):
+            for element in target.elts:
+                self._check_delete_target(element)
+            return
+        if isinstance(target, ast.Starred):
+            self._check_delete_target(target.value)
+            return
         if isinstance(target, ast.Subscript) and self._is_sys_modules(target.value):
             self.violations.append((target.lineno, "top-level sys.modules deletion"))
 
