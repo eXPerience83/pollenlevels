@@ -20,6 +20,7 @@ from tests._ha_stubs import (
     stub_custom_components_packages,
     stub_exceptions,
     stub_homeassistant_package,
+    stub_selector_module,
     stub_update_coordinator_module,
 )
 
@@ -145,75 +146,7 @@ def options_flow_env(monkeypatch: pytest.MonkeyPatch) -> OptionsFlowEnv:
     monkeypatch.setitem(sys_modules, "homeassistant.util", util_mod)
     monkeypatch.setitem(sys_modules, "homeassistant.util.dt", dt_mod)
 
-    selector_mod = ModuleType("homeassistant.helpers.selector")
-
-    class LocationSelectorConfig:
-        def __init__(self, *, radius: bool | None = None):
-            self.radius = radius
-
-    class LocationSelector:
-        def __init__(self, config: LocationSelectorConfig):
-            self.config = config
-
-    class NumberSelectorConfig:
-        def __init__(
-            self,
-            *,
-            min: float | None = None,
-            max: float | None = None,
-            step: float | None = None,
-            mode: str | None = None,
-            unit_of_measurement: str | None = None,
-        ) -> None:
-            self.min = min
-            self.max = max
-            self.step = step
-            self.mode = mode
-            self.unit_of_measurement = unit_of_measurement
-
-    class NumberSelectorMode:
-        BOX = "BOX"
-
-    class NumberSelector:
-        def __init__(self, config: NumberSelectorConfig):
-            self.config = config
-
-    class TextSelectorConfig:
-        def __init__(self, *, type: str | None = None):  # noqa: A003
-            self.type = type
-
-    class TextSelectorType:
-        TEXT = "TEXT"
-        PASSWORD = "PASSWORD"
-
-    class TextSelector:
-        def __init__(self, config: TextSelectorConfig):
-            self.config = config
-
-    class SelectSelectorConfig:
-        def __init__(self, *, mode: str | None = None, options=None):
-            self.mode = mode
-            self.options = options
-
-    class SelectSelectorMode:
-        DROPDOWN = "DROPDOWN"
-
-    class SelectSelector:
-        def __init__(self, config: SelectSelectorConfig):
-            self.config = config
-
-    selector_mod.LocationSelector = LocationSelector
-    selector_mod.LocationSelectorConfig = LocationSelectorConfig
-    selector_mod.NumberSelector = NumberSelector
-    selector_mod.NumberSelectorConfig = NumberSelectorConfig
-    selector_mod.NumberSelectorMode = NumberSelectorMode
-    selector_mod.TextSelector = TextSelector
-    selector_mod.TextSelectorConfig = TextSelectorConfig
-    selector_mod.TextSelectorType = TextSelectorType
-    selector_mod.SelectSelector = SelectSelector
-    selector_mod.SelectSelectorConfig = SelectSelectorConfig
-    selector_mod.SelectSelectorMode = SelectSelectorMode
-    monkeypatch.setitem(sys_modules, "homeassistant.helpers.selector", selector_mod)
+    stub_selector_module(monkeypatch=monkeypatch)
 
     ha_mod.helpers = helpers_mod
     ha_mod.config_entries = config_entries_mod

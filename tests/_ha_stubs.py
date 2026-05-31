@@ -95,6 +95,120 @@ def stub_custom_components_packages(
     )
 
 
+class StubLocationSelectorConfig:
+    """Minimal location selector config stub."""
+
+    def __init__(self, *, radius: bool | None = None) -> None:
+        self.radius = radius
+
+
+class StubLocationSelector:
+    """Minimal location selector stub."""
+
+    def __init__(self, config: StubLocationSelectorConfig) -> None:
+        self.config = config
+
+
+class StubNumberSelectorConfig:
+    """Minimal number selector config stub."""
+
+    def __init__(
+        self,
+        *,
+        min: float | None = None,
+        max: float | None = None,
+        step: float | None = None,
+        mode: str | None = None,
+        unit_of_measurement: str | None = None,
+    ) -> None:
+        self.min = min
+        self.max = max
+        self.step = step
+        self.mode = mode
+        self.unit_of_measurement = unit_of_measurement
+
+
+class StubNumberSelectorMode:
+    """Minimal number selector mode stub."""
+
+    BOX = "BOX"
+
+
+class StubNumberSelector:
+    """Minimal number selector stub."""
+
+    def __init__(self, config: StubNumberSelectorConfig) -> None:
+        self.config = config
+
+
+class StubTextSelectorConfig:
+    """Minimal text selector config stub."""
+
+    def __init__(self, *, type: str | None = None) -> None:  # noqa: A003
+        self.type = type
+
+
+class StubTextSelectorType:
+    """Minimal text selector type stub."""
+
+    TEXT = "TEXT"
+    PASSWORD = "PASSWORD"
+
+
+class StubTextSelector:
+    """Minimal text selector stub."""
+
+    def __init__(self, config: StubTextSelectorConfig) -> None:
+        self.config = config
+
+
+class StubSelectSelectorConfig:
+    """Minimal select selector config stub."""
+
+    def __init__(self, *, mode: str | None = None, options=None) -> None:
+        self.mode = mode
+        self.options = options
+
+
+class StubSelectSelectorMode:
+    """Minimal select selector mode stub."""
+
+    DROPDOWN = "DROPDOWN"
+
+
+class StubSelectSelector:
+    """Minimal select selector stub."""
+
+    def __init__(self, config: StubSelectSelectorConfig) -> None:
+        self.config = config
+
+
+def stub_selector_module(
+    *,
+    monkeypatch: pytest.MonkeyPatch | None = None,
+    include_section: bool = False,
+) -> ModuleType:
+    """Install a lightweight ``homeassistant.helpers.selector`` stub module."""
+
+    module = ModuleType("homeassistant.helpers.selector")
+    module.LocationSelector = StubLocationSelector
+    module.LocationSelectorConfig = StubLocationSelectorConfig
+    module.NumberSelector = StubNumberSelector
+    module.NumberSelectorConfig = StubNumberSelectorConfig
+    module.NumberSelectorMode = StubNumberSelectorMode
+    module.TextSelector = StubTextSelector
+    module.TextSelectorConfig = StubTextSelectorConfig
+    module.TextSelectorType = StubTextSelectorType
+    module.SelectSelector = StubSelectSelector
+    module.SelectSelectorConfig = StubSelectSelectorConfig
+    module.SelectSelectorMode = StubSelectSelectorMode
+    if include_section:
+        module.section = lambda key: key
+    return _set_module(
+        "homeassistant.helpers.selector", module, monkeypatch=monkeypatch
+    )
+
+
 def stub_config_entry_class(
     cls: type[object], *, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> ModuleType:

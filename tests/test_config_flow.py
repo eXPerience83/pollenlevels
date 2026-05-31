@@ -22,6 +22,7 @@ from tests._ha_stubs import (
     stub_custom_components_packages,
     stub_exceptions,
     stub_homeassistant_package,
+    stub_selector_module,
     stub_update_coordinator_module,
 )
 
@@ -128,72 +129,6 @@ def _parse_http_date(value: str):
         return None
 
 
-class _LocationSelectorConfig:
-    def __init__(self, *, radius: bool | None = None):
-        self.radius = radius
-
-
-class _LocationSelector:
-    def __init__(self, config: _LocationSelectorConfig):
-        self.config = config
-
-
-class _NumberSelectorConfig:
-    def __init__(
-        self,
-        *,
-        min: float | None = None,
-        max: float | None = None,
-        step: float | None = None,
-        mode: str | None = None,
-        unit_of_measurement: str | None = None,
-    ) -> None:
-        self.min = min
-        self.max = max
-        self.step = step
-        self.mode = mode
-        self.unit_of_measurement = unit_of_measurement
-
-
-class _NumberSelectorMode:
-    BOX = "BOX"
-
-
-class _NumberSelector:
-    def __init__(self, config: _NumberSelectorConfig):
-        self.config = config
-
-
-class _TextSelectorConfig:
-    def __init__(self, *, type: str | None = None):  # noqa: A003
-        self.type = type
-
-
-class _TextSelectorType:
-    TEXT = "TEXT"
-    PASSWORD = "PASSWORD"
-
-
-class _TextSelector:
-    def __init__(self, config: _TextSelectorConfig):
-        self.config = config
-
-
-class _SelectSelectorConfig:
-    def __init__(self, *, mode: str | None = None, options=None):
-        self.mode = mode
-        self.options = options
-
-
-class _SelectSelectorMode:
-    DROPDOWN = "DROPDOWN"
-
-
-class _SelectSelector:
-    def __init__(self, config: _SelectSelectorConfig):
-        self.config = config
-
-
 class _StubInvalid(Exception):
     def __init__(self, error_message=""):
         super().__init__(error_message)
@@ -298,20 +233,7 @@ def _install_homeassistant_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
     monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
 
-    selector_mod = ModuleType("homeassistant.helpers.selector")
-    selector_mod.LocationSelector = _LocationSelector
-    selector_mod.LocationSelectorConfig = _LocationSelectorConfig
-    selector_mod.NumberSelector = _NumberSelector
-    selector_mod.NumberSelectorConfig = _NumberSelectorConfig
-    selector_mod.NumberSelectorMode = _NumberSelectorMode
-    selector_mod.TextSelector = _TextSelector
-    selector_mod.TextSelectorConfig = _TextSelectorConfig
-    selector_mod.TextSelectorType = _TextSelectorType
-    selector_mod.SelectSelector = _SelectSelector
-    selector_mod.SelectSelectorConfig = _SelectSelectorConfig
-    selector_mod.SelectSelectorMode = _SelectSelectorMode
-    selector_mod.section = lambda key: key
-    monkeypatch.setitem(sys.modules, "homeassistant.helpers.selector", selector_mod)
+    stub_selector_module(monkeypatch=monkeypatch, include_section=True)
 
     ha_mod.helpers = helpers_mod
     ha_mod.config_entries = config_entries_mod
