@@ -43,9 +43,18 @@ def stub_aiohttp_module(
     return _set_module("aiohttp", module, monkeypatch=monkeypatch)
 
 
-def force_module(name: str, module: ModuleType) -> ModuleType:
-    """Force a module into ``sys.modules`` and return it."""
+def force_module(
+    name: str, module: ModuleType, *, monkeypatch: pytest.MonkeyPatch | None = None
+) -> ModuleType:
+    """Install ``module`` into ``sys.modules`` and return it.
 
+    Prefer passing ``monkeypatch`` from fixtures so pytest restores any previous
+    module after the test. Omitting it intentionally performs a direct install.
+    """
+
+    if monkeypatch is not None:
+        monkeypatch.setitem(sys.modules, name, module)
+        return module
     sys.modules[name] = module
     return module
 
@@ -56,10 +65,7 @@ def _set_module(
     # Intentionally replace target modules to keep stubs deterministic and avoid
     # import-order coupling across suites. Fixtures can pass monkeypatch so
     # teardown restores previous state automatically.
-    if monkeypatch is not None:
-        monkeypatch.setitem(sys.modules, name, module)
-        return module
-    return force_module(name, module)
+    return force_module(name, module, monkeypatch=monkeypatch)
 
 
 def stub_homeassistant_package(
@@ -250,6 +256,8 @@ def stub_util_dt_module(*, monkeypatch: pytest.MonkeyPatch | None = None) -> Mod
 def stub_config_entry_class(
     cls: type[object], *, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> ModuleType:
+    """Install a minimal ``homeassistant.config_entries`` module."""
+
     module = ModuleType("homeassistant.config_entries")
     module.ConfigEntry = cls
     _set_module("homeassistant.config_entries", module, monkeypatch=monkeypatch)
@@ -261,6 +269,8 @@ def stub_exceptions(
     monkeypatch: pytest.MonkeyPatch | None = None,
     **exception_types: type[Exception],
 ) -> ModuleType:
+    """Install a minimal ``homeassistant.exceptions`` module."""
+
     module = ModuleType("homeassistant.exceptions")
     for name, exc in exception_types.items():
         setattr(module, name, exc)
@@ -275,6 +285,8 @@ def stub_update_coordinator_module(
     coordinator_entity: type[object],
     monkeypatch: pytest.MonkeyPatch | None = None,
 ) -> ModuleType:
+    """Install a minimal update coordinator module with caller-provided types."""
+
     module = ModuleType("homeassistant.helpers.update_coordinator")
     module.UpdateFailed = update_failed
     module.DataUpdateCoordinator = data_update_coordinator
