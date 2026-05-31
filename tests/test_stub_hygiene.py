@@ -121,19 +121,23 @@ def _is_sys_modules(node: ast.AST) -> bool:
 
 
 def test_from_tests_import_ha_stubs_detects_top_level_helper_call() -> None:
-    violations = _violations_for_source("""\
+    violations = _violations_for_source(
+        """\
 from tests import _ha_stubs
 _ha_stubs.stub_aiohttp_module()
-""")
+"""
+    )
 
     assert violations == [(2, "top-level test stub helper call")]
 
 
 def test_relative_import_ha_stubs_detects_top_level_helper_call() -> None:
-    violations = _violations_for_source("""\
+    violations = _violations_for_source(
+        """\
 from . import _ha_stubs
 _ha_stubs.stub_aiohttp_module()
-""")
+"""
+    )
 
     assert violations == [(2, "top-level test stub helper call")]
 
