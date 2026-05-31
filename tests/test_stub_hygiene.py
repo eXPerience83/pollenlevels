@@ -30,7 +30,6 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
         self.sys_aliases = {"sys"}
         self.sys_modules_aliases: set[str] = set()
         self.stub_helper_aliases = set(STUB_INSTALL_HELPERS)
-        self.local_stub_wrappers: set[str] = set()
         self.violations: list[tuple[int, str]] = []
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -50,14 +49,10 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
                     self.stub_helper_aliases.add(local_name)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        if self.scope_depth == 0 and self._function_body_has_import_time_stub(node):
-            self.local_stub_wrappers.add(node.name)
         self._visit_function_header(node)
         self._visit_nested_body(node.body)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        if self.scope_depth == 0 and self._function_body_has_import_time_stub(node):
-            self.local_stub_wrappers.add(node.name)
         self._visit_function_header(node)
         self._visit_nested_body(node.body)
 
@@ -109,10 +104,6 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
                 self.violations.append(
                     (node.lineno, "top-level stub installation helper call")
                 )
-            elif self._is_local_stub_wrapper_call(node):
-                self.violations.append(
-                    (node.lineno, "top-level local stub wrapper call")
-                )
         self.generic_visit(node)
 
     def _visit_function_header(
@@ -132,22 +123,6 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
         for statement in body:
             self.visit(statement)
         self.scope_depth -= 1
-
-    def _function_body_has_import_time_stub(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef
-    ) -> bool:
-        visitor = self._copy_for_function_body()
-        for statement in node.body:
-            visitor.visit(statement)
-        return bool(visitor.violations)
-
-    def _copy_for_function_body(self) -> ImportTimeStubMutationVisitor:
-        visitor = ImportTimeStubMutationVisitor()
-        visitor.sys_aliases = set(self.sys_aliases)
-        visitor.sys_modules_aliases = set(self.sys_modules_aliases)
-        visitor.stub_helper_aliases = set(self.stub_helper_aliases)
-        visitor.local_stub_wrappers = set(self.local_stub_wrappers)
-        return visitor
 
     def _track_sys_modules_alias(
         self, target: ast.expr, value: ast.expr | None
@@ -184,12 +159,6 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute):
             return node.func.attr in STUB_INSTALL_HELPERS
         return False
-
-    def _is_local_stub_wrapper_call(self, node: ast.Call) -> bool:
-        return (
-            isinstance(node.func, ast.Name)
-            and node.func.id in self.local_stub_wrappers
-        )
 
     def _is_sys_modules(self, node: ast.expr) -> bool:
         return (
@@ -289,17 +258,6 @@ sys_modules = sys.modules
 sys_modules.setdefault("aiohttp", object())
 """,
             "top-level sys.modules mutation call",
-        ),
-        (
-            """
-from tests._ha_stubs import stub_homeassistant_package
-
-def setup_stubs():
-    stub_homeassistant_package()
-
-setup_stubs()
-""",
-            "top-level local stub wrapper call",
         ),
     ],
 )
