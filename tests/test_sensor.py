@@ -20,6 +20,7 @@ from tests._ha_stubs import (
     stub_exceptions,
     stub_homeassistant_package,
     stub_update_coordinator_module,
+    stub_util_dt_module,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -191,43 +192,7 @@ def _install_sensor_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch=monkeypatch,
     )
 
-    dt_mod = types.ModuleType("homeassistant.util.dt")
-
-    def _stub_utcnow():
-        """Return a timezone-aware UTC datetime, similar to Home Assistant."""
-
-        from datetime import UTC, datetime
-
-        return datetime.now(UTC)
-
-    dt_mod.utcnow = _stub_utcnow
-
-    def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
-        from datetime import UTC, datetime
-        from email.utils import parsedate_to_datetime
-
-        try:
-            parsed = parsedate_to_datetime(value) if value is not None else None
-        except TypeError, ValueError, IndexError:
-            return None
-
-        if parsed is None:
-            return None
-
-        if parsed.tzinfo is None:
-            return parsed.replace(tzinfo=UTC)
-
-        if isinstance(parsed, datetime):
-            return parsed
-
-        return None
-
-    dt_mod.parse_http_date = _stub_parse_http_date
-    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
-
-    util_mod = types.ModuleType("homeassistant.util")
-    util_mod.dt = dt_mod
-    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
+    stub_util_dt_module(monkeypatch=monkeypatch)
 
     stub_aiohttp_module(monkeypatch=monkeypatch)
 

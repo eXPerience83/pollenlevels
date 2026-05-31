@@ -6,11 +6,9 @@ from __future__ import annotations
 
 import ast
 import asyncio
-import email.utils
 import importlib
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
@@ -24,6 +22,7 @@ from tests._ha_stubs import (
     stub_homeassistant_package,
     stub_selector_module,
     stub_update_coordinator_module,
+    stub_util_dt_module,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -122,13 +121,6 @@ class _StubCoordinatorEntity:
         self.coordinator = coordinator
 
 
-def _parse_http_date(value: str):
-    try:
-        return email.utils.parsedate_to_datetime(value)
-    except TypeError, ValueError, IndexError, OverflowError:
-        return None
-
-
 class _StubInvalid(Exception):
     def __init__(self, error_message=""):
         super().__init__(error_message)
@@ -225,13 +217,7 @@ def _install_homeassistant_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch=monkeypatch,
     )
 
-    util_mod = ModuleType("homeassistant.util")
-    dt_mod = ModuleType("homeassistant.util.dt")
-    dt_mod.parse_http_date = _parse_http_date
-    dt_mod.utcnow = lambda: datetime.now(UTC)
-    util_mod.dt = dt_mod
-    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
-    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
+    stub_util_dt_module(monkeypatch=monkeypatch)
 
     stub_selector_module(monkeypatch=monkeypatch, include_section=True)
 

@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import email.utils
 import importlib
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -22,6 +20,7 @@ from tests._ha_stubs import (
     stub_homeassistant_package,
     stub_selector_module,
     stub_update_coordinator_module,
+    stub_util_dt_module,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -131,20 +130,7 @@ def options_flow_env(monkeypatch: pytest.MonkeyPatch) -> OptionsFlowEnv:
         monkeypatch=monkeypatch,
     )
 
-    util_mod = ModuleType("homeassistant.util")
-    dt_mod = ModuleType("homeassistant.util.dt")
-
-    def _parse_http_date(value: str):
-        try:
-            return email.utils.parsedate_to_datetime(value)
-        except TypeError, ValueError, IndexError, OverflowError:
-            return None
-
-    dt_mod.parse_http_date = _parse_http_date
-    dt_mod.utcnow = lambda: datetime.now(UTC)
-    util_mod.dt = dt_mod
-    monkeypatch.setitem(sys_modules, "homeassistant.util", util_mod)
-    monkeypatch.setitem(sys_modules, "homeassistant.util.dt", dt_mod)
+    stub_util_dt_module(monkeypatch=monkeypatch)
 
     stub_selector_module(monkeypatch=monkeypatch)
 
