@@ -2,18 +2,25 @@
 
 from __future__ import annotations
 
+import importlib
 import sys
-import types
 from datetime import UTC, datetime
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import pytest
 
-from tests._ha_stubs import stub_aiohttp_module
+from tests._ha_stubs import (
+    clear_integration_modules,
+    stub_aiohttp_module,
+    stub_custom_components_packages,
+    stub_exceptions,
+    stub_homeassistant_package,
+    stub_update_coordinator_module,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
-_SENTINEL = object()
 
 
 class _StubConfigEntryAuthFailed(Exception):
@@ -24,94 +31,43 @@ class _StubUpdateFailed(Exception):
     """Minimal Home Assistant update failure stub."""
 
 
-def _set_module(
-    snapshot: dict[str, object], name: str, module: types.ModuleType
-) -> None:
-    """Set a temporary module while preserving its previous value."""
+@pytest.fixture
+def client_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
+    """Import the client under test with fixture-scoped Home Assistant stubs."""
 
-    snapshot.setdefault(name, sys.modules.get(name, _SENTINEL))
-    sys.modules[name] = module
-
-
-def _restore_modules(snapshot: dict[str, object]) -> None:
-    """Restore modules changed only for importing the client under test."""
-
-    for name, module in reversed(snapshot.items()):
-        if module is _SENTINEL:
-            sys.modules.pop(name, None)
-        else:
-            sys.modules[name] = module  # type: ignore[assignment]
-
-
-def _install_client_import_stubs() -> dict[str, object]:
-    """Install the minimum modules required to import client.py directly."""
-
-    snapshot: dict[str, object] = {}
-
-    custom_components_pkg = types.ModuleType("custom_components")
-    custom_components_pkg.__path__ = [str(ROOT / "custom_components")]
-    _set_module(snapshot, "custom_components", custom_components_pkg)
-
-    pollenlevels_pkg = types.ModuleType("custom_components.pollenlevels")
-    pollenlevels_pkg.__path__ = [str(ROOT / "custom_components" / "pollenlevels")]
-    _set_module(snapshot, "custom_components.pollenlevels", pollenlevels_pkg)
-
-    _set_module(snapshot, "aiohttp", stub_aiohttp_module(install=False))
-
-    ha_mod = types.ModuleType("homeassistant")
-    _set_module(snapshot, "homeassistant", ha_mod)
-
-    exceptions_mod = types.ModuleType("homeassistant.exceptions")
-    exceptions_mod.ConfigEntryAuthFailed = _StubConfigEntryAuthFailed
-    _set_module(snapshot, "homeassistant.exceptions", exceptions_mod)
-
-    helpers_mod = types.ModuleType("homeassistant.helpers")
-    _set_module(snapshot, "homeassistant.helpers", helpers_mod)
-
-    update_coordinator_mod = types.ModuleType(
-        "homeassistant.helpers.update_coordinator"
-    )
-    update_coordinator_mod.UpdateFailed = _StubUpdateFailed
-    _set_module(
-        snapshot,
-        "homeassistant.helpers.update_coordinator",
-        update_coordinator_mod,
+    clear_integration_modules(monkeypatch=monkeypatch)
+    stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
+    stub_aiohttp_module(monkeypatch=monkeypatch)
+    stub_homeassistant_package(monkeypatch=monkeypatch)
+    stub_exceptions(
+        monkeypatch=monkeypatch,
+        ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
     )
 
-    util_mod = types.ModuleType("homeassistant.util")
-    dt_mod = types.ModuleType("homeassistant.util.dt")
+    helpers_mod = ModuleType("homeassistant.helpers")
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers", helpers_mod)
+    stub_update_coordinator_module(
+        monkeypatch=monkeypatch,
+        update_failed=_StubUpdateFailed,
+        data_update_coordinator=object,
+        coordinator_entity=object,
+    )
+
+    util_mod = ModuleType("homeassistant.util")
+    dt_mod = ModuleType("homeassistant.util.dt")
     dt_mod.parse_http_date = lambda _value: None
     dt_mod.utcnow = lambda: datetime.now(UTC)
     util_mod.dt = dt_mod
-    _set_module(snapshot, "homeassistant.util", util_mod)
-    _set_module(snapshot, "homeassistant.util.dt", dt_mod)
+    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
+    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
 
-    for name in (
-        "custom_components.pollenlevels.client",
-        "custom_components.pollenlevels.const",
-        "custom_components.pollenlevels.util",
-    ):
-        snapshot.setdefault(name, sys.modules.get(name, _SENTINEL))
+    imported_client = importlib.import_module("custom_components.pollenlevels.client")
+    yield imported_client
 
-    return snapshot
-
-
-def _import_client_module() -> types.ModuleType:
-    """Import client.py with local stubs and avoid leaking them globally."""
-
-    snapshot = _install_client_import_stubs()
-    try:
-        from custom_components.pollenlevels import client as imported_client
-
-        return imported_client
-    finally:
-        pollenlevels_pkg = sys.modules.get("custom_components.pollenlevels")
-        if pollenlevels_pkg is not None and hasattr(pollenlevels_pkg, "client"):
-            delattr(pollenlevels_pkg, "client")
-        _restore_modules(snapshot)
-
-
-client_mod = _import_client_module()
+    pollenlevels_pkg = sys.modules.get("custom_components.pollenlevels")
+    if pollenlevels_pkg is not None and hasattr(pollenlevels_pkg, "client"):
+        delattr(pollenlevels_pkg, "client")
+    clear_integration_modules()
 
 
 class FakeResponse:
@@ -183,6 +139,7 @@ class RaisingSession:
 
 
 async def _fetch_with_response(
+    client_module: ModuleType,
     response: FakeResponse,
     api_key: str = "test",
     latitude: float = 1.0,
@@ -190,7 +147,7 @@ async def _fetch_with_response(
 ) -> None:
     """Execute a direct client fetch using a fake session."""
 
-    client = client_mod.GooglePollenApiClient(FakeSession(response), api_key)
+    client = client_module.GooglePollenApiClient(FakeSession(response), api_key)
     await client.async_fetch_pollen_data(
         latitude=latitude,
         longitude=longitude,
@@ -208,6 +165,7 @@ async def _fetch_with_response(
     ],
 )
 async def test_client_invalid_json_raises_update_failed(
+    client_module: ModuleType,
     json_results: list[Exception],
 ) -> None:
     """Invalid JSON responses should raise the expected UpdateFailed message."""
@@ -215,28 +173,32 @@ async def test_client_invalid_json_raises_update_failed(
     response = FakeResponse(json_results=json_results)
 
     with pytest.raises(
-        client_mod.UpdateFailed,
+        client_module.UpdateFailed,
         match="Unexpected API response: invalid JSON",
     ):
-        await _fetch_with_response(response)
+        await _fetch_with_response(client_module, response)
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("payload", [[], "not an object", 1, None])
-async def test_client_non_object_json_raises_update_failed(payload: Any) -> None:
+async def test_client_non_object_json_raises_update_failed(
+    client_module: ModuleType, payload: Any
+) -> None:
     """JSON payloads must be objects at the direct client boundary."""
 
     response = FakeResponse(json_results=[payload])
 
     with pytest.raises(
-        client_mod.UpdateFailed,
+        client_module.UpdateFailed,
         match="Unexpected API response: expected JSON object",
     ):
-        await _fetch_with_response(response)
+        await _fetch_with_response(client_module, response)
 
 
 @pytest.mark.asyncio
-async def test_client_redacts_api_key_from_http_error_body() -> None:
+async def test_client_redacts_api_key_from_http_error_body(
+    client_module: ModuleType,
+) -> None:
     """HTTP error bodies containing the API key should be redacted."""
 
     api_key = "AIzaFAKEPLACEHOLDER1234567890"
@@ -246,8 +208,8 @@ async def test_client_redacts_api_key_from_http_error_body() -> None:
         text_body=f"backend echoed key {api_key} while failing",
     )
 
-    with pytest.raises(client_mod.UpdateFailed) as exc_info:
-        await _fetch_with_response(response, api_key=api_key)
+    with pytest.raises(client_module.UpdateFailed) as exc_info:
+        await _fetch_with_response(client_module, response, api_key=api_key)
 
     message = str(exc_info.value)
     assert api_key not in message
@@ -255,7 +217,9 @@ async def test_client_redacts_api_key_from_http_error_body() -> None:
 
 
 @pytest.mark.asyncio
-async def test_client_redacts_sensitive_values_from_url_like_http_error() -> None:
+async def test_client_redacts_sensitive_values_from_url_like_http_error(
+    client_module: ModuleType,
+) -> None:
     """URL-like HTTP error messages should not expose secrets or coordinates."""
 
     api_key = "bad-key"
@@ -272,9 +236,13 @@ async def test_client_redacts_sensitive_values_from_url_like_http_error() -> Non
         text_body=f"Backend rejected request URL {url}",
     )
 
-    with pytest.raises(client_mod.UpdateFailed) as exc_info:
+    with pytest.raises(client_module.UpdateFailed) as exc_info:
         await _fetch_with_response(
-            response, api_key=api_key, latitude=latitude, longitude=longitude
+            client_module,
+            response,
+            api_key=api_key,
+            latitude=latitude,
+            longitude=longitude,
         )
 
     message = str(exc_info.value)
@@ -286,23 +254,24 @@ async def test_client_redacts_sensitive_values_from_url_like_http_error() -> Non
 
 @pytest.mark.asyncio
 async def test_client_redacts_sensitive_values_from_client_error(
+    client_module: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """ClientError messages should not expose secrets or coordinates."""
 
-    monkeypatch.setattr(client_mod, "MAX_RETRIES", 0)
+    monkeypatch.setattr(client_module, "MAX_RETRIES", 0)
     api_key = "bad-key"
     latitude = 40.4168
     longitude = -3.7038
-    error = client_mod.ClientError(
+    error = client_module.ClientError(
         "request failed: "
         "https://pollen.googleapis.com/v1/forecast:lookup?"
         f"key={api_key}&location.latitude={latitude}&"
         f"location.longitude={longitude}&days=1"
     )
-    client = client_mod.GooglePollenApiClient(RaisingSession(error), api_key)
+    client = client_module.GooglePollenApiClient(RaisingSession(error), api_key)
 
-    with pytest.raises(client_mod.UpdateFailed) as exc_info:
+    with pytest.raises(client_module.UpdateFailed) as exc_info:
         await client.async_fetch_pollen_data(
             latitude=latitude,
             longitude=longitude,
@@ -318,7 +287,9 @@ async def test_client_redacts_sensitive_values_from_client_error(
 
 
 @pytest.mark.asyncio
-async def test_client_treats_403_invalid_api_key_as_auth_failure() -> None:
+async def test_client_treats_403_invalid_api_key_as_auth_failure(
+    client_module: ModuleType,
+) -> None:
     """Invalid-key messages on HTTP 403 responses should trigger re-auth."""
 
     api_key = "bad-key"
@@ -333,8 +304,8 @@ async def test_client_treats_403_invalid_api_key_as_auth_failure() -> None:
         ],
     )
 
-    with pytest.raises(client_mod.ConfigEntryAuthFailed) as exc_info:
-        await _fetch_with_response(response, api_key=api_key)
+    with pytest.raises(client_module.ConfigEntryAuthFailed) as exc_info:
+        await _fetch_with_response(client_module, response, api_key=api_key)
 
     message = str(exc_info.value)
     assert api_key not in message
@@ -342,7 +313,9 @@ async def test_client_treats_403_invalid_api_key_as_auth_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_client_treats_400_invalid_api_key_as_auth_failure() -> None:
+async def test_client_treats_400_invalid_api_key_as_auth_failure(
+    client_module: ModuleType,
+) -> None:
     """Invalid-key messages on generic 4xx responses should trigger re-auth."""
 
     api_key = "bad-key"
@@ -357,8 +330,8 @@ async def test_client_treats_400_invalid_api_key_as_auth_failure() -> None:
         ],
     )
 
-    with pytest.raises(client_mod.ConfigEntryAuthFailed) as exc_info:
-        await _fetch_with_response(response, api_key=api_key)
+    with pytest.raises(client_module.ConfigEntryAuthFailed) as exc_info:
+        await _fetch_with_response(client_module, response, api_key=api_key)
 
     message = str(exc_info.value)
     assert api_key not in message
@@ -366,7 +339,9 @@ async def test_client_treats_400_invalid_api_key_as_auth_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_client_treats_400_non_auth_error_as_update_failed() -> None:
+async def test_client_treats_400_non_auth_error_as_update_failed(
+    client_module: ModuleType,
+) -> None:
     """Non-auth generic 4xx responses should remain update failures."""
 
     response = FakeResponse(
@@ -376,5 +351,5 @@ async def test_client_treats_400_non_auth_error_as_update_failed() -> None:
         ],
     )
 
-    with pytest.raises(client_mod.UpdateFailed, match="HTTP 400"):
-        await _fetch_with_response(response)
+    with pytest.raises(client_module.UpdateFailed, match="HTTP 400"):
+        await _fetch_with_response(client_module, response)
