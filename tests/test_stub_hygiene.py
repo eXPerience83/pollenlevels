@@ -5,6 +5,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 TESTS_DIR = ROOT / "tests"
 
@@ -27,6 +29,7 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
         self.scope_depth = 0
         self.sys_aliases = {"sys"}
         self.sys_modules_aliases: set[str] = set()
+        self.stub_helper_aliases = set(STUB_INSTALL_HELPERS)
         self.violations: list[tuple[int, str]] = []
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -36,19 +39,32 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
                     self.sys_aliases.add(alias.asname or alias.name)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if self.scope_depth == 0 and node.module == "sys":
+        if self.scope_depth == 0:
             for alias in node.names:
-                if alias.name == "modules":
-                    self.sys_modules_aliases.add(alias.asname or alias.name)
+                imported_name = alias.name
+                local_name = alias.asname or imported_name
+                if node.module == "sys" and imported_name == "modules":
+                    self.sys_modules_aliases.add(local_name)
+                if imported_name in STUB_INSTALL_HELPERS:
+                    self.stub_helper_aliases.add(local_name)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._visit_nested_scope(node)
+        self._visit_function_header(node)
+        self._visit_nested_body(node.body)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._visit_nested_scope(node)
+        self._visit_function_header(node)
+        self._visit_nested_body(node.body)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._visit_nested_scope(node)
+        for decorator in node.decorator_list:
+            self.visit(decorator)
+        for base in node.bases:
+            self.visit(base)
+        for keyword in node.keywords:
+            self.visit(keyword)
+        for statement in node.body:
+            self.visit(statement)
 
     def visit_Assign(self, node: ast.Assign) -> None:
         if self.scope_depth == 0:
@@ -86,11 +102,22 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
                 )
         self.generic_visit(node)
 
-    def _visit_nested_scope(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
+    def _visit_function_header(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef
     ) -> None:
+        for decorator in node.decorator_list:
+            self.visit(decorator)
+        self._visit_argument_defaults(node.args)
+
+    def _visit_argument_defaults(self, arguments: ast.arguments) -> None:
+        for default in [*arguments.defaults, *arguments.kw_defaults]:
+            if default is not None:
+                self.visit(default)
+
+    def _visit_nested_body(self, body: list[ast.stmt]) -> None:
         self.scope_depth += 1
-        self.generic_visit(node)
+        for statement in body:
+            self.visit(statement)
         self.scope_depth -= 1
 
     def _check_assignment_target(self, target: ast.expr) -> None:
@@ -114,7 +141,7 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
 
     def _is_stub_install_helper_call(self, node: ast.Call) -> bool:
         if isinstance(node.func, ast.Name):
-            return node.func.id in STUB_INSTALL_HELPERS
+            return node.func.id in self.stub_helper_aliases
         if isinstance(node.func, ast.Attribute):
             return node.func.attr in STUB_INSTALL_HELPERS
         return False
@@ -126,6 +153,94 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
             and isinstance(node.value, ast.Name)
             and node.value.id in self.sys_aliases
         ) or (isinstance(node, ast.Name) and node.id in self.sys_modules_aliases)
+
+
+def _violation_reasons(source: str) -> list[str]:
+    visitor = ImportTimeStubMutationVisitor()
+    visitor.visit(ast.parse(source))
+    return [reason for _line, reason in visitor.violations]
+
+
+@pytest.mark.parametrize(
+    ("source", "expected_reason"),
+    [
+        (
+            """
+import sys
+
+class StubContainer:
+    sys.modules["homeassistant"] = object()
+""",
+            "top-level sys.modules assignment",
+        ),
+        (
+            """
+import sys
+
+def test_stub(default=sys.modules.setdefault("aiohttp", object())):
+    pass
+""",
+            "top-level sys.modules mutation call",
+        ),
+        (
+            """
+import sys
+
+async def test_stub(default=sys.modules.setdefault("aiohttp", object())):
+    pass
+""",
+            "top-level sys.modules mutation call",
+        ),
+        (
+            """
+import sys
+
+class StubContainer:
+    def helper(self, default=sys.modules.setdefault("aiohttp", object())):
+        pass
+""",
+            "top-level sys.modules mutation call",
+        ),
+        (
+            """
+from sys import modules
+
+modules |= {"homeassistant": object()}
+""",
+            "top-level sys.modules reassignment",
+        ),
+        (
+            """
+from tests._ha_stubs import stub_homeassistant_package as install_ha
+
+install_ha()
+""",
+            "top-level stub installation helper call",
+        ),
+    ],
+)
+def test_import_time_stub_visitor_flags_reviewed_patterns(
+    source: str, expected_reason: str
+) -> None:
+    assert expected_reason in _violation_reasons(source)
+
+
+def test_import_time_stub_visitor_allows_function_scoped_setup() -> None:
+    source = """
+import sys
+from tests._ha_stubs import stub_homeassistant_package as install_ha
+
+def helper():
+    sys.modules["homeassistant"] = object()
+    sys.modules.setdefault("aiohttp", object())
+    install_ha()
+
+class StubContainer:
+    def helper(self, default=None):
+        sys.modules["homeassistant"] = object()
+"""
+
+    assert _violation_reasons(source) == []
 
 
 def test_tests_do_not_install_stubs_at_import_time() -> None:
