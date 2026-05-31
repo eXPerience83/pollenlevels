@@ -162,12 +162,12 @@ class ImportTimeStubVisitor(ast.NodeVisitor):
 
 def _scanned_test_paths() -> list[Path]:
     paths = {
-        *TESTS_DIR.glob("test_*.py"),
-        *TESTS_DIR.glob("*_test.py"),
-        TESTS_DIR / "conftest.py",
-        TESTS_DIR / "__init__.py",
+        *TESTS_DIR.rglob("test_*.py"),
+        *TESTS_DIR.rglob("*_test.py"),
+        *TESTS_DIR.rglob("conftest.py"),
+        *TESTS_DIR.rglob("__init__.py"),
+        TESTS_DIR / "_ha_stubs.py",
     }
-    paths.discard(TESTS_DIR / "_ha_stubs.py")
     return sorted(path for path in paths if path.exists())
 
 
