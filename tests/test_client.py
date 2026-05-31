@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib
 import sys
-from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -18,6 +17,7 @@ from tests._ha_stubs import (
     stub_exceptions,
     stub_homeassistant_package,
     stub_update_coordinator_module,
+    stub_util_dt_module,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,13 +53,7 @@ def client_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
         coordinator_entity=object,
     )
 
-    util_mod = ModuleType("homeassistant.util")
-    dt_mod = ModuleType("homeassistant.util.dt")
-    dt_mod.parse_http_date = lambda _value: None
-    dt_mod.utcnow = lambda: datetime.now(UTC)
-    util_mod.dt = dt_mod
-    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
-    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
+    stub_util_dt_module(monkeypatch=monkeypatch)
 
     imported_client = importlib.import_module("custom_components.pollenlevels.client")
     yield imported_client

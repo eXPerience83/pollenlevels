@@ -20,6 +20,7 @@ from tests._ha_stubs import (
     stub_exceptions,
     stub_homeassistant_package,
     stub_update_coordinator_module,
+    stub_util_dt_module,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,33 +112,6 @@ class _StubDataUpdateCoordinator:
         return asyncio.create_task(self.async_refresh())
 
 
-def _stub_utcnow():
-    from datetime import UTC, datetime
-
-    return datetime.now(UTC)
-
-
-def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
-    from datetime import UTC, datetime
-    from email.utils import parsedate_to_datetime
-
-    try:
-        parsed = parsedate_to_datetime(value) if value is not None else None
-    except TypeError, ValueError, IndexError:
-        return None
-
-    if parsed is None:
-        return None
-
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=UTC)
-
-    if isinstance(parsed, datetime):
-        return parsed
-
-    return None
-
-
 def _stub_async_get(_hass):  # pragma: no cover - structure only
     class _Registry:
         @staticmethod
@@ -199,14 +173,7 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
     entity_mod = types.ModuleType("homeassistant.helpers.entity")
     entity_mod.EntityCategory = _StubEntityCategory
     monkeypatch.setitem(sys.modules, "homeassistant.helpers.entity", entity_mod)
-    dt_mod = types.ModuleType("homeassistant.util.dt")
-    dt_mod.utcnow = _stub_utcnow
-    dt_mod.parse_http_date = _stub_parse_http_date
-    monkeypatch.setitem(sys.modules, "homeassistant.util.dt", dt_mod)
-
-    util_mod = types.ModuleType("homeassistant.util")
-    util_mod.dt = dt_mod
-    monkeypatch.setitem(sys.modules, "homeassistant.util", util_mod)
+    stub_util_dt_module(monkeypatch=monkeypatch)
     stub_exceptions(
         ConfigEntryNotReady=_StubConfigEntryNotReady,
         ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,

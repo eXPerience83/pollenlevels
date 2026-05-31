@@ -209,6 +209,44 @@ def stub_selector_module(
     )
 
 
+def stub_util_dt_module(*, monkeypatch: pytest.MonkeyPatch | None = None) -> ModuleType:
+    """Install lightweight ``homeassistant.util`` and ``homeassistant.util.dt`` stubs."""
+
+    util_mod = ModuleType("homeassistant.util")
+    dt_mod = ModuleType("homeassistant.util.dt")
+
+    def _stub_utcnow():
+        from datetime import UTC, datetime
+
+        return datetime.now(UTC)
+
+    def _stub_parse_http_date(value: str | None):  # pragma: no cover - stub only
+        from datetime import UTC, datetime
+        from email.utils import parsedate_to_datetime
+
+        try:
+            parsed = parsedate_to_datetime(value) if value is not None else None
+        except TypeError, ValueError, IndexError, OverflowError:
+            return None
+
+        if parsed is None:
+            return None
+
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+
+        if isinstance(parsed, datetime):
+            return parsed
+
+        return None
+
+    dt_mod.utcnow = _stub_utcnow
+    dt_mod.parse_http_date = _stub_parse_http_date
+    util_mod.dt = dt_mod
+    _set_module("homeassistant.util", util_mod, monkeypatch=monkeypatch)
+    return _set_module("homeassistant.util.dt", dt_mod, monkeypatch=monkeypatch)
+
+
 def stub_config_entry_class(
     cls: type[object], *, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> ModuleType:
