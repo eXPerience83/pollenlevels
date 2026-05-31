@@ -1,4 +1,4 @@
-## [2.3.0] - 2026-05-26
+## [2.3.0] - 2026-05-31
 ### Added
 - Added the per-location "Update now" button entity to the stable release,
   promoted from v2.3.0b1 after validation in a real Home Assistant instance.
