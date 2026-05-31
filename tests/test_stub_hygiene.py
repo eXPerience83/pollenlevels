@@ -38,11 +38,16 @@ class _ImportTimeStubMutationVisitor(ast.NodeVisitor):
                 self.stub_module_aliases.add(alias.asname or alias.name.split(".")[-1])
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if node.module not in {"tests._ha_stubs", "_ha_stubs"}:
+        if node.module in {"tests._ha_stubs", "_ha_stubs"}:
+            for alias in node.names:
+                if alias.name in STUB_HELPERS:
+                    self.stub_helper_names.add(alias.asname or alias.name)
             return
-        for alias in node.names:
-            if alias.name in STUB_HELPERS:
-                self.stub_helper_names.add(alias.asname or alias.name)
+
+        if node.module == "tests" or (node.level > 0 and node.module is None):
+            for alias in node.names:
+                if alias.name == "_ha_stubs":
+                    self.stub_module_aliases.add(alias.asname or alias.name)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         return
@@ -88,6 +93,12 @@ class _ImportTimeStubMutationVisitor(ast.NodeVisitor):
         self.violations.append((node.lineno, message))
 
 
+def _violations_for_source(source: str) -> list[tuple[int, str]]:
+    visitor = _ImportTimeStubMutationVisitor()
+    visitor.visit(ast.parse(source))
+    return visitor.violations
+
+
 def _is_sys_modules_subscript(node: ast.AST) -> bool:
     return isinstance(node, ast.Subscript) and _is_sys_modules(node.value)
 
@@ -107,6 +118,24 @@ def _is_sys_modules(node: ast.AST) -> bool:
         and isinstance(node.value, ast.Name)
         and node.value.id == "sys"
     )
+
+
+def test_from_tests_import_ha_stubs_detects_top_level_helper_call() -> None:
+    violations = _violations_for_source("""\
+from tests import _ha_stubs
+_ha_stubs.stub_aiohttp_module()
+""")
+
+    assert violations == [(2, "top-level test stub helper call")]
+
+
+def test_relative_import_ha_stubs_detects_top_level_helper_call() -> None:
+    violations = _violations_for_source("""\
+from . import _ha_stubs
+_ha_stubs.stub_aiohttp_module()
+""")
+
+    assert violations == [(2, "top-level test stub helper call")]
 
 
 def test_tests_do_not_install_stubs_at_module_import_time() -> None:
