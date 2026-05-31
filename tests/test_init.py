@@ -14,6 +14,7 @@ import pytest
 
 from tests._ha_stubs import (
     clear_integration_modules,
+    stub_aiohttp_module,
     stub_config_entry_class,
     stub_custom_components_packages,
     stub_exceptions,
@@ -67,19 +68,6 @@ class _StubSensorDeviceClass:  # pragma: no cover - structure only
 
 class _StubSensorStateClass:  # pragma: no cover - structure only
     MEASUREMENT = "measurement"
-
-
-class _StubClientError(Exception):
-    pass
-
-
-class _StubClientSession:  # pragma: no cover - structure only
-    pass
-
-
-class _StubClientTimeout:
-    def __init__(self, total: float | None = None):
-        self.total = total
 
 
 class _StubEntityCategory:
@@ -189,12 +177,7 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         sys.modules, "homeassistant.helpers.aiohttp_client", aiohttp_client_mod
     )
-    aiohttp_mod = types.ModuleType("aiohttp")
-    aiohttp_mod.ClientError = _StubClientError
-    aiohttp_mod.ClientSession = _StubClientSession
-    aiohttp_mod.ClientTimeout = _StubClientTimeout
-    aiohttp_mod.ContentTypeError = ValueError
-    monkeypatch.setitem(sys.modules, "aiohttp", aiohttp_mod)
+    stub_aiohttp_module(monkeypatch=monkeypatch)
 
     cv_mod = types.ModuleType("homeassistant.helpers.config_validation")
     cv_mod.config_entry_only_config_schema = lambda _domain: lambda config: config
