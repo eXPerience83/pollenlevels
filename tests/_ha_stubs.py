@@ -165,7 +165,7 @@ class StubTextSelector:
 class StubSelectSelectorConfig:
     """Minimal select selector config stub."""
 
-    def __init__(self, *, mode: str | None = None, options=None) -> None:
+    def __init__(self, *, mode: str | None = None, options: list | None = None) -> None:
         self.mode = mode
         self.options = options
 
