@@ -24,6 +24,8 @@ def util_module(monkeypatch: pytest.MonkeyPatch) -> Iterator[ModuleType]:
         pollenlevels_pkg = sys.modules.get("custom_components.pollenlevels")
         if pollenlevels_pkg is not None and hasattr(pollenlevels_pkg, "util"):
             delattr(pollenlevels_pkg, "util")
+        # Do not use monkeypatch here: these modules were imported during the
+        # test and must be removed instead of registered for later restoration.
         clear_integration_modules()
 
 
