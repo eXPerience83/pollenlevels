@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TESTS_DIR = ROOT / "tests"
 
 STUB_INSTALL_HELPERS = {
+    "clear_integration_modules",
     "force_module",
     "stub_aiohttp_module",
     "stub_config_entry_class",
@@ -65,9 +66,17 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
             self._check_assignment_target(node.target)
         self.generic_visit(node)
 
+    def visit_Delete(self, node: ast.Delete) -> None:
+        if self.scope_depth == 0:
+            for target in node.targets:
+                self._check_delete_target(target)
+        self.generic_visit(node)
+
     def visit_Call(self, node: ast.Call) -> None:
         if self.scope_depth == 0:
-            if self._is_sys_modules_method_call(node, {"setdefault", "update"}):
+            if self._is_sys_modules_method_call(
+                node, {"clear", "pop", "popitem", "setdefault", "update"}
+            ):
                 self.violations.append(
                     (node.lineno, "top-level sys.modules mutation call")
                 )
@@ -85,8 +94,16 @@ class ImportTimeStubMutationVisitor(ast.NodeVisitor):
         self.scope_depth -= 1
 
     def _check_assignment_target(self, target: ast.expr) -> None:
-        if isinstance(target, ast.Subscript) and self._is_sys_modules(target.value):
+        if self._is_sys_modules(target):
+            self.violations.append(
+                (target.lineno, "top-level sys.modules reassignment")
+            )
+        elif isinstance(target, ast.Subscript) and self._is_sys_modules(target.value):
             self.violations.append((target.lineno, "top-level sys.modules assignment"))
+
+    def _check_delete_target(self, target: ast.expr) -> None:
+        if isinstance(target, ast.Subscript) and self._is_sys_modules(target.value):
+            self.violations.append((target.lineno, "top-level sys.modules deletion"))
 
     def _is_sys_modules_method_call(self, node: ast.Call, names: set[str]) -> bool:
         return (
