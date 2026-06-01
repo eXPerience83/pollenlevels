@@ -40,7 +40,7 @@
       "unknown": "Erro desconhecido",
       "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
       "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Esta localização já está configurada."
     },
     "abort": {
       "already_configured": "Esta localização já está configurada.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Localização",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Adicionar localização do Pollen Levels",
+          "description": "Adicione uma localização que usará a chave API desta entrada do Pollen Levels.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nome",
+            "location": "Localização"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Reconfigurar localização do Pollen Levels",
+          "description": "Atualize o nome desta localização e as coordenadas no mapa.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nome",
+            "location": "Localização"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Esta localização já está configurada.",
+        "invalid_coordinates": "Selecione uma localização válida no mapa.",
+        "unknown": "Erro desconhecido"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "A reconfiguração da localização foi concluída com sucesso."
       }
     }
   }

@@ -40,7 +40,7 @@
       "unknown": "Невідома помилка",
       "invalid_update_interval": "Інтервал оновлення має бути між 1 і 24 годинами.",
       "invalid_forecast_days": "Дні прогнозу мають бути від 1 до 5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Це місце вже налаштовано."
     },
     "abort": {
       "already_configured": "Це розташування вже налаштовано.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Місце",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Додати місце Pollen Levels",
+          "description": "Додайте місце, яке використовуватиме API-ключ із цього запису Pollen Levels.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Назва",
+            "location": "Місце"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Переналаштувати місце Pollen Levels",
+          "description": "Оновіть назву цього місця та координати на мапі.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Назва",
+            "location": "Місце"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Це місце вже налаштовано.",
+        "invalid_coordinates": "Виберіть дійсне місце на мапі.",
+        "unknown": "Невідома помилка"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Переналаштування місця успішно завершено."
       }
     }
   }

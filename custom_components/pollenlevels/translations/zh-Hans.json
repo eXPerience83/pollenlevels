@@ -40,7 +40,7 @@
       "unknown": "未知错误",
       "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
       "invalid_forecast_days": "预测天数必须在 1 到 5 之间。",
-      "already_configured": "This location is already configured."
+      "already_configured": "此位置已配置。"
     },
     "abort": {
       "already_configured": "该位置已配置。",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "位置",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "添加 Pollen Levels 位置",
+          "description": "添加一个使用此 Pollen Levels 条目的 API 密钥的位置。",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "名称",
+            "location": "位置"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "重新配置 Pollen Levels 位置",
+          "description": "更新此位置名称和地图坐标。",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "名称",
+            "location": "位置"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "此位置已配置。",
+        "invalid_coordinates": "请在地图上选择有效位置。",
+        "unknown": "未知错误"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "位置重新配置已成功完成。"
       }
     }
   }

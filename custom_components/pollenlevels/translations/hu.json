@@ -40,7 +40,7 @@
       "unknown": "Ismeretlen hiba",
       "invalid_update_interval": "A frissítési időköznek 1 és 24 óra között kell lennie.",
       "invalid_forecast_days": "Az előrejelzési napoknak 1 és 5 között kell lenniük.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Ez a hely már be van állítva."
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Hely",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Pollen Levels hely hozzáadása",
+          "description": "Adj hozzá egy helyet, amely ezt a Pollen Levels bejegyzésben lévő API-kulcsot használja.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Név",
+            "location": "Hely"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Pollen Levels hely újrakonfigurálása",
+          "description": "Frissítsd ennek a helynek a nevét és térképes koordinátáit.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Név",
+            "location": "Hely"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Ez a hely már be van állítva.",
+        "invalid_coordinates": "Válassz érvényes helyet a térképen.",
+        "unknown": "Ismeretlen hiba"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "A hely újrakonfigurálása sikeresen befejeződött."
       }
     }
   }

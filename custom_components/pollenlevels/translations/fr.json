@@ -40,7 +40,7 @@
       "unknown": "Erreur inconnue",
       "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
       "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Cet emplacement est déjà configuré."
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Emplacement",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Ajouter un emplacement Pollen Levels",
+          "description": "Ajoutez un emplacement qui utilisera la clé API de cette entrée Pollen Levels.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nom",
+            "location": "Emplacement"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Reconfigurer l'emplacement Pollen Levels",
+          "description": "Mettez à jour le nom de cet emplacement et ses coordonnées sur la carte.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nom",
+            "location": "Emplacement"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Cet emplacement est déjà configuré.",
+        "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
+        "unknown": "Erreur inconnue"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "La reconfiguration de l'emplacement a réussi."
       }
     }
   }

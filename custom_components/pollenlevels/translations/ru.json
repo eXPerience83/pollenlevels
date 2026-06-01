@@ -40,7 +40,7 @@
       "unknown": "Неизвестная ошибка",
       "invalid_update_interval": "Интервал обновления должен быть от 1 до 24 часов.",
       "invalid_forecast_days": "Дни прогноза должны быть от 1 до 5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Это местоположение уже настроено."
     },
     "abort": {
       "already_configured": "Это местоположение уже настроено.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Местоположение",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Добавить местоположение Pollen Levels",
+          "description": "Добавьте местоположение, которое будет использовать API-ключ из этой записи Pollen Levels.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Название",
+            "location": "Местоположение"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Перенастроить местоположение Pollen Levels",
+          "description": "Обновите название этого местоположения и координаты на карте.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Название",
+            "location": "Местоположение"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Это местоположение уже настроено.",
+        "invalid_coordinates": "Выберите допустимое местоположение на карте.",
+        "unknown": "Неизвестная ошибка"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Перенастройка местоположения успешно завершена."
       }
     }
   }

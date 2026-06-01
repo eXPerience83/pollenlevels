@@ -40,7 +40,7 @@
       "unknown": "Eroare necunoscută",
       "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore.",
       "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Această locație este deja configurată."
     },
     "abort": {
       "already_configured": "Această locație este deja configurată.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Locație",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Adaugă o locație Pollen Levels",
+          "description": "Adaugă o locație care va folosi cheia API din această intrare Pollen Levels.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nume",
+            "location": "Locație"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Reconfigurează locația Pollen Levels",
+          "description": "Actualizează numele acestei locații și coordonatele de pe hartă.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nume",
+            "location": "Locație"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Această locație este deja configurată.",
+        "invalid_coordinates": "Selectează o locație validă pe hartă.",
+        "unknown": "Eroare necunoscută"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Reconfigurarea locației s-a finalizat cu succes."
       }
     }
   }

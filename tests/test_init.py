@@ -1293,6 +1293,7 @@ def test_migrate_legacy_entries_with_same_api_key_group_under_one_parent(
             integration.CONF_API_KEY: "shared-key",
             integration.CONF_LATITUDE: 3.0,
             integration.CONF_LONGITUDE: 4.0,
+            integration.CONF_UPDATE_INTERVAL: 8,
             integration.CONF_LANGUAGE_CODE: "en",
             integration.CONF_FORECAST_DAYS: 3,
         },
@@ -1331,6 +1332,251 @@ def test_migrate_legacy_entries_with_same_api_key_group_under_one_parent(
     assert [entry.entry_id for entry in hass.config_entries.async_entries()] == [
         "legacy-home"
     ]
+    added_subentries = list(hass.config_entries.added_subentries)
+
+    assert asyncio.run(integration.async_migrate_entry(hass, parent)) is True
+
+    assert len(parent.subentries) == 2
+    assert parent.options[integration.CONF_UPDATE_INTERVAL] == 12
+    assert hass.config_entries.added_subentries == added_subentries
+    assert hass.config_entries.removed_entries == ["legacy-office"]
+
+
+def test_migrate_legacy_entries_with_different_api_keys_stay_separate(
+    integration_modules: _InitModules,
+) -> None:
+    """Legacy entries with different API keys should not be merged together."""
+    integration = integration_modules.integration
+
+    first = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Home",
+        data={
+            integration.CONF_API_KEY: "key-one",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        version=3,
+        subentries={},
+    )
+    second = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        title="Office",
+        data={
+            integration.CONF_API_KEY: "key-two",
+            integration.CONF_LATITUDE: 3.0,
+            integration.CONF_LONGITUDE: 4.0,
+        },
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[first, second])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, first)) is True
+
+    assert first.data == {integration.CONF_API_KEY: "key-one"}
+    assert second.data[integration.CONF_API_KEY] == "key-two"
+    assert len(first.subentries) == 1
+    assert second.subentries == {}
+    assert hass.config_entries.removed_entries == []
+    assert [entry.entry_id for entry in hass.config_entries.async_entries()] == [
+        "legacy-home",
+        "legacy-office",
+    ]
+
+
+def test_migrate_entry_without_location_does_not_create_corrupt_subentry(
+    integration_modules: _InitModules,
+) -> None:
+    """Entries without coordinates should be cleaned without fake locations."""
+    integration = integration_modules.integration
+
+    entry = _FakeEntry(
+        integration,
+        entry_id="legacy-empty",
+        data={integration.CONF_API_KEY: "key"},
+        options={},
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+
+    assert entry.data == {integration.CONF_API_KEY: "key"}
+    assert entry.options == {}
+    assert entry.subentries == {}
+    assert entry.version == integration.TARGET_ENTRY_VERSION
+    assert hass.config_entries.added_subentries == []
+
+
+def test_migrate_grouped_entries_moves_registries_to_parent_subentry(
+    integration_modules: _InitModules, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Merged entity/device registry links should point at the parent subentry."""
+    integration = integration_modules.integration
+
+    parent = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Home",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        version=3,
+        subentries={},
+    )
+    duplicate = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        title="Office",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 3.0,
+            integration.CONF_LONGITUDE: 4.0,
+        },
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[parent, duplicate])
+
+    entity_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _EntityRegistry:
+        def async_update_entity(self, entity_id: str, **kwargs: str) -> None:
+            entity_updates.append((entity_id, kwargs))
+
+    entity_registry = _EntityRegistry()
+    entity_registry_mod = sys.modules["homeassistant.helpers.entity_registry"]
+    monkeypatch.setattr(entity_registry_mod, "async_get", lambda _hass: entity_registry)
+    monkeypatch.setattr(
+        entity_registry_mod,
+        "async_entries_for_config_entry",
+        lambda _registry, entry_id: (
+            [
+                types.SimpleNamespace(
+                    entity_id="sensor.legacy_office_grass", platform=integration.DOMAIN
+                ),
+                types.SimpleNamespace(
+                    entity_id="sensor.other_domain", platform="other"
+                ),
+            ]
+            if entry_id == "legacy-office"
+            else []
+        ),
+    )
+
+    device_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _DeviceRegistry:
+        def async_update_device(self, device_id: str, **kwargs: str) -> None:
+            device_updates.append((device_id, kwargs))
+
+    device_registry = _DeviceRegistry()
+    device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
+    device_registry_mod.async_get = lambda _hass: device_registry
+    device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: (
+        [types.SimpleNamespace(id="device-office")]
+        if entry_id == "legacy-office"
+        else []
+    )
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
+    )
+
+    assert asyncio.run(integration.async_migrate_entry(hass, parent)) is True
+
+    office_subentry = next(
+        subentry
+        for subentry in parent.subentries.values()
+        if subentry.data[integration.CONF_LEGACY_ENTRY_ID] == "legacy-office"
+    )
+    assert entity_updates == [
+        (
+            "sensor.legacy_office_grass",
+            {
+                "config_entry_id": "legacy-home",
+                "config_subentry_id": office_subentry.subentry_id,
+            },
+        )
+    ]
+    assert device_updates == [
+        (
+            "device-office",
+            {
+                "add_config_entry_id": "legacy-home",
+                "add_config_subentry_id": office_subentry.subentry_id,
+            },
+        ),
+        ("device-office", {"remove_config_entry_id": "legacy-office"}),
+    ]
+
+
+def test_migrate_current_duplicate_entry_is_marked_and_removed_later(
+    integration_modules: _InitModules,
+) -> None:
+    """When the current entry is merged away, removal should be deferred."""
+    integration = integration_modules.integration
+
+    parent = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Home",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        version=3,
+        subentries={},
+    )
+    duplicate = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        title="Office",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 3.0,
+            integration.CONF_LONGITUDE: 4.0,
+        },
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[parent, duplicate])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, duplicate)) is True
+
+    assert duplicate.data == {
+        integration.CONF_API_KEY: "shared-key",
+        "merged_into_entry_id": "legacy-home",
+    }
+    assert duplicate.version == integration.TARGET_ENTRY_VERSION
+    assert hass.created_tasks
+
+
+def test_setup_entry_skips_entries_already_marked_as_merged(
+    integration_modules: _InitModules,
+) -> None:
+    """Merged entries should not continue normal setup after migration."""
+    integration = integration_modules.integration
+
+    entry = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            "merged_into_entry_id": "legacy-home",
+        },
+        version=integration.TARGET_ENTRY_VERSION,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+    assert hass.config_entries.forward_calls == []
 
 
 def test_migrate_entry_normalizes_invalid_mode(

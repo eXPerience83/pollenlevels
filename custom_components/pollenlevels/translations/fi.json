@@ -40,7 +40,7 @@
       "unknown": "Tuntematon virhe",
       "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
       "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Tämä sijainti on jo määritetty."
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Sijainti",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Lisää Pollen Levels -sijainti",
+          "description": "Lisää sijainti, joka käyttää tämän Pollen Levels -merkinnän API-avainta.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nimi",
+            "location": "Sijainti"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Määritä Pollen Levels -sijainti uudelleen",
+          "description": "Päivitä tämän sijainnin nimi ja karttakoordinaatit.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Nimi",
+            "location": "Sijainti"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Tämä sijainti on jo määritetty.",
+        "invalid_coordinates": "Valitse kelvollinen sijainti kartalta.",
+        "unknown": "Tuntematon virhe"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Sijainnin uudelleenmääritys onnistui."
       }
     }
   }

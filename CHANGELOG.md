@@ -1,13 +1,19 @@
-## [3.0.0] - 2026-06-01
+## [3.0.0a1] - 2026-06-01
+### Alpha
+- First v3 alpha release for validating the Home Assistant config subentry
+  migration before later pre-releases.
+
 ### Changed
 - **Breaking change:** Migrated configuration storage to Home Assistant config
-  subentries. After upgrading to 3.0.0, downgrading to Pollen Levels 2.x is not
+  subentries. After upgrading to 3.0.0a1, downgrading to Pollen Levels 2.x is not
   supported and may require removing and recreating the integration. Create a
   Home Assistant backup before upgrading.
 - Converted each Pollen Levels entry into a parent API-key entry with location
   subentries and one coordinator per location.
 - Consolidated legacy entries that share the same Google API key into one
-  parent entry with multiple location subentries.
+  parent entry with multiple location subentries, moving each location under
+  that parent and removing duplicate API-key entries after they are marked as
+  merged.
 - Updated setup, sensors, button entities, diagnostics, and the
   `pollenlevels.force_update` service to handle multiple location subentries
   under one parent entry.
@@ -15,6 +21,8 @@
   coordinators sequentially to avoid request bursts.
 - Preserved migrated entity unique IDs by storing the legacy entry ID on the
   migrated location subentry.
+- Moved entity and device registry links from merged legacy entries to the
+  parent location subentry when possible.
 - Validated parent API-key reauth and reconfigure flows against configured
   locations until one location returns usable pollen data.
 

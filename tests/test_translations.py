@@ -57,6 +57,17 @@ def _flatten_keys(data: dict[str, Any], prefix: str = "") -> set[str]:
     return keys
 
 
+def _value_at_path(data: dict[str, Any], path: str) -> Any:
+    """Return a nested translation value for a dotted path."""
+
+    current: Any = data
+    for part in path.split("."):
+        if not isinstance(current, dict):
+            return None
+        current = current.get(part)
+    return current
+
+
 def _load_translation(path: Path) -> dict[str, Any]:
     """Load a translation JSON file."""
 
@@ -314,6 +325,41 @@ def test_translations_match_english_keyset() -> None:
             )
 
     assert not problems, "Translation keys mismatch: " + "; ".join(problems)
+
+
+def test_v3_subentry_translation_strings_are_localized() -> None:
+    """Ensure new v3 location-subentry strings are not copied from English."""
+
+    english = _load_translation(TRANSLATIONS_DIR / "en.json")
+    localized_paths = {
+        "config.error.already_configured",
+        "config_subentries.location.title",
+        "config_subentries.location.step.user.title",
+        "config_subentries.location.step.user.description",
+        "config_subentries.location.step.reconfigure.title",
+        "config_subentries.location.step.reconfigure.description",
+        "config_subentries.location.error.already_configured",
+        "config_subentries.location.error.invalid_coordinates",
+        "config_subentries.location.error.unknown",
+        "config_subentries.location.abort.reconfigure_successful",
+    }
+
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        if translation_path.name == "en.json":
+            continue
+        locale = _load_translation(translation_path)
+        copied = [
+            key
+            for key in sorted(localized_paths)
+            if _value_at_path(locale, key) == _value_at_path(english, key)
+        ]
+        if copied:
+            problems.append(f"{translation_path.name}: {copied}")
+
+    assert not problems, "Locale strings still copied from English: " + "; ".join(
+        problems
+    )
 
 
 def test_config_flow_translation_keys_present() -> None:

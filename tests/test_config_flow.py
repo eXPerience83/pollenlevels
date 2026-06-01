@@ -2663,10 +2663,10 @@ def test_location_subentry_user_step_shows_form(
     assert result == {"type": "form", "step_id": "user", "errors": {}}
 
 
-def test_location_subentry_user_step_creates_entry_and_schedules_reload(
+def test_location_subentry_user_step_creates_entry_without_premature_reload(
     config_flow_stubs: ConfigFlowStubs,
 ) -> None:
-    """Adding a valid location should create a subentry and reload the parent."""
+    """Adding a valid location should let subentry creation handle reload."""
 
     entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={config_flow_stubs.CONF_API_KEY: "key"},
@@ -2693,7 +2693,7 @@ def test_location_subentry_user_step_creates_entry_and_schedules_reload(
         config_flow_stubs.CONF_LONGITUDE: -98.76543,
     }
     assert result["unique_id"] == "12.3457_-98.7654"
-    assert recorder.reload_calls == ["entry-id"]
+    assert recorder.reload_calls == []
 
 
 def test_location_subentry_user_step_rejects_invalid_coordinates(

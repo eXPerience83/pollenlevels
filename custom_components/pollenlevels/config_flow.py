@@ -379,15 +379,6 @@ def _should_try_next_location(errors: dict[str, str]) -> bool:
     return errors == {"base": "cannot_connect"}
 
 
-def _schedule_parent_reload(hass: Any, entry: config_entries.ConfigEntry) -> None:
-    """Schedule parent entry reload after a subentry storage change."""
-    config_entries_manager = getattr(hass, "config_entries", None)
-    schedule_reload = getattr(config_entries_manager, "async_schedule_reload", None)
-    if schedule_reload is None:
-        return
-    schedule_reload(entry.entry_id)
-
-
 def _has_duplicate_location(
     entry: config_entries.ConfigEntry,
     unique_id: str,
@@ -867,7 +858,6 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                 if _has_duplicate_location(entry, unique_id):
                     errors["base"] = "already_configured"
                 else:
-                    _schedule_parent_reload(self.hass, entry)
                     return self.async_create_entry(
                         title=title,
                         data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},

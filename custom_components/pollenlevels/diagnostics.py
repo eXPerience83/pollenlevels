@@ -36,7 +36,10 @@ from .runtime import PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
 from .util import redact_api_key, safe_parse_int
 
-# Redact potentially sensitive values from diagnostics.
+# Redact potentially sensitive values from diagnostics. Diagnostics intentionally
+# expose only 1-decimal approximate coordinates in support examples so issues
+# can distinguish unsupported areas from integration/API failures without
+# publishing exact location data.
 TO_REDACT = {
     CONF_API_KEY,
     CONF_LATITUDE,
@@ -53,7 +56,7 @@ def _iso_or_none(dt_obj: Any) -> str | None:
 
 
 def _rounded(value: Any) -> float | None:
-    """Return a rounded coordinate for diagnostics."""
+    """Return a support-safe 1-decimal coordinate for diagnostics."""
     try:
         f = float(value)
     except TypeError, ValueError, OverflowError:

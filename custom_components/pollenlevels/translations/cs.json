@@ -40,7 +40,7 @@
       "unknown": "Neznámá chyba",
       "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
       "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Toto umístění je již nakonfigurováno."
     },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Umístění",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Přidat umístění Pollen Levels",
+          "description": "Přidejte umístění, které bude používat klíč API z této položky Pollen Levels.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Název",
+            "location": "Umístění"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Překonfigurovat umístění Pollen Levels",
+          "description": "Aktualizujte název tohoto umístění a souřadnice na mapě.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Název",
+            "location": "Umístění"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Toto umístění je již nakonfigurováno.",
+        "invalid_coordinates": "Vyberte platné umístění na mapě.",
+        "unknown": "Neznámá chyba"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Překonfigurace umístění byla úspěšně dokončena."
       }
     }
   }

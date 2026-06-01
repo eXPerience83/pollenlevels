@@ -106,11 +106,15 @@ FAQ: https://developers.google.com/maps/documentation/pollen/faq
 
 ---
 
-## 12. What happens to my entries when upgrading to 3.0.0?
-Pollen Levels 3.0.0 migrates configuration to Home Assistant config
-subentries. Legacy 2.x entries that share the same Google API key are grouped
-under one parent API-key entry, and each migrated location becomes one location
-subentry.
+## 12. What happens to my entries when upgrading to 3.0.0a1?
+Pollen Levels 3.0.0a1 migrates configuration to Home Assistant config
+subentries. This is an alpha release for the v3 migration. Legacy 2.x entries
+that share the same Google API key are grouped under one parent API-key entry,
+and each migrated location becomes one location subentry. The API key is stored
+once on the parent instead of duplicated across legacy entries.
+
+Duplicate legacy entries are marked as merged and removed after their
+locations, entities, and devices are moved to the parent entry.
 
 Migrated location subentries keep the legacy entry ID internally so existing
 entity unique IDs, device identifiers, dashboards, and automations continue to
@@ -123,6 +127,9 @@ remaining entries. You can adjust the shared options after upgrading.
 During parent API-key reauthentication or reconfiguration, the integration tries
 configured locations until one validates successfully. Authentication and quota
 errors are treated as API-key-level failures.
+
+Create a Home Assistant backup before upgrading. Downgrading to Pollen Levels
+2.x after this migration is not supported.
 
 ---
 

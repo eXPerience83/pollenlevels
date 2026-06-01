@@ -40,7 +40,7 @@
       "unknown": "Okänt fel",
       "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
       "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Den här platsen är redan konfigurerad."
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Plats",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Lägg till Pollen Levels-plats",
+          "description": "Lägg till en plats som använder API-nyckeln från den här Pollen Levels-posten.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Namn",
+            "location": "Plats"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Konfigurera om Pollen Levels-plats",
+          "description": "Uppdatera namnet på den här platsen och kartkoordinaterna.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Namn",
+            "location": "Plats"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Den här platsen är redan konfigurerad.",
+        "invalid_coordinates": "Välj en giltig plats på kartan.",
+        "unknown": "Okänt fel"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Platsen har konfigurerats om."
       }
     }
   }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -130,8 +131,8 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
 
     data = {
         diagnostics_modules.CONF_API_KEY: "secret-token",
-        diagnostics_modules.CONF_LATITUDE: 12.3456,
-        diagnostics_modules.CONF_LONGITUDE: 78.9876,
+        diagnostics_modules.CONF_LATITUDE: 12.345678,
+        diagnostics_modules.CONF_LONGITUDE: 78.987654,
         diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
     options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
@@ -162,6 +163,9 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
     assert diagnostics["request_params_example"]["location.longitude"] == 79.0
     assert diagnostics["coordinator"]["data_keys_total"] == 60
     assert len(diagnostics["coordinator"]["data_keys"]) == 50
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "12.345678" not in serialized
+    assert "78.987654" not in serialized
 
 
 @pytest.mark.asyncio

@@ -93,13 +93,15 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
 ## Multiple locations and upgrades
 
-Version 3.0.0 stores configuration as one parent API-key entry with one or more
-location subentries. Existing 2.x entries are consolidated by API key during
-migration:
+Version 3.0.0a1 starts the v3 alpha line and stores configuration as one parent
+API-key entry with one or more location subentries. Existing 2.x entries are
+consolidated by API key during migration:
 
 - Legacy entries with the same Google API key are grouped under one parent
-  entry.
+  entry, so the API key is stored once on the parent instead of duplicated.
 - Each migrated legacy location becomes a location subentry under that parent.
+- Duplicate legacy entries are marked as merged and removed after their
+  locations, entities, and devices are moved to the parent.
 - Migrated location subentries keep the legacy entry ID internally so existing
   entity unique IDs, devices, dashboards, and automations continue to match.
 
@@ -111,6 +113,9 @@ upgrading from **Settings -> Devices & Services -> Pollen Levels -> Configure**.
 When reauthenticating or reconfiguring the parent API key, the integration tries
 the configured locations until one returns usable pollen data. Authentication
 and quota errors are treated as key-level failures.
+
+Create a Home Assistant backup before installing the v3 alpha. Downgrading to
+Pollen Levels 2.x after the subentry migration is not supported.
 
 ---
 

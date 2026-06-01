@@ -40,7 +40,7 @@
       "unknown": "Ukjent feil",
       "invalid_update_interval": "Oppdateringsintervallet må være mellom 1 og 24 timer.",
       "invalid_forecast_days": "Prognosedager må være mellom 1 og 5.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Denne plasseringen er allerede konfigurert."
     },
     "abort": {
       "already_configured": "Dette stedet er allerede konfigurert.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Plassering",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Legg til Pollen Levels-plassering",
+          "description": "Legg til en plassering som bruker API-nøkkelen fra denne Pollen Levels-oppføringen.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Navn",
+            "location": "Plassering"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Konfigurer Pollen Levels-plassering på nytt",
+          "description": "Oppdater navnet på denne plasseringen og kartkoordinatene.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Navn",
+            "location": "Plassering"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Denne plasseringen er allerede konfigurert.",
+        "invalid_coordinates": "Velg en gyldig plassering på kartet.",
+        "unknown": "Ukjent feil"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Plasseringen ble konfigurert på nytt."
       }
     }
   }

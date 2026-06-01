@@ -40,7 +40,7 @@
       "unknown": "Onbekende fout",
       "invalid_update_interval": "Het update-interval moet tussen 1 en 24 uur liggen.",
       "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen.",
-      "already_configured": "This location is already configured."
+      "already_configured": "Deze locatie is al geconfigureerd."
     },
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
@@ -123,32 +123,32 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Location",
+      "title": "Locatie",
       "step": {
         "user": {
-          "title": "Add Pollen Levels location",
-          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "title": "Pollen Levels-locatie toevoegen",
+          "description": "Voeg een locatie toe die de API-sleutel van deze Pollen Levels-vermelding gebruikt.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Naam",
+            "location": "Locatie"
           }
         },
         "reconfigure": {
-          "title": "Reconfigure Pollen Levels location",
-          "description": "Update this location name and map coordinates.",
+          "title": "Pollen Levels-locatie opnieuw configureren",
+          "description": "Werk de naam van deze locatie en de kaartcoördinaten bij.",
           "data": {
-            "name": "Name",
-            "location": "Location"
+            "name": "Naam",
+            "location": "Locatie"
           }
         }
       },
       "error": {
-        "already_configured": "This location is already configured.",
-        "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "already_configured": "Deze locatie is al geconfigureerd.",
+        "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
+        "unknown": "Onbekende fout"
       },
       "abort": {
-        "reconfigure_successful": "Location reconfiguration completed successfully."
+        "reconfigure_successful": "Locatie opnieuw configureren is voltooid."
       }
     }
   }
