@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Dieser Standort ist bereits konfiguriert.",
         "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
-        "unknown": "Unbekannter Fehler"
+        "unknown": "Unbekannter Fehler",
+        "invalid_auth": "Ungültiger API-Schlüssel\n\n{error_message}",
+        "cannot_connect": "Verbindung zum Dienst fehlgeschlagen\n\n{error_message}",
+        "quota_exceeded": "Kontingent überschritten\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Die Standort-Neukonfiguration wurde erfolgreich abgeschlossen."

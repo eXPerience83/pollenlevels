@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Це місце вже налаштовано.",
         "invalid_coordinates": "Виберіть дійсне місце на мапі.",
-        "unknown": "Невідома помилка"
+        "unknown": "Невідома помилка",
+        "invalid_auth": "Невірний ключ API\n\n{error_message}",
+        "cannot_connect": "Не вдається підключитися до сервісу\n\n{error_message}",
+        "quota_exceeded": "Перевищено ліміт запитів\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Переналаштування місця успішно завершено."

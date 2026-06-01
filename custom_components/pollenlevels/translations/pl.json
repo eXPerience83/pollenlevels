@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Ta lokalizacja jest już skonfigurowana.",
         "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
-        "unknown": "Nieznany błąd"
+        "unknown": "Nieznany błąd",
+        "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
+        "cannot_connect": "Brak połączenia z usługą\n\n{error_message}",
+        "quota_exceeded": "Przekroczono limit\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Ponowna konfiguracja lokalizacji zakończona pomyślnie."

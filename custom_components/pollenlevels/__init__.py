@@ -415,7 +415,7 @@ def _migrate_entity_registry_for_merged_entry(
     parent: ConfigEntry,
     subentry: ConfigSubentry,
 ) -> None:
-    """Move entity-registry links from a legacy entry to the parent subentry."""
+    """Attach entity-registry links from a legacy entry to the parent subentry."""
     try:
         from homeassistant.helpers import entity_registry as er
 
@@ -447,7 +447,7 @@ def _migrate_device_registry_for_merged_entry(
     parent: ConfigEntry,
     subentry: ConfigSubentry,
 ) -> None:
-    """Move device-registry links from a legacy entry to the parent subentry."""
+    """Attach device-registry links from a legacy entry to the parent subentry."""
     try:
         from homeassistant.helpers import device_registry as dr
 
@@ -462,10 +462,11 @@ def _migrate_device_registry_for_merged_entry(
                 add_config_entry_id=parent.entry_id,
                 add_config_subentry_id=subentry.subentry_id,
             )
-            registry.async_update_device(
-                device.id,
-                remove_config_entry_id=source.entry_id,
-            )
+            if source is not parent:
+                registry.async_update_device(
+                    device.id,
+                    remove_config_entry_id=source.entry_id,
+                )
         except Exception:  # noqa: BLE001
             _LOGGER.exception(
                 "Failed to move device %s from entry %s to parent %s",
@@ -565,6 +566,7 @@ async def _async_migrate_grouped_entries(
         for key, value in _clean_parent_options(candidate).items():
             parent_options.setdefault(key, value)
 
+    parent_had_subentries = bool(getattr(parent, "subentries", {}) or {})
     used_unique_ids, legacy_subentries = _existing_location_indexes(parent)
 
     for source in group:
@@ -584,6 +586,13 @@ async def _async_migrate_grouped_entries(
                 )
                 _migrate_device_registry_for_merged_entry(
                     hass, source, parent, subentry
+                )
+            elif not parent_had_subentries:
+                _migrate_entity_registry_for_merged_entry(
+                    hass, parent, parent, subentry
+                )
+                _migrate_device_registry_for_merged_entry(
+                    hass, parent, parent, subentry
                 )
 
     _update_parent_entry(hass, parent, api_key, parent_options, target_version)
@@ -695,6 +704,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if location is not None:
                 subentry = _make_migrated_subentry(location)
                 _add_migrated_subentry(hass, entry, subentry)
+                _migrate_entity_registry_for_merged_entry(hass, entry, entry, subentry)
+                _migrate_device_registry_for_merged_entry(hass, entry, entry, subentry)
 
         new_version = max(current_version, target_version)
         if (
@@ -829,8 +840,10 @@ async def async_setup_entry(
     session = async_get_clientsession(hass)
     client = GooglePollenApiClient(session, api_key)
 
+    location_configs = _iter_location_subentries(entry)
     locations: dict[str, PollenLocationRuntime] = {}
-    for subentry_id, title, data, legacy_entry_id in _iter_location_subentries(entry):
+    last_location_error: Exception | None = None
+    for subentry_id, title, data, legacy_entry_id in location_configs:
         raw_lat = data.get(CONF_LATITUDE)
         raw_lon = data.get(CONF_LONGITUDE)
         latlon = validate_location_pair(raw_lat, raw_lon)
@@ -840,7 +853,8 @@ async def async_setup_entry(
                 entry.entry_id,
                 subentry_id,
             )
-            raise ConfigEntryNotReady("Invalid location configuration")
+            last_location_error = ConfigEntryNotReady("Invalid location configuration")
+            continue
         lat, lon = latlon
 
         coordinator = PollenDataUpdateCoordinator(
@@ -864,22 +878,43 @@ async def async_setup_entry(
             await coordinator.async_config_entry_first_refresh()
         except ConfigEntryAuthFailed:
             raise
-        except ConfigEntryNotReady:
-            raise
-        except Exception as err:
-            _LOGGER.exception(
-                "Error during initial data refresh for entry %s subentry %s: %s",
+        except ConfigEntryNotReady as err:
+            last_location_error = err
+            safe_message = redact_sensitive_values(
+                err, api_key=api_key, latitude=lat, longitude=lon
+            )
+            _LOGGER.warning(
+                "Initial data refresh failed for entry %s subentry %s (%s): %s",
                 entry.entry_id,
                 subentry_id,
-                err,
+                type(err).__name__,
+                safe_message or "no error details",
             )
-            raise ConfigEntryNotReady from err
+            continue
+        except Exception as err:
+            last_location_error = err
+            safe_message = redact_sensitive_values(
+                err, api_key=api_key, latitude=lat, longitude=lon
+            )
+            _LOGGER.warning(
+                "Initial data refresh failed for entry %s subentry %s (%s): %s",
+                entry.entry_id,
+                subentry_id,
+                type(err).__name__,
+                safe_message or "no error details",
+            )
+            continue
 
         locations[subentry_id] = PollenLocationRuntime(
             subentry_id=subentry_id,
             coordinator=coordinator,
             legacy_entry_id=legacy_entry_id,
         )
+
+    if location_configs and not locations:
+        raise ConfigEntryNotReady(
+            "No Pollen Levels locations could be initialized"
+        ) from last_location_error
 
     entry.runtime_data = PollenLevelsRuntimeData(client=client, locations=locations)
 

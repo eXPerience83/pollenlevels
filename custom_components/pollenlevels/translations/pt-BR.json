@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Este local já está configurado.",
         "invalid_coordinates": "Selecione um local válido no mapa.",
-        "unknown": "Erro desconhecido"
+        "unknown": "Erro desconhecido",
+        "invalid_auth": "Chave de API inválida\n\n{error_message}",
+        "cannot_connect": "Não foi possível conectar ao serviço\n\n{error_message}",
+        "quota_exceeded": "Cota excedida\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "A reconfiguração do local foi concluída com sucesso."

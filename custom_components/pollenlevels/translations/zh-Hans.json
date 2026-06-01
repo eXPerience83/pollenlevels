@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "此位置已配置。",
         "invalid_coordinates": "请在地图上选择有效位置。",
-        "unknown": "未知错误"
+        "unknown": "未知错误",
+        "invalid_auth": "无效的 API 密钥\n\n{error_message}",
+        "cannot_connect": "无法连接到服务\n\n{error_message}",
+        "quota_exceeded": "配额已用尽\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "位置重新配置已成功完成。"

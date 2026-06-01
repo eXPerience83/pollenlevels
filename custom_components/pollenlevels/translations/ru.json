@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Это местоположение уже настроено.",
         "invalid_coordinates": "Выберите допустимое местоположение на карте.",
-        "unknown": "Неизвестная ошибка"
+        "unknown": "Неизвестная ошибка",
+        "invalid_auth": "Неверный ключ API\n\n{error_message}",
+        "cannot_connect": "Не удаётся подключиться к сервису\n\n{error_message}",
+        "quota_exceeded": "Превышен лимит запросов\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Перенастройка местоположения успешно завершена."

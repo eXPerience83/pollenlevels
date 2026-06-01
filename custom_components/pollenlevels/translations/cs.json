@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Toto umístění je již nakonfigurováno.",
         "invalid_coordinates": "Vyberte platné umístění na mapě.",
-        "unknown": "Neznámá chyba"
+        "unknown": "Neznámá chyba",
+        "invalid_auth": "Neplatný klíč API\n\n{error_message}",
+        "cannot_connect": "Nelze se připojit ke službě\n\n{error_message}",
+        "quota_exceeded": "Překročena kvóta\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Překonfigurace umístění byla úspěšně dokončena."

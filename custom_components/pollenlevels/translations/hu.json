@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Ez a hely már be van állítva.",
         "invalid_coordinates": "Válassz érvényes helyet a térképen.",
-        "unknown": "Ismeretlen hiba"
+        "unknown": "Ismeretlen hiba",
+        "invalid_auth": "Érvénytelen API-kulcs\n\n{error_message}",
+        "cannot_connect": "Nem lehet csatlakozni a szolgáltatáshoz\n\n{error_message}",
+        "quota_exceeded": "Kvóta túllépve\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "A hely újrakonfigurálása sikeresen befejeződött."

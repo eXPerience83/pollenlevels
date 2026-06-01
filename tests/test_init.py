@@ -615,6 +615,151 @@ def test_setup_entry_boundary_coordinates_are_allowed(
         assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
 
+def test_setup_entry_keeps_working_locations_when_one_subentry_fails(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A local refresh failure should not block other configured locations."""
+    integration = integration_modules.integration
+
+    bad_subentry = integration.ConfigSubentry(
+        data={
+            integration.CONF_LATITUDE: 3.123456,
+            integration.CONF_LONGITUDE: -4.654321,
+        },
+        subentry_id="bad-location",
+        title="Bad",
+    )
+    good_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="good-location",
+        title="Good",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "secret-key"},
+        subentries={
+            bad_subentry.subentry_id: bad_subentry,
+            good_subentry.subentry_id: good_subentry,
+        },
+    )
+    hass = _FakeHass()
+
+    class _StubCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.api_key = kwargs["api_key"]
+            self.lat = kwargs["lat"]
+            self.lon = kwargs["lon"]
+            self.subentry_id = kwargs["subentry_id"]
+            self.legacy_entry_id = kwargs.get("legacy_entry_id")
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            if self.subentry_id == "bad-location":
+                raise RuntimeError(
+                    "boom secret-key at 3.123456,-4.654321 "
+                    "location.latitude=3.123456"
+                )
+            return None
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
+
+    with caplog.at_level("WARNING", logger=integration.__name__):
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    assert entry.runtime_data is not None
+    assert set(entry.runtime_data.locations) == {"good-location"}
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+    log_text = caplog.text
+    assert "Initial data refresh failed for entry entry-1 subentry bad-location" in (
+        log_text
+    )
+    assert "secret-key" not in log_text
+    assert "3.123456" not in log_text
+    assert "-4.654321" not in log_text
+
+
+def test_setup_entry_raises_not_ready_when_all_subentries_fail(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The parent should retry when no configured location can initialize."""
+    integration = integration_modules.integration
+
+    first = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="first-location",
+    )
+    second = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
+        subentry_id="second-location",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "key"},
+        subentries={first.subentry_id: first, second.subentry_id: second},
+    )
+    hass = _FakeHass()
+
+    class _FailingCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.lat = kwargs["lat"]
+            self.lon = kwargs["lon"]
+
+        async def async_config_entry_first_refresh(self):
+            raise RuntimeError("service unavailable")
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _FailingCoordinator)
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
+
+
+def test_setup_entry_auth_failure_still_fails_parent(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Shared credential failures should keep failing the whole parent entry."""
+    integration = integration_modules.integration
+
+    first = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="first-location",
+    )
+    second = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
+        subentry_id="second-location",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "bad-key"},
+        subentries={first.subentry_id: first, second.subentry_id: second},
+    )
+    hass = _FakeHass()
+
+    class _AuthFailingCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.lat = kwargs["lat"]
+            self.lon = kwargs["lon"]
+
+        async def async_config_entry_first_refresh(self):
+            raise integration.ConfigEntryAuthFailed("invalid key")
+
+    monkeypatch.setattr(
+        integration, "PollenDataUpdateCoordinator", _AuthFailingCoordinator
+    )
+
+    with pytest.raises(integration.ConfigEntryAuthFailed):
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
+
+
 def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
@@ -1271,6 +1416,91 @@ def test_migrate_entry_v3_legacy_creates_location_subentry(
     assert hass.config_entries.added_subentries == [(entry, subentry)]
 
 
+def test_migrate_single_legacy_entry_attaches_registries_to_created_subentry(
+    integration_modules: _InitModules, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A surviving single legacy entry should attach registries to its subentry."""
+    integration = integration_modules.integration
+
+    entry = _FakeEntry(
+        integration,
+        entry_id="legacy-entry",
+        title="Legacy Home",
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 12.34567,
+            integration.CONF_LONGITUDE: -98.76543,
+        },
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[entry])
+
+    entity_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _EntityRegistry:
+        def async_update_entity(self, entity_id: str, **kwargs: str) -> None:
+            entity_updates.append((entity_id, kwargs))
+
+    entity_registry = _EntityRegistry()
+    entity_registry_mod = sys.modules["homeassistant.helpers.entity_registry"]
+    monkeypatch.setattr(entity_registry_mod, "async_get", lambda _hass: entity_registry)
+    monkeypatch.setattr(
+        entity_registry_mod,
+        "async_entries_for_config_entry",
+        lambda _registry, entry_id: (
+            [
+                types.SimpleNamespace(
+                    entity_id="sensor.legacy_home_grass", platform=integration.DOMAIN
+                ),
+                types.SimpleNamespace(
+                    entity_id="sensor.other_domain", platform="other"
+                ),
+            ]
+            if entry_id == "legacy-entry"
+            else []
+        ),
+    )
+
+    device_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _DeviceRegistry:
+        def async_update_device(self, device_id: str, **kwargs: str) -> None:
+            device_updates.append((device_id, kwargs))
+
+    device_registry = _DeviceRegistry()
+    device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
+    device_registry_mod.async_get = lambda _hass: device_registry
+    device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: (
+        [types.SimpleNamespace(id="device-home")] if entry_id == "legacy-entry" else []
+    )
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
+    )
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+
+    subentry = next(iter(entry.subentries.values()))
+    assert entity_updates == [
+        (
+            "sensor.legacy_home_grass",
+            {
+                "config_entry_id": "legacy-entry",
+                "config_subentry_id": subentry.subentry_id,
+            },
+        )
+    ]
+    assert device_updates == [
+        (
+            "device-home",
+            {
+                "add_config_entry_id": "legacy-entry",
+                "add_config_subentry_id": subentry.subentry_id,
+            },
+        )
+    ]
+
+
 def test_migrate_legacy_entries_with_same_api_key_group_under_one_parent(
     integration_modules: _InitModules,
 ) -> None:
@@ -1538,6 +1768,125 @@ def test_migrate_grouped_entries_moves_registries_to_parent_subentry(
         )
     ]
     assert device_updates == [
+        (
+            "device-office",
+            {
+                "add_config_entry_id": "legacy-home",
+                "add_config_subentry_id": office_subentry.subentry_id,
+            },
+        ),
+        ("device-office", {"remove_config_entry_id": "legacy-office"}),
+    ]
+
+
+def test_migrate_grouped_entries_attaches_parent_registries_to_parent_subentry(
+    integration_modules: _InitModules, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The surviving legacy parent should also get config_subentry registry links."""
+    integration = integration_modules.integration
+
+    parent = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Home",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        version=3,
+        subentries={},
+    )
+    duplicate = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        title="Office",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 3.0,
+            integration.CONF_LONGITUDE: 4.0,
+        },
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[parent, duplicate])
+
+    entity_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _EntityRegistry:
+        def async_update_entity(self, entity_id: str, **kwargs: str) -> None:
+            entity_updates.append((entity_id, kwargs))
+
+    entity_registry = _EntityRegistry()
+    entity_registry_mod = sys.modules["homeassistant.helpers.entity_registry"]
+    monkeypatch.setattr(entity_registry_mod, "async_get", lambda _hass: entity_registry)
+    monkeypatch.setattr(
+        entity_registry_mod,
+        "async_entries_for_config_entry",
+        lambda _registry, entry_id: {
+            "legacy-home": [
+                types.SimpleNamespace(
+                    entity_id="sensor.legacy_home_grass", platform=integration.DOMAIN
+                )
+            ],
+            "legacy-office": [
+                types.SimpleNamespace(
+                    entity_id="sensor.legacy_office_grass", platform=integration.DOMAIN
+                )
+            ],
+        }.get(entry_id, []),
+    )
+
+    device_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _DeviceRegistry:
+        def async_update_device(self, device_id: str, **kwargs: str) -> None:
+            device_updates.append((device_id, kwargs))
+
+    device_registry = _DeviceRegistry()
+    device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
+    device_registry_mod.async_get = lambda _hass: device_registry
+    device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: {
+        "legacy-home": [types.SimpleNamespace(id="device-home")],
+        "legacy-office": [types.SimpleNamespace(id="device-office")],
+    }.get(entry_id, [])
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
+    )
+
+    assert asyncio.run(integration.async_migrate_entry(hass, parent)) is True
+
+    subentries_by_legacy_id = {
+        subentry.data[integration.CONF_LEGACY_ENTRY_ID]: subentry
+        for subentry in parent.subentries.values()
+    }
+    home_subentry = subentries_by_legacy_id["legacy-home"]
+    office_subentry = subentries_by_legacy_id["legacy-office"]
+
+    assert entity_updates == [
+        (
+            "sensor.legacy_home_grass",
+            {
+                "config_entry_id": "legacy-home",
+                "config_subentry_id": home_subentry.subentry_id,
+            },
+        ),
+        (
+            "sensor.legacy_office_grass",
+            {
+                "config_entry_id": "legacy-home",
+                "config_subentry_id": office_subentry.subentry_id,
+            },
+        ),
+    ]
+    assert device_updates == [
+        (
+            "device-home",
+            {
+                "add_config_entry_id": "legacy-home",
+                "add_config_subentry_id": home_subentry.subentry_id,
+            },
+        ),
         (
             "device-office",
             {

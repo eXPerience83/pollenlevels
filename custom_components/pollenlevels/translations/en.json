@@ -74,7 +74,10 @@
       "error": {
         "already_configured": "This location is already configured.",
         "invalid_coordinates": "Please select a valid location on the map.",
-        "unknown": "Unknown error"
+        "unknown": "Unknown error",
+        "invalid_auth": "Invalid API key\n\n{error_message}",
+        "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
+        "quota_exceeded": "Quota exceeded\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Location reconfiguration completed successfully."

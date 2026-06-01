@@ -166,6 +166,101 @@ def _redact_validation_error(
     ).strip()
 
 
+def _daily_info_is_valid(data: Any) -> bool:
+    """Return whether a validation response contains usable dailyInfo."""
+    daily_info = data.get("dailyInfo") if isinstance(data, dict) else None
+    return (
+        isinstance(daily_info, list)
+        and bool(daily_info)
+        and all(isinstance(item, dict) for item in daily_info)
+    )
+
+
+async def _async_validate_api_location(
+    hass: Any,
+    *,
+    api_key: str,
+    latitude: float,
+    longitude: float,
+    language_code: str | None,
+    errors: dict[str, str],
+    description_placeholders: dict[str, Any],
+) -> bool:
+    """Validate that the API key can fetch pollen data for one location."""
+    try:
+        session = async_get_clientsession(hass)
+        client = GooglePollenApiClient(session=session, api_key=api_key)
+        data = await client.async_fetch_pollen_data(
+            latitude=latitude,
+            longitude=longitude,
+            days=1,
+            language_code=language_code,
+        )
+
+        if not _daily_info_is_valid(data):
+            _LOGGER.warning("Validation: 'dailyInfo' missing or invalid")
+            errors["base"] = "cannot_connect"
+            description_placeholders["error_message"] = (
+                "API response missing expected pollen forecast information."
+            )
+            return False
+
+        return True
+
+    except ConfigEntryAuthFailed as err:
+        _LOGGER.warning("Authentication failed during validation")
+        errors["base"] = "invalid_auth"
+        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        description_placeholders["error_message"] = _safe_error_message(
+            redacted, "Authentication failed."
+        )
+    except PollenQuotaExceededError as err:
+        errors["base"] = "quota_exceeded"
+        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        if re.fullmatch(r"HTTP\s+429(?::)?", redacted, flags=re.IGNORECASE):
+            redacted = ""
+        description_placeholders["error_message"] = _safe_error_message(
+            redacted, "Quota exceeded."
+        )
+    except UpdateFailed as err:
+        errors["base"] = "cannot_connect"
+        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        if re.fullmatch(r"HTTP\s+\d+(?::)?", redacted, flags=re.IGNORECASE):
+            redacted = ""
+        description_placeholders["error_message"] = _safe_error_message(
+            redacted, "Failed to connect to the pollen service."
+        )
+    except TimeoutError as err:
+        _LOGGER.warning(
+            "Validation timeout: %s",
+            _redact_validation_error(err, api_key, latitude, longitude),
+        )
+        errors["base"] = "cannot_connect"
+        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        description_placeholders["error_message"] = _safe_error_message(
+            redacted, "Validation request timed out."
+        )
+    except aiohttp.ClientError as err:
+        _LOGGER.error(
+            "Connection error: %s",
+            _redact_validation_error(err, api_key, latitude, longitude),
+        )
+        errors["base"] = "cannot_connect"
+        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        description_placeholders["error_message"] = _safe_error_message(
+            redacted, "Network error while connecting to the pollen service."
+        )
+    except Exception as err:  # defensive
+        _LOGGER.exception(
+            "Unexpected error in Pollen Levels config flow while validating input: %s",
+            _redact_validation_error(err, api_key, latitude, longitude),
+        )
+        errors["base"] = "unknown"
+        description_placeholders.pop("error_message", None)
+
+    return False
+
+
 def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol.Schema:
     """Build the full step user schema without flattening nested sections."""
     user_input = user_input or {}
@@ -346,6 +441,26 @@ def _parent_entry_options(normalized: dict[str, Any]) -> dict[str, Any]:
         if key in normalized:
             options[key] = normalized[key]
     return options
+
+
+def _entry_api_key(entry: config_entries.ConfigEntry) -> str | None:
+    """Return a stripped parent API key or None when unavailable."""
+    raw_api_key = (entry.data or {}).get(CONF_API_KEY)
+    if not isinstance(raw_api_key, str):
+        return None
+    api_key = raw_api_key.strip()
+    return api_key or None
+
+
+def _entry_language_code(entry: config_entries.ConfigEntry) -> str | None:
+    """Return the parent API response language for subentry validation."""
+    raw_language = (entry.options or {}).get(
+        CONF_LANGUAGE_CODE, (entry.data or {}).get(CONF_LANGUAGE_CODE)
+    )
+    if not isinstance(raw_language, str):
+        return None
+    language = raw_language.strip()
+    return language or None
 
 
 def _first_location_data(entry: config_entries.ConfigEntry) -> dict[str, Any]:
@@ -579,28 +694,15 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if lang:
                 lang = is_valid_language_code(lang)
 
-            session = async_get_clientsession(self.hass)
-            client = GooglePollenApiClient(session=session, api_key=api_key)
-            data = await client.async_fetch_pollen_data(
+            if not await _async_validate_api_location(
+                self.hass,
+                api_key=api_key,
                 latitude=lat,
                 longitude=lon,
-                days=1,
                 language_code=lang or None,
-            )
-
-            daily_info = data.get("dailyInfo") if isinstance(data, dict) else None
-            daily_is_valid = isinstance(daily_info, list) and bool(daily_info)
-            if daily_is_valid:
-                daily_is_valid = all(isinstance(item, dict) for item in daily_info)
-
-            if not daily_is_valid:
-                _LOGGER.warning("Validation: 'dailyInfo' missing or invalid")
-                errors["base"] = "cannot_connect"
-                placeholders["error_message"] = (
-                    "API response missing expected pollen forecast information."
-                )
-
-            if errors:
+                errors=errors,
+                description_placeholders=placeholders,
+            ):
                 return errors, None
 
             normalized[CONF_LANGUAGE_CODE] = lang
@@ -613,56 +715,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ve,
             )
             errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
-            placeholders.pop("error_message", None)
-        except ConfigEntryAuthFailed as err:
-            _LOGGER.warning("Authentication failed during validation")
-            errors["base"] = "invalid_auth"
-            redacted = _redact_validation_error(err, api_key, lat, lon)
-            placeholders["error_message"] = _safe_error_message(
-                redacted, "Authentication failed."
-            )
-        except PollenQuotaExceededError as err:
-            errors["base"] = "quota_exceeded"
-            redacted = _redact_validation_error(err, api_key, lat, lon)
-            if re.fullmatch(r"HTTP\s+429(?::)?", redacted, flags=re.IGNORECASE):
-                redacted = ""
-            placeholders["error_message"] = _safe_error_message(
-                redacted, "Quota exceeded."
-            )
-        except UpdateFailed as err:
-            errors["base"] = "cannot_connect"
-            redacted = _redact_validation_error(err, api_key, lat, lon)
-            if re.fullmatch(r"HTTP\s+\d+(?::)?", redacted, flags=re.IGNORECASE):
-                redacted = ""
-            placeholders["error_message"] = _safe_error_message(
-                redacted, "Failed to connect to the pollen service."
-            )
-        except TimeoutError as err:
-            _LOGGER.warning(
-                "Validation timeout: %s",
-                _redact_validation_error(err, api_key, lat, lon),
-            )
-            errors["base"] = "cannot_connect"
-            redacted = _redact_validation_error(err, api_key, lat, lon)
-            placeholders["error_message"] = _safe_error_message(
-                redacted, "Validation request timed out."
-            )
-        except aiohttp.ClientError as err:
-            _LOGGER.error(
-                "Connection error: %s",
-                _redact_validation_error(err, api_key, lat, lon),
-            )
-            errors["base"] = "cannot_connect"
-            redacted = _redact_validation_error(err, api_key, lat, lon)
-            placeholders["error_message"] = _safe_error_message(
-                redacted, "Network error while connecting to the pollen service."
-            )
-        except Exception as err:  # defensive
-            _LOGGER.exception(
-                "Unexpected error in Pollen Levels config flow while validating input: %s",
-                _redact_validation_error(err, api_key, lat, lon),
-            )
-            errors["base"] = "unknown"
             placeholders.pop("error_message", None)
 
         return errors, None
@@ -847,6 +899,7 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
     ) -> config_entries.SubentryFlowResult:
         """Add a new pollen location to an existing parent entry."""
         errors: dict[str, str] = {}
+        description_placeholders: dict[str, Any] = {}
         entry = self._get_entry()
 
         if user_input is not None:
@@ -860,23 +913,40 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                 if _has_duplicate_location(entry, unique_id):
                     errors["base"] = "already_configured"
                 else:
-                    return self.async_create_entry(
-                        title=title,
-                        data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
-                        unique_id=unique_id,
-                    )
+                    api_key = _entry_api_key(entry)
+                    if api_key is None:
+                        errors["base"] = "invalid_auth"
+                        description_placeholders["error_message"] = "Invalid API key."
+                    elif await _async_validate_api_location(
+                        self.hass,
+                        api_key=api_key,
+                        latitude=lat,
+                        longitude=lon,
+                        language_code=_entry_language_code(entry),
+                        errors=errors,
+                        description_placeholders=description_placeholders,
+                    ):
+                        return self.async_create_entry(
+                            title=title,
+                            data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
+                            unique_id=unique_id,
+                        )
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=_build_location_subentry_schema(self.hass, user_input),
-            errors=errors,
-        )
+        form_kwargs: dict[str, Any] = {
+            "step_id": "user",
+            "data_schema": _build_location_subentry_schema(self.hass, user_input),
+            "errors": errors,
+        }
+        if description_placeholders:
+            form_kwargs["description_placeholders"] = description_placeholders
+        return self.async_show_form(**form_kwargs)
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.SubentryFlowResult:
         """Update an existing pollen location subentry."""
         errors: dict[str, str] = {}
+        description_placeholders: dict[str, Any] = {}
         entry = self._get_entry()
         subentry = self._get_reconfigure_subentry()
         subentry_data = dict(subentry.data or {})
@@ -898,31 +968,47 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                 ):
                     errors["base"] = "already_configured"
                 else:
-                    data = {
-                        CONF_LATITUDE: lat,
-                        CONF_LONGITUDE: lon,
-                    }
-                    legacy_entry_id = subentry_data.get(CONF_LEGACY_ENTRY_ID)
-                    if legacy_entry_id:
-                        data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
-                    return self.async_update_reload_and_abort(
-                        entry,
-                        subentry,
-                        title=title,
-                        data=data,
-                        unique_id=unique_id,
-                    )
+                    api_key = _entry_api_key(entry)
+                    if api_key is None:
+                        errors["base"] = "invalid_auth"
+                        description_placeholders["error_message"] = "Invalid API key."
+                    elif await _async_validate_api_location(
+                        self.hass,
+                        api_key=api_key,
+                        latitude=lat,
+                        longitude=lon,
+                        language_code=_entry_language_code(entry),
+                        errors=errors,
+                        description_placeholders=description_placeholders,
+                    ):
+                        data = {
+                            CONF_LATITUDE: lat,
+                            CONF_LONGITUDE: lon,
+                        }
+                        legacy_entry_id = subentry_data.get(CONF_LEGACY_ENTRY_ID)
+                        if legacy_entry_id:
+                            data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
+                        return self.async_update_reload_and_abort(
+                            entry,
+                            subentry,
+                            title=title,
+                            data=data,
+                            unique_id=unique_id,
+                        )
 
-        return self.async_show_form(
-            step_id="reconfigure",
-            data_schema=_build_location_subentry_schema(
+        form_kwargs: dict[str, Any] = {
+            "step_id": "reconfigure",
+            "data_schema": _build_location_subentry_schema(
                 self.hass,
                 user_input,
                 name_default=subentry.title,
                 location_default=location_default,
             ),
-            errors=errors,
-        )
+            "errors": errors,
+        }
+        if description_placeholders:
+            form_kwargs["description_placeholders"] = description_placeholders
+        return self.async_show_form(**form_kwargs)
 
 
 class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):

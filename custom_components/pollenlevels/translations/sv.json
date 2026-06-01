@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Den här platsen är redan konfigurerad.",
         "invalid_coordinates": "Välj en giltig plats på kartan.",
-        "unknown": "Okänt fel"
+        "unknown": "Okänt fel",
+        "invalid_auth": "Ogiltig API-nyckel\n\n{error_message}",
+        "cannot_connect": "Kan inte ansluta till tjänsten\n\n{error_message}",
+        "quota_exceeded": "Kvoten har överskridits\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Platsen har konfigurerats om."

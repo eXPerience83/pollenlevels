@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Tämä sijainti on jo määritetty.",
         "invalid_coordinates": "Valitse kelvollinen sijainti kartalta.",
-        "unknown": "Tuntematon virhe"
+        "unknown": "Tuntematon virhe",
+        "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
+        "cannot_connect": "Palveluun ei saada yhteyttä\n\n{error_message}",
+        "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Sijainnin uudelleenmääritys onnistui."

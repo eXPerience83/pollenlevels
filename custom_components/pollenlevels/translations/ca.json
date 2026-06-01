@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Aquesta ubicació ja està configurada.",
         "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
-        "unknown": "Error desconegut"
+        "unknown": "Error desconegut",
+        "invalid_auth": "Clau API no vàlida\n\n{error_message}",
+        "cannot_connect": "No es pot connectar al servei de pol·len.\n\n{error_message}",
+        "quota_exceeded": "Quota excedida\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "La reconfiguració de la ubicació s'ha completat correctament."

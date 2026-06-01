@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Denne plasseringen er allerede konfigurert.",
         "invalid_coordinates": "Velg en gyldig plassering på kartet.",
-        "unknown": "Ukjent feil"
+        "unknown": "Ukjent feil",
+        "invalid_auth": "Ugyldig API-nøkkel\n\n{error_message}",
+        "cannot_connect": "Kan ikke koble til tjenesten\n\n{error_message}",
+        "quota_exceeded": "Kvote overskredet\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Plasseringen ble konfigurert på nytt."

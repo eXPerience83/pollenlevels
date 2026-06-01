@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Această locație este deja configurată.",
         "invalid_coordinates": "Selectează o locație validă pe hartă.",
-        "unknown": "Eroare necunoscută"
+        "unknown": "Eroare necunoscută",
+        "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
+        "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
+        "quota_exceeded": "Cota depășită\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Reconfigurarea locației s-a finalizat cu succes."

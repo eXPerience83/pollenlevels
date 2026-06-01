@@ -132,11 +132,14 @@ class _StubConfigSubentryFlow:
         }
 
     def async_show_form(self, *args, **kwargs):
-        return {
+        result = {
             "type": "form",
             "step_id": kwargs.get("step_id") or (args[0] if args else None),
             "errors": kwargs.get("errors") or {},
         }
+        if "description_placeholders" in kwargs:
+            result["description_placeholders"] = kwargs["description_placeholders"]
+        return result
 
     def async_abort(self, *, reason=None, description_placeholders=None):
         return {
@@ -2730,11 +2733,14 @@ def test_location_subentry_user_step_shows_form(
 
 def test_location_subentry_user_step_creates_entry_without_premature_reload(
     config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Adding a valid location should let subentry creation handle reload."""
 
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
     entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={config_flow_stubs.CONF_API_KEY: "key"},
+        options={config_flow_stubs.CONF_LANGUAGE_CODE: " es-ES "},
         entry_id="entry-id",
     )
     flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
@@ -2758,6 +2764,86 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
         config_flow_stubs.CONF_LONGITUDE: -98.76543,
     }
     assert result["unique_id"] == "12.3457_-98.7654"
+    assert recorder.reload_calls == []
+    assert calls == [
+        {
+            "latitude": 12.34567,
+            "longitude": -98.76543,
+            "days": 1,
+            "language_code": "es-ES",
+        }
+    ]
+
+
+def test_location_subentry_user_step_rejects_invalid_api_payload(
+    config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Adding a location should reject invalid dailyInfo before persistence."""
+
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": []}
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                config_flow_stubs.CONF_NAME: "Garden",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 12.34567,
+                    config_flow_stubs.CONF_LONGITUDE: -98.76543,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert result["description_placeholders"]["error_message"] == (
+        "API response missing expected pollen forecast information."
+    )
+    assert calls
+    assert recorder.reload_calls == []
+
+
+def test_location_subentry_user_step_rejects_timeout_before_create(
+    config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Adding a location should map validation timeouts to cannot_connect."""
+
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, error=TimeoutError("timed out")
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                config_flow_stubs.CONF_NAME: "Garden",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 12.34567,
+                    config_flow_stubs.CONF_LONGITUDE: -98.76543,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert result["description_placeholders"]["error_message"] == "timed out"
+    assert calls
     assert recorder.reload_calls == []
 
 
@@ -2835,9 +2921,11 @@ def test_location_subentry_user_step_rejects_duplicate_location(
 
 def test_location_subentry_reconfigure_updates_entry_and_schedules_reload(
     config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Reconfiguring a location should update the subentry and reload parent."""
 
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
     subentry = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
         data={
             config_flow_stubs.CONF_LATITUDE: 1.0,
@@ -2876,13 +2964,23 @@ def test_location_subentry_reconfigure_updates_entry_and_schedules_reload(
     }
     assert subentry.unique_id == "3.0000_4.0000"
     assert recorder.reload_calls == ["entry-id"]
+    assert calls == [
+        {
+            "latitude": 3.0,
+            "longitude": 4.0,
+            "days": 1,
+            "language_code": None,
+        }
+    ]
 
 
 def test_location_subentry_reconfigure_preserves_legacy_entry_id(
     config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Reconfiguring a migrated location should preserve legacy identity data."""
 
+    _patch_client_fetch(config_flow_stubs, monkeypatch)
     subentry = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
         data={
             config_flow_stubs.CONF_LATITUDE: 1.0,
@@ -2916,6 +3014,57 @@ def test_location_subentry_reconfigure_preserves_legacy_entry_id(
     assert subentry.data[config_flow_stubs.config_flow.CONF_LEGACY_ENTRY_ID] == (
         "legacy-entry"
     )
+
+
+def test_location_subentry_reconfigure_rejects_invalid_api_payload_without_update(
+    config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reconfigure should not update the subentry when validation fails."""
+
+    calls = _patch_client_fetch(
+        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}, "bad"]}
+    )
+    subentry = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="subentry-1",
+        title="Home",
+        unique_id="1.0000_2.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+        subentries={subentry.subentry_id: subentry},
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+    flow.context = {"subentry_id": subentry.subentry_id}
+
+    result = asyncio.run(
+        flow.async_step_reconfigure(
+            {
+                config_flow_stubs.CONF_NAME: "Garden",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 3.0,
+                    config_flow_stubs.CONF_LONGITUDE: 4.0,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "reconfigure"
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert subentry.title == "Home"
+    assert subentry.data == {
+        config_flow_stubs.CONF_LATITUDE: 1.0,
+        config_flow_stubs.CONF_LONGITUDE: 2.0,
+    }
+    assert subentry.unique_id == "1.0000_2.0000"
+    assert recorder.reload_calls == []
+    assert calls
 
 
 def test_location_subentry_reconfigure_rejects_other_duplicate(
@@ -2974,9 +3123,11 @@ def test_location_subentry_reconfigure_rejects_other_duplicate(
 
 def test_location_subentry_reconfigure_allows_current_location(
     config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Keeping the same coordinates should not count as a duplicate."""
 
+    _patch_client_fetch(config_flow_stubs, monkeypatch)
     current = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
         data={
             config_flow_stubs.CONF_LATITUDE: 1.0,

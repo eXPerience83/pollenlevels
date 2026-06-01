@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Deze locatie is al geconfigureerd.",
         "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
-        "unknown": "Onbekende fout"
+        "unknown": "Onbekende fout",
+        "invalid_auth": "Ongeldige API-sleutel\n\n{error_message}",
+        "cannot_connect": "Kan geen verbinding maken met de service\n\n{error_message}",
+        "quota_exceeded": "Limiet overschreden\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "Locatie opnieuw configureren is voltooid."

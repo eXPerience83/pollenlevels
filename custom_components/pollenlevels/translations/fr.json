@@ -145,7 +145,10 @@
       "error": {
         "already_configured": "Cet emplacement est déjà configuré.",
         "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
-        "unknown": "Erreur inconnue"
+        "unknown": "Erreur inconnue",
+        "invalid_auth": "Clé API invalide\n\n{error_message}",
+        "cannot_connect": "Impossible de se connecter au service\n\n{error_message}",
+        "quota_exceeded": "Quota dépassé\n\n{error_message}"
       },
       "abort": {
         "reconfigure_successful": "La reconfiguration de l'emplacement a réussi."
