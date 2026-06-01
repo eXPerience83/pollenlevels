@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import re
-from hashlib import sha256
 from typing import Any
 
 import aiohttp
@@ -61,6 +60,7 @@ from .const import (
     SUBENTRY_TYPE_LOCATION,
 )
 from .util import (
+    api_key_unique_id,
     normalize_sensor_mode,
     redact_api_key,
     redact_sensitive_values,
@@ -299,7 +299,7 @@ def _validate_location_dict(
 
 def _api_key_unique_id(api_key: str) -> str:
     """Return a stable, non-secret unique ID for one shared API key."""
-    return f"api_key_{sha256(api_key.encode()).hexdigest()[:16]}"
+    return api_key_unique_id(api_key)
 
 
 def _location_unique_id(lat: float, lon: float) -> str:
@@ -766,15 +766,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     description_placeholders=candidate_placeholders,
                 )
                 if not errors and normalized is not None:
+                    updated_api_key = str(normalized.get(CONF_API_KEY, "")).strip()
                     if persist_normalized_data:
                         data_updates = normalized
                     else:
                         data_updates = {
-                            CONF_API_KEY: str(normalized.get(CONF_API_KEY, "")).strip(),
+                            CONF_API_KEY: updated_api_key,
                         }
                     return self.async_update_reload_and_abort(
                         entry,
                         data_updates=data_updates,
+                        unique_id=_api_key_unique_id(updated_api_key),
                         reason=success_reason,
                     )
 

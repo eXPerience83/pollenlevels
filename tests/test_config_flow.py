@@ -76,6 +76,8 @@ class _StubConfigFlow:
         if data_updates:
             new_data.update(data_updates)
         self.hass.config_entries.async_update_entry(entry, data=new_data)
+        if "unique_id" in kwargs:
+            entry.unique_id = kwargs["unique_id"]
         self.hass.config_entries.async_reload(entry.entry_id)
         return self.async_abort(reason=reason)
 
@@ -2088,6 +2090,9 @@ def test_reauth_confirm_updates_existing_entry_and_reloads(
         },
     )
     assert recorder.reloaded == "entry-id"
+    assert entry.unique_id == config_flow_stubs.config_flow._api_key_unique_id(
+        "new-key"
+    )
 
 
 @pytest.mark.parametrize(
@@ -2614,6 +2619,66 @@ def test_async_step_user_defaults_entry_name(
         config_flow_stubs.CONF_LATITUDE: 1.0,
         config_flow_stubs.CONF_LONGITUDE: 2.0,
     }
+
+
+def test_async_step_user_checks_api_key_unique_id_for_existing_parent(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """New setup should detect an existing migrated parent by API-key identity."""
+
+    class _AlreadyConfigured(Exception):
+        pass
+
+    class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.unique_ids: list[str] = []
+
+        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
+            self.unique_ids.append(uid)
+            return None
+
+        def _abort_if_unique_id_configured(self):
+            raise _AlreadyConfigured
+
+    flow = _TrackingFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
+        config_entries=SimpleNamespace(
+            async_entry_for_domain_unique_id=lambda *_args: object()
+        ),
+    )
+
+    normalized = {
+        config_flow_stubs.CONF_API_KEY: "shared-key",
+        config_flow_stubs.CONF_LATITUDE: 1.0,
+        config_flow_stubs.CONF_LONGITUDE: 2.0,
+        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
+    }
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        assert check_unique_id is False
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    user_input = {
+        config_flow_stubs.CONF_API_KEY: "shared-key",
+        config_flow_stubs.CONF_NAME: "Home",
+        config_flow_stubs.CONF_LOCATION: {
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+    }
+
+    with pytest.raises(_AlreadyConfigured):
+        asyncio.run(flow.async_step_user(user_input))
+
+    assert flow.unique_ids == [
+        config_flow_stubs.config_flow._api_key_unique_id("shared-key")
+    ]
 
 
 class _SubentryRecorder:

@@ -56,7 +56,12 @@ def _iso_or_none(dt_obj: Any) -> str | None:
 
 
 def _rounded(value: Any) -> float | None:
-    """Return a support-safe 1-decimal coordinate for diagnostics."""
+    """Return a support-safe 1-decimal coordinate for diagnostics.
+
+    The 1-decimal precision is deliberate: it is enough to tell whether a
+    reported issue is tied to an unsupported area versus an API/integration
+    failure, while avoiding full-precision location disclosure.
+    """
     try:
         f = float(value)
     except TypeError, ValueError, OverflowError:

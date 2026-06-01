@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
 from .const import FORECAST_SENSORS_CHOICES
@@ -166,6 +167,11 @@ def redact_api_key(text: object, api_key: str | None) -> str:
     return redact_sensitive_values(text, api_key=api_key)
 
 
+def api_key_unique_id(api_key: str) -> str:
+    """Return a stable, non-secret unique ID for one shared API key."""
+    return f"api_key_{sha256(api_key.encode()).hexdigest()[:16]}"
+
+
 def parse_finite_float(value: Any) -> float | None:
     """Parse a finite float value, rejecting bools and invalid input."""
     if value is None or isinstance(value, bool):
@@ -254,6 +260,7 @@ def safe_parse_int(value: Any) -> int | None:
 _redact_api_key = redact_api_key
 
 __all__ = [
+    "api_key_unique_id",
     "extract_error_message",
     "normalize_sensor_mode",
     "parse_finite_float",

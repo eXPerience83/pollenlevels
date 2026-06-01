@@ -48,6 +48,7 @@ from .runtime import (
 )
 from .sensor import ForecastSensorMode
 from .util import (
+    api_key_unique_id,
     normalize_sensor_mode,
     redact_sensitive_values,
     safe_parse_int,
@@ -525,15 +526,25 @@ def _update_parent_entry(
     options: dict[str, Any],
     target_version: int,
 ) -> None:
-    """Persist cleaned parent data, options, and version."""
+    """Persist cleaned parent identity, data, options, and version."""
     new_data = _clean_parent_data(api_key)
     existing_data = parent.data or {}
     existing_options = parent.options or {}
     new_version = max(_entry_version(parent), target_version)
-    if new_data != existing_data or options != existing_options:
-        hass.config_entries.async_update_entry(
-            parent, data=new_data, options=options, version=new_version
-        )
+    new_unique_id = api_key_unique_id(api_key) if api_key is not None else None
+    unique_id_changed = (
+        new_unique_id is not None
+        and getattr(parent, "unique_id", None) != new_unique_id
+    )
+    if new_data != existing_data or options != existing_options or unique_id_changed:
+        updates: dict[str, Any] = {
+            "data": new_data,
+            "options": options,
+            "version": new_version,
+        }
+        if new_unique_id is not None:
+            updates["unique_id"] = new_unique_id
+        hass.config_entries.async_update_entry(parent, **updates)
     else:
         hass.config_entries.async_update_entry(parent, version=new_version)
 
@@ -667,8 +678,14 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         existing_data = entry.data or {}
         existing_options = entry.options or {}
         cleanup_needed = _entry_needs_cleanup(entry, current_version, target_version)
+        target_unique_id = api_key_unique_id(api_key) if api_key is not None else None
+        unique_id_changed = (
+            target_unique_id is not None
+            and getattr(entry, "unique_id", None) != target_unique_id
+        )
         if current_version >= target_version and not cleanup_needed:
-            return True
+            if not unique_id_changed:
+                return True
 
         new_data = _clean_parent_data(api_key)
         new_options = _clean_parent_options(entry)
@@ -680,10 +697,19 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _add_migrated_subentry(hass, entry, subentry)
 
         new_version = max(current_version, target_version)
-        if new_data != existing_data or new_options != existing_options:
-            hass.config_entries.async_update_entry(
-                entry, data=new_data, options=new_options, version=new_version
-            )
+        if (
+            new_data != existing_data
+            or new_options != existing_options
+            or unique_id_changed
+        ):
+            updates: dict[str, Any] = {
+                "data": new_data,
+                "options": new_options,
+                "version": new_version,
+            }
+            if target_unique_id is not None:
+                updates["unique_id"] = target_unique_id
+            hass.config_entries.async_update_entry(entry, **updates)
         else:
             hass.config_entries.async_update_entry(entry, version=new_version)
         return True
@@ -814,7 +840,7 @@ async def async_setup_entry(
                 entry.entry_id,
                 subentry_id,
             )
-            raise ConfigEntryNotReady
+            raise ConfigEntryNotReady("Invalid location configuration")
         lat, lon = latlon
 
         coordinator = PollenDataUpdateCoordinator(
