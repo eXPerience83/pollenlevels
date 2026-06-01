@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
+from hashlib import sha256
 from typing import Any
 
 import aiohttp
@@ -44,6 +45,7 @@ from .const import (
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
+    CONF_LEGACY_ENTRY_ID,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,
@@ -56,6 +58,7 @@ from .const import (
     MIN_UPDATE_INTERVAL_HOURS,
     POLLEN_API_KEY_URL,
     RESTRICTING_API_KEYS_URL,
+    SUBENTRY_TYPE_LOCATION,
 )
 from .util import (
     normalize_sensor_mode,
@@ -244,6 +247,43 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
     return schema
 
 
+def _build_location_subentry_schema(
+    hass: Any,
+    user_input: dict[str, Any] | None,
+    *,
+    name_default: str | None = None,
+    location_default: dict[str, Any] | None = None,
+) -> vol.Schema:
+    """Build the schema for adding or editing one location subentry."""
+    user_input = user_input or {}
+    default_name = str(
+        user_input.get(CONF_NAME)
+        or name_default
+        or getattr(hass.config, "location_name", "")
+        or DEFAULT_ENTRY_TITLE
+    )
+
+    if isinstance(user_input.get(CONF_LOCATION), dict):
+        location_default = user_input[CONF_LOCATION]
+    elif location_default is None:
+        lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
+        lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+        if lat is not None and lon is not None:
+            location_default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
+
+    if location_default is not None:
+        location_field = vol.Required(CONF_LOCATION, default=location_default)
+    else:
+        location_field = vol.Required(CONF_LOCATION)
+
+    return vol.Schema(
+        {
+            vol.Required(CONF_NAME, default=default_name): str,
+            location_field: LocationSelector(LocationSelectorConfig(radius=False)),
+        }
+    )
+
+
 def _validate_location_dict(
     location: dict[str, Any] | None,
 ) -> tuple[float, float] | None:
@@ -255,6 +295,82 @@ def _validate_location_dict(
     lon_val = location.get(CONF_LONGITUDE)
 
     return validate_location_pair(lat_val, lon_val)
+
+
+def _api_key_unique_id(api_key: str) -> str:
+    """Return a stable, non-secret unique ID for one shared API key."""
+    return f"api_key_{sha256(api_key.encode()).hexdigest()[:16]}"
+
+
+def _location_unique_id(lat: float, lon: float) -> str:
+    """Return the legacy coordinate unique ID format."""
+    return f"{lat:.4f}_{lon:.4f}"
+
+
+def _location_subentry_data(
+    *,
+    title: str,
+    lat: float,
+    lon: float,
+    legacy_entry_id: str | None = None,
+) -> dict[str, Any]:
+    """Return ConfigSubentryData for one pollen location."""
+    data: dict[str, Any] = {
+        CONF_LATITUDE: lat,
+        CONF_LONGITUDE: lon,
+    }
+    if legacy_entry_id:
+        data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
+    return {
+        "subentry_type": SUBENTRY_TYPE_LOCATION,
+        "title": title,
+        "data": data,
+        "unique_id": _location_unique_id(lat, lon),
+    }
+
+
+def _parent_entry_data(normalized: dict[str, Any]) -> dict[str, Any]:
+    """Return parent config entry data for v3 storage."""
+    return {CONF_API_KEY: normalized[CONF_API_KEY]}
+
+
+def _parent_entry_options(normalized: dict[str, Any]) -> dict[str, Any]:
+    """Return parent config entry options for v3 storage."""
+    options: dict[str, Any] = {}
+    for key in (
+        CONF_UPDATE_INTERVAL,
+        CONF_LANGUAGE_CODE,
+        CONF_FORECAST_DAYS,
+        CONF_CREATE_FORECAST_SENSORS,
+    ):
+        if key in normalized:
+            options[key] = normalized[key]
+    return options
+
+
+def _first_location_data(entry: config_entries.ConfigEntry) -> dict[str, Any]:
+    """Return the first location data for validating parent reauth/reconfigure."""
+    for subentry in (getattr(entry, "subentries", {}) or {}).values():
+        if getattr(subentry, "subentry_type", None) == SUBENTRY_TYPE_LOCATION:
+            return dict(subentry.data or {})
+    return dict(entry.data or {})
+
+
+def _has_duplicate_location(
+    entry: config_entries.ConfigEntry,
+    unique_id: str,
+    *,
+    current_subentry_id: str | None = None,
+) -> bool:
+    """Return whether a location unique id already exists in this parent entry."""
+    for subentry in (getattr(entry, "subentries", {}) or {}).values():
+        if getattr(subentry, "subentry_type", None) != SUBENTRY_TYPE_LOCATION:
+            continue
+        if current_subentry_id and subentry.subentry_id == current_subentry_id:
+            continue
+        if getattr(subentry, "unique_id", None) == unique_id:
+            return True
+    return False
 
 
 def _parse_int_option(
@@ -328,6 +444,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> PollenLevelsOptionsFlow:
         """Return the options flow handler."""
         return PollenLevelsOptionsFlow()
+
+    @classmethod
+    def async_get_supported_subentry_types(
+        cls, config_entry: config_entries.ConfigEntry
+    ) -> dict[str, type[config_entries.ConfigSubentryFlow]]:
+        """Return subentries supported by this integration."""
+        return {SUBENTRY_TYPE_LOCATION: PollenLevelsLocationSubentryFlow}
 
     async def _async_validate_input(
         self,
@@ -536,13 +659,32 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             errors, normalized = await self._async_validate_input(
                 sanitized_input,
-                check_unique_id=True,
+                check_unique_id=False,
                 description_placeholders=description_placeholders,
             )
             if not errors and normalized is not None:
+                await self.async_set_unique_id(
+                    _api_key_unique_id(normalized[CONF_API_KEY]),
+                    raise_on_progress=False,
+                )
+                if hasattr(
+                    getattr(self.hass, "config_entries", None),
+                    "async_entry_for_domain_unique_id",
+                ):
+                    self._abort_if_unique_id_configured()
                 entry_name = str(user_input.get(CONF_NAME, "")).strip()
                 title = entry_name or DEFAULT_ENTRY_TITLE
-                return self.async_create_entry(title=title, data=normalized)
+                subentry = _location_subentry_data(
+                    title=title,
+                    lat=normalized[CONF_LATITUDE],
+                    lon=normalized[CONF_LONGITUDE],
+                )
+                return self.async_create_entry(
+                    title=title,
+                    data=_parent_entry_data(normalized),
+                    options=_parent_entry_options(normalized),
+                    subentries=[subentry],
+                )
 
         return self.async_show_form(
             step_id="user",
@@ -568,19 +710,25 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.ConfigFlowResult:
         """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
+        location_data = _first_location_data(entry)
         placeholders = {
             "latitude": _format_visible_coordinate(
-                entry.data.get(CONF_LATITUDE), lat=True
+                location_data.get(CONF_LATITUDE), lat=True
             ),
             "longitude": _format_visible_coordinate(
-                entry.data.get(CONF_LONGITUDE), lat=False
+                location_data.get(CONF_LONGITUDE), lat=False
             ),
             "api_key_url": POLLEN_API_KEY_URL,
             "restricting_api_keys_url": RESTRICTING_API_KEYS_URL,
         }
 
         if user_input:
-            combined: dict[str, Any] = {**entry.data, **user_input}
+            combined: dict[str, Any] = {
+                **entry.options,
+                **entry.data,
+                **location_data,
+                **user_input,
+            }
             errors, normalized = await self._async_validate_input(
                 combined,
                 check_unique_id=False,
@@ -643,6 +791,92 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             success_reason="reconfigure_successful",
             user_input=user_input,
             persist_normalized_data=False,
+        )
+
+
+class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
+    """Handle adding and updating pollen location subentries."""
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.SubentryFlowResult:
+        """Add a new pollen location to an existing parent entry."""
+        errors: dict[str, str] = {}
+        entry = self._get_entry()
+
+        if user_input is not None:
+            title = str(user_input.get(CONF_NAME, "")).strip() or DEFAULT_ENTRY_TITLE
+            latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
+            if latlon is None:
+                errors[CONF_LOCATION] = "invalid_coordinates"
+            else:
+                lat, lon = latlon
+                unique_id = _location_unique_id(lat, lon)
+                if _has_duplicate_location(entry, unique_id):
+                    errors["base"] = "already_configured"
+                else:
+                    return self.async_create_entry(
+                        title=title,
+                        data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
+                        unique_id=unique_id,
+                    )
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_build_location_subentry_schema(self.hass, user_input),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.SubentryFlowResult:
+        """Update an existing pollen location subentry."""
+        errors: dict[str, str] = {}
+        entry = self._get_entry()
+        subentry = self._get_reconfigure_subentry()
+        subentry_data = dict(subentry.data or {})
+        location_default = {
+            CONF_LATITUDE: subentry_data.get(CONF_LATITUDE),
+            CONF_LONGITUDE: subentry_data.get(CONF_LONGITUDE),
+        }
+
+        if user_input is not None:
+            title = str(user_input.get(CONF_NAME, "")).strip() or DEFAULT_ENTRY_TITLE
+            latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
+            if latlon is None:
+                errors[CONF_LOCATION] = "invalid_coordinates"
+            else:
+                lat, lon = latlon
+                unique_id = _location_unique_id(lat, lon)
+                if _has_duplicate_location(
+                    entry, unique_id, current_subentry_id=subentry.subentry_id
+                ):
+                    errors["base"] = "already_configured"
+                else:
+                    data = {
+                        CONF_LATITUDE: lat,
+                        CONF_LONGITUDE: lon,
+                    }
+                    legacy_entry_id = subentry_data.get(CONF_LEGACY_ENTRY_ID)
+                    if legacy_entry_id:
+                        data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
+                    return self.async_update_and_abort(
+                        entry,
+                        subentry,
+                        title=title,
+                        data=data,
+                        unique_id=unique_id,
+                    )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_build_location_subentry_schema(
+                self.hass,
+                user_input,
+                name_default=subentry.title,
+                location_default=location_default,
+            ),
+            errors=errors,
         )
 
 

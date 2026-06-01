@@ -9,6 +9,7 @@ CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_LANGUAGE_CODE = "language_code"
+CONF_LEGACY_ENTRY_ID = "legacy_entry_id"
 
 # Forecast-related options (Phase 1.1: types only)
 CONF_FORECAST_DAYS = "forecast_days"
@@ -36,6 +37,7 @@ RESTRICTING_API_KEYS_URL = (
 # Allowed values for create_forecast_sensors selector
 FORECAST_SENSORS_CHOICES: list[str] = ["none", "D+1", "D+1+2"]
 ATTRIBUTION = "Data provided by Google Maps Pollen API"
+SUBENTRY_TYPE_LOCATION = "location"
 
 
 def is_invalid_api_key_message(message: str | None) -> bool:

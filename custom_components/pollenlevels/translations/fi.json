@@ -39,7 +39,8 @@
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
       "unknown": "Tuntematon virhe",
       "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
-      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5."
+      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5.",
+      "already_configured": "This location is already configured."
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
@@ -118,6 +119,37 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Siitepölytietoja ei voitu päivittää"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Location",
+      "step": {
+        "user": {
+          "title": "Add Pollen Levels location",
+          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure Pollen Levels location",
+          "description": "Update this location name and map coordinates.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This location is already configured.",
+        "invalid_coordinates": "Please select a valid location on the map.",
+        "unknown": "Unknown error"
+      },
+      "abort": {
+        "reconfigure_successful": "Location reconfiguration completed successfully."
+      }
     }
   }
 }

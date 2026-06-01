@@ -39,7 +39,8 @@
       "invalid_coordinates": "Seleziona una posizione valida sulla mappa.",
       "unknown": "Errore sconosciuto",
       "invalid_update_interval": "L’intervallo di aggiornamento deve essere compreso tra 1 e 24 ore.",
-      "invalid_forecast_days": "I giorni di previsione devono essere compresi tra 1 e 5."
+      "invalid_forecast_days": "I giorni di previsione devono essere compresi tra 1 e 5.",
+      "already_configured": "This location is already configured."
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata.",
@@ -118,6 +119,37 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Impossibile aggiornare i dati sui pollini"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Location",
+      "step": {
+        "user": {
+          "title": "Add Pollen Levels location",
+          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure Pollen Levels location",
+          "description": "Update this location name and map coordinates.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This location is already configured.",
+        "invalid_coordinates": "Please select a valid location on the map.",
+        "unknown": "Unknown error"
+      },
+      "abort": {
+        "reconfigure_successful": "Location reconfiguration completed successfully."
+      }
     }
   }
 }

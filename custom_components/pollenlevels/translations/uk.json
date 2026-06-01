@@ -39,7 +39,8 @@
       "invalid_coordinates": "Виберіть дійсне місце на карті.",
       "unknown": "Невідома помилка",
       "invalid_update_interval": "Інтервал оновлення має бути між 1 і 24 годинами.",
-      "invalid_forecast_days": "Дні прогнозу мають бути від 1 до 5."
+      "invalid_forecast_days": "Дні прогнозу мають бути від 1 до 5.",
+      "already_configured": "This location is already configured."
     },
     "abort": {
       "already_configured": "Це розташування вже налаштовано.",
@@ -118,6 +119,37 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Не вдалося оновити дані про пилок"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Location",
+      "step": {
+        "user": {
+          "title": "Add Pollen Levels location",
+          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure Pollen Levels location",
+          "description": "Update this location name and map coordinates.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This location is already configured.",
+        "invalid_coordinates": "Please select a valid location on the map.",
+        "unknown": "Unknown error"
+      },
+      "abort": {
+        "reconfigure_successful": "Location reconfiguration completed successfully."
+      }
     }
   }
 }

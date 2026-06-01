@@ -71,17 +71,27 @@ def options_flow_env(monkeypatch: pytest.MonkeyPatch) -> OptionsFlowEnv:
         pass
 
     class StubConfigEntry:
-        def __init__(self, data=None, options=None, entry_id="stub-entry"):
+        def __init__(
+            self, data=None, options=None, entry_id="stub-entry", subentries=None
+        ):
             self.data = data or {}
             self.options = options or {}
             self.entry_id = entry_id
+            self.subentries = subentries or {}
             raw = self.data.get("name", "Pollen Levels") or ""
             self.title = raw.strip() or "Pollen Levels"
+
+    class StubConfigSubentryFlow:
+        pass
 
     config_entries_mod.ConfigFlow = StubConfigFlow
     config_entries_mod.OptionsFlow = StubOptionsFlow
     config_entries_mod.OptionsFlowWithReload = StubOptionsFlowWithReload
     config_entries_mod.ConfigEntry = StubConfigEntry
+    config_entries_mod.ConfigSubentryFlow = StubConfigSubentryFlow
+    config_entries_mod.ConfigSubentryData = dict
+    config_entries_mod.ConfigFlowResult = dict
+    config_entries_mod.SubentryFlowResult = dict
     monkeypatch.setitem(
         sys_modules := sys.modules,
         "homeassistant.config_entries",

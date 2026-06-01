@@ -36,7 +36,7 @@ def _normalize_channel(v: Any) -> int | None:
     """
     try:
         f = float(v)
-    except TypeError, ValueError, OverflowError:
+    except (TypeError, ValueError, OverflowError):
         return None
     if not math.isfinite(f):
         return None
@@ -153,13 +153,17 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         create_d2: bool,
         client: GooglePollenApiClient,
         entry_title: str = DEFAULT_ENTRY_TITLE,
+        subentry_id: str | None = None,
+        legacy_entry_id: str | None = None,
     ) -> None:
         """Initialize coordinator with configuration and interval."""
+        explicit_subentry = subentry_id is not None
+        subentry_id = subentry_id or entry_id
         update_interval = timedelta(hours=hours)
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_{entry_id}",
+            name=f"{DOMAIN}_{entry_id}_{subentry_id}",
             update_interval=update_interval,
         )
         self.api_key = api_key
@@ -174,6 +178,12 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.language = language if language else None
 
         self.entry_id = entry_id
+        self.subentry_id = subentry_id
+        self.legacy_entry_id = legacy_entry_id
+        self.entity_identity_id = legacy_entry_id or (
+            f"{entry_id}_{subentry_id}" if explicit_subentry else entry_id
+        )
+        self.device_identity_id = self.entity_identity_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
         # Clamp defensively for legacy/manual entries to supported range.
         parsed_days = safe_parse_int(forecast_days)
@@ -475,7 +485,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 # Use day-specific 'inSeason' and 'advice' from the forecast day.
                 try:
                     day_obj = daily[off]
-                except IndexError, TypeError:
+                except (IndexError, TypeError):
                     day_obj = None
                 day_item = type_by_day_code[off].get(_tcode) if day_obj else None
                 day_in_season = (

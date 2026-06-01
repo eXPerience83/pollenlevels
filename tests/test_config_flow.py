@@ -51,7 +51,12 @@ class _StubConfigFlow:
         return {"step_id": kwargs.get("step_id") or (args[0] if args else None)}
 
     def async_create_entry(self, *args, **kwargs):  # pragma: no cover - not used
-        return {"title": kwargs.get("title"), "data": kwargs.get("data")}
+        return {
+            "title": kwargs.get("title"),
+            "data": kwargs.get("data"),
+            "options": kwargs.get("options"),
+            "subentries": kwargs.get("subentries"),
+        }
 
     def add_suggested_values_to_schema(self, schema, suggested_values):
         return schema
@@ -83,11 +88,95 @@ class _StubOptionsFlowWithReload(_StubOptionsFlow):
     pass
 
 
+class _StubConfigSubentry:
+    _next_id = 1
+
+    def __init__(
+        self,
+        *,
+        data=None,
+        subentry_type="location",
+        title="Location",
+        unique_id=None,
+        subentry_id=None,
+    ):
+        if subentry_id is None:
+            subentry_id = f"subentry-{self.__class__._next_id}"
+            self.__class__._next_id += 1
+        self.data = data or {}
+        self.subentry_type = subentry_type
+        self.title = title
+        self.unique_id = unique_id
+        self.subentry_id = subentry_id
+
+
+class _StubConfigSubentryFlow:
+    def async_create_entry(
+        self,
+        *,
+        title=None,
+        data=None,
+        description=None,
+        description_placeholders=None,
+        unique_id=None,
+    ):
+        return {
+            "type": "create_entry",
+            "title": title,
+            "data": data,
+            "description": description,
+            "description_placeholders": description_placeholders,
+            "unique_id": unique_id,
+        }
+
+    def async_show_form(self, *args, **kwargs):
+        return {
+            "type": "form",
+            "step_id": kwargs.get("step_id") or (args[0] if args else None),
+            "errors": kwargs.get("errors") or {},
+        }
+
+    def async_abort(self, *, reason=None, description_placeholders=None):
+        return {
+            "type": "abort",
+            "reason": reason,
+            "description_placeholders": description_placeholders,
+        }
+
+    def async_update_and_abort(
+        self,
+        entry,
+        subentry,
+        *,
+        unique_id=None,
+        title=None,
+        data=None,
+        data_updates=None,
+    ):
+        if unique_id is not None:
+            subentry.unique_id = unique_id
+        if title is not None:
+            subentry.title = title
+        if data_updates is not None:
+            data = {**subentry.data, **data_updates}
+        if data is not None:
+            subentry.data = data
+        return self.async_abort(reason="reconfigure_successful")
+
+    def _get_entry(self):
+        return self.hass.config_entries.async_get_entry(self.handler[0])
+
+    def _get_reconfigure_subentry(self):
+        entry = self._get_entry()
+        return entry.subentries[self.context["subentry_id"]]
+
+
 class _StubConfigEntry:
-    def __init__(self, data=None, options=None, entry_id="stub-entry"):
+    def __init__(self, data=None, options=None, entry_id="stub-entry", subentries=None):
         self.data = data or {}
         self.options = options or {}
         self.entry_id = entry_id
+        self.subentries = subentries or {}
         raw = self.data.get("name", "Pollen Levels") or ""
         self.title = raw.strip() or "Pollen Levels"
 
@@ -135,7 +224,7 @@ class _StubSchema:
 def _latitude(value=None):
     try:
         lat = float(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         # Mirror Home Assistant's cv.latitude behavior for invalid types.
         raise _StubInvalid("latitude_type") from None
     if lat < -90 or lat > 90:
@@ -146,7 +235,7 @@ def _latitude(value=None):
 def _longitude(value=None):
     try:
         lon = float(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         # Mirror Home Assistant's cv.longitude behavior for invalid types.
         raise _StubInvalid("longitude_type") from None
 
@@ -180,6 +269,11 @@ def _install_homeassistant_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     config_entries_mod.OptionsFlow = _StubOptionsFlow
     config_entries_mod.OptionsFlowWithReload = _StubOptionsFlowWithReload
     config_entries_mod.ConfigEntry = _StubConfigEntry
+    config_entries_mod.ConfigSubentry = _StubConfigSubentry
+    config_entries_mod.ConfigSubentryFlow = _StubConfigSubentryFlow
+    config_entries_mod.ConfigSubentryData = dict
+    config_entries_mod.ConfigFlowResult = dict
+    config_entries_mod.SubentryFlowResult = dict
     monkeypatch.setitem(sys.modules, "homeassistant.config_entries", config_entries_mod)
 
     stub_exceptions(
@@ -2292,7 +2386,7 @@ def test_async_step_user_uses_custom_entry_name(
     async def fake_validate(
         user_input, *, check_unique_id, description_placeholders=None
     ):
-        assert check_unique_id is True
+        assert check_unique_id is False
         assert user_input[config_flow_stubs.CONF_NAME].strip() == "Custom Name"
         return {}, normalized
 
@@ -2312,7 +2406,13 @@ def test_async_step_user_uses_custom_entry_name(
     result = asyncio.run(flow.async_step_user(user_input))
 
     assert result["title"] == "Custom Name"
-    assert result["data"] == normalized
+    assert result["data"] == {config_flow_stubs.CONF_API_KEY: "test-key"}
+    assert result["options"][config_flow_stubs.CONF_LANGUAGE_CODE] == "en"
+    assert result["subentries"][0]["title"] == "Custom Name"
+    assert result["subentries"][0]["data"] == {
+        config_flow_stubs.CONF_LATITUDE: 1.0,
+        config_flow_stubs.CONF_LONGITUDE: 2.0,
+    }
 
 
 def test_async_step_user_defaults_entry_name(
@@ -2354,7 +2454,12 @@ def test_async_step_user_defaults_entry_name(
     result = asyncio.run(flow.async_step_user(user_input))
 
     assert result["title"] == config_flow_stubs.DEFAULT_ENTRY_TITLE
-    assert result["data"] == normalized
+    assert result["data"] == {config_flow_stubs.CONF_API_KEY: "test-key"}
+    assert result["subentries"][0]["title"] == config_flow_stubs.DEFAULT_ENTRY_TITLE
+    assert result["subentries"][0]["data"] == {
+        config_flow_stubs.CONF_LATITUDE: 1.0,
+        config_flow_stubs.CONF_LONGITUDE: 2.0,
+    }
 
 
 @pytest.mark.parametrize("raw", ["inf", "-inf", "nan"])

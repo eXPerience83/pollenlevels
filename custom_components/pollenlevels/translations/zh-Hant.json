@@ -39,7 +39,8 @@
       "invalid_coordinates": "請在地圖上選擇有效的位置。",
       "unknown": "未知錯誤",
       "invalid_update_interval": "更新間隔必須在 1 到 24 小時之間。",
-      "invalid_forecast_days": "預測天數必須在 1 到 5 之間。"
+      "invalid_forecast_days": "預測天數必須在 1 到 5 之間。",
+      "already_configured": "This location is already configured."
     },
     "abort": {
       "already_configured": "此位置已設定。",
@@ -118,6 +119,37 @@
   "exceptions": {
     "refresh_failed": {
       "message": "無法更新花粉資料"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Location",
+      "step": {
+        "user": {
+          "title": "Add Pollen Levels location",
+          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure Pollen Levels location",
+          "description": "Update this location name and map coordinates.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This location is already configured.",
+        "invalid_coordinates": "Please select a valid location on the map.",
+        "unknown": "Unknown error"
+      },
+      "abort": {
+        "reconfigure_successful": "Location reconfiguration completed successfully."
+      }
     }
   }
 }

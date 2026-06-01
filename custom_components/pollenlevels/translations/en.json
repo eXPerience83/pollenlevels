@@ -31,6 +31,7 @@
     },
     "error": {
       "invalid_auth": "Invalid API key\n\n{error_message}",
+      "already_configured": "This location is already configured.",
       "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded\n\n{error_message}",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
@@ -47,6 +48,37 @@
       "reauth_failed": "Re-authentication failed. Please try again.",
       "reconfigure_successful": "Reconfiguration completed successfully.",
       "reconfigure_failed": "Reconfiguration failed. Please try again."
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Location",
+      "step": {
+        "user": {
+          "title": "Add Pollen Levels location",
+          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure Pollen Levels location",
+          "description": "Update this location name and map coordinates.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This location is already configured.",
+        "invalid_coordinates": "Please select a valid location on the map.",
+        "unknown": "Unknown error"
+      },
+      "abort": {
+        "reconfigure_successful": "Location reconfiguration completed successfully."
+      }
     }
   },
   "options": {

@@ -40,6 +40,28 @@ class _StubConfigEntry:
         return cls
 
 
+class _StubConfigSubentry:
+    _next_id = 1
+
+    def __init__(
+        self,
+        *,
+        data=None,
+        subentry_type="location",
+        title="Location",
+        unique_id=None,
+        subentry_id=None,
+    ):
+        if subentry_id is None:
+            subentry_id = f"subentry-{self.__class__._next_id}"
+            self.__class__._next_id += 1
+        self.data = data or {}
+        self.subentry_type = subentry_type
+        self.title = title
+        self.unique_id = unique_id
+        self.subentry_id = subentry_id
+
+
 class _StubHomeAssistant:  # pragma: no cover - structure only
     pass
 
@@ -128,6 +150,8 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
     stub_homeassistant_package(monkeypatch=monkeypatch)
     stub_config_entry_class(_StubConfigEntry, monkeypatch=monkeypatch)
+    config_entries_mod = sys.modules["homeassistant.config_entries"]
+    config_entries_mod.ConfigSubentry = _StubConfigSubentry
     core_mod = types.ModuleType("homeassistant.core")
     core_mod.HomeAssistant = _StubHomeAssistant
     core_mod.ServiceCall = _StubServiceCall

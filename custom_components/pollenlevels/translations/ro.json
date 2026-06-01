@@ -39,7 +39,8 @@
       "invalid_coordinates": "Selectează o locație validă pe hartă.",
       "unknown": "Eroare necunoscută",
       "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore.",
-      "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5."
+      "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5.",
+      "already_configured": "This location is already configured."
     },
     "abort": {
       "already_configured": "Această locație este deja configurată.",
@@ -118,6 +119,37 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Nu s-au putut actualiza datele despre polen"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Location",
+      "step": {
+        "user": {
+          "title": "Add Pollen Levels location",
+          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure Pollen Levels location",
+          "description": "Update this location name and map coordinates.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This location is already configured.",
+        "invalid_coordinates": "Please select a valid location on the map.",
+        "unknown": "Unknown error"
+      },
+      "abort": {
+        "reconfigure_successful": "Location reconfiguration completed successfully."
+      }
     }
   }
 }

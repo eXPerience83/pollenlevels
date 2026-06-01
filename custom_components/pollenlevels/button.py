@@ -1,4 +1,4 @@
-"""Button platform for per-entry manual updates."""
+"""Button platform for per-location manual updates."""
 
 from __future__ import annotations
 
@@ -19,8 +19,34 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
     from .coordinator import PollenDataUpdateCoordinator
+    from .runtime import PollenLocationRuntime
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
+    """Return the stable identity used for entity unique IDs."""
+    return getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
+
+
+def _coordinator_device_id(coordinator: PollenDataUpdateCoordinator, group: str) -> str:
+    """Return the stable device identifier for a location/group pair."""
+    identity_id = getattr(coordinator, "device_identity_id", None) or (
+        getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
+    )
+    return f"{identity_id}_{group}"
+
+
+def _add_button_for_location(
+    async_add_entities: AddEntitiesCallback,
+    location: PollenLocationRuntime,
+) -> None:
+    """Add a location button with subentry association when supported."""
+    entities = [PollenLevelsUpdateButton(location.coordinator)]
+    try:
+        async_add_entities(entities, config_subentry_id=location.subentry_id)
+    except TypeError:
+        async_add_entities(entities)
 
 
 async def async_setup_entry(
@@ -28,12 +54,20 @@ async def async_setup_entry(
     config_entry: PollenLevelsConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Pollen Levels update button for one config entry."""
+    """Set up Pollen Levels update buttons for all configured locations."""
     runtime = config_entry.runtime_data
     if runtime is None:
         raise ConfigEntryNotReady("Runtime data not ready")
+    locations = getattr(runtime, "locations", None) or {}
+    if not locations:
+        coordinator = getattr(runtime, "coordinator", None)
+        if coordinator is not None:
+            async_add_entities([PollenLevelsUpdateButton(coordinator)])
+            return
+        raise ConfigEntryNotReady("Runtime location data not ready")
 
-    async_add_entities([PollenLevelsUpdateButton(runtime.coordinator)])
+    for location in locations.values():
+        _add_button_for_location(async_add_entities, location)
 
 
 class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
@@ -46,9 +80,10 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize update button entity."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.entry_id}_update_now"
+        identity_id = _coordinator_identity_id(coordinator)
+        self._attr_unique_id = f"{identity_id}_update_now"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{coordinator.entry_id}_meta")},
+            "identifiers": {(DOMAIN, _coordinator_device_id(coordinator, "meta"))},
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": "info",

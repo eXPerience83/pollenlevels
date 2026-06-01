@@ -1,3 +1,17 @@
+## [3.0.0] - 2026-06-01
+### Changed
+- **Breaking change:** Migrated configuration storage to Home Assistant config
+  subentries. After upgrading to 3.0.0, downgrading to Pollen Levels 2.x is not
+  supported and may require removing and recreating the integration. Create a
+  Home Assistant backup before upgrading.
+- Converted each Pollen Levels entry into a parent API-key entry with location
+  subentries and one coordinator per location.
+- Updated setup, sensors, button entities, diagnostics, and the
+  `pollenlevels.force_update` service to handle multiple location subentries
+  under one parent entry.
+- Preserved migrated entity unique IDs by storing the legacy entry ID on the
+  migrated location subentry.
+
 ## [2.3.0] - 2026-05-31
 ### Added
 - Added the per-location "Update now" button entity to the stable release,

@@ -27,6 +27,7 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
@@ -51,6 +52,115 @@ def _iso_or_none(dt_obj: Any) -> str | None:
         return None
 
 
+def _rounded(value: Any) -> float | None:
+    """Return a rounded coordinate for diagnostics."""
+    try:
+        f = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(f):
+        return None
+    return round(f, 1)
+
+
+def _effective_days(options: dict[str, Any], data: dict[str, Any]) -> int:
+    """Return sanitized forecast days for diagnostics examples."""
+    days_raw = options.get(
+        CONF_FORECAST_DAYS,
+        data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
+    )
+    parsed_days = safe_parse_int(days_raw)
+    days_effective = DEFAULT_FORECAST_DAYS if parsed_days is None else parsed_days
+    return max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, days_effective))
+
+
+def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
+    """Return diagnostics for one location coordinator."""
+    coord_info = {
+        "entry_id": getattr(coordinator, "entry_id", None),
+        "subentry_id": getattr(coordinator, "subentry_id", None),
+        "legacy_entry_id": getattr(coordinator, "legacy_entry_id", None),
+        "entity_identity_id": getattr(coordinator, "entity_identity_id", None),
+        "forecast_days": getattr(coordinator, "forecast_days", None),
+        "language": getattr(coordinator, "language", None),
+        "create_d1": getattr(coordinator, "create_d1", None),
+        "create_d2": getattr(coordinator, "create_d2", None),
+        "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
+        "data_keys_total": 0,
+        "data_keys": [],
+    }
+    data_map: dict[str, Any] = getattr(coordinator, "data", {}) or {}
+    all_keys = list(data_map.keys())
+    coord_info["data_keys_total"] = len(all_keys)
+    coord_info["data_keys"] = all_keys[:50]
+
+    forecast_summary: dict[str, Any] = {}
+    daily_summary = _daily_summary(data_map)
+
+    type_main_keys = [
+        k
+        for k, v in data_map.items()
+        if isinstance(v, dict)
+        and v.get("source") == "type"
+        and not k.endswith(("_d1", "_d2"))
+    ]
+    type_perday_keys = [
+        k
+        for k, v in data_map.items()
+        if isinstance(v, dict)
+        and v.get("source") == "type"
+        and k.endswith(("_d1", "_d2"))
+    ]
+    type_codes = sorted(
+        {k.split("_", 1)[1].split("_d", 1)[0].upper() for k in type_main_keys}
+    )
+    forecast_summary["type"] = {
+        "total_main": len(type_main_keys),
+        "total_per_day": len(type_perday_keys),
+        "create_d1": getattr(coordinator, "create_d1", None),
+        "create_d2": getattr(coordinator, "create_d2", None),
+        "days": getattr(coordinator, "forecast_days", None),
+        "codes": type_codes,
+    }
+
+    plant_items = [
+        v
+        for v in data_map.values()
+        if isinstance(v, dict) and v.get("source") == "plant"
+    ]
+    plant_codes = sorted([v.get("code") for v in plant_items if v.get("code")])
+    plants_with_attr = [v for v in plant_items if "forecast" in v]
+    plants_with_nonempty = [v for v in plant_items if v.get("forecast")]
+    plants_with_trend = [v for v in plant_items if v.get("trend") is not None]
+
+    forecast_summary["plant"] = {
+        "enabled": bool(getattr(coordinator, "forecast_days", 1) >= 2),
+        "days": getattr(coordinator, "forecast_days", None),
+        "total": len(plant_items),
+        "with_attr": len(plants_with_attr),
+        "with_nonempty": len(plants_with_nonempty),
+        "with_trend": len(plants_with_trend),
+        "codes": plant_codes,
+    }
+
+    return {
+        "coordinator": coord_info,
+        "forecast_summary": forecast_summary,
+        "daily_summary": daily_summary,
+    }
+
+
+def _coordinate_from_coordinator_or_data(
+    coordinator: Any, data: dict[str, Any], key: str
+) -> Any:
+    """Return coordinator coordinate with legacy entry-data fallback."""
+    attr = "lat" if key == CONF_LATITUDE else "lon"
+    value = getattr(coordinator, attr, None)
+    if value is not None:
+        return value
+    return data.get(key)
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -58,132 +168,42 @@ async def async_get_config_entry_diagnostics(
 
     NOTE: This function must not perform any network I/O.
     """
-    runtime = cast(PollenLevelsRuntimeData | None, getattr(entry, "runtime_data", None))
-    coordinator = getattr(runtime, "coordinator", None) if runtime else None
     options: dict[str, Any] = dict(entry.options or {})
     data: dict[str, Any] = dict(entry.data or {})
-
-    # Provide an obfuscated (rounded) location for support without exposing precise
-    # coordinates. This should not be redacted.
-    def _rounded(value: Any) -> float | None:
-        try:
-            f = float(value)
-        except TypeError:
-            return None
-        except ValueError:
-            return None
-        except OverflowError:
-            return None
-        if not math.isfinite(f):
-            return None
-        return round(f, 1)
-
-    approx_location = {
-        "label": "approximate_location (rounded)",
-        "latitude_rounded": _rounded(data.get(CONF_LATITUDE)),
-        "longitude_rounded": _rounded(data.get(CONF_LONGITUDE)),
-    }
-
-    # --- Build a safe params example (no network I/O) ----------------------
-    # Use DEFAULT_FORECAST_DAYS from const.py to avoid config drift.
-    days_raw = options.get(
-        CONF_FORECAST_DAYS,
-        data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-    )
-    parsed_days = safe_parse_int(days_raw)
-    if parsed_days is None:
-        # Defensive fallback
-        days_effective = DEFAULT_FORECAST_DAYS
-    else:
-        days_effective = parsed_days
-
-    days_effective = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, days_effective))
-
-    params_example: dict[str, Any] = {
-        # Explicitly mask the API key example
-        "key": redact_api_key(data.get(CONF_API_KEY), data.get(CONF_API_KEY)) or "***",
-        # Use rounded coordinates to avoid exposing precise location data.
-        "location.latitude": _rounded(data.get(CONF_LATITUDE)),
-        "location.longitude": _rounded(data.get(CONF_LONGITUDE)),
-        "days": days_effective,
-    }
+    runtime = cast(PollenLevelsRuntimeData | None, getattr(entry, "runtime_data", None))
+    days_effective = _effective_days(options, data)
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
-    if lang:
-        params_example["languageCode"] = lang
-
-    # --- Coordinator snapshot ------------------------------------------------
-    coord_info: dict[str, Any] = {}
-    forecast_summary: dict[str, Any] = {}
-    daily_summary: dict[str, Any] = {}
-    if coordinator is not None:
-        # Base coordinator info
-        coord_info = {
-            "entry_id": getattr(coordinator, "entry_id", None),
-            "forecast_days": getattr(coordinator, "forecast_days", None),
-            "language": getattr(coordinator, "language", None),
-            "create_d1": getattr(coordinator, "create_d1", None),
-            "create_d2": getattr(coordinator, "create_d2", None),
-            "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
-            "data_keys_total": 0,
-            "data_keys": [],
-        }
-        all_keys = list((getattr(coordinator, "data", {}) or {}).keys())
-        coord_info["data_keys_total"] = len(all_keys)
-        coord_info["data_keys"] = all_keys[:50]
-
-        # ---------- Forecast summaries (TYPES & PLANTS) ----------
-        data_map: dict[str, Any] = getattr(coordinator, "data", {}) or {}
-        daily_summary = _daily_summary(data_map)
-
-        # TYPES (main vs per-day)
-        type_main_keys = [
-            k
-            for k, v in data_map.items()
-            if isinstance(v, dict)
-            and v.get("source") == "type"
-            and not k.endswith(("_d1", "_d2"))
-        ]
-        type_perday_keys = [
-            k
-            for k, v in data_map.items()
-            if isinstance(v, dict)
-            and v.get("source") == "type"
-            and k.endswith(("_d1", "_d2"))
-        ]
-        type_codes = sorted(
-            {k.split("_", 1)[1].split("_d", 1)[0].upper() for k in type_main_keys}
-        )
-        forecast_summary["type"] = {
-            "total_main": len(type_main_keys),
-            "total_per_day": len(type_perday_keys),
-            "create_d1": getattr(coordinator, "create_d1", None),
-            "create_d2": getattr(coordinator, "create_d2", None),
-            "days": getattr(coordinator, "forecast_days", None),  # symmetry with plant
-            "codes": type_codes,
-        }
-
-        # PLANTS (attributes-only)
-        plant_items = [
-            v
-            for v in data_map.values()
-            if isinstance(v, dict) and v.get("source") == "plant"
-        ]
-        plant_codes = sorted([v.get("code") for v in plant_items if v.get("code")])
-        plants_with_attr = [v for v in plant_items if "forecast" in v]
-        # Readability: include items only when forecast is present and non-empty
-        plants_with_nonempty = [v for v in plant_items if v.get("forecast")]
-        plants_with_trend = [v for v in plant_items if v.get("trend") is not None]
-
-        forecast_summary["plant"] = {
-            # Enabled if at least tomorrow is requested (2+ days)
-            "enabled": bool(getattr(coordinator, "forecast_days", 1) >= 2),
-            "days": getattr(coordinator, "forecast_days", None),
-            "total": len(plant_items),
-            "with_attr": len(plants_with_attr),
-            "with_nonempty": len(plants_with_nonempty),
-            "with_trend": len(plants_with_trend),
-            "codes": plant_codes,
-        }
+    locations: dict[str, Any] = {}
+    first_location_payload: dict[str, Any] | None = None
+    if runtime is not None:
+        for subentry_id, location in runtime.locations.items():
+            coordinator = location.coordinator
+            lat = _coordinate_from_coordinator_or_data(coordinator, data, CONF_LATITUDE)
+            lon = _coordinate_from_coordinator_or_data(
+                coordinator, data, CONF_LONGITUDE
+            )
+            request_params_example: dict[str, Any] = {
+                "key": redact_api_key(data.get(CONF_API_KEY), data.get(CONF_API_KEY))
+                or "***",
+                "location.latitude": _rounded(lat),
+                "location.longitude": _rounded(lon),
+                "days": days_effective,
+            }
+            if lang:
+                request_params_example["languageCode"] = lang
+            location_payload = _coordinator_diagnostics(coordinator)
+            location_payload["title"] = getattr(
+                coordinator, "entry_title", DEFAULT_ENTRY_TITLE
+            )
+            location_payload["approximate_location"] = {
+                "label": "approximate_location (rounded)",
+                "latitude_rounded": _rounded(lat),
+                "longitude_rounded": _rounded(lon),
+            }
+            location_payload["request_params_example"] = request_params_example
+            locations[subentry_id] = location_payload
+            if first_location_payload is None:
+                first_location_payload = location_payload
 
     # Final diagnostics payload (with secrets redacted)
     diag: dict[str, Any] = {
@@ -200,12 +220,16 @@ async def async_get_config_entry_diagnostics(
                 CONF_LANGUAGE_CODE: data.get(CONF_LANGUAGE_CODE),
             },
         },
-        "approximate_location": approx_location,
-        "coordinator": coord_info,
-        "forecast_summary": forecast_summary,
-        "daily_summary": daily_summary,
-        "request_params_example": params_example,
+        "locations": locations,
     }
+    if first_location_payload is not None:
+        diag["approximate_location"] = first_location_payload["approximate_location"]
+        diag["coordinator"] = first_location_payload["coordinator"]
+        diag["forecast_summary"] = first_location_payload["forecast_summary"]
+        diag["daily_summary"] = first_location_payload["daily_summary"]
+        diag["request_params_example"] = first_location_payload[
+            "request_params_example"
+        ]
 
     # NOTE: Home Assistant's `async_redact_data` is a synchronous callback helper
     # despite its `async_` prefix. Do not `await` it.
