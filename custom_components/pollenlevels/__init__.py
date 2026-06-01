@@ -273,6 +273,14 @@ def _has_migration_locations(entry: ConfigEntry) -> bool:
     return bool(_migration_locations(entry))
 
 
+def _has_location_subentries(entry: ConfigEntry) -> bool:
+    """Return whether this entry already stores v3 location subentries."""
+    return any(
+        getattr(subentry, "subentry_type", None) == SUBENTRY_TYPE_LOCATION
+        for subentry in (getattr(entry, "subentries", {}) or {}).values()
+    )
+
+
 def _make_migrated_subentry(
     location: _MigrationLocation,
     used_unique_ids: set[str | None] | None = None,
@@ -345,12 +353,18 @@ def _migration_group_entries(
         entries = [entry]
 
     group: list[ConfigEntry] = []
+    target_unique_id = api_key_unique_id(api_key)
     for candidate in entries:
         if _entry_is_merged(candidate):
             continue
         if _entry_api_key(candidate) != api_key:
             continue
-        if candidate is entry or _has_migration_locations(candidate):
+        if (
+            candidate is entry
+            or _has_migration_locations(candidate)
+            or _has_location_subentries(candidate)
+            or getattr(candidate, "unique_id", None) == target_unique_id
+        ):
             group.append(candidate)
 
     if entry not in group and not _entry_is_merged(entry):
@@ -359,11 +373,15 @@ def _migration_group_entries(
 
 
 def _select_migration_parent(
-    group: list[ConfigEntry], current: ConfigEntry
+    group: list[ConfigEntry], current: ConfigEntry, api_key: str
 ) -> ConfigEntry:
     """Return the parent entry that will own the shared API-key locations."""
     for candidate in group:
         if getattr(candidate, "subentries", None):
+            return candidate
+    target_unique_id = api_key_unique_id(api_key)
+    for candidate in group:
+        if getattr(candidate, "unique_id", None) == target_unique_id:
             return candidate
     return group[0] if group else current
 
@@ -558,7 +576,7 @@ async def _async_migrate_grouped_entries(
     target_version: int,
 ) -> bool:
     """Migrate all legacy entries sharing one API key into one parent."""
-    parent = _select_migration_parent(group, entry)
+    parent = _select_migration_parent(group, entry, api_key)
     parent_options = _clean_parent_options(parent)
     for candidate in group:
         if candidate is parent:
@@ -728,7 +746,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise
     except Exception:  # noqa: BLE001
         _LOGGER.exception(
-            "Failed to migrate per-day sensor mode to entry options for entry %s "
+            "Failed to migrate Pollen Levels config entry storage for entry %s "
             "(version=%s)",
             entry.entry_id,
             getattr(entry, "version", None),
@@ -842,7 +860,6 @@ async def async_setup_entry(
 
     location_configs = _iter_location_subentries(entry)
     locations: dict[str, PollenLocationRuntime] = {}
-    last_location_error: Exception | None = None
     for subentry_id, title, data, legacy_entry_id in location_configs:
         raw_lat = data.get(CONF_LATITUDE)
         raw_lon = data.get(CONF_LONGITUDE)
@@ -853,7 +870,6 @@ async def async_setup_entry(
                 entry.entry_id,
                 subentry_id,
             )
-            last_location_error = ConfigEntryNotReady("Invalid location configuration")
             continue
         lat, lon = latlon
 
@@ -879,7 +895,6 @@ async def async_setup_entry(
         except ConfigEntryAuthFailed:
             raise
         except ConfigEntryNotReady as err:
-            last_location_error = err
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
             )
@@ -892,7 +907,6 @@ async def async_setup_entry(
             )
             continue
         except Exception as err:
-            last_location_error = err
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
             )
@@ -914,7 +928,7 @@ async def async_setup_entry(
     if location_configs and not locations:
         raise ConfigEntryNotReady(
             "No Pollen Levels locations could be initialized"
-        ) from last_location_error
+        ) from None
 
     entry.runtime_data = PollenLevelsRuntimeData(client=client, locations=locations)
 

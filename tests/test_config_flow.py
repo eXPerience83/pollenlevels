@@ -182,11 +182,19 @@ class _StubConfigSubentryFlow:
 
 
 class _StubConfigEntry:
-    def __init__(self, data=None, options=None, entry_id="stub-entry", subentries=None):
+    def __init__(
+        self,
+        data=None,
+        options=None,
+        entry_id="stub-entry",
+        subentries=None,
+        unique_id=None,
+    ):
         self.data = data or {}
         self.options = options or {}
         self.entry_id = entry_id
         self.subentries = subentries or {}
+        self.unique_id = unique_id
         raw = self.data.get("name", "Pollen Levels") or ""
         self.title = raw.strip() or "Pollen Levels"
 
@@ -2095,6 +2103,90 @@ def test_reauth_confirm_updates_existing_entry_and_reloads(
     assert recorder.reloaded == "entry-id"
     assert entry.unique_id == config_flow_stubs.config_flow._api_key_unique_id(
         "new-key"
+    )
+
+
+@pytest.mark.parametrize(
+    ("step_method_name", "entry_getter"),
+    [
+        ("async_step_reauth_confirm", "_get_reauth_entry"),
+        ("async_step_reconfigure", "_get_reconfigure_entry"),
+    ],
+)
+def test_api_key_confirm_rejects_duplicate_parent_unique_id(
+    config_flow_stubs: ConfigFlowStubs, step_method_name: str, entry_getter: str
+) -> None:
+    """Reauth/reconfigure should not move a parent onto another parent API key."""
+
+    duplicate_unique_id = config_flow_stubs.config_flow._api_key_unique_id(
+        "existing-key"
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={
+            config_flow_stubs.CONF_API_KEY: "old-key",
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        entry_id="entry-id",
+        unique_id=config_flow_stubs.config_flow._api_key_unique_id("old-key"),
+    )
+    duplicate = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "existing-key"},
+        entry_id="other-entry",
+        unique_id=duplicate_unique_id,
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+            self.reloaded = None
+
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_entry_for_domain_unique_id(self, domain: str, unique_id: str):
+            assert domain == config_flow_stubs.config_flow.DOMAIN
+            return duplicate if unique_id == duplicate_unique_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+
+        def async_reload(self, entry_id: str):
+            self.reloaded = entry_id
+
+    recorder = _Recorder()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    flow.context = {"entry_id": "entry-id"}
+    setattr(flow, entry_getter, lambda: entry)
+    flow.async_show_form = (  # type: ignore[method-assign]
+        lambda *args, **kwargs: {
+            "step_id": kwargs.get("step_id") or (args[0] if args else None),
+            "errors": kwargs.get("errors") or {},
+        }
+    )
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        return {}, {**user_input, config_flow_stubs.CONF_API_KEY: "existing-key"}
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    result = asyncio.run(
+        getattr(flow, step_method_name)(
+            {config_flow_stubs.CONF_API_KEY: "existing-key"}
+        )
+    )
+
+    assert result == {
+        "step_id": step_method_name.removeprefix("async_step_"),
+        "errors": {"base": "already_configured"},
+    }
+    assert recorder.updated is None
+    assert recorder.reloaded is None
+    assert entry.unique_id == config_flow_stubs.config_flow._api_key_unique_id(
+        "old-key"
     )
 
 

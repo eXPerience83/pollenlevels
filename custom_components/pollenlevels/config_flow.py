@@ -511,6 +511,23 @@ def _has_duplicate_location(
     return False
 
 
+def _entry_for_parent_unique_id(
+    hass: Any, unique_id: str
+) -> config_entries.ConfigEntry | None:
+    """Return an existing parent entry with this API-key unique ID."""
+    config_entry_manager = getattr(hass, "config_entries", None)
+    lookup = getattr(config_entry_manager, "async_entry_for_domain_unique_id", None)
+    if callable(lookup):
+        return lookup(DOMAIN, unique_id)
+
+    async_entries = getattr(config_entry_manager, "async_entries", None)
+    if callable(async_entries):
+        for candidate in async_entries(DOMAIN):
+            if getattr(candidate, "unique_id", None) == unique_id:
+                return candidate
+    return None
+
+
 def _parse_int_option(
     value: Any,
     default: int,
@@ -819,6 +836,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 if not errors and normalized is not None:
                     updated_api_key = str(normalized.get(CONF_API_KEY, "")).strip()
+                    updated_unique_id = _api_key_unique_id(updated_api_key)
+                    existing_entry = _entry_for_parent_unique_id(
+                        self.hass, updated_unique_id
+                    )
+                    if existing_entry is not None and getattr(
+                        existing_entry, "entry_id", None
+                    ) != getattr(entry, "entry_id", None):
+                        errors = {"base": "already_configured"}
+                        display_errors = errors
+                        display_placeholders = candidate_placeholders
+                        break
                     if persist_normalized_data:
                         data_updates = normalized
                     else:
@@ -828,7 +856,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return self.async_update_reload_and_abort(
                         entry,
                         data_updates=data_updates,
-                        unique_id=_api_key_unique_id(updated_api_key),
+                        unique_id=updated_unique_id,
                         reason=success_reason,
                     )
 

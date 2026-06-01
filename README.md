@@ -110,6 +110,13 @@ options, the parent entry keeps the first entry's options and fills missing
 values from the remaining entries. You can adjust the shared options after
 upgrading from **Settings -> Devices & Services -> Pollen Levels -> Configure**.
 
+To add another location after upgrading, go to **Settings -> Devices & Services
+-> Pollen Levels**, open the parent entry, and add a new location subentry.
+Reconfigure a location from that same entry when only its name or map
+coordinates need to change. Each location has its own sensors and **Update now**
+button; shared options such as update interval, language, and forecast settings
+stay on the parent **Configure** flow.
+
 When reauthenticating or reconfiguring the parent API key, the integration tries
 the configured locations until one returns usable pollen data. Authentication
 and quota errors are treated as key-level failures.

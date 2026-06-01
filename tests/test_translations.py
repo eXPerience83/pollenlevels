@@ -340,6 +340,9 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
         "config_subentries.location.step.reconfigure.description",
         "config_subentries.location.error.already_configured",
         "config_subentries.location.error.invalid_coordinates",
+        "config_subentries.location.error.invalid_auth",
+        "config_subentries.location.error.cannot_connect",
+        "config_subentries.location.error.quota_exceeded",
         "config_subentries.location.error.unknown",
         "config_subentries.location.abort.reconfigure_successful",
     }

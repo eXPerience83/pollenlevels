@@ -712,9 +712,10 @@ def test_setup_entry_raises_not_ready_when_all_subentries_fail(
 
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _FailingCoordinator)
 
-    with pytest.raises(integration.ConfigEntryNotReady):
+    with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
+    assert exc_info.value.__cause__ is None
     assert entry.runtime_data is None
     assert hass.config_entries.forward_calls == []
 
@@ -1578,6 +1579,67 @@ def test_migrate_legacy_entries_with_same_api_key_group_under_one_parent(
     assert parent.options[integration.CONF_UPDATE_INTERVAL] == 12
     assert hass.config_entries.added_subentries == added_subentries
     assert hass.config_entries.removed_entries == ["legacy-office"]
+
+
+def test_migrate_legacy_entry_into_existing_clean_v3_parent(
+    integration_modules: _InitModules,
+) -> None:
+    """A residual legacy entry should merge into an existing clean API-key parent."""
+    integration = integration_modules.integration
+
+    existing_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 10.0, integration.CONF_LONGITUDE: 20.0},
+        subentry_id="existing-location",
+        title="Existing",
+        unique_id="10.0000_20.0000",
+    )
+    clean_parent = _FakeEntry(
+        integration,
+        entry_id="clean-parent",
+        title="Pollen Levels",
+        data={integration.CONF_API_KEY: "shared-key"},
+        options={integration.CONF_LANGUAGE_CODE: "en"},
+        version=integration.TARGET_ENTRY_VERSION,
+        subentries={existing_subentry.subentry_id: existing_subentry},
+        unique_id=integration.api_key_unique_id("shared-key"),
+    )
+    legacy = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        title="Office",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 3.0,
+            integration.CONF_LONGITUDE: 4.0,
+        },
+        options={integration.CONF_UPDATE_INTERVAL: 8},
+        version=3,
+        subentries={},
+        unique_id="3.0000_4.0000",
+    )
+    hass = _FakeHass(entries=[legacy, clean_parent])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, legacy)) is True
+
+    assert clean_parent.data == {integration.CONF_API_KEY: "shared-key"}
+    assert clean_parent.unique_id == integration.api_key_unique_id("shared-key")
+    assert clean_parent.options == {
+        integration.CONF_LANGUAGE_CODE: "en",
+        integration.CONF_UPDATE_INTERVAL: 8,
+    }
+    assert existing_subentry.subentry_id in clean_parent.subentries
+    subentries_by_legacy_id = {
+        subentry.data.get(integration.CONF_LEGACY_ENTRY_ID): subentry
+        for subentry in clean_parent.subentries.values()
+    }
+    assert subentries_by_legacy_id["legacy-office"].title == "Office"
+    assert subentries_by_legacy_id["legacy-office"].unique_id == "3.0000_4.0000"
+    assert legacy.data == {
+        integration.CONF_API_KEY: "shared-key",
+        "merged_into_entry_id": "clean-parent",
+    }
+    assert legacy.version == integration.TARGET_ENTRY_VERSION
+    assert hass.created_tasks
 
 
 def test_migrate_legacy_entries_with_different_api_keys_stay_separate(
