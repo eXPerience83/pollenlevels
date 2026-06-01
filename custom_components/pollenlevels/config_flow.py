@@ -468,7 +468,7 @@ def _sanitize_forecast_mode_for_default(raw_value: Any) -> str:
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
-    VERSION = 4
+    VERSION = 5
 
     @staticmethod
     def async_get_options_flow(

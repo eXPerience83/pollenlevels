@@ -6,13 +6,15 @@
   Home Assistant backup before upgrading.
 - Converted each Pollen Levels entry into a parent API-key entry with location
   subentries and one coordinator per location.
+- Consolidated legacy entries that share the same Google API key into one
+  parent entry with multiple location subentries.
 - Updated setup, sensors, button entities, diagnostics, and the
   `pollenlevels.force_update` service to handle multiple location subentries
   under one parent entry.
+- Limited the global `pollenlevels.force_update` service to refresh location
+  coordinators sequentially to avoid request bursts.
 - Preserved migrated entity unique IDs by storing the legacy entry ID on the
   migrated location subentry.
-- Documented the conservative migration behavior: legacy entries are not
-  automatically merged, even when they use the same API key.
 - Validated parent API-key reauth and reconfigure flows against configured
   locations until one location returns usable pollen data.
 

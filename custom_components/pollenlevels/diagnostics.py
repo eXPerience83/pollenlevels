@@ -56,7 +56,7 @@ def _rounded(value: Any) -> float | None:
     """Return a rounded coordinate for diagnostics."""
     try:
         f = float(value)
-    except (TypeError, ValueError, OverflowError):
+    except TypeError, ValueError, OverflowError:
         return None
     if not math.isfinite(f):
         return None

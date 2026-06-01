@@ -241,6 +241,7 @@ class _FakeConfigEntries:
         self.unload_calls: list[tuple[object, list[str]]] = []
         self.reload_calls: list[str] = []
         self.added_subentries: list[tuple[object, object]] = []
+        self.removed_entries: list[str] = []
         self._entries = entries or []
 
     async def async_forward_entry_setups(self, entry, platforms):
@@ -266,8 +267,27 @@ class _FakeConfigEntries:
         subentries[subentry.subentry_id] = subentry
         entry.subentries = subentries
 
+    async def async_remove(self, entry_id: str):
+        self.removed_entries.append(entry_id)
+        self._entries = [
+            entry
+            for entry in self._entries
+            if getattr(entry, "entry_id", None) != entry_id
+        ]
+        return {"require_restart": False}
+
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
         self.reload_calls.append(entry_id)
+
+    def async_get_entry(self, entry_id: str):
+        return next(
+            (
+                entry
+                for entry in self._entries
+                if getattr(entry, "entry_id", None) == entry_id
+            ),
+            None,
+        )
 
     def async_entries(self, domain: str | None = None):
         if domain is None:
@@ -315,6 +335,12 @@ class _FakeHass:
         )
         self.data = {}
         self.services = _ServiceRegistry()
+        self.created_tasks = []
+
+    def async_create_task(self, coro, *, name=None):
+        task = asyncio.create_task(coro, name=name)
+        self.created_tasks.append(task)
+        return task
 
 
 class _ServiceRegistry:
@@ -1000,6 +1026,53 @@ def test_force_update_refreshes_all_location_subentries(
     assert coordinator_2.calls == 1
 
 
+def test_force_update_refreshes_location_subentries_sequentially(
+    integration_modules: _InitModules,
+) -> None:
+    """force_update should limit location refresh concurrency to one."""
+    integration = integration_modules.integration
+
+    active = 0
+    max_active = 0
+    order: list[str] = []
+
+    class _Coordinator:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def async_request_refresh(self):
+            nonlocal active, max_active
+            active += 1
+            max_active = max(max_active, active)
+            order.append(f"{self.name}:start")
+            await asyncio.sleep(0)
+            order.append(f"{self.name}:end")
+            active -= 1
+
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "key"},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "loc-1": types.SimpleNamespace(
+                subentry_id="loc-1", coordinator=_Coordinator("loc-1")
+            ),
+            "loc-2": types.SimpleNamespace(
+                subentry_id="loc-2", coordinator=_Coordinator("loc-2")
+            ),
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert max_active == 1
+    assert order == ["loc-1:start", "loc-1:end", "loc-2:start", "loc-2:end"]
+
+
 def test_force_update_continues_after_one_location_failure(
     integration_modules: _InitModules, caplog
 ) -> None:
@@ -1190,6 +1263,74 @@ def test_migrate_entry_v3_legacy_creates_location_subentry(
         integration.CONF_LEGACY_ENTRY_ID: "legacy-entry",
     }
     assert hass.config_entries.added_subentries == [(entry, subentry)]
+
+
+def test_migrate_legacy_entries_with_same_api_key_group_under_one_parent(
+    integration_modules: _InitModules,
+) -> None:
+    """Legacy entries sharing one API key should become one parent with locations."""
+    integration = integration_modules.integration
+
+    parent = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Home",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_UPDATE_INTERVAL: 12,
+        },
+        options={},
+        version=3,
+        subentries={},
+    )
+    duplicate = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        title="Office",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 3.0,
+            integration.CONF_LONGITUDE: 4.0,
+            integration.CONF_LANGUAGE_CODE: "en",
+            integration.CONF_FORECAST_DAYS: 3,
+        },
+        options={},
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[parent, duplicate])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, parent)) is True
+
+    assert parent.version == integration.TARGET_ENTRY_VERSION
+    assert parent.data == {integration.CONF_API_KEY: "shared-key"}
+    assert parent.options == {
+        integration.CONF_UPDATE_INTERVAL: 12,
+        integration.CONF_LANGUAGE_CODE: "en",
+        integration.CONF_FORECAST_DAYS: 3,
+    }
+    assert len(parent.subentries) == 2
+    subentries_by_legacy_id = {
+        subentry.data[integration.CONF_LEGACY_ENTRY_ID]: subentry
+        for subentry in parent.subentries.values()
+    }
+    assert set(subentries_by_legacy_id) == {"legacy-home", "legacy-office"}
+    assert subentries_by_legacy_id["legacy-home"].title == "Home"
+    assert subentries_by_legacy_id["legacy-home"].unique_id == "1.0000_2.0000"
+    assert subentries_by_legacy_id["legacy-office"].title == "Office"
+    assert subentries_by_legacy_id["legacy-office"].unique_id == "3.0000_4.0000"
+    assert duplicate.data == {
+        integration.CONF_API_KEY: "shared-key",
+        "merged_into_entry_id": "legacy-home",
+    }
+    assert duplicate.options == {}
+    assert duplicate.version == integration.TARGET_ENTRY_VERSION
+    assert hass.config_entries.removed_entries == ["legacy-office"]
+    assert [entry.entry_id for entry in hass.config_entries.async_entries()] == [
+        "legacy-home"
+    ]
 
 
 def test_migrate_entry_normalizes_invalid_mode(

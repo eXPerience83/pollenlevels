@@ -94,17 +94,19 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 ## Multiple locations and upgrades
 
 Version 3.0.0 stores configuration as one parent API-key entry with one or more
-location subentries. Existing 2.x entries are migrated conservatively:
+location subentries. Existing 2.x entries are consolidated by API key during
+migration:
 
-- Each legacy config entry becomes one parent entry with one location subentry.
-- Separate legacy entries are not automatically merged, even if they use the
-  same Google API key.
+- Legacy entries with the same Google API key are grouped under one parent
+  entry.
+- Each migrated legacy location becomes a location subentry under that parent.
 - Migrated location subentries keep the legacy entry ID internally so existing
   entity unique IDs, devices, dashboards, and automations continue to match.
 
-If you want to consolidate several legacy entries under one API key, add the
-extra locations to the parent entry manually after upgrading, verify the new
-entities, and then remove any old duplicate entries you no longer need.
+If legacy entries sharing a key used different update, language, or forecast
+options, the parent entry keeps the first entry's options and fills missing
+values from the remaining entries. You can adjust the shared options after
+upgrading from **Settings -> Devices & Services -> Pollen Levels -> Configure**.
 
 When reauthenticating or reconfiguring the parent API key, the integration tries
 the configured locations until one returns usable pollen data. Authentication
