@@ -58,7 +58,7 @@ from .util import (
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
-TARGET_ENTRY_VERSION = 3
+TARGET_ENTRY_VERSION = 4
 PLATFORMS = ["sensor", "button"]
 
 # ---- Service -------------------------------------------------------------
@@ -258,7 +258,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         _LOGGER.debug("Executing force_update service for all Pollen Levels entries")
         entries = list(hass.config_entries.async_entries(DOMAIN))
         tasks: list[Awaitable[None]] = []
-        task_entries: list[tuple[ConfigEntry, str]] = []
+        task_entries: list[tuple[ConfigEntry, str, Any]] = []
         for entry in entries:
             runtime = getattr(entry, "runtime_data", None)
             locations = getattr(runtime, "locations", None) or {}
@@ -266,7 +266,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 coordinator = getattr(runtime, "coordinator", None)
                 if coordinator:
                     tasks.append(coordinator.async_request_refresh())
-                    task_entries.append((entry, entry.entry_id))
+                    task_entries.append((entry, entry.entry_id, coordinator))
                     continue
                 _LOGGER.debug(
                     "Skipping force_update for entry %s (no location coordinators)",
@@ -279,14 +279,16 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 if not coordinator:
                     continue
                 tasks.append(coordinator.async_request_refresh())
-                task_entries.append((entry, location.subentry_id))
+                task_entries.append((entry, location.subentry_id, coordinator))
 
         if not tasks:
             _LOGGER.debug("No coordinators available for force_update")
             return
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        for (entry, subentry_id), result in zip(task_entries, results, strict=False):
+        for (entry, subentry_id, coordinator), result in zip(
+            task_entries, results, strict=False
+        ):
             if isinstance(result, asyncio.CancelledError):
                 _LOGGER.debug(
                     "Manual refresh cancelled for entry %s subentry %s",
@@ -299,8 +301,16 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 safe_message = redact_sensitive_values(
                     result,
                     api_key=api_key,
-                    latitude=(entry.data or {}).get(CONF_LATITUDE),
-                    longitude=(entry.data or {}).get(CONF_LONGITUDE),
+                    latitude=getattr(
+                        coordinator,
+                        "lat",
+                        (entry.data or {}).get(CONF_LATITUDE),
+                    ),
+                    longitude=getattr(
+                        coordinator,
+                        "lon",
+                        (entry.data or {}).get(CONF_LONGITUDE),
+                    ),
                 )
                 if subentry_id == entry.entry_id:
                     _LOGGER.warning(
@@ -431,9 +441,6 @@ async def async_setup_entry(
             coordinator=coordinator,
             legacy_entry_id=legacy_entry_id,
         )
-
-    if not locations:
-        raise ConfigEntryNotReady("No pollen locations configured")
 
     entry.runtime_data = PollenLevelsRuntimeData(client=client, locations=locations)
 

@@ -11,6 +11,10 @@
   under one parent entry.
 - Preserved migrated entity unique IDs by storing the legacy entry ID on the
   migrated location subentry.
+- Documented the conservative migration behavior: legacy entries are not
+  automatically merged, even when they use the same API key.
+- Validated parent API-key reauth and reconfigure flows against configured
+  locations until one location returns usable pollen data.
 
 ## [2.3.0] - 2026-05-31
 ### Added

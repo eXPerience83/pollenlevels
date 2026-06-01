@@ -350,10 +350,42 @@ def _parent_entry_options(normalized: dict[str, Any]) -> dict[str, Any]:
 
 def _first_location_data(entry: config_entries.ConfigEntry) -> dict[str, Any]:
     """Return the first location data for validating parent reauth/reconfigure."""
+    location_data = _location_data_for_validation(entry)
+    if location_data:
+        return location_data[0]
+    return dict(entry.data or {})
+
+
+def _location_data_for_validation(
+    entry: config_entries.ConfigEntry,
+) -> list[dict[str, Any]]:
+    """Return all configured location data candidates for API-key validation."""
+    locations: list[dict[str, Any]] = []
     for subentry in (getattr(entry, "subentries", {}) or {}).values():
         if getattr(subentry, "subentry_type", None) == SUBENTRY_TYPE_LOCATION:
-            return dict(subentry.data or {})
-    return dict(entry.data or {})
+            locations.append(dict(subentry.data or {}))
+    if locations:
+        return locations
+    data = dict(entry.data or {})
+    if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+        return [data]
+    return []
+
+
+def _should_try_next_location(errors: dict[str, str]) -> bool:
+    """Return whether validation failure may be specific to one location."""
+    if errors == {"base": "invalid_coordinates"}:
+        return True
+    return errors == {"base": "cannot_connect"}
+
+
+def _schedule_parent_reload(hass: Any, entry: config_entries.ConfigEntry) -> None:
+    """Schedule parent entry reload after a subentry storage change."""
+    config_entries_manager = getattr(hass, "config_entries", None)
+    schedule_reload = getattr(config_entries_manager, "async_schedule_reload", None)
+    if schedule_reload is None:
+        return
+    schedule_reload(entry.entry_id)
 
 
 def _has_duplicate_location(
@@ -436,7 +468,7 @@ def _sanitize_forecast_mode_for_default(raw_value: Any) -> str:
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
-    VERSION = 3
+    VERSION = 4
 
     @staticmethod
     def async_get_options_flow(
@@ -723,29 +755,49 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         if user_input:
-            combined: dict[str, Any] = {
-                **entry.options,
-                **entry.data,
-                **location_data,
-                **user_input,
-            }
-            errors, normalized = await self._async_validate_input(
-                combined,
-                check_unique_id=False,
-                description_placeholders=placeholders,
-            )
-            if not errors and normalized is not None:
-                if persist_normalized_data:
-                    data_updates = normalized
-                else:
-                    data_updates = {
-                        CONF_API_KEY: str(normalized.get(CONF_API_KEY, "")).strip(),
-                    }
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates=data_updates,
-                    reason=success_reason,
+            location_candidates = _location_data_for_validation(entry) or [
+                dict(entry.data or {})
+            ]
+            display_errors: dict[str, str] | None = None
+            display_placeholders: dict[str, Any] | None = None
+
+            for candidate in location_candidates:
+                candidate_placeholders = dict(placeholders)
+                combined: dict[str, Any] = {
+                    **entry.options,
+                    **entry.data,
+                    **candidate,
+                    **user_input,
+                }
+                errors, normalized = await self._async_validate_input(
+                    combined,
+                    check_unique_id=False,
+                    description_placeholders=candidate_placeholders,
                 )
+                if not errors and normalized is not None:
+                    if persist_normalized_data:
+                        data_updates = normalized
+                    else:
+                        data_updates = {
+                            CONF_API_KEY: str(normalized.get(CONF_API_KEY, "")).strip(),
+                        }
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data_updates=data_updates,
+                        reason=success_reason,
+                    )
+
+                if not _should_try_next_location(errors):
+                    display_errors = errors
+                    display_placeholders = candidate_placeholders
+                    break
+                if display_errors is None:
+                    display_errors = errors
+                    display_placeholders = candidate_placeholders
+
+            errors = display_errors or errors
+            if display_placeholders is not None:
+                placeholders.update(display_placeholders)
 
         schema = vol.Schema(
             {
@@ -815,6 +867,7 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                 if _has_duplicate_location(entry, unique_id):
                     errors["base"] = "already_configured"
                 else:
+                    _schedule_parent_reload(self.hass, entry)
                     return self.async_create_entry(
                         title=title,
                         data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
@@ -860,7 +913,7 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                     legacy_entry_id = subentry_data.get(CONF_LEGACY_ENTRY_ID)
                     if legacy_entry_id:
                         data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
-                    return self.async_update_and_abort(
+                    return self.async_update_reload_and_abort(
                         entry,
                         subentry,
                         title=title,

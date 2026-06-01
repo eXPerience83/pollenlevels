@@ -137,6 +137,44 @@ def test_button_attributes(button_platform: SimpleNamespace) -> None:
     assert entity._attr_device_info["translation_key"] == "info"
 
 
+def test_button_attributes_use_legacy_identity(
+    button_platform: SimpleNamespace,
+) -> None:
+    coordinator = _FakeCoordinator()
+    coordinator.entity_identity_id = "legacy-entry"
+    coordinator.device_identity_id = "legacy-entry"
+    entity = button_platform.module.PollenLevelsUpdateButton(coordinator)
+
+    assert entity._attr_unique_id == "legacy-entry_update_now"
+    assert entity._attr_device_info["identifiers"] == {
+        ("pollenlevels", "legacy-entry_meta")
+    }
+
+
+def test_button_attributes_use_new_subentry_identity(
+    button_platform: SimpleNamespace,
+) -> None:
+    first = _FakeCoordinator()
+    first.entity_identity_id = "parent-entry_location-1"
+    first.device_identity_id = "parent-entry_location-1"
+    changed = _FakeCoordinator()
+    changed.entity_identity_id = "parent-entry_location-1"
+    changed.device_identity_id = "parent-entry_location-1"
+    changed.entry_title = "Renamed"
+    changed.lat = 3.0
+    changed.lon = 4.0
+
+    first_entity = button_platform.module.PollenLevelsUpdateButton(first)
+    changed_entity = button_platform.module.PollenLevelsUpdateButton(changed)
+
+    assert first_entity._attr_unique_id == changed_entity._attr_unique_id
+    assert first_entity._attr_unique_id == "parent-entry_location-1_update_now"
+    assert (
+        first_entity._attr_device_info["identifiers"]
+        == changed_entity._attr_device_info["identifiers"]
+    )
+
+
 def test_button_available_when_last_update_failed(
     button_platform: SimpleNamespace,
 ) -> None:
@@ -224,3 +262,20 @@ async def test_setup_entry_adds_one_button_entity(
     )
     assert len(added) == 1
     assert isinstance(added[0], button_platform.module.PollenLevelsUpdateButton)
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_without_locations_adds_no_button(
+    button_platform: SimpleNamespace,
+) -> None:
+    entry = types.SimpleNamespace(runtime_data=types.SimpleNamespace(locations={}))
+    added = []
+
+    def _add_entities(entities):
+        added.extend(entities)
+
+    await button_platform.module.async_setup_entry(
+        button_platform.hass_class(), entry, _add_entities
+    )
+
+    assert added == []

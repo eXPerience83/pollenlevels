@@ -163,6 +163,11 @@ class _StubConfigSubentryFlow:
             subentry.data = data
         return self.async_abort(reason="reconfigure_successful")
 
+    def async_update_reload_and_abort(self, entry, subentry, **kwargs):
+        result = self.async_update_and_abort(entry, subentry, **kwargs)
+        self.hass.config_entries.async_schedule_reload(entry.entry_id)
+        return result
+
     def _get_entry(self):
         return self.hass.config_entries.async_get_entry(self.handler[0])
 
@@ -2142,6 +2147,155 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     assert combined_input[config_flow_stubs.CONF_LONGITUDE] == -0.123456
 
 
+def test_reconfigure_api_key_validation_accepts_later_working_location(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Parent API-key validation should try another location after a location failure."""
+
+    first = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="subentry-1",
+        title="First",
+        unique_id="1.0000_2.0000",
+    )
+    second = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 3.0,
+            config_flow_stubs.CONF_LONGITUDE: 4.0,
+        },
+        subentry_id="subentry-2",
+        title="Second",
+        unique_id="3.0000_4.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "old-key"},
+        options={config_flow_stubs.CONF_LANGUAGE_CODE: "en"},
+        entry_id="entry-id",
+        subentries={
+            first.subentry_id: first,
+            second.subentry_id: second,
+        },
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+            self.reloaded = None
+
+        def async_get_entry(self, entry_id: str):
+            return entry if entry_id == entry.entry_id else None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+
+        def async_reload(self, entry_id: str):
+            self.reloaded = entry_id
+
+    recorder = _Recorder()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    flow.context = {"entry_id": "entry-id"}
+    attempts: list[tuple[float, float]] = []
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        attempts.append(
+            (
+                user_input[config_flow_stubs.CONF_LATITUDE],
+                user_input[config_flow_stubs.CONF_LONGITUDE],
+            )
+        )
+        if user_input[config_flow_stubs.CONF_LATITUDE] == 1.0:
+            return {"base": "cannot_connect"}, None
+        return {}, {**user_input, config_flow_stubs.CONF_API_KEY: "new-key"}
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    result = asyncio.run(
+        flow.async_step_reconfigure({config_flow_stubs.CONF_API_KEY: "new-key"})
+    )
+
+    assert result == {"type": "abort", "reason": "reconfigure_successful"}
+    assert attempts == [(1.0, 2.0), (3.0, 4.0)]
+    assert recorder.updated == (
+        entry,
+        {config_flow_stubs.CONF_API_KEY: "new-key"},
+    )
+    assert recorder.reloaded == "entry-id"
+
+
+def test_reconfigure_api_key_validation_stops_on_invalid_auth(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Credential failures should not be retried against every location."""
+
+    first = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="subentry-1",
+        title="First",
+        unique_id="1.0000_2.0000",
+    )
+    second = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 3.0,
+            config_flow_stubs.CONF_LONGITUDE: 4.0,
+        },
+        subentry_id="subentry-2",
+        title="Second",
+        unique_id="3.0000_4.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "old-key"},
+        entry_id="entry-id",
+        subentries={
+            first.subentry_id: first,
+            second.subentry_id: second,
+        },
+    )
+
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_get_entry=lambda entry_id: (
+                entry if entry_id == entry.entry_id else None
+            ),
+            async_update_entry=lambda *args, **kwargs: None,
+            async_reload=lambda *args, **kwargs: None,
+        )
+    )
+    flow.context = {"entry_id": "entry-id"}
+    flow.async_show_form = (  # type: ignore[method-assign]
+        lambda *args, **kwargs: {
+            "step_id": kwargs.get("step_id") or (args[0] if args else None),
+            "errors": kwargs.get("errors") or {},
+        }
+    )
+    attempts = 0
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        nonlocal attempts
+        attempts += 1
+        return {"base": "invalid_auth"}, None
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    result = asyncio.run(
+        flow.async_step_reconfigure({config_flow_stubs.CONF_API_KEY: "bad-key"})
+    )
+
+    assert result == {"step_id": "reconfigure", "errors": {"base": "invalid_auth"}}
+    assert attempts == 1
+
+
 def test_reauth_confirm_does_not_reintroduce_option_fields_in_data(
     config_flow_stubs: ConfigFlowStubs,
 ) -> None:
@@ -2460,6 +2614,337 @@ def test_async_step_user_defaults_entry_name(
         config_flow_stubs.CONF_LATITUDE: 1.0,
         config_flow_stubs.CONF_LONGITUDE: 2.0,
     }
+
+
+class _SubentryRecorder:
+    def __init__(self, entry) -> None:
+        self.entry = entry
+        self.reload_calls: list[str] = []
+
+    def async_get_entry(self, entry_id: str):
+        return self.entry if entry_id == self.entry.entry_id else None
+
+    def async_schedule_reload(self, entry_id: str) -> None:
+        self.reload_calls.append(entry_id)
+
+
+def _build_location_subentry_flow(config_flow_stubs: ConfigFlowStubs, entry):
+    recorder = _SubentryRecorder(entry)
+    flow = config_flow_stubs.config_flow.PollenLevelsLocationSubentryFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(
+            latitude=1.0,
+            longitude=2.0,
+            location_name="Home",
+        ),
+        config_entries=recorder,
+    )
+    flow.handler = (
+        entry.entry_id,
+        config_flow_stubs.config_flow.SUBENTRY_TYPE_LOCATION,
+    )
+    flow.context = {}
+    return flow, recorder
+
+
+def test_location_subentry_user_step_shows_form(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """The add-location subentry flow should render its form initially."""
+
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+    )
+    flow, _recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+
+    result = asyncio.run(flow.async_step_user())
+
+    assert result == {"type": "form", "step_id": "user", "errors": {}}
+
+
+def test_location_subentry_user_step_creates_entry_and_schedules_reload(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Adding a valid location should create a subentry and reload the parent."""
+
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                config_flow_stubs.CONF_NAME: " Garden ",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 12.34567,
+                    config_flow_stubs.CONF_LONGITUDE: -98.76543,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["title"] == "Garden"
+    assert result["data"] == {
+        config_flow_stubs.CONF_LATITUDE: 12.34567,
+        config_flow_stubs.CONF_LONGITUDE: -98.76543,
+    }
+    assert result["unique_id"] == "12.3457_-98.7654"
+    assert recorder.reload_calls == ["entry-id"]
+
+
+def test_location_subentry_user_step_rejects_invalid_coordinates(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Invalid location input should stay on the form without reloading."""
+
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                config_flow_stubs.CONF_NAME: "Garden",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: "north",
+                    config_flow_stubs.CONF_LONGITUDE: -98.76543,
+                },
+            }
+        )
+    )
+
+    assert result == {
+        "type": "form",
+        "step_id": "user",
+        "errors": {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"},
+    }
+    assert recorder.reload_calls == []
+
+
+def test_location_subentry_user_step_rejects_duplicate_location(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Duplicate coordinate unique IDs should be rejected within one parent."""
+
+    existing = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="subentry-1",
+        title="Home",
+        unique_id="1.0000_2.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+        subentries={existing.subentry_id: existing},
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                config_flow_stubs.CONF_NAME: "Duplicate",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 1.0,
+                    config_flow_stubs.CONF_LONGITUDE: 2.0,
+                },
+            }
+        )
+    )
+
+    assert result == {
+        "type": "form",
+        "step_id": "user",
+        "errors": {"base": "already_configured"},
+    }
+    assert recorder.reload_calls == []
+
+
+def test_location_subentry_reconfigure_updates_entry_and_schedules_reload(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Reconfiguring a location should update the subentry and reload parent."""
+
+    subentry = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="subentry-1",
+        title="Home",
+        unique_id="1.0000_2.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+        subentries={subentry.subentry_id: subentry},
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+    flow.context = {"subentry_id": subentry.subentry_id}
+
+    result = asyncio.run(
+        flow.async_step_reconfigure(
+            {
+                config_flow_stubs.CONF_NAME: " Garden ",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 3.0,
+                    config_flow_stubs.CONF_LONGITUDE: 4.0,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+    assert subentry.title == "Garden"
+    assert subentry.data == {
+        config_flow_stubs.CONF_LATITUDE: 3.0,
+        config_flow_stubs.CONF_LONGITUDE: 4.0,
+    }
+    assert subentry.unique_id == "3.0000_4.0000"
+    assert recorder.reload_calls == ["entry-id"]
+
+
+def test_location_subentry_reconfigure_preserves_legacy_entry_id(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Reconfiguring a migrated location should preserve legacy identity data."""
+
+    subentry = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+            config_flow_stubs.config_flow.CONF_LEGACY_ENTRY_ID: "legacy-entry",
+        },
+        subentry_id="subentry-1",
+        title="Home",
+        unique_id="1.0000_2.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+        subentries={subentry.subentry_id: subentry},
+    )
+    flow, _recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+    flow.context = {"subentry_id": subentry.subentry_id}
+
+    asyncio.run(
+        flow.async_step_reconfigure(
+            {
+                config_flow_stubs.CONF_NAME: "Home",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 5.0,
+                    config_flow_stubs.CONF_LONGITUDE: 6.0,
+                },
+            }
+        )
+    )
+
+    assert subentry.data[config_flow_stubs.config_flow.CONF_LEGACY_ENTRY_ID] == (
+        "legacy-entry"
+    )
+
+
+def test_location_subentry_reconfigure_rejects_other_duplicate(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Reconfigure duplicate detection should ignore current subentry only."""
+
+    current = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="subentry-1",
+        title="Home",
+        unique_id="1.0000_2.0000",
+    )
+    other = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 3.0,
+            config_flow_stubs.CONF_LONGITUDE: 4.0,
+        },
+        subentry_id="subentry-2",
+        title="Office",
+        unique_id="3.0000_4.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+        subentries={
+            current.subentry_id: current,
+            other.subentry_id: other,
+        },
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+    flow.context = {"subentry_id": current.subentry_id}
+
+    result = asyncio.run(
+        flow.async_step_reconfigure(
+            {
+                config_flow_stubs.CONF_NAME: "Duplicate",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 3.0,
+                    config_flow_stubs.CONF_LONGITUDE: 4.0,
+                },
+            }
+        )
+    )
+
+    assert result == {
+        "type": "form",
+        "step_id": "reconfigure",
+        "errors": {"base": "already_configured"},
+    }
+    assert recorder.reload_calls == []
+
+
+def test_location_subentry_reconfigure_allows_current_location(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Keeping the same coordinates should not count as a duplicate."""
+
+    current = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="subentry-1",
+        title="Home",
+        unique_id="1.0000_2.0000",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        entry_id="entry-id",
+        subentries={current.subentry_id: current},
+    )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
+    flow.context = {"subentry_id": current.subentry_id}
+
+    result = asyncio.run(
+        flow.async_step_reconfigure(
+            {
+                config_flow_stubs.CONF_NAME: "Home Updated",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 1.0,
+                    config_flow_stubs.CONF_LONGITUDE: 2.0,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+    assert current.title == "Home Updated"
+    assert recorder.reload_calls == ["entry-id"]
 
 
 @pytest.mark.parametrize("raw", ["inf", "-inf", "nan"])

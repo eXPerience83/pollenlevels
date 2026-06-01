@@ -64,7 +64,8 @@ async def async_setup_entry(
         if coordinator is not None:
             async_add_entities([PollenLevelsUpdateButton(coordinator)])
             return
-        raise ConfigEntryNotReady("Runtime location data not ready")
+        _LOGGER.debug("No location subentries configured; no update buttons to add")
+        return
 
     for location in locations.values():
         _add_button_for_location(async_add_entities, location)

@@ -22,6 +22,7 @@ class DiagnosticsModules(NamedTuple):
 
     diag: ModuleType
     PollenLevelsRuntimeData: type[object]
+    PollenLocationRuntime: type[object]
     CONF_API_KEY: str
     CONF_FORECAST_DAYS: str
     CONF_LANGUAGE_CODE: str
@@ -102,11 +103,13 @@ def diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> DiagnosticsModules:
     )
     from custom_components.pollenlevels.runtime import (
         PollenLevelsRuntimeData as ImportedRuntimeData,
+        PollenLocationRuntime as ImportedLocationRuntime,
     )
 
     modules = DiagnosticsModules(
         diag=imported_diag,
         PollenLevelsRuntimeData=ImportedRuntimeData,
+        PollenLocationRuntime=ImportedLocationRuntime,
         CONF_API_KEY=imported_conf_api_key,
         CONF_FORECAST_DAYS=imported_conf_forecast_days,
         CONF_LANGUAGE_CODE=imported_conf_language_code,
@@ -159,6 +162,88 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
     assert diagnostics["request_params_example"]["location.longitude"] == 79.0
     assert diagnostics["coordinator"]["data_keys_total"] == 60
     assert len(diagnostics["coordinator"]["data_keys"]) == 50
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_includes_all_locations_with_top_level_first_location(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should expose all locations and keep top-level compatibility."""
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
+    }
+    options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
+    entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
+
+    first_coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="subentry-1",
+        legacy_entry_id="legacy-entry",
+        entity_identity_id="legacy-entry",
+        forecast_days=3,
+        language="en",
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=12.3456,
+        lon=78.9876,
+        entry_title="Home",
+        data={"type_grass": {"source": "type", "code": "GRASS", "value": 2}},
+    )
+    second_coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="subentry-2",
+        legacy_entry_id=None,
+        entity_identity_id="entry_subentry-2",
+        forecast_days=3,
+        language="en",
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=40.7128,
+        lon=-74.0060,
+        entry_title="Office",
+        data={"type_tree": {"source": "type", "code": "TREE", "value": 4}},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "subentry-1": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="subentry-1",
+                coordinator=first_coordinator,
+                legacy_entry_id="legacy-entry",
+            ),
+            "subentry-2": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="subentry-2",
+                coordinator=second_coordinator,
+                legacy_entry_id=None,
+            ),
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert set(diagnostics["locations"]) == {"subentry-1", "subentry-2"}
+    first_payload = diagnostics["locations"]["subentry-1"]
+    second_payload = diagnostics["locations"]["subentry-2"]
+    assert diagnostics["coordinator"] == first_payload["coordinator"]
+    assert diagnostics["forecast_summary"] == first_payload["forecast_summary"]
+    assert diagnostics["daily_summary"] == first_payload["daily_summary"]
+    assert (
+        diagnostics["request_params_example"] == first_payload["request_params_example"]
+    )
+    assert first_payload["request_params_example"]["key"] == "***"
+    assert second_payload["request_params_example"]["key"] == "***"
+    assert first_payload["approximate_location"]["latitude_rounded"] == 12.3
+    assert first_payload["approximate_location"]["longitude_rounded"] == 79.0
+    assert second_payload["approximate_location"]["latitude_rounded"] == 40.7
+    assert second_payload["approximate_location"]["longitude_rounded"] == -74.0
+    assert first_payload["coordinator"]["legacy_entry_id"] == "legacy-entry"
+    assert second_payload["coordinator"]["subentry_id"] == "subentry-2"
 
 
 @pytest.mark.asyncio

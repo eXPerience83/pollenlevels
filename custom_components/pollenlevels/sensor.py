@@ -186,7 +186,11 @@ async def async_setup_entry(
     if runtime is None:
         raise ConfigEntryNotReady("Runtime data not ready")
     if not runtime.locations:
-        raise ConfigEntryNotReady("Runtime location data not ready")
+        _LOGGER.debug(
+            "No location subentries configured for entry %s; no sensors to add",
+            config_entry.entry_id,
+        )
+        return
 
     opts = config_entry.options or {}
     for location in runtime.locations.values():

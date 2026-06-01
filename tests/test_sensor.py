@@ -449,6 +449,71 @@ def _summary_coordinator(data: dict[str, Any]):
     )
 
 
+def test_sensor_unique_ids_and_devices_use_legacy_identity(
+    sensor_modules: SensorModules,
+) -> None:
+    """Migrated locations should keep legacy entity and device identifiers."""
+
+    coordinator = types.SimpleNamespace(
+        data={"type_grass": {"source": "type", "displayName": "Grass", "value": 2}},
+        entry_id="parent-entry",
+        subentry_id="location-1",
+        legacy_entry_id="legacy-entry",
+        entity_identity_id="legacy-entry",
+        device_identity_id="legacy-entry",
+        entry_title="Home",
+        lat=1.0,
+        lon=2.0,
+        forecast_days=2,
+    )
+
+    entity = sensor_modules.sensor.PollenSensor(coordinator, "type_grass")
+
+    assert entity.unique_id == "legacy-entry_type_grass"
+    assert entity.device_info["identifiers"] == {
+        (sensor_modules.const.DOMAIN, "legacy-entry_type")
+    }
+
+
+def test_sensor_unique_ids_survive_subentry_title_and_coordinate_changes(
+    sensor_modules: SensorModules,
+) -> None:
+    """New subentries should use subentry identity, not mutable title/coordinates."""
+
+    first = types.SimpleNamespace(
+        data={"type_grass": {"source": "type", "displayName": "Grass", "value": 2}},
+        entry_id="parent-entry",
+        subentry_id="location-1",
+        entity_identity_id="parent-entry_location-1",
+        device_identity_id="parent-entry_location-1",
+        entry_title="Home",
+        lat=1.0,
+        lon=2.0,
+        forecast_days=2,
+    )
+    changed = types.SimpleNamespace(
+        data=first.data,
+        entry_id="parent-entry",
+        subentry_id="location-1",
+        entity_identity_id="parent-entry_location-1",
+        device_identity_id="parent-entry_location-1",
+        entry_title="Renamed Home",
+        lat=3.0,
+        lon=4.0,
+        forecast_days=2,
+    )
+
+    first_entity = sensor_modules.sensor.PollenSensor(first, "type_grass")
+    changed_entity = sensor_modules.sensor.PollenSensor(changed, "type_grass")
+
+    assert first_entity.unique_id == changed_entity.unique_id
+    assert first_entity.unique_id == "parent-entry_location-1_type_grass"
+    assert (
+        first_entity.device_info["identifiers"]
+        == changed_entity.device_info["identifiers"]
+    )
+
+
 def test_plants_in_season_counts_mixed_boolean_and_unknown_values(
     sensor_modules: SensorModules,
 ) -> None:
@@ -2397,6 +2462,30 @@ def test_async_setup_entry_raises_not_ready_if_runtime_data_missing(
             )
     finally:
         loop.close()
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_without_locations_adds_no_entities(
+    sensor_modules: SensorModules,
+) -> None:
+    """A loaded parent entry with no locations should not create sensors."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        entry_id="entry",
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(), locations={}
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    assert captured == []
 
 
 @pytest.mark.asyncio

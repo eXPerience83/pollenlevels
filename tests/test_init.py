@@ -240,6 +240,7 @@ class _FakeConfigEntries:
         self.forward_calls: list[tuple[object, list[str]]] = []
         self.unload_calls: list[tuple[object, list[str]]] = []
         self.reload_calls: list[str] = []
+        self.added_subentries: list[tuple[object, object]] = []
         self._entries = entries or []
 
     async def async_forward_entry_setups(self, entry, platforms):
@@ -258,6 +259,12 @@ class _FakeConfigEntries:
             entry.options = kwargs["options"]
         if "version" in kwargs:
             entry.version = kwargs["version"]
+
+    def async_add_subentry(self, entry, subentry):
+        self.added_subentries.append((entry, subentry))
+        subentries = dict(getattr(entry, "subentries", {}) or {})
+        subentries[subentry.subentry_id] = subentry
+        entry.subentries = subentries
 
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
         self.reload_calls.append(entry_id)
@@ -280,6 +287,7 @@ class _FakeEntry:
         data: dict | None = None,
         options: dict | None = None,
         version: int = 1,
+        subentries: dict | None = None,
     ):
         self.entry_id = entry_id
         self.title = title
@@ -291,6 +299,7 @@ class _FakeEntry:
         }
         self.options = options or {}
         self.version = version
+        self.subentries = subentries or {}
         self.runtime_data = None
 
 
@@ -419,6 +428,27 @@ def test_setup_entry_whitespace_api_key_raises_auth_failed(
 
     with pytest.raises(integration.ConfigEntryAuthFailed):
         asyncio.run(integration.async_setup_entry(hass, entry))
+
+
+def test_setup_entry_without_location_subentries_loads_empty_runtime(
+    integration_modules: _InitModules,
+) -> None:
+    """A parent entry with no locations should load and forward platforms."""
+    integration = integration_modules.integration
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "key"},
+        subentries={},
+    )
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    assert entry.runtime_data is not None
+    assert entry.runtime_data.locations == {}
+    assert entry.runtime_data.coordinator is None
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
 
 
 def test_setup_entry_invalid_coordinates_raise_not_ready(
@@ -931,6 +961,163 @@ def test_force_update_logs_do_not_expose_secrets(
     assert "Manual refresh failed for entry entry-secrets (RuntimeError):" in text
 
 
+def test_force_update_refreshes_all_location_subentries(
+    integration_modules: _InitModules,
+) -> None:
+    """force_update should refresh every configured location coordinator."""
+    integration = integration_modules.integration
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    coordinator_1 = _Coordinator()
+    coordinator_2 = _Coordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "key"},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "loc-1": types.SimpleNamespace(
+                subentry_id="loc-1", coordinator=coordinator_1
+            ),
+            "loc-2": types.SimpleNamespace(
+                subentry_id="loc-2", coordinator=coordinator_2
+            ),
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert coordinator_1.calls == 1
+    assert coordinator_2.calls == 1
+
+
+def test_force_update_continues_after_one_location_failure(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """One location failure should not prevent another location refresh."""
+    integration = integration_modules.integration
+
+    class _OkCoordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    class _FailCoordinator:
+        lat = 12.345678
+        lon = -98.765432
+
+        async def async_request_refresh(self):
+            raise RuntimeError(
+                "api_key=secret-123 location.latitude=12.345678 "
+                "location.longitude=-98.765432"
+            )
+
+    ok = _OkCoordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "secret-123"},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "loc-bad": types.SimpleNamespace(
+                subentry_id="loc-bad", coordinator=_FailCoordinator()
+            ),
+            "loc-good": types.SimpleNamespace(subentry_id="loc-good", coordinator=ok),
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    text = caplog.text
+    assert ok.calls == 1
+    assert "Manual refresh failed for entry entry-parent subentry loc-bad" in text
+    assert "secret-123" not in text
+    assert "12.345678" not in text
+    assert "-98.765432" not in text
+    assert "location.latitude=***" in text
+    assert "location.longitude=***" in text
+
+
+def test_force_update_handles_location_cancelled_error(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """A cancelled location refresh should not abort the global service."""
+    integration = integration_modules.integration
+
+    class _CancelledCoordinator:
+        async def async_request_refresh(self):
+            raise asyncio.CancelledError
+
+    class _OkCoordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    ok = _OkCoordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "key"},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "loc-cancel": types.SimpleNamespace(
+                subentry_id="loc-cancel", coordinator=_CancelledCoordinator()
+            ),
+            "loc-good": types.SimpleNamespace(subentry_id="loc-good", coordinator=ok),
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert ok.calls == 1
+    assert (
+        "Manual refresh cancelled for entry entry-parent subentry loc-cancel"
+        in caplog.text
+    )
+
+
+def test_force_update_parent_without_locations_is_noop(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """A loaded parent entry with no locations should be a safe no-op."""
+    integration = integration_modules.integration
+
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-empty",
+        data={integration.CONF_API_KEY: "key"},
+    )
+    entry.runtime_data = types.SimpleNamespace(locations={})
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert "Skipping force_update for entry entry-empty" in caplog.text
+    assert "No coordinators available for force_update" in caplog.text
+
+
 def test_migrate_entry_moves_mode_to_options(integration_modules: _InitModules) -> None:
     """Migration should copy per-day sensor mode from data to options."""
     integration = integration_modules.integration
@@ -954,7 +1141,55 @@ def test_migrate_entry_moves_mode_to_options(integration_modules: _InitModules) 
     assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
     assert "http_referer" not in entry.data
     assert "http_referer" not in entry.options
-    assert entry.version == 3
+    assert entry.version == integration.TARGET_ENTRY_VERSION
+
+
+def test_migrate_entry_v3_legacy_creates_location_subentry(
+    integration_modules: _InitModules,
+) -> None:
+    """A 2.3.0-style version-3 entry should migrate into one location subentry."""
+    integration = integration_modules.integration
+
+    entry = _FakeEntry(
+        integration,
+        entry_id="legacy-entry",
+        title="Legacy Home",
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 12.34567,
+            integration.CONF_LONGITUDE: -98.76543,
+            integration.CONF_UPDATE_INTERVAL: 12,
+            integration.CONF_LANGUAGE_CODE: "en",
+            integration.CONF_FORECAST_DAYS: 3,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+        options={},
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+
+    assert entry.version == integration.TARGET_ENTRY_VERSION
+    assert entry.data == {integration.CONF_API_KEY: "key"}
+    assert entry.options == {
+        integration.CONF_UPDATE_INTERVAL: 12,
+        integration.CONF_LANGUAGE_CODE: "en",
+        integration.CONF_FORECAST_DAYS: 3,
+        integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+    }
+    assert len(entry.subentries) == 1
+    subentry = next(iter(entry.subentries.values()))
+    assert subentry.subentry_type == integration.SUBENTRY_TYPE_LOCATION
+    assert subentry.title == "Legacy Home"
+    assert subentry.unique_id == "12.3457_-98.7654"
+    assert subentry.data == {
+        integration.CONF_LATITUDE: 12.34567,
+        integration.CONF_LONGITUDE: -98.76543,
+        integration.CONF_LEGACY_ENTRY_ID: "legacy-entry",
+    }
+    assert hass.config_entries.added_subentries == [(entry, subentry)]
 
 
 def test_migrate_entry_normalizes_invalid_mode(
@@ -982,7 +1217,7 @@ def test_migrate_entry_normalizes_invalid_mode(
         entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
         == const.FORECAST_SENSORS_CHOICES[0]
     )
-    assert entry.version == 3
+    assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
 def test_migrate_entry_normalizes_invalid_mode_in_options(
@@ -1005,7 +1240,7 @@ def test_migrate_entry_normalizes_invalid_mode_in_options(
         entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
         == const.FORECAST_SENSORS_CHOICES[0]
     )
-    assert entry.version == 3
+    assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
 def test_migrate_entry_normalizes_invalid_mode_in_options_when_version_current(
@@ -1045,7 +1280,7 @@ def test_migrate_entry_marks_version_when_no_changes(
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert entry.version == 3
+    assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
 def test_migrate_entry_cleans_legacy_keys_when_version_current(
@@ -1135,4 +1370,4 @@ def test_migrate_entry_handles_non_int_version(
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert entry.version == 3
+    assert entry.version == integration.TARGET_ENTRY_VERSION

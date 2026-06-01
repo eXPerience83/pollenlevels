@@ -91,6 +91,27 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
 ---
 
+## Multiple locations and upgrades
+
+Version 3.0.0 stores configuration as one parent API-key entry with one or more
+location subentries. Existing 2.x entries are migrated conservatively:
+
+- Each legacy config entry becomes one parent entry with one location subentry.
+- Separate legacy entries are not automatically merged, even if they use the
+  same Google API key.
+- Migrated location subentries keep the legacy entry ID internally so existing
+  entity unique IDs, devices, dashboards, and automations continue to match.
+
+If you want to consolidate several legacy entries under one API key, add the
+extra locations to the parent entry manually after upgrading, verify the new
+entities, and then remove any old duplicate entries you no longer need.
+
+When reauthenticating or reconfiguring the parent API key, the integration tries
+the configured locations until one returns usable pollen data. Authentication
+and quota errors are treated as key-level failures.
+
+---
+
 ## Daily summary sensors
 
 The integration creates three current-day summary sensors in addition to the
