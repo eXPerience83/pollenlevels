@@ -169,6 +169,8 @@ async def _cleanup_per_day_entities(
         for (entity_id, unique_id, _removal), result in zip(
             removals, results, strict=True
         ):
+            if isinstance(result, asyncio.CancelledError):
+                raise result
             if isinstance(result, Exception):
                 _LOGGER.error(
                     "Failed to remove stale per-day entity from registry: %s (%s)",
