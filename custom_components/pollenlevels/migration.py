@@ -552,12 +552,19 @@ def _migrate_device_registry_for_merged_entry(
         elif not source_subentry_ids:
             source_subentry_ids = {None}
 
+        valid_source_subentry_ids = {
+            subentry_id
+            for subentry_id in source_subentry_ids
+            if subentry_id in targets_by_source_subentry
+        }
         target_subentries: list[ConfigSubentry] = []
         for source_subentry_id in sorted(
             source_subentry_ids, key=lambda item: item or ""
         ):
             if source_subentry_id not in targets_by_source_subentry:
                 if source is parent:
+                    continue
+                if source_subentry_id is None and valid_source_subentry_ids:
                     continue
                 _LOGGER.error(
                     "Cannot move device %s from entry %s to parent %s: no target "
