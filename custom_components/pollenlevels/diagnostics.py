@@ -36,7 +36,12 @@ from .const import (
 )
 from .runtime import PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
-from .util import active_location_subentry_ids, redact_api_key, safe_parse_int
+from .util import (
+    active_location_subentry_ids,
+    has_legacy_location_data,
+    redact_api_key,
+    safe_parse_int,
+)
 
 # Redact potentially sensitive values from diagnostics. Diagnostics intentionally
 # expose only 1-decimal approximate coordinates in support examples so issues
@@ -282,7 +287,9 @@ async def async_get_config_entry_diagnostics(
     first_location_payload: dict[str, Any] | None = None
     if runtime is not None:
         active_subentry_ids = active_location_subentry_ids(entry)
-        filter_stale_locations = bool(active_subentry_ids)
+        filter_stale_locations = bool(
+            active_subentry_ids
+        ) or not has_legacy_location_data(entry)
         for subentry_id, location in runtime.locations.items():
             if filter_stale_locations and subentry_id not in active_subentry_ids:
                 stale_location_ids.append(subentry_id)

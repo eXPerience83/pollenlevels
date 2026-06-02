@@ -52,6 +52,7 @@ from .sensor import ForecastSensorMode
 from .util import (
     active_location_subentry_ids,
     api_key_unique_id as api_key_unique_id,
+    has_legacy_location_data,
     normalize_sensor_mode,
     redact_sensitive_values,
     safe_parse_int,
@@ -196,7 +197,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 continue
 
             active_subentry_ids = active_location_subentry_ids(entry)
-            filter_stale_locations = bool(active_subentry_ids)
+            filter_stale_locations = bool(
+                active_subentry_ids
+            ) or not has_legacy_location_data(entry)
             for location in locations.values():
                 subentry_id = location.subentry_id
                 if filter_stale_locations and subentry_id not in active_subentry_ids:

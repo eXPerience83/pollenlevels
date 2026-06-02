@@ -1280,6 +1280,46 @@ def test_force_update_refreshes_fallback_location_without_subentries(
     assert "Skipping stale Pollen Levels runtime location" not in caplog.text
 
 
+def test_force_update_skips_runtime_locations_when_parent_has_no_locations(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """force_update should skip stale v3 runtime locations after deleting the last subentry."""
+    integration = integration_modules.integration
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    coordinator = _Coordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "key"},
+        subentries={},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "deleted-location": types.SimpleNamespace(
+                subentry_id="deleted-location", coordinator=coordinator
+            )
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert coordinator.calls == 0
+    assert (
+        "Skipping stale Pollen Levels runtime location deleted-location "
+        "for entry entry-parent"
+    ) in caplog.text
+
+
 def test_force_update_skips_stale_location_subentries(
     integration_modules: _InitModules, caplog
 ) -> None:

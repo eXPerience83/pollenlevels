@@ -8,7 +8,12 @@ import re
 from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
-from .const import FORECAST_SENSORS_CHOICES, SUBENTRY_TYPE_LOCATION
+from .const import (
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    FORECAST_SENSORS_CHOICES,
+    SUBENTRY_TYPE_LOCATION,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from aiohttp import ClientResponse
@@ -27,6 +32,17 @@ def active_location_subentry_ids(entry: Any) -> set[str]:
         if isinstance(subentry_id, str) and subentry_id:
             active_ids.add(subentry_id)
     return active_ids
+
+
+def has_legacy_location_data(entry: Any) -> bool:
+    """Return True when entry data contains a valid legacy fallback location."""
+    data = getattr(entry, "data", {}) or {}
+    if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
+        return False
+    return (
+        validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+        is not None
+    )
 
 
 async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
