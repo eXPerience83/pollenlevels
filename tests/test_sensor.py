@@ -636,6 +636,34 @@ def test_summary_sensor_shares_cached_payload_between_sensors(
     assert calls == [initial_data, updated_data]
 
 
+def test_summary_sensor_does_not_mutate_coordinator_cache_for_non_dict_data(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Summary fallback for non-dict data does not store temporary empty dicts."""
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_daily_summary(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        calls.append(data)
+        return {"plants_in_season_today": {"state": None}}
+
+    monkeypatch.setattr(sensor_modules.sensor, "_daily_summary", fake_daily_summary)
+    sentinel_ref = object()
+    sentinel_cache = {"sentinel": {"state": "cached"}}
+    coordinator = _summary_coordinator({})
+    coordinator.data = None
+    coordinator.daily_summary_cache = sentinel_cache
+    coordinator.daily_summary_cache_data_ref = sentinel_ref
+    entity = sensor_modules.sensor.PlantsInSeasonTodaySensor(coordinator)
+
+    assert entity.native_value is None
+    assert entity.native_value is None
+    assert coordinator.daily_summary_cache is sentinel_cache
+    assert coordinator.daily_summary_cache_data_ref is sentinel_ref
+    assert calls == [{}, {}]
+
+
 def test_overall_pollen_risk_returns_max_current_day_type_value(
     sensor_modules: SensorModules,
 ) -> None:

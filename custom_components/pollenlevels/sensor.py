@@ -488,18 +488,20 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
     def _summary_payload(self, key: str) -> dict[str, Any]:
         """Return the coordinator-level summary payload for current data."""
         raw_data = self.coordinator.data
-        data = raw_data if isinstance(raw_data, dict) else {}
+        if not isinstance(raw_data, dict):
+            return _daily_summary({})[key]
+
         summary_cache = getattr(self.coordinator, "daily_summary_cache", None)
         summary_cache_data_ref = getattr(
             self.coordinator, "daily_summary_cache_data_ref", None
         )
 
-        if isinstance(summary_cache, dict) and summary_cache_data_ref is data:
+        if isinstance(summary_cache, dict) and summary_cache_data_ref is raw_data:
             return summary_cache[key]
 
-        summary_cache = _daily_summary(data)
+        summary_cache = _daily_summary(raw_data)
         self.coordinator.daily_summary_cache = summary_cache
-        self.coordinator.daily_summary_cache_data_ref = data
+        self.coordinator.daily_summary_cache_data_ref = raw_data
         return summary_cache[key]
 
     @property
