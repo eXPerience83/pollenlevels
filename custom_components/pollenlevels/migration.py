@@ -45,6 +45,15 @@ class _MigrationLocation:
     source_subentry_id: str | None = None
 
 
+@dataclass(slots=True)
+class _RegistryMigrationStats:
+    """Registry migration counters for migration logs."""
+
+    entities_moved: int = 0
+    devices_moved: int = 0
+    legacy_device_associations_removed: int = 0
+
+
 def _coordinates_are_valid(lat: float, lon: float) -> bool:
     """Return whether coordinates are finite and in accepted ranges."""
     return (
@@ -388,6 +397,25 @@ def _target_subentries_by_source_subentry(
     }
 
 
+def _parent_legacy_location_target(
+    source: ConfigEntry, location: _MigrationLocation, subentry: ConfigSubentry
+) -> tuple[_MigrationLocation, ConfigSubentry] | None:
+    """Return a registry target for the parent's legacy main-entry association."""
+    if location.legacy_entry_id != source.entry_id:
+        return None
+    return (
+        _MigrationLocation(
+            source_entry=location.source_entry,
+            title=location.title,
+            data=location.data,
+            legacy_entry_id=location.legacy_entry_id,
+            unique_id=location.unique_id,
+            source_subentry_id=None,
+        ),
+        subentry,
+    )
+
+
 def _normalize_subentry_ids(value: Any) -> set[str]:
     """Return a normalized string set from a stored subentry-id value."""
     if value is None:
@@ -423,16 +451,17 @@ def _migrate_entity_registry_for_merged_entry(
     source: ConfigEntry,
     parent: ConfigEntry,
     location_targets: list[tuple[_MigrationLocation, ConfigSubentry]],
-) -> bool:
+) -> tuple[bool, int]:
     """Attach entity-registry links and report whether every move succeeded."""
     try:
         from homeassistant.helpers import entity_registry as er
 
         registry = er.async_get(hass)
     except ImportError, RuntimeError, KeyError, AttributeError:
-        return True
+        return True, 0
 
     migrated = True
+    moved = 0
     targets_by_source_subentry = _target_subentries_by_source_subentry(location_targets)
     for entity in er.async_entries_for_config_entry(registry, source.entry_id):
         if getattr(entity, "platform", None) != DOMAIN:
@@ -456,12 +485,15 @@ def _migrate_entity_registry_for_merged_entry(
             continue
 
         subentry = targets_by_source_subentry[source_subentry_id]
+        if getattr(entity, "config_subentry_id", None) == subentry.subentry_id:
+            continue
         try:
             registry.async_update_entity(
                 entity.entity_id,
                 config_entry_id=parent.entry_id,
                 config_subentry_id=subentry.subentry_id,
             )
+            moved += 1
         except Exception:  # noqa: BLE001
             migrated = False
             _LOGGER.exception(
@@ -470,7 +502,7 @@ def _migrate_entity_registry_for_merged_entry(
                 source.entry_id,
                 parent.entry_id,
             )
-    return migrated
+    return migrated, moved
 
 
 def _migrate_device_registry_for_merged_entry(
@@ -478,16 +510,18 @@ def _migrate_device_registry_for_merged_entry(
     source: ConfigEntry,
     parent: ConfigEntry,
     location_targets: list[tuple[_MigrationLocation, ConfigSubentry]],
-) -> bool:
+) -> tuple[bool, int, int]:
     """Attach device-registry links and report whether every move succeeded."""
     try:
         from homeassistant.helpers import device_registry as dr
 
         registry = dr.async_get(hass)
     except ImportError, RuntimeError, KeyError, AttributeError:
-        return True
+        return True, 0, 0
 
     migrated = True
+    moved = 0
+    legacy_associations_removed = 0
     targets_by_source_subentry = _target_subentries_by_source_subentry(location_targets)
     has_source_subentry_targets = any(
         source_subentry_id is not None
@@ -539,11 +573,19 @@ def _migrate_device_registry_for_merged_entry(
                     add_config_entry_id=parent.entry_id,
                     add_config_subentry_id=subentry.subentry_id,
                 )
+                moved += 1
             if source is not parent:
                 registry.async_update_device(
                     device.id,
                     remove_config_entry_id=source.entry_id,
                 )
+            elif None in source_subentry_ids:
+                registry.async_update_device(
+                    device.id,
+                    remove_config_entry_id=source.entry_id,
+                    remove_config_subentry_id=None,
+                )
+                legacy_associations_removed += 1
         except Exception:  # noqa: BLE001
             migrated = False
             _LOGGER.exception(
@@ -552,7 +594,7 @@ def _migrate_device_registry_for_merged_entry(
                 source.entry_id,
                 parent.entry_id,
             )
-    return migrated
+    return migrated, moved, legacy_associations_removed
 
 
 def _mark_entry_merged(
@@ -638,6 +680,11 @@ async def _async_migrate_grouped_entries(
 ) -> bool:
     """Migrate all legacy entries sharing one API key into one parent."""
     parent = _select_migration_parent(group, entry, api_key)
+    _LOGGER.info(
+        "Selected parent entry %s for API-key migration group with %d entries",
+        parent.entry_id,
+        len(group),
+    )
     for source in group:
         if source is parent:
             continue
@@ -673,18 +720,64 @@ async def _async_migrate_grouped_entries(
                 _add_migrated_subentry(hass, parent, subentry)
                 if location.legacy_entry_id is not None:
                     legacy_subentries[location.legacy_entry_id] = subentry
+                _LOGGER.info(
+                    "Created location subentry %s for legacy entry %s",
+                    subentry.subentry_id,
+                    location.legacy_entry_id or source.entry_id,
+                )
+            else:
+                _LOGGER.info(
+                    "Reused location subentry %s for legacy entry %s",
+                    subentry.subentry_id,
+                    location.legacy_entry_id or source.entry_id,
+                )
 
             if source is not parent or location.source_subentry_id is None:
                 registry_targets.setdefault(source, []).append((location, subentry))
+            elif (
+                parent_target := _parent_legacy_location_target(
+                    source, location, subentry
+                )
+            ) is not None:
+                registry_targets.setdefault(source, []).append(parent_target)
 
+    stats = _RegistryMigrationStats()
     for source, location_targets in registry_targets.items():
-        entity_registry_migrated = _migrate_entity_registry_for_merged_entry(
-            hass, source, parent, location_targets
+        entity_registry_migrated, moved_entities = (
+            _migrate_entity_registry_for_merged_entry(
+                hass, source, parent, location_targets
+            )
         )
-        device_registry_migrated = _migrate_device_registry_for_merged_entry(
-            hass, source, parent, location_targets
+        device_registry_migrated, moved_devices, removed_legacy_associations = (
+            _migrate_device_registry_for_merged_entry(
+                hass, source, parent, location_targets
+            )
         )
+        stats.entities_moved += moved_entities
+        stats.devices_moved += moved_devices
+        stats.legacy_device_associations_removed += removed_legacy_associations
+        _LOGGER.info(
+            "Moved %d entity registry entries from entry %s to parent %s",
+            moved_entities,
+            source.entry_id,
+            parent.entry_id,
+        )
+        _LOGGER.info(
+            "Moved %d device registry entries from entry %s to parent %s",
+            moved_devices,
+            source.entry_id,
+            parent.entry_id,
+        )
+        if removed_legacy_associations:
+            _LOGGER.info(
+                "Removed %d legacy non-subentry device associations from entry %s",
+                removed_legacy_associations,
+                source.entry_id,
+            )
         if not entity_registry_migrated or not device_registry_migrated:
+            _LOGGER.warning(
+                "Registry migration incomplete; keeping entries unchanged for retry"
+            )
             return False
 
     _update_parent_entry(hass, parent, api_key, parent_options, target_version)
@@ -695,6 +788,69 @@ async def _async_migrate_grouped_entries(
         _mark_entry_merged(hass, source, parent, api_key, target_version)
         await _remove_or_schedule_merged_entry(hass, source, entry)
 
+    _LOGGER.info(
+        "Completed Pollen Levels v3 migration for parent %s "
+        "(entities=%d devices=%d legacy_device_associations_removed=%d)",
+        parent.entry_id,
+        stats.entities_moved,
+        stats.devices_moved,
+        stats.legacy_device_associations_removed,
+    )
+    return True
+
+
+def _existing_parent_legacy_registry_targets(
+    entry: ConfigEntry,
+) -> list[tuple[_MigrationLocation, ConfigSubentry]]:
+    """Return repair targets for legacy parent registry entries without subentry."""
+    targets: list[tuple[_MigrationLocation, ConfigSubentry]] = []
+    for subentry in (getattr(entry, "subentries", {}) or {}).values():
+        location = _location_from_subentry(entry, subentry)
+        if location is None:
+            continue
+        target = _parent_legacy_location_target(entry, location, subentry)
+        if target is not None:
+            targets.append(target)
+    return targets
+
+
+def _repair_existing_parent_registry_links(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> bool:
+    """Repair parent registry links left without subentry by older alpha builds."""
+    registry_targets = _existing_parent_legacy_registry_targets(entry)
+    if not registry_targets:
+        return True
+
+    entity_registry_migrated, moved_entities = (
+        _migrate_entity_registry_for_merged_entry(hass, entry, entry, registry_targets)
+    )
+    device_registry_migrated, moved_devices, removed_legacy_associations = (
+        _migrate_device_registry_for_merged_entry(hass, entry, entry, registry_targets)
+    )
+    _LOGGER.info(
+        "Moved %d entity registry entries from entry %s to parent %s",
+        moved_entities,
+        entry.entry_id,
+        entry.entry_id,
+    )
+    _LOGGER.info(
+        "Moved %d device registry entries from entry %s to parent %s",
+        moved_devices,
+        entry.entry_id,
+        entry.entry_id,
+    )
+    if removed_legacy_associations:
+        _LOGGER.info(
+            "Removed %d legacy non-subentry device associations from entry %s",
+            removed_legacy_associations,
+            entry.entry_id,
+        )
+    if not entity_registry_migrated or not device_registry_migrated:
+        _LOGGER.warning(
+            "Registry migration incomplete; keeping entries unchanged for retry"
+        )
+        return False
     return True
 
 
@@ -703,6 +859,7 @@ async def async_handle_entry_migration(
 ) -> bool:
     """Migrate legacy entries to the v3 parent/subentry storage model."""
     try:
+        _LOGGER.info("Starting Pollen Levels v3 migration for entry %s", entry.entry_id)
         current_version = _entry_version(entry)
         if is_entry_merged(entry):
             hass.config_entries.async_update_entry(
@@ -728,7 +885,7 @@ async def async_handle_entry_migration(
         )
         if current_version >= target_version and not cleanup_needed:
             if not unique_id_changed:
-                return True
+                return _repair_existing_parent_registry_links(hass, entry)
 
         new_data = _clean_parent_data(api_key)
         new_options = _clean_parent_options(entry)
@@ -744,18 +901,64 @@ async def async_handle_entry_migration(
                 _add_migrated_subentry(hass, entry, subentry)
                 if location.legacy_entry_id is not None:
                     legacy_subentries[location.legacy_entry_id] = subentry
+                _LOGGER.info(
+                    "Created location subentry %s for legacy entry %s",
+                    subentry.subentry_id,
+                    location.legacy_entry_id or entry.entry_id,
+                )
+            else:
+                _LOGGER.info(
+                    "Reused location subentry %s for legacy entry %s",
+                    subentry.subentry_id,
+                    location.legacy_entry_id or entry.entry_id,
+                )
 
             if location.source_subentry_id is None:
                 registry_targets.append((location, subentry))
+            elif (
+                parent_target := _parent_legacy_location_target(
+                    entry, location, subentry
+                )
+            ) is not None:
+                registry_targets.append(parent_target)
 
+        stats = _RegistryMigrationStats()
         if registry_targets:
-            entity_registry_migrated = _migrate_entity_registry_for_merged_entry(
-                hass, entry, entry, registry_targets
+            entity_registry_migrated, moved_entities = (
+                _migrate_entity_registry_for_merged_entry(
+                    hass, entry, entry, registry_targets
+                )
             )
-            device_registry_migrated = _migrate_device_registry_for_merged_entry(
-                hass, entry, entry, registry_targets
+            device_registry_migrated, moved_devices, removed_legacy_associations = (
+                _migrate_device_registry_for_merged_entry(
+                    hass, entry, entry, registry_targets
+                )
             )
+            stats.entities_moved += moved_entities
+            stats.devices_moved += moved_devices
+            stats.legacy_device_associations_removed += removed_legacy_associations
+            _LOGGER.info(
+                "Moved %d entity registry entries from entry %s to parent %s",
+                moved_entities,
+                entry.entry_id,
+                entry.entry_id,
+            )
+            _LOGGER.info(
+                "Moved %d device registry entries from entry %s to parent %s",
+                moved_devices,
+                entry.entry_id,
+                entry.entry_id,
+            )
+            if removed_legacy_associations:
+                _LOGGER.info(
+                    "Removed %d legacy non-subentry device associations from entry %s",
+                    removed_legacy_associations,
+                    entry.entry_id,
+                )
             if not entity_registry_migrated or not device_registry_migrated:
+                _LOGGER.warning(
+                    "Registry migration incomplete; keeping entries unchanged for retry"
+                )
                 return False
 
         new_version = max(current_version, target_version)
@@ -774,6 +977,14 @@ async def async_handle_entry_migration(
             hass.config_entries.async_update_entry(entry, **updates)
         else:
             hass.config_entries.async_update_entry(entry, version=new_version)
+        _LOGGER.info(
+            "Completed Pollen Levels v3 migration for parent %s "
+            "(entities=%d devices=%d legacy_device_associations_removed=%d)",
+            entry.entry_id,
+            stats.entities_moved,
+            stats.devices_moved,
+            stats.legacy_device_associations_removed,
+        )
         return True
     except asyncio.CancelledError:
         raise

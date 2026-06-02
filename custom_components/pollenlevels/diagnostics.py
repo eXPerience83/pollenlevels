@@ -13,6 +13,7 @@ No network I/O is performed.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from typing import Any, cast
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -29,6 +30,7 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
     DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
+    DOMAIN,
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
 )
@@ -169,6 +171,100 @@ def _coordinate_from_coordinator_or_data(
     return data.get(key)
 
 
+def _normalized_subentry_ids(value: Any) -> set[str | None]:
+    """Return normalized subentry ids for registry diagnostics."""
+    if value is None:
+        return {None}
+    if isinstance(value, str):
+        return {value} if value else {None}
+    try:
+        ids = {item if isinstance(item, str) and item else None for item in value}
+    except TypeError:
+        return {None}
+    return ids or {None}
+
+
+def _device_subentry_ids_for_entry(device: Any, entry_id: str) -> set[str | None]:
+    """Return device subentry ids for one config entry."""
+    for attr in ("config_entries_subentries", "config_entry_subentries"):
+        mapping = getattr(device, attr, None)
+        if isinstance(mapping, Mapping):
+            return _normalized_subentry_ids(mapping.get(entry_id))
+
+    for attr in ("config_subentry_ids", "config_subentries"):
+        value = getattr(device, attr, None)
+        if value is not None:
+            return _normalized_subentry_ids(value)
+
+    direct_subentry_id = getattr(device, "config_subentry_id", None)
+    if direct_subentry_id is not None:
+        return _normalized_subentry_ids(direct_subentry_id)
+    return {None}
+
+
+def _empty_registry_summary() -> dict[str, Any]:
+    """Return an empty registry summary payload."""
+    return {
+        "entities": {
+            "total": 0,
+            "without_subentry": 0,
+            "by_subentry_id": {},
+        },
+        "devices": {
+            "total": 0,
+            "without_subentry": 0,
+            "by_subentry_id": {},
+            "with_legacy_none_association": 0,
+        },
+    }
+
+
+def _registry_summary(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+    """Return entity/device registry subentry association counters."""
+    summary = _empty_registry_summary()
+
+    try:
+        from homeassistant.helpers import entity_registry as er
+
+        entity_registry = er.async_get(hass)
+        entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+    except ImportError, RuntimeError, KeyError, AttributeError:
+        entities = []
+
+    for entity in entities:
+        if getattr(entity, "platform", None) != DOMAIN:
+            continue
+        summary["entities"]["total"] += 1
+        subentry_id = getattr(entity, "config_subentry_id", None)
+        if isinstance(subentry_id, str) and subentry_id:
+            by_subentry = summary["entities"]["by_subentry_id"]
+            by_subentry[subentry_id] = by_subentry.get(subentry_id, 0) + 1
+        else:
+            summary["entities"]["without_subentry"] += 1
+
+    try:
+        from homeassistant.helpers import device_registry as dr
+
+        device_registry = dr.async_get(hass)
+        devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+    except ImportError, RuntimeError, KeyError, AttributeError:
+        devices = []
+
+    for device in devices:
+        summary["devices"]["total"] += 1
+        subentry_ids = _device_subentry_ids_for_entry(device, entry.entry_id)
+        if None in subentry_ids:
+            summary["devices"]["without_subentry"] += 1
+            summary["devices"]["with_legacy_none_association"] += 1
+        by_subentry = summary["devices"]["by_subentry_id"]
+        for subentry_id in sorted(
+            subentry_id for subentry_id in subentry_ids if subentry_id is not None
+        ):
+            by_subentry[subentry_id] = by_subentry.get(subentry_id, 0) + 1
+
+    return summary
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -229,6 +325,7 @@ async def async_get_config_entry_diagnostics(
             },
         },
         "locations": locations,
+        "registry_summary": _registry_summary(hass, entry),
     }
     if first_location_payload is not None:
         diag["approximate_location"] = first_location_payload["approximate_location"]

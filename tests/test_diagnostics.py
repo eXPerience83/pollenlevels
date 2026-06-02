@@ -470,3 +470,95 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data(
     assert daily_summary["overall_pollen_risk_today"]["tie_count"] == 0
     assert daily_summary["top_pollen_types_today"]["state"] is None
     assert daily_summary["top_pollen_types_today"]["tie_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_includes_registry_summary_without_sensitive_values(
+    diagnostics_modules: DiagnosticsModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Diagnostics should summarize registry subentry links without IDs or secrets."""
+
+    helpers_mod = ModuleType("homeassistant.helpers")
+    entity_registry_mod = ModuleType("homeassistant.helpers.entity_registry")
+    device_registry_mod = ModuleType("homeassistant.helpers.device_registry")
+
+    entity_registry_mod.async_get = lambda _hass: object()
+    entity_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: [
+        SimpleNamespace(
+            entity_id="sensor.secret_home_12_345678_gramineas",
+            unique_id="legacy-home_type_grass",
+            platform=diagnostics_modules.diag.DOMAIN,
+            config_subentry_id="subentry-home",
+        ),
+        SimpleNamespace(
+            entity_id="sensor.secret_home_12_345678_tree",
+            unique_id="legacy-home_type_tree",
+            platform=diagnostics_modules.diag.DOMAIN,
+            config_subentry_id=None,
+        ),
+        SimpleNamespace(
+            entity_id="sensor.other",
+            unique_id="other",
+            platform="other",
+            config_subentry_id=None,
+        ),
+    ]
+
+    device_registry_mod.async_get = lambda _hass: object()
+    device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: [
+        SimpleNamespace(config_entries_subentries={entry_id: {"subentry-home"}}),
+        SimpleNamespace(config_entries_subentries={entry_id: {None}}),
+        SimpleNamespace(config_entries_subentries={entry_id: {"subentry-office"}}),
+    ]
+
+    monkeypatch.setitem(sys.modules, "homeassistant.helpers", helpers_mod)
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.entity_registry", entity_registry_mod
+    )
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
+    )
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LATITUDE: 12.345678,
+        diagnostics_modules.CONF_LONGITUDE: -98.765432,
+    }
+    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        forecast_days=1,
+        language=None,
+        create_d1=False,
+        create_d2=False,
+        last_updated=None,
+        lat=12.345678,
+        lon=-98.765432,
+        data={},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=object()
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        object(), entry
+    )
+
+    registry_summary = diagnostics["registry_summary"]
+    assert registry_summary["entities"] == {
+        "total": 2,
+        "without_subentry": 1,
+        "by_subentry_id": {"subentry-home": 1},
+    }
+    assert registry_summary["devices"] == {
+        "total": 3,
+        "without_subentry": 1,
+        "by_subentry_id": {"subentry-home": 1, "subentry-office": 1},
+        "with_legacy_none_association": 1,
+    }
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+    assert "sensor.secret_home" not in serialized

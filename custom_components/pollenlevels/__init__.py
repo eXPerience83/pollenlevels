@@ -61,7 +61,7 @@ from .util import (
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
-TARGET_ENTRY_VERSION = 5
+TARGET_ENTRY_VERSION = 6
 _FORCE_UPDATE_CONCURRENCY_LIMIT = 1
 PLATFORMS = ["sensor", "button"]
 

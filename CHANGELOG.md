@@ -1,3 +1,13 @@
+## [3.0.0a2] - 2026-06-02
+### Fixed
+- Repaired v3 migration of surviving legacy parent entity and device registry
+  links so migrated entities remain associated with their location subentry and
+  preserve history.
+- Removed residual legacy non-subentry device associations after attaching the
+  surviving parent device to its migrated location subentry.
+- Added registry migration diagnostics and migration summary logging to verify
+  entity/device subentry associations after migration.
+
 ## [3.0.0a1] - 2026-06-01
 ### Changed
 - First v3 alpha release for validating the Home Assistant config subentry
