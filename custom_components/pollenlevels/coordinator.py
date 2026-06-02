@@ -19,6 +19,7 @@ from .const import (
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
 )
+from .summary import daily_summary as _daily_summary
 from .util import redact_api_key, safe_parse_int
 
 if TYPE_CHECKING:
@@ -197,6 +198,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self._stale_dailyinfo_warned = False
 
         self.data: dict[str, dict[str, Any]] = {}
+        self.daily_summary_cache: dict[str, Any] = _daily_summary({})
+        self.daily_summary_cache_data_ref: object = self.data
         self.last_updated: datetime | None = None
 
     def _utcnow(self) -> datetime:
@@ -533,6 +536,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             base = self._process_forecast_attributes(base, forecast_list)
             new_data[key] = base
 
+        self.daily_summary_cache = _daily_summary(new_data)
+        self.daily_summary_cache_data_ref = new_data
         self.data = new_data
         self.last_updated = self._utcnow()
         if _LOGGER.isEnabledFor(logging.DEBUG):

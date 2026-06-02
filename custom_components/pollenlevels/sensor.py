@@ -484,17 +484,23 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
                 self.coordinator
             ),
         }
-        self._summary_data_ref: object = object()
-        self._summary_cache: dict[str, dict[str, Any]] = {}
 
     def _summary_payload(self, key: str) -> dict[str, Any]:
-        """Return a cached summary payload for the current coordinator data."""
-        data = self.coordinator.data
-        if data is not self._summary_data_ref:
-            self._summary_data_ref = data
-            self._summary_cache = _daily_summary(data or {})
+        """Return the coordinator-level summary payload for current data."""
+        raw_data = self.coordinator.data
+        data = raw_data if isinstance(raw_data, dict) else {}
+        summary_cache = getattr(self.coordinator, "daily_summary_cache", None)
+        summary_cache_data_ref = getattr(
+            self.coordinator, "daily_summary_cache_data_ref", None
+        )
 
-        return self._summary_cache[key]
+        if isinstance(summary_cache, dict) and summary_cache_data_ref is data:
+            return summary_cache[key]
+
+        summary_cache = _daily_summary(data)
+        self.coordinator.daily_summary_cache = summary_cache
+        self.coordinator.daily_summary_cache_data_ref = data
+        return summary_cache[key]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

@@ -97,13 +97,24 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
         "data_keys_total": 0,
         "data_keys": [],
     }
-    data_map: dict[str, Any] = getattr(coordinator, "data", {}) or {}
+    raw_data_map = getattr(coordinator, "data", {})
+    data_map: dict[str, Any] = raw_data_map if isinstance(raw_data_map, dict) else {}
     all_keys = list(data_map.keys())
     coord_info["data_keys_total"] = len(all_keys)
     coord_info["data_keys"] = all_keys[:50]
 
     forecast_summary: dict[str, Any] = {}
-    daily_summary = _daily_summary(data_map)
+    daily_summary_cache = getattr(coordinator, "daily_summary_cache", None)
+    daily_summary_cache_data_ref = getattr(
+        coordinator, "daily_summary_cache_data_ref", None
+    )
+    if (
+        isinstance(daily_summary_cache, dict)
+        and daily_summary_cache_data_ref is data_map
+    ):
+        daily_summary = daily_summary_cache
+    else:
+        daily_summary = _daily_summary(data_map)
 
     type_main_keys = [
         k

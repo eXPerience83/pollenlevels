@@ -596,11 +596,11 @@ def test_plants_in_season_returns_none_without_plant_entries(
     assert entity.extra_state_attributes["total_plant_count"] == 0
 
 
-def test_summary_sensor_caches_payload_for_current_data_object(
+def test_summary_sensor_shares_cached_payload_between_sensors(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Summary computation is cached per sensor while coordinator data is unchanged."""
+    """Summary computation is shared by summary sensors for current data."""
 
     calls: list[dict[str, Any]] = []
 
@@ -617,17 +617,22 @@ def test_summary_sensor_caches_payload_for_current_data_object(
     monkeypatch.setattr(sensor_modules.sensor, "_daily_summary", fake_daily_summary)
     initial_data = {"plants_oak": {"source": "plant", "inSeason": True}}
     coordinator = _summary_coordinator(initial_data)
-    entity = sensor_modules.sensor.PlantsInSeasonTodaySensor(coordinator)
+    first_entity = sensor_modules.sensor.PlantsInSeasonTodaySensor(coordinator)
+    second_entity = sensor_modules.sensor.PlantsInSeasonTodaySensor(coordinator)
 
-    assert entity.native_value == 1
-    assert entity.extra_state_attributes["plant_names"] == ["Plant 1"]
+    assert first_entity.native_value == 1
+    assert first_entity.extra_state_attributes["plant_names"] == ["Plant 1"]
+    assert second_entity.native_value == 1
+    assert second_entity.extra_state_attributes["plant_names"] == ["Plant 1"]
     assert calls == [initial_data]
 
     updated_data = {"plants_pine": {"source": "plant", "inSeason": True}}
     coordinator.data = updated_data
 
-    assert entity.native_value == 2
-    assert entity.extra_state_attributes["plant_names"] == ["Plant 2"]
+    assert first_entity.native_value == 2
+    assert first_entity.extra_state_attributes["plant_names"] == ["Plant 2"]
+    assert second_entity.native_value == 2
+    assert second_entity.extra_state_attributes["plant_names"] == ["Plant 2"]
     assert calls == [initial_data, updated_data]
 
 
