@@ -50,6 +50,7 @@ from .runtime import (
 )
 from .sensor import ForecastSensorMode
 from .util import (
+    active_location_subentry_ids,
     api_key_unique_id as api_key_unique_id,
     normalize_sensor_mode,
     redact_sensitive_values,
@@ -194,11 +195,20 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 )
                 continue
 
+            active_subentry_ids = active_location_subentry_ids(entry)
             for location in locations.values():
+                subentry_id = location.subentry_id
+                if subentry_id not in active_subentry_ids:
+                    _LOGGER.debug(
+                        "Skipping stale Pollen Levels runtime location %s for entry %s",
+                        subentry_id,
+                        entry.entry_id,
+                    )
+                    continue
                 coordinator = getattr(location, "coordinator", None)
                 if not coordinator:
                     continue
-                targets.append((entry, location.subentry_id, coordinator))
+                targets.append((entry, subentry_id, coordinator))
 
         if not targets:
             _LOGGER.debug("No coordinators available for force_update")

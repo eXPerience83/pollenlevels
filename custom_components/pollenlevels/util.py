@@ -8,12 +8,25 @@ import re
 from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
-from .const import FORECAST_SENSORS_CHOICES
+from .const import FORECAST_SENSORS_CHOICES, SUBENTRY_TYPE_LOCATION
 
 if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from aiohttp import ClientResponse
 else:  # pragma: no cover - runtime fallback for test environments without aiohttp
     ClientResponse = Any
+
+
+def active_location_subentry_ids(entry: Any) -> set[str]:
+    """Return active location subentry ids for a config entry."""
+    subentries = getattr(entry, "subentries", {}) or {}
+    active_ids: set[str] = set()
+    for subentry in subentries.values():
+        if getattr(subentry, "subentry_type", None) != SUBENTRY_TYPE_LOCATION:
+            continue
+        subentry_id = getattr(subentry, "subentry_id", None)
+        if isinstance(subentry_id, str) and subentry_id:
+            active_ids.add(subentry_id)
+    return active_ids
 
 
 async def extract_error_message(resp: ClientResponse, default: str = "") -> str:

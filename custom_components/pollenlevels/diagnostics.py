@@ -36,7 +36,7 @@ from .const import (
 )
 from .runtime import PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
-from .util import redact_api_key, safe_parse_int
+from .util import active_location_subentry_ids, redact_api_key, safe_parse_int
 
 # Redact potentially sensitive values from diagnostics. Diagnostics intentionally
 # expose only 1-decimal approximate coordinates in support examples so issues
@@ -278,9 +278,15 @@ async def async_get_config_entry_diagnostics(
     days_effective = _effective_days(options, data)
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
     locations: dict[str, Any] = {}
+    stale_location_ids: list[str] = []
     first_location_payload: dict[str, Any] | None = None
     if runtime is not None:
+        active_subentry_ids = active_location_subentry_ids(entry)
+        filter_stale_locations = hasattr(entry, "subentries")
         for subentry_id, location in runtime.locations.items():
+            if filter_stale_locations and subentry_id not in active_subentry_ids:
+                stale_location_ids.append(subentry_id)
+                continue
             coordinator = location.coordinator
             lat = _coordinate_from_coordinator_or_data(coordinator, data, CONF_LATITUDE)
             lon = _coordinate_from_coordinator_or_data(
@@ -325,6 +331,10 @@ async def async_get_config_entry_diagnostics(
             },
         },
         "locations": locations,
+        "runtime_summary": {
+            "stale_location_count": len(stale_location_ids),
+            "stale_location_ids": sorted(stale_location_ids),
+        },
         "registry_summary": _registry_summary(hass, entry),
     }
     if first_location_payload is not None:
