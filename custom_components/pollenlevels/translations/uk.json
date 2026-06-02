@@ -124,6 +124,8 @@
   "config_subentries": {
     "location": {
       "title": "Місце",
+      "entry_type": "Місце",
+      "initiate_flow": "Додати місце",
       "step": {
         "user": {
           "title": "Додати місце Pollen Levels",

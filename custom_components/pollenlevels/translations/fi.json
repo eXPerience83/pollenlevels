@@ -124,6 +124,8 @@
   "config_subentries": {
     "location": {
       "title": "Sijainti",
+      "entry_type": "Sijainti",
+      "initiate_flow": "Lisää sijainti",
       "step": {
         "user": {
           "title": "Lisää Pollen Levels -sijainti",

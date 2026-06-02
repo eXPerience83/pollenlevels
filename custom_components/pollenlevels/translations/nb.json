@@ -124,6 +124,8 @@
   "config_subentries": {
     "location": {
       "title": "Plassering",
+      "entry_type": "Plassering",
+      "initiate_flow": "Legg til plassering",
       "step": {
         "user": {
           "title": "Legg til Pollen Levels-plassering",

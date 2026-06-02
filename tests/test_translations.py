@@ -334,6 +334,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
     localized_paths = {
         "config.error.already_configured",
         "config_subentries.location.title",
+        "config_subentries.location.entry_type",
+        "config_subentries.location.initiate_flow",
         "config_subentries.location.step.user.title",
         "config_subentries.location.step.user.description",
         "config_subentries.location.step.reconfigure.title",

@@ -124,6 +124,8 @@
   "config_subentries": {
     "location": {
       "title": "Umístění",
+      "entry_type": "Poloha",
+      "initiate_flow": "Přidat polohu",
       "step": {
         "user": {
           "title": "Přidat umístění Pollen Levels",

@@ -124,6 +124,8 @@
   "config_subentries": {
     "location": {
       "title": "Plats",
+      "entry_type": "Plats",
+      "initiate_flow": "Lägg till plats",
       "step": {
         "user": {
           "title": "Lägg till Pollen Levels-plats",

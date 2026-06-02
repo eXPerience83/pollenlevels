@@ -124,6 +124,8 @@
   "config_subentries": {
     "location": {
       "title": "Localização",
+      "entry_type": "Localização",
+      "initiate_flow": "Adicionar localização",
       "step": {
         "user": {
           "title": "Adicionar localização do Pollen Levels",

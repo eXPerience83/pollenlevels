@@ -53,6 +53,8 @@
   "config_subentries": {
     "location": {
       "title": "Location",
+      "entry_type": "Location",
+      "initiate_flow": "Add location",
       "step": {
         "user": {
           "title": "Add Pollen Levels location",
