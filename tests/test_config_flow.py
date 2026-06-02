@@ -1909,11 +1909,15 @@ def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
 def test_validate_input_unexpected_exception_sets_unknown(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Unexpected exceptions should map to an unknown error."""
+    """Unexpected exceptions should map to unknown without logging raw details."""
 
     def _raise_session(hass):
-        raise RuntimeError("boom")
+        raise RuntimeError(
+            "boom test-key at location.latitude=48.8566123 "
+            "location.longitude=2.3522456"
+        )
 
     monkeypatch.setattr(
         config_flow_stubs.config_flow, "async_get_clientsession", _raise_session
@@ -1921,15 +1925,24 @@ def test_validate_input_unexpected_exception_sets_unknown(
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
+    user_input = _base_user_input(config_flow_stubs)
+    user_input[config_flow_stubs.CONF_LOCATION] = {
+        config_flow_stubs.CONF_LATITUDE: "48.8566123",
+        config_flow_stubs.CONF_LONGITUDE: "2.3522456",
+    }
 
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(config_flow_stubs), check_unique_id=False
+    with caplog.at_level("ERROR", logger=config_flow_stubs.config_flow.__name__):
+        errors, normalized = asyncio.run(
+            flow._async_validate_input(user_input, check_unique_id=False)
         )
-    )
 
     assert errors == {"base": "unknown"}
     assert normalized is None
+    assert "Traceback" not in caplog.text
+    assert "test-key" not in caplog.text
+    assert "48.8566123" not in caplog.text
+    assert "2.3522456" not in caplog.text
+    assert "***" in caplog.text
 
 
 def test_validate_input_happy_path_sets_unique_id_and_normalizes(
@@ -2780,6 +2793,7 @@ class _SubentryRecorder:
     def __init__(self, entry) -> None:
         self.entry = entry
         self.reload_calls: list[str] = []
+        self.created_tasks = []
 
     def async_get_entry(self, entry_id: str):
         return self.entry if entry_id == self.entry.entry_id else None
@@ -2790,6 +2804,12 @@ class _SubentryRecorder:
 
 def _build_location_subentry_flow(config_flow_stubs: ConfigFlowStubs, entry):
     recorder = _SubentryRecorder(entry)
+
+    def _async_create_task(coro, *, name=None):
+        task = asyncio.create_task(coro, name=name)
+        recorder.created_tasks.append(task)
+        return task
+
     flow = config_flow_stubs.config_flow.PollenLevelsLocationSubentryFlow()
     flow.hass = SimpleNamespace(
         config=SimpleNamespace(
@@ -2798,6 +2818,7 @@ def _build_location_subentry_flow(config_flow_stubs: ConfigFlowStubs, entry):
             location_name="Home",
         ),
         config_entries=recorder,
+        async_create_task=_async_create_task,
     )
     flow.handler = (
         entry.entry_id,
@@ -2827,7 +2848,7 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Adding a valid location should let subentry creation handle reload."""
+    """Adding a valid location should reload the parent after create is returned."""
 
     calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
     entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
@@ -2837,8 +2858,8 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
     )
     flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
 
-    result = asyncio.run(
-        flow.async_step_user(
+    async def run_flow():
+        result = await flow.async_step_user(
             {
                 config_flow_stubs.CONF_NAME: " Garden ",
                 config_flow_stubs.CONF_LOCATION: {
@@ -2847,7 +2868,12 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
                 },
             }
         )
-    )
+        assert recorder.reload_calls == []
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        return result
+
+    result = asyncio.run(run_flow())
 
     assert result["type"] == "create_entry"
     assert result["title"] == "Garden"
@@ -2856,7 +2882,8 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
         config_flow_stubs.CONF_LONGITUDE: -98.76543,
     }
     assert result["unique_id"] == "12.3457_-98.7654"
-    assert recorder.reload_calls == []
+    assert len(recorder.created_tasks) == 1
+    assert recorder.reload_calls == ["entry-id"]
     assert calls == [
         {
             "latitude": 12.34567,
@@ -2901,6 +2928,7 @@ def test_location_subentry_user_step_rejects_invalid_api_payload(
         "API response missing expected pollen forecast information."
     )
     assert calls
+    assert recorder.created_tasks == []
     assert recorder.reload_calls == []
 
 
@@ -2936,6 +2964,7 @@ def test_location_subentry_user_step_rejects_timeout_before_create(
     assert result["errors"] == {"base": "cannot_connect"}
     assert result["description_placeholders"]["error_message"] == "timed out"
     assert calls
+    assert recorder.created_tasks == []
     assert recorder.reload_calls == []
 
 
@@ -2967,6 +2996,7 @@ def test_location_subentry_user_step_rejects_invalid_coordinates(
         "step_id": "user",
         "errors": {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"},
     }
+    assert recorder.created_tasks == []
     assert recorder.reload_calls == []
 
 
@@ -3008,6 +3038,7 @@ def test_location_subentry_user_step_rejects_duplicate_location(
         "step_id": "user",
         "errors": {"base": "already_configured"},
     }
+    assert recorder.created_tasks == []
     assert recorder.reload_calls == []
 
 

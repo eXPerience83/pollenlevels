@@ -114,7 +114,9 @@ and each migrated location becomes one location subentry. The API key is stored
 once on the parent instead of duplicated across legacy entries.
 
 Duplicate legacy entries are marked as merged and removed after their
-locations, entities, and devices are moved to the parent entry.
+locations, entities, and devices are moved to the parent entry. If Home
+Assistant cannot move those registry links safely, the legacy entry is kept so
+the migration can be retried.
 
 Migrated location subentries keep the legacy entry ID internally so existing
 entity unique IDs, device identifiers, dashboards, and automations continue to
@@ -127,6 +129,11 @@ remaining entries. You can adjust the shared options after upgrading.
 During parent API-key reauthentication or reconfiguration, the integration tries
 configured locations until one validates successfully. Authentication and quota
 errors are treated as API-key-level failures.
+
+During startup, the parent entry can still load when one location has a
+non-auth failure as long as another configured location loads successfully. A
+skipped location may need a manual reload of the parent entry after the
+underlying problem is fixed.
 
 Create a Home Assistant backup before upgrading. Downgrading to Pollen Levels
 2.x after this migration is not supported.

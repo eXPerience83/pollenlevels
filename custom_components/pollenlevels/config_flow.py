@@ -13,6 +13,7 @@ IMPORTANT:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from typing import Any
@@ -251,9 +252,12 @@ async def _async_validate_api_location(
             redacted, "Network error while connecting to the pollen service."
         )
     except Exception as err:  # defensive
-        _LOGGER.exception(
-            "Unexpected error in Pollen Levels config flow while validating input: %s",
-            _redact_validation_error(err, api_key, latitude, longitude),
+        _LOGGER.error(
+            "Unexpected error in Pollen Levels config flow while validating input "
+            "(%s): %s",
+            type(err).__name__,
+            _redact_validation_error(err, api_key, latitude, longitude)
+            or "no error details",
         )
         errors["base"] = "unknown"
         description_placeholders.pop("error_message", None)
@@ -526,6 +530,21 @@ def _entry_for_parent_unique_id(
             if getattr(candidate, "unique_id", None) == unique_id:
                 return candidate
     return None
+
+
+async def _async_reload_parent_after_subentry_create(hass: Any, entry_id: str) -> None:
+    """Reload the parent after Home Assistant persists the created subentry."""
+    await asyncio.sleep(0)
+    schedule_reload = getattr(hass.config_entries, "async_schedule_reload", None)
+    if callable(schedule_reload):
+        schedule_reload(entry_id)
+        return
+
+    async_reload = getattr(hass.config_entries, "async_reload", None)
+    if callable(async_reload):
+        result = async_reload(entry_id)
+        if asyncio.iscoroutine(result):
+            await result
 
 
 def _parse_int_option(
@@ -954,6 +973,15 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                         errors=errors,
                         description_placeholders=description_placeholders,
                     ):
+                        self.hass.async_create_task(
+                            _async_reload_parent_after_subentry_create(
+                                self.hass, entry.entry_id
+                            ),
+                            name=(
+                                "reload Pollen Levels parent after location "
+                                "subentry create"
+                            ),
+                        )
                         return self.async_create_entry(
                             title=title,
                             data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
