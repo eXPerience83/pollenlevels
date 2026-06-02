@@ -196,9 +196,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 continue
 
             active_subentry_ids = active_location_subentry_ids(entry)
+            filter_stale_locations = bool(active_subentry_ids)
             for location in locations.values():
                 subentry_id = location.subentry_id
-                if subentry_id not in active_subentry_ids:
+                if filter_stale_locations and subentry_id not in active_subentry_ids:
                     _LOGGER.debug(
                         "Skipping stale Pollen Levels runtime location %s for entry %s",
                         subentry_id,

@@ -282,7 +282,7 @@ async def async_get_config_entry_diagnostics(
     first_location_payload: dict[str, Any] | None = None
     if runtime is not None:
         active_subentry_ids = active_location_subentry_ids(entry)
-        filter_stale_locations = hasattr(entry, "subentries")
+        filter_stale_locations = bool(active_subentry_ids)
         for subentry_id, location in runtime.locations.items():
             if filter_stale_locations and subentry_id not in active_subentry_ids:
                 stale_location_ids.append(subentry_id)

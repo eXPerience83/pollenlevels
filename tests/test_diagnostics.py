@@ -251,6 +251,53 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
 
 
 @pytest.mark.asyncio
+async def test_diagnostics_includes_fallback_location_without_subentries(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should keep fallback runtime locations when no subentries exist."""
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LATITUDE: 12.345678,
+        diagnostics_modules.CONF_LONGITUDE: -98.765432,
+    }
+    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="entry",
+        forecast_days=2,
+        language=None,
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=12.345678,
+        lon=-98.765432,
+        entry_title="Home",
+        data={},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            entry.entry_id: diagnostics_modules.PollenLocationRuntime(
+                subentry_id=entry.entry_id, coordinator=coordinator
+            )
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert set(diagnostics["locations"]) == {"entry"}
+    assert diagnostics["runtime_summary"]["stale_location_count"] == 0
+    assert diagnostics["runtime_summary"]["stale_location_ids"] == []
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+
+
+@pytest.mark.asyncio
 async def test_diagnostics_summarizes_stale_runtime_locations(
     diagnostics_modules: DiagnosticsModules,
 ) -> None:

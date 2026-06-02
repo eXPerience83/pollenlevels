@@ -1239,6 +1239,47 @@ def test_force_update_refreshes_location_subentries_sequentially(
     assert order == ["loc-1:start", "loc-1:end", "loc-2:start", "loc-2:end"]
 
 
+def test_force_update_refreshes_fallback_location_without_subentries(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """force_update should still refresh legacy fallback runtime locations."""
+    integration = integration_modules.integration
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    coordinator = _Coordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-legacy",
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        subentries={},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            entry.entry_id: types.SimpleNamespace(
+                subentry_id=entry.entry_id, coordinator=coordinator
+            )
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert coordinator.calls == 1
+    assert "Skipping stale Pollen Levels runtime location" not in caplog.text
+
+
 def test_force_update_skips_stale_location_subentries(
     integration_modules: _InitModules, caplog
 ) -> None:
