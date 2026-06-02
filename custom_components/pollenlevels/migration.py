@@ -416,19 +416,27 @@ def _parent_legacy_location_target(
     )
 
 
-def _normalize_subentry_ids(value: Any) -> set[str]:
-    """Return a normalized string set from a stored subentry-id value."""
+def _normalize_subentry_ids(value: Any) -> set[str | None]:
+    """Return a normalized subentry-id set while preserving legacy None links."""
     if value is None:
-        return set()
+        return {None}
     if isinstance(value, str):
-        return {value} if value else set()
+        return {value} if value else {None}
     try:
-        return {item for item in value if isinstance(item, str) and item}
+        ids: set[str | None] = set()
+        for item in value:
+            if item is None:
+                ids.add(None)
+            elif isinstance(item, str) and item:
+                ids.add(item)
+        return ids or {None}
     except TypeError:
-        return set()
+        return {None}
 
 
-def _device_source_subentry_ids(device: Any, source_entry_id: str) -> set[str] | None:
+def _device_source_subentry_ids(
+    device: Any, source_entry_id: str
+) -> set[str | None] | None:
     """Return known source subentry IDs for a device, or None if unavailable."""
     for attr in ("config_entries_subentries", "config_entry_subentries"):
         mapping = getattr(device, attr, None)
@@ -544,12 +552,19 @@ def _migrate_device_registry_for_merged_entry(
         elif not source_subentry_ids:
             source_subentry_ids = {None}
 
+        valid_source_subentry_ids = {
+            subentry_id
+            for subentry_id in source_subentry_ids
+            if subentry_id in targets_by_source_subentry
+        }
         target_subentries: list[ConfigSubentry] = []
         for source_subentry_id in sorted(
             source_subentry_ids, key=lambda item: item or ""
         ):
             if source_subentry_id not in targets_by_source_subentry:
                 if source is parent:
+                    continue
+                if source_subentry_id is None and valid_source_subentry_ids:
                     continue
                 _LOGGER.error(
                     "Cannot move device %s from entry %s to parent %s: no target "
