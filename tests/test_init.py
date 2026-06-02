@@ -1502,6 +1502,88 @@ def test_migrate_single_legacy_entry_attaches_registries_to_created_subentry(
     ]
 
 
+def test_migrate_single_entry_retry_after_parent_registry_failure_is_idempotent(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A retry should reuse the parent subentry and finish registry migration."""
+    integration = integration_modules.integration
+
+    entry = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Legacy Home",
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 12.34567,
+            integration.CONF_LONGITUDE: -98.76543,
+        },
+        version=3,
+        subentries={},
+        unique_id="12.3457_-98.7654",
+    )
+    hass = _FakeHass(entries=[entry])
+    should_fail = True
+    entity_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _EntityRegistry:
+        def async_update_entity(self, entity_id: str, **kwargs: str) -> None:
+            if should_fail:
+                raise RuntimeError("registry boom")
+            entity_updates.append((entity_id, kwargs))
+
+    entity_registry_mod = sys.modules["homeassistant.helpers.entity_registry"]
+    monkeypatch.setattr(
+        entity_registry_mod,
+        "async_get",
+        lambda _hass: _EntityRegistry(),
+    )
+    monkeypatch.setattr(
+        entity_registry_mod,
+        "async_entries_for_config_entry",
+        lambda _registry, entry_id: (
+            [
+                types.SimpleNamespace(
+                    entity_id="sensor.legacy_home_grass", platform=integration.DOMAIN
+                )
+            ]
+            if entry_id == "legacy-home"
+            else []
+        ),
+    )
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is False
+
+    assert entry.data == {
+        integration.CONF_API_KEY: "key",
+        integration.CONF_LATITUDE: 12.34567,
+        integration.CONF_LONGITUDE: -98.76543,
+    }
+    assert entry.version == 3
+    assert len(entry.subentries) == 1
+    added_subentries = list(hass.config_entries.added_subentries)
+
+    should_fail = False
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+
+    subentry = next(iter(entry.subentries.values()))
+    assert hass.config_entries.added_subentries == added_subentries
+    assert len(entry.subentries) == 1
+    assert entry.data == {integration.CONF_API_KEY: "key"}
+    assert entry.unique_id == integration.api_key_unique_id("key")
+    assert entry.version == integration.TARGET_ENTRY_VERSION
+    assert entity_updates == [
+        (
+            "sensor.legacy_home_grass",
+            {
+                "config_entry_id": "legacy-home",
+                "config_subentry_id": subentry.subentry_id,
+            },
+        )
+    ]
+
+
 def test_migrate_mixed_parent_direct_legacy_location_attaches_registries(
     integration_modules: _InitModules, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -2225,6 +2307,124 @@ def test_migrate_grouped_entries_attaches_parent_registries_to_parent_subentry(
             },
         ),
         ("device-office", {"remove_config_entry_id": "legacy-office"}),
+    ]
+
+
+def test_migrate_grouped_parent_retry_after_parent_registry_failure_is_idempotent(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A grouped retry should reuse parent subentries before completing merge."""
+    integration = integration_modules.integration
+
+    parent = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Home",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        version=3,
+        subentries={},
+        unique_id="1.0000_2.0000",
+    )
+    duplicate = _FakeEntry(
+        integration,
+        entry_id="legacy-office",
+        title="Office",
+        data={
+            integration.CONF_API_KEY: "shared-key",
+            integration.CONF_LATITUDE: 3.0,
+            integration.CONF_LONGITUDE: 4.0,
+        },
+        version=3,
+        subentries={},
+        unique_id="3.0000_4.0000",
+    )
+    hass = _FakeHass(entries=[parent, duplicate])
+    should_fail_parent = True
+    entity_updates: list[tuple[str, dict[str, str]]] = []
+
+    class _EntityRegistry:
+        def async_update_entity(self, entity_id: str, **kwargs: str) -> None:
+            if should_fail_parent and entity_id == "sensor.legacy_home_grass":
+                raise RuntimeError("registry boom")
+            entity_updates.append((entity_id, kwargs))
+
+    entity_registry_mod = sys.modules["homeassistant.helpers.entity_registry"]
+    monkeypatch.setattr(
+        entity_registry_mod,
+        "async_get",
+        lambda _hass: _EntityRegistry(),
+    )
+    monkeypatch.setattr(
+        entity_registry_mod,
+        "async_entries_for_config_entry",
+        lambda _registry, entry_id: {
+            "legacy-home": [
+                types.SimpleNamespace(
+                    entity_id="sensor.legacy_home_grass", platform=integration.DOMAIN
+                )
+            ],
+            "legacy-office": [
+                types.SimpleNamespace(
+                    entity_id="sensor.legacy_office_grass", platform=integration.DOMAIN
+                )
+            ],
+        }.get(entry_id, []),
+    )
+
+    assert asyncio.run(integration.async_migrate_entry(hass, parent)) is False
+
+    assert parent.data == {
+        integration.CONF_API_KEY: "shared-key",
+        integration.CONF_LATITUDE: 1.0,
+        integration.CONF_LONGITUDE: 2.0,
+    }
+    assert parent.version == 3
+    assert duplicate.data[integration.CONF_LATITUDE] == 3.0
+    assert hass.config_entries.removed_entries == []
+    assert len(parent.subentries) == 2
+    added_subentries = list(hass.config_entries.added_subentries)
+
+    should_fail_parent = False
+    entity_updates.clear()
+
+    assert asyncio.run(integration.async_migrate_entry(hass, parent)) is True
+
+    subentries_by_legacy_id = {
+        subentry.data[integration.CONF_LEGACY_ENTRY_ID]: subentry
+        for subentry in parent.subentries.values()
+    }
+    home_subentry = subentries_by_legacy_id["legacy-home"]
+    office_subentry = subentries_by_legacy_id["legacy-office"]
+    assert hass.config_entries.added_subentries == added_subentries
+    assert len(parent.subentries) == 2
+    assert parent.data == {integration.CONF_API_KEY: "shared-key"}
+    assert parent.unique_id == integration.api_key_unique_id("shared-key")
+    assert parent.version == integration.TARGET_ENTRY_VERSION
+    assert duplicate.data == {
+        integration.CONF_API_KEY: "shared-key",
+        "merged_into_entry_id": "legacy-home",
+    }
+    assert hass.config_entries.removed_entries == ["legacy-office"]
+    assert entity_updates == [
+        (
+            "sensor.legacy_home_grass",
+            {
+                "config_entry_id": "legacy-home",
+                "config_subentry_id": home_subentry.subentry_id,
+            },
+        ),
+        (
+            "sensor.legacy_office_grass",
+            {
+                "config_entry_id": "legacy-home",
+                "config_subentry_id": office_subentry.subentry_id,
+            },
+        ),
     ]
 
 

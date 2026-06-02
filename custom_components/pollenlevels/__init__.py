@@ -265,9 +265,10 @@ def _migration_locations(entry: ConfigEntry) -> list[_MigrationLocation]:
             locations.append(location)
 
     location = _location_from_legacy_entry(entry)
-    if location is not None and all(
-        existing.legacy_entry_id != location.legacy_entry_id for existing in locations
-    ):
+    if location is not None:
+        # Keep direct legacy data as a migration source while entry.data still
+        # contains coordinates. This lets retries finish registry migration
+        # after a previous attempt already created the location subentry.
         locations.append(location)
     return locations
 
