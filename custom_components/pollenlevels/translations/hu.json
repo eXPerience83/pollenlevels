@@ -125,7 +125,9 @@
     "location": {
       "title": "Hely",
       "entry_type": "Hely",
-      "initiate_flow": "Hely hozzáadása",
+      "initiate_flow": {
+        "user": "Hely hozzáadása"
+      },
       "step": {
         "user": {
           "title": "Pollen Levels hely hozzáadása",

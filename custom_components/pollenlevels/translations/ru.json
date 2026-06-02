@@ -125,7 +125,9 @@
     "location": {
       "title": "Местоположение",
       "entry_type": "Местоположение",
-      "initiate_flow": "Добавить местоположение",
+      "initiate_flow": {
+        "user": "Добавить местоположение"
+      },
       "step": {
         "user": {
           "title": "Добавить местоположение Pollen Levels",

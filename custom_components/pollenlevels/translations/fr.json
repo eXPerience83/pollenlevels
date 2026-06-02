@@ -125,7 +125,9 @@
     "location": {
       "title": "Emplacement",
       "entry_type": "Emplacement",
-      "initiate_flow": "Ajouter un emplacement",
+      "initiate_flow": {
+        "user": "Ajouter un emplacement"
+      },
       "step": {
         "user": {
           "title": "Ajouter un emplacement Pollen Levels",

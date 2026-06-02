@@ -125,7 +125,9 @@
     "location": {
       "title": "Locație",
       "entry_type": "Locație",
-      "initiate_flow": "Adaugă locație",
+      "initiate_flow": {
+        "user": "Adaugă locație"
+      },
       "step": {
         "user": {
           "title": "Adaugă o locație Pollen Levels",

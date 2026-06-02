@@ -125,7 +125,9 @@
     "location": {
       "title": "Sijainti",
       "entry_type": "Sijainti",
-      "initiate_flow": "Lisää sijainti",
+      "initiate_flow": {
+        "user": "Lisää sijainti"
+      },
       "step": {
         "user": {
           "title": "Lisää Pollen Levels -sijainti",

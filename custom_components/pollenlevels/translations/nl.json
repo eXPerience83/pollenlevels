@@ -125,7 +125,9 @@
     "location": {
       "title": "Locatie",
       "entry_type": "Locatie",
-      "initiate_flow": "Locatie toevoegen",
+      "initiate_flow": {
+        "user": "Locatie toevoegen"
+      },
       "step": {
         "user": {
           "title": "Pollen Levels-locatie toevoegen",

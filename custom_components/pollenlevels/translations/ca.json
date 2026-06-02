@@ -125,7 +125,9 @@
     "location": {
       "title": "Ubicació",
       "entry_type": "Ubicació",
-      "initiate_flow": "Afegeix ubicació",
+      "initiate_flow": {
+        "user": "Afegeix ubicació"
+      },
       "step": {
         "user": {
           "title": "Afegeix una ubicació de Pollen Levels",

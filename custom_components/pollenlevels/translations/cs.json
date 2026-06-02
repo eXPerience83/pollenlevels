@@ -125,7 +125,9 @@
     "location": {
       "title": "Umístění",
       "entry_type": "Poloha",
-      "initiate_flow": "Přidat polohu",
+      "initiate_flow": {
+        "user": "Přidat polohu"
+      },
       "step": {
         "user": {
           "title": "Přidat umístění Pollen Levels",

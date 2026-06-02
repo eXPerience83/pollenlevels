@@ -125,7 +125,9 @@
     "location": {
       "title": "Місце",
       "entry_type": "Місце",
-      "initiate_flow": "Додати місце",
+      "initiate_flow": {
+        "user": "Додати місце"
+      },
       "step": {
         "user": {
           "title": "Додати місце Pollen Levels",
