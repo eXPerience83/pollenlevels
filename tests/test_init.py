@@ -2191,6 +2191,102 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
     assert hass.config_entries.removed_entries == ["legacy-source"]
 
 
+def test_migrate_grouped_entry_keeps_clean_v3_source_with_unmigratable_subentry(
+    integration_modules: _InitModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A clean v3 source subentry without legacy identity must not be removed."""
+    integration = integration_modules.integration
+
+    parent_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 10.0, integration.CONF_LONGITUDE: 20.0},
+        subentry_id="parent-location",
+        title="Parent",
+        unique_id="10.0000_20.0000",
+    )
+    parent = _FakeEntry(
+        integration,
+        entry_id="clean-parent",
+        data={integration.CONF_API_KEY: "shared-key"},
+        version=integration.TARGET_ENTRY_VERSION,
+        subentries={parent_subentry.subentry_id: parent_subentry},
+        unique_id=integration.api_key_unique_id("shared-key"),
+    )
+    source_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="clean-source-location",
+        title="Clean source",
+        unique_id="1.0000_2.0000",
+    )
+    source = _FakeEntry(
+        integration,
+        entry_id="clean-source",
+        data={integration.CONF_API_KEY: "shared-key"},
+        version=integration.TARGET_ENTRY_VERSION,
+        subentries={source_subentry.subentry_id: source_subentry},
+        unique_id="other-parent-id",
+    )
+    hass = _FakeHass(entries=[parent, source])
+
+    with caplog.at_level("ERROR", logger=integration.__name__):
+        assert asyncio.run(integration.async_migrate_entry(hass, parent)) is False
+
+    assert source.data == {integration.CONF_API_KEY: "shared-key"}
+    assert source.version == integration.TARGET_ENTRY_VERSION
+    assert source.subentries == {source_subentry.subentry_id: source_subentry}
+    assert parent.subentries == {parent_subentry.subentry_id: parent_subentry}
+    assert hass.config_entries.added_subentries == []
+    assert hass.config_entries.removed_entries == []
+    assert "cannot be safely mapped to migration targets" in caplog.text
+
+
+def test_migrate_grouped_entry_keeps_source_with_corrupt_location_subentry(
+    integration_modules: _InitModules,
+) -> None:
+    """A source with incomplete location subentry data must not be removed."""
+    integration = integration_modules.integration
+
+    parent = _FakeEntry(
+        integration,
+        entry_id="clean-parent",
+        data={integration.CONF_API_KEY: "shared-key"},
+        version=integration.TARGET_ENTRY_VERSION,
+        subentries={
+            "parent-location": integration.ConfigSubentry(
+                data={
+                    integration.CONF_LATITUDE: 10.0,
+                    integration.CONF_LONGITUDE: 20.0,
+                },
+                subentry_id="parent-location",
+                title="Parent",
+                unique_id="10.0000_20.0000",
+            )
+        },
+        unique_id=integration.api_key_unique_id("shared-key"),
+    )
+    corrupt_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LEGACY_ENTRY_ID: "legacy-source"},
+        subentry_id="corrupt-location",
+        title="Corrupt source",
+        unique_id="corrupt",
+    )
+    source = _FakeEntry(
+        integration,
+        entry_id="legacy-source",
+        data={integration.CONF_API_KEY: "shared-key"},
+        version=integration.TARGET_ENTRY_VERSION,
+        subentries={corrupt_subentry.subentry_id: corrupt_subentry},
+    )
+    hass = _FakeHass(entries=[parent, source])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, parent)) is False
+
+    assert source.data == {integration.CONF_API_KEY: "shared-key"}
+    assert source.subentries == {corrupt_subentry.subentry_id: corrupt_subentry}
+    assert hass.config_entries.added_subentries == []
+    assert hass.config_entries.removed_entries == []
+
+
 def test_migrate_grouped_entries_attaches_parent_registries_to_parent_subentry(
     integration_modules: _InitModules, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -286,6 +286,29 @@ def _has_location_subentries(entry: ConfigEntry) -> bool:
     )
 
 
+def _has_unmigratable_location_subentries(entry: ConfigEntry) -> bool:
+    """Return whether location subentries cannot be safely auto-merged."""
+    for subentry in (getattr(entry, "subentries", {}) or {}).values():
+        data = dict(getattr(subentry, "data", {}) or {})
+        subentry_type = getattr(subentry, "subentry_type", None)
+        looks_like_location = subentry_type == SUBENTRY_TYPE_LOCATION or (
+            subentry_type is None
+            and (
+                CONF_LATITUDE in data
+                or CONF_LONGITUDE in data
+                or CONF_LEGACY_ENTRY_ID in data
+            )
+        )
+        if not looks_like_location:
+            continue
+        if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
+            return True
+        legacy_entry_id = data.get(CONF_LEGACY_ENTRY_ID)
+        if not isinstance(legacy_entry_id, str) or not legacy_entry_id:
+            return True
+    return False
+
+
 def _make_migrated_subentry(
     location: _MigrationLocation,
     used_unique_ids: set[str | None] | None = None,
@@ -691,6 +714,19 @@ async def _async_migrate_grouped_entries(
 ) -> bool:
     """Migrate all legacy entries sharing one API key into one parent."""
     parent = _select_migration_parent(group, entry, api_key)
+    for source in group:
+        if source is parent:
+            continue
+        if _has_unmigratable_location_subentries(source):
+            _LOGGER.error(
+                "Cannot merge Pollen Levels entry %s into parent %s because it "
+                "has location subentries that cannot be safely mapped to "
+                "migration targets",
+                source.entry_id,
+                parent.entry_id,
+            )
+            return False
+
     parent_options = _clean_parent_options(parent)
     for candidate in group:
         if candidate is parent:
