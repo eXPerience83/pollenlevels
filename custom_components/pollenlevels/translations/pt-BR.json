@@ -124,6 +124,10 @@
   "config_subentries": {
     "location": {
       "title": "Local",
+      "entry_type": "Local",
+      "initiate_flow": {
+        "user": "Adicionar local"
+      },
       "step": {
         "user": {
           "title": "Adicionar local do Pollen Levels",

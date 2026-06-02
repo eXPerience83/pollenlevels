@@ -124,6 +124,10 @@
   "config_subentries": {
     "location": {
       "title": "位置",
+      "entry_type": "位置",
+      "initiate_flow": {
+        "user": "新增位置"
+      },
       "step": {
         "user": {
           "title": "新增 Pollen Levels 位置",

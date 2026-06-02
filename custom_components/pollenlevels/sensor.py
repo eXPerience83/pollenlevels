@@ -12,6 +12,7 @@ Key points:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 from collections.abc import Awaitable
 from datetime import date, datetime
@@ -122,7 +123,25 @@ async def _cleanup_per_day_entities(
             return False
         return uid.endswith(suffix)
 
-    removals: list[Awaitable[Any]] = []
+    removals: list[tuple[str, str, Awaitable[Any]]] = []
+
+    def _queue_removal(entity_id: str, unique_id: str) -> None:
+        """Remove an entity immediately or queue an awaitable registry removal."""
+        nonlocal removed
+        try:
+            removal = registry.async_remove(entity_id)
+        except Exception:
+            _LOGGER.exception(
+                "Failed to remove stale per-day entity from registry: %s (%s)",
+                entity_id,
+                unique_id,
+            )
+            return
+
+        if inspect.isawaitable(removal):
+            removals.append((entity_id, unique_id, removal))
+        else:
+            removed += 1
 
     for ent in entries:
         if ent.domain != "sensor" or ent.platform != DOMAIN:
@@ -133,10 +152,7 @@ async def _cleanup_per_day_entities(
                 ent.entity_id,
                 ent.unique_id,
             )
-            removal = registry.async_remove(ent.entity_id)
-            if asyncio.iscoroutine(removal):
-                removals.append(removal)
-            removed += 1
+            _queue_removal(ent.entity_id, ent.unique_id)
             continue
         if not allow_d2 and _matches(ent.unique_id, "_d2"):
             _LOGGER.debug(
@@ -144,13 +160,26 @@ async def _cleanup_per_day_entities(
                 ent.entity_id,
                 ent.unique_id,
             )
-            removal = registry.async_remove(ent.entity_id)
-            if asyncio.iscoroutine(removal):
-                removals.append(removal)
-            removed += 1
+            _queue_removal(ent.entity_id, ent.unique_id)
 
     if removals:
-        await asyncio.gather(*removals)
+        results = await asyncio.gather(
+            *(removal for _, _, removal in removals), return_exceptions=True
+        )
+        for (entity_id, unique_id, _removal), result in zip(
+            removals, results, strict=True
+        ):
+            if isinstance(result, asyncio.CancelledError):
+                raise result
+            if isinstance(result, Exception):
+                _LOGGER.error(
+                    "Failed to remove stale per-day entity from registry: %s (%s)",
+                    entity_id,
+                    unique_id,
+                    exc_info=(type(result), result, result.__traceback__),
+                )
+                continue
+            removed += 1
 
     if removed:
         _LOGGER.info(

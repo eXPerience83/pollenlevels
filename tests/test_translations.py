@@ -327,6 +327,48 @@ def test_translations_match_english_keyset() -> None:
     assert not problems, "Translation keys mismatch: " + "; ".join(problems)
 
 
+def test_config_subentries_location_schema_shape() -> None:
+    """Validate hassfest-required location subentry translation shape."""
+
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        data = _load_translation(translation_path)
+        location = data.get("config_subentries", {}).get("location", {})
+
+        entry_type = location.get("entry_type")
+        if not isinstance(entry_type, str) or not entry_type.strip():
+            problems.append(
+                f"{translation_path.name}: config_subentries.location.entry_type "
+                "must be a non-empty string"
+            )
+
+        initiate_flow = location.get("initiate_flow")
+        if isinstance(initiate_flow, str):
+            problems.append(
+                f"{translation_path.name}: config_subentries.location.initiate_flow "
+                "must be an object, not a string"
+            )
+            continue
+        if not isinstance(initiate_flow, dict):
+            problems.append(
+                f"{translation_path.name}: config_subentries.location.initiate_flow "
+                "must be an object"
+            )
+            continue
+
+        initiate_user = initiate_flow.get("user")
+        if not isinstance(initiate_user, str) or not initiate_user.strip():
+            problems.append(
+                f"{translation_path.name}: "
+                "config_subentries.location.initiate_flow.user must be a "
+                "non-empty string"
+            )
+
+    assert not problems, "Invalid location subentry translation shape: " + "; ".join(
+        problems
+    )
+
+
 def test_v3_subentry_translation_strings_are_localized() -> None:
     """Ensure new v3 location-subentry strings are not copied from English."""
 
@@ -334,6 +376,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
     localized_paths = {
         "config.error.already_configured",
         "config_subentries.location.title",
+        "config_subentries.location.entry_type",
+        "config_subentries.location.initiate_flow.user",
         "config_subentries.location.step.user.title",
         "config_subentries.location.step.user.description",
         "config_subentries.location.step.reconfigure.title",
