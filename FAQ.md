@@ -106,12 +106,12 @@ FAQ: https://developers.google.com/maps/documentation/pollen/faq
 
 ---
 
-## 12. What happens to my entries when upgrading to 3.0.0a1?
-Pollen Levels 3.0.0a1 migrates configuration to Home Assistant config
-subentries. This is an alpha release for the v3 migration. Legacy 2.x entries
-that share the same Google API key are grouped under one parent API-key entry,
-and each migrated location becomes one location subentry. The API key is stored
-once on the parent instead of duplicated across legacy entries.
+## 12. What happens to my entries when upgrading to the v3 pre-release?
+The v3 pre-release migrates Pollen Levels to Home Assistant config subentries.
+Legacy 2.x entries that share the same Google API key are grouped under one
+parent API-key entry, and each migrated location becomes one location subentry.
+The API key is stored once on the parent instead of duplicated across legacy
+entries.
 
 Duplicate legacy entries are marked as merged and removed after their
 locations, entities, and devices are moved to the parent entry. If Home
@@ -119,12 +119,25 @@ Assistant cannot move those registry links safely, the legacy entry is kept so
 the migration can be retried.
 
 Migrated location subentries keep the legacy entry ID internally so existing
-entity unique IDs, device identifiers, dashboards, and automations continue to
-match after the entries are consolidated.
+entity unique IDs, device identifiers, dashboards, history, and automations
+continue to match after the entries are consolidated.
 
 If grouped legacy entries used different update, language, or forecast options,
 the parent keeps the first entry's options and fills missing values from the
 remaining entries. You can adjust the shared options after upgrading.
+
+After upgrading, diagnostics can help validate the migration:
+
+- `registry_summary.entities.without_subentry` should normally be `0`.
+- `registry_summary.devices.without_subentry` should normally be `0`.
+- `registry_summary.devices.with_legacy_none_association` should normally be
+  `0`.
+- `runtime_summary.stale_location_count` should normally be `0` after reloading
+  the parent entry.
+
+If `runtime_summary.stale_location_count` is greater than `0` immediately after
+deleting a location subentry, reload the Pollen Levels parent entry from Home
+Assistant. This clears the stale runtime coordinator from memory.
 
 During parent API-key reauthentication or reconfiguration, the integration tries
 configured locations until one validates successfully. Authentication and quota
