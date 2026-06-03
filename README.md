@@ -57,7 +57,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
 - Diagnostics include redacted daily, registry, and runtime summaries to help
   troubleshoot the integration without exposing API keys or exact coordinates.
-  Support coordinate examples are rounded to 1 decimal.
+  Approximate coordinates are rounded to 1 decimal for support purposes.
 - Avoid sharing full debug logs publicly; review them for sensitive information before posting.
 - Never share real Google API keys publicly, and do not paste full Google Pollen
   API URLs containing `key=...` into public issues. If a key was exposed,
@@ -146,7 +146,8 @@ Diagnostics include two support summaries for the v3 migration:
   `0`.
 - `runtime_summary` reports temporary runtime-only locations that can remain in
   memory after deleting a location subentry before the parent entry is reloaded.
-- `runtime_summary.stale_location_count = 0` is the normal state after reload.
+- `runtime_summary.stale_location_count` should normally be `0` after reloading
+  the parent entry.
 - If `runtime_summary.stale_location_count > 0` immediately after deleting a
   location, reload the Pollen Levels parent entry from Home Assistant.
 
