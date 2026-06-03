@@ -1,3 +1,10 @@
+## [3.0.0a3] - 2026-06-02
+### Fixed
+- Skipped stale runtime location coordinators after a location subentry is
+  removed, preventing manual refreshes before the parent entry reloads.
+- Reported stale runtime locations in diagnostics while excluding them from the
+  normal active location diagnostics block.
+
 ## [3.0.0a2] - 2026-06-02
 ### Fixed
 - Repaired v3 migration of surviving legacy parent entity and device registry

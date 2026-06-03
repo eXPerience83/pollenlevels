@@ -180,6 +180,14 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
     }
     options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
+    entry.subentries = {
+        "subentry-1": SimpleNamespace(
+            subentry_id="subentry-1", subentry_type="location"
+        ),
+        "subentry-2": SimpleNamespace(
+            subentry_id="subentry-2", subentry_type="location"
+        ),
+    }
 
     first_coordinator = SimpleNamespace(
         entry_id="entry",
@@ -251,6 +259,165 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
 
 
 @pytest.mark.asyncio
+async def test_diagnostics_includes_fallback_location_without_subentries(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should keep fallback runtime locations when no subentries exist."""
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LATITUDE: 12.345678,
+        diagnostics_modules.CONF_LONGITUDE: -98.765432,
+    }
+    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="entry",
+        forecast_days=2,
+        language=None,
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=12.345678,
+        lon=-98.765432,
+        entry_title="Home",
+        data={},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            entry.entry_id: diagnostics_modules.PollenLocationRuntime(
+                subentry_id=entry.entry_id, coordinator=coordinator
+            )
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert set(diagnostics["locations"]) == {"entry"}
+    assert diagnostics["runtime_summary"]["stale_location_count"] == 0
+    assert diagnostics["runtime_summary"]["stale_location_ids"] == []
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_summarizes_runtime_locations_when_parent_has_no_locations(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should summarize stale v3 runtime locations after the last deletion."""
+
+    data = {diagnostics_modules.CONF_API_KEY: "secret-token"}
+    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    entry.subentries = {}
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="deleted-location",
+        forecast_days=2,
+        language=None,
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=12.345678,
+        lon=-98.765432,
+        entry_title="Deleted",
+        data={},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "deleted-location": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="deleted-location", coordinator=coordinator
+            )
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert diagnostics["locations"] == {}
+    assert diagnostics["runtime_summary"] == {
+        "stale_location_count": 1,
+        "stale_location_ids": ["deleted-location"],
+    }
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_summarizes_stale_runtime_locations(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should exclude deleted runtime locations and summarize them."""
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
+    }
+    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    entry.subentries = {
+        "casa": SimpleNamespace(subentry_id="casa", subentry_type="location"),
+        "guineta": SimpleNamespace(subentry_id="guineta", subentry_type="location"),
+    }
+
+    def _coordinator(subentry_id: str, lat: float, lon: float) -> SimpleNamespace:
+        return SimpleNamespace(
+            entry_id="entry",
+            subentry_id=subentry_id,
+            forecast_days=2,
+            language="en",
+            create_d1=True,
+            create_d2=False,
+            last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+            lat=lat,
+            lon=lon,
+            entry_title=subentry_id,
+            data={},
+        )
+
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "casa": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="casa",
+                coordinator=_coordinator("casa", 12.345678, -98.765432),
+            ),
+            "trabajo": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="trabajo",
+                coordinator=_coordinator("trabajo", 23.456789, -87.654321),
+            ),
+            "guineta": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="guineta",
+                coordinator=_coordinator("guineta", 34.567891, -76.543219),
+            ),
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert set(diagnostics["locations"]) == {"casa", "guineta"}
+    assert diagnostics["runtime_summary"] == {
+        "stale_location_count": 1,
+        "stale_location_ids": ["trabajo"],
+    }
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+    assert "23.456789" not in serialized
+    assert "-87.654321" not in serialized
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("raw_days", "expected_days"),
     [
@@ -307,9 +474,13 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
     options = {diagnostics_modules.CONF_FORECAST_DAYS: 2}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
+    entry.subentries = {
+        "entry": SimpleNamespace(subentry_id="entry", subentry_type="location")
+    }
 
     coordinator = SimpleNamespace(
         entry_id="entry",
+        subentry_id="entry",
         forecast_days=2,
         language="en",
         create_d1=True,
@@ -446,8 +617,12 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data(
     """Diagnostics daily summary should be present even without coordinator data."""
 
     entry = _ConfigEntry(data={}, options={}, entry_id="entry", title="Home")
+    entry.subentries = {
+        "entry": SimpleNamespace(subentry_id="entry", subentry_type="location")
+    }
     coordinator = SimpleNamespace(
         entry_id="entry",
+        subentry_id="entry",
         forecast_days=1,
         language=None,
         create_d1=False,

@@ -8,12 +8,41 @@ import re
 from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
-from .const import FORECAST_SENSORS_CHOICES
+from .const import (
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    FORECAST_SENSORS_CHOICES,
+    SUBENTRY_TYPE_LOCATION,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from aiohttp import ClientResponse
 else:  # pragma: no cover - runtime fallback for test environments without aiohttp
     ClientResponse = Any
+
+
+def active_location_subentry_ids(entry: Any) -> set[str]:
+    """Return active location subentry ids for a config entry."""
+    subentries = getattr(entry, "subentries", {}) or {}
+    active_ids: set[str] = set()
+    for subentry in subentries.values():
+        if getattr(subentry, "subentry_type", None) != SUBENTRY_TYPE_LOCATION:
+            continue
+        subentry_id = getattr(subentry, "subentry_id", None)
+        if isinstance(subentry_id, str) and subentry_id:
+            active_ids.add(subentry_id)
+    return active_ids
+
+
+def has_legacy_location_data(entry: Any) -> bool:
+    """Return True when entry data contains a valid legacy fallback location."""
+    data = getattr(entry, "data", {}) or {}
+    if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
+        return False
+    return (
+        validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+        is not None
+    )
 
 
 async def extract_error_message(resp: ClientResponse, default: str = "") -> str:

@@ -327,6 +327,20 @@ class _FakeEntry:
         self.runtime_data = None
 
 
+def _location_subentries(
+    integration: types.ModuleType, *subentry_ids: str
+) -> dict[str, Any]:
+    """Return active location subentries keyed by subentry id."""
+    return {
+        subentry_id: integration.ConfigSubentry(
+            data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+            subentry_id=subentry_id,
+            title=subentry_id,
+        )
+        for subentry_id in subentry_ids
+    }
+
+
 class _FakeHass:
     def __init__(
         self,
@@ -1156,6 +1170,7 @@ def test_force_update_refreshes_all_location_subentries(
         integration,
         entry_id="entry-parent",
         data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loc-1", "loc-2"),
     )
     entry.runtime_data = types.SimpleNamespace(
         locations={
@@ -1203,6 +1218,7 @@ def test_force_update_refreshes_location_subentries_sequentially(
         integration,
         entry_id="entry-parent",
         data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loc-1", "loc-2"),
     )
     entry.runtime_data = types.SimpleNamespace(
         locations={
@@ -1221,6 +1237,135 @@ def test_force_update_refreshes_location_subentries_sequentially(
 
     assert max_active == 1
     assert order == ["loc-1:start", "loc-1:end", "loc-2:start", "loc-2:end"]
+
+
+def test_force_update_refreshes_fallback_location_without_subentries(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """force_update should still refresh legacy fallback runtime locations."""
+    integration = integration_modules.integration
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    coordinator = _Coordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-legacy",
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        subentries={},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            entry.entry_id: types.SimpleNamespace(
+                subentry_id=entry.entry_id, coordinator=coordinator
+            )
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert coordinator.calls == 1
+    assert "Skipping stale Pollen Levels runtime location" not in caplog.text
+
+
+def test_force_update_skips_runtime_locations_when_parent_has_no_locations(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """force_update should skip stale v3 runtime locations after deleting the last subentry."""
+    integration = integration_modules.integration
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    coordinator = _Coordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "key"},
+        subentries={},
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "deleted-location": types.SimpleNamespace(
+                subentry_id="deleted-location", coordinator=coordinator
+            )
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert coordinator.calls == 0
+    assert (
+        "Skipping stale Pollen Levels runtime location deleted-location "
+        "for entry entry-parent"
+    ) in caplog.text
+
+
+def test_force_update_skips_stale_location_subentries(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """force_update should not refresh runtime locations removed from entry.subentries."""
+    integration = integration_modules.integration
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    casa = _Coordinator()
+    trabajo = _Coordinator()
+    guineta = _Coordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "casa", "guineta"),
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "casa": types.SimpleNamespace(subentry_id="casa", coordinator=casa),
+            "trabajo": types.SimpleNamespace(
+                subentry_id="trabajo", coordinator=trabajo
+            ),
+            "guineta": types.SimpleNamespace(
+                subentry_id="guineta", coordinator=guineta
+            ),
+        }
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    with caplog.at_level("DEBUG"):
+        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert casa.calls == 1
+    assert guineta.calls == 1
+    assert trabajo.calls == 0
+    assert (
+        "Skipping stale Pollen Levels runtime location trabajo for entry entry-parent"
+        in caplog.text
+    )
 
 
 def test_force_update_continues_after_one_location_failure(
@@ -1251,6 +1396,7 @@ def test_force_update_continues_after_one_location_failure(
         integration,
         entry_id="entry-parent",
         data={integration.CONF_API_KEY: "secret-123"},
+        subentries=_location_subentries(integration, "loc-bad", "loc-good"),
     )
     entry.runtime_data = types.SimpleNamespace(
         locations={
@@ -1297,6 +1443,7 @@ def test_force_update_handles_location_cancelled_error(
         integration,
         entry_id="entry-parent",
         data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loc-cancel", "loc-good"),
     )
     entry.runtime_data = types.SimpleNamespace(
         locations={
