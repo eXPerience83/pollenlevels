@@ -55,8 +55,9 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - Your **API key** is stored by Home Assistant’s secure config entries.  
 - **We never log your API key.** As a safety net, if it ever appears in an error message, it is **redacted** as `***`.  
 - **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
-- Diagnostics include a redacted `daily_summary` snapshot to help troubleshoot
-  the daily summary sensors without exposing API keys or exact coordinates.
+- Diagnostics include redacted daily, registry, and runtime summaries to help
+  troubleshoot the integration without exposing API keys or exact coordinates.
+  Approximate coordinates are rounded to 1 decimal for support purposes.
 - Avoid sharing full debug logs publicly; review them for sensitive information before posting.
 - Never share real Google API keys publicly, and do not paste full Google Pollen
   API URLs containing `key=...` into public issues. If a key was exposed,
@@ -93,9 +94,10 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
 ## Multiple locations and upgrades
 
-Version 3.0.0a1 starts the v3 alpha line and stores configuration as one parent
-API-key entry with one or more location subentries. Existing 2.x entries are
-consolidated by API key during migration:
+The v3 pre-release line migrates Pollen Levels to Home Assistant config
+subentries. Configuration is stored as one parent API-key entry with one or more
+location subentries. Existing 2.x entries are consolidated by API key during
+migration:
 
 - Legacy entries with the same Google API key are grouped under one parent
   entry, so the API key is stored once on the parent instead of duplicated.
@@ -105,7 +107,8 @@ consolidated by API key during migration:
   cannot move the entity or device registry links safely, the legacy entry is
   kept so the migration can be retried.
 - Migrated location subentries keep the legacy entry ID internally so existing
-  entity unique IDs, devices, dashboards, and automations continue to match.
+  entity unique IDs, devices, dashboards, history, and automations continue to
+  match.
 
 If legacy entries sharing a key used different update, language, or forecast
 options, the parent entry keeps the first entry's options and fills missing
@@ -128,8 +131,28 @@ location initializes. Any location skipped because of a non-auth startup error
 may need a manual reload of the Pollen Levels parent entry after the underlying
 problem is fixed.
 
-Create a Home Assistant backup before installing the v3 alpha. Downgrading to
-Pollen Levels 2.x after the subentry migration is not supported.
+Create a Home Assistant backup before installing the v3 pre-release.
+Downgrading to Pollen Levels 2.x after the subentry migration is not supported.
+
+### Diagnostics after the v3 migration
+
+Diagnostics include two support summaries for the v3 migration:
+
+- `registry_summary` shows how many entities and devices are associated with
+  each location subentry.
+- `registry_summary.entities.without_subentry` should normally be `0`.
+- `registry_summary.devices.without_subentry` should normally be `0`.
+- `registry_summary.devices.with_legacy_none_association` should normally be
+  `0`.
+- `runtime_summary` reports temporary runtime-only locations that can remain in
+  memory after deleting a location subentry before the parent entry is reloaded.
+- `runtime_summary.stale_location_count` should normally be `0` after reloading
+  the parent entry.
+- If `runtime_summary.stale_location_count > 0` immediately after deleting a
+  location, reload the Pollen Levels parent entry from Home Assistant.
+
+Diagnostics redact the API key and only include approximate coordinates rounded
+to 1 decimal for support purposes.
 
 ---
 
