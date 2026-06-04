@@ -167,6 +167,19 @@ def _redact_validation_error(
     ).strip()
 
 
+def _has_usable_pollen_info_items(value: Any) -> bool:
+    """Return whether pollen info contains at least one usable coded item."""
+    if not isinstance(value, list):
+        return False
+
+    return any(
+        isinstance(item, dict)
+        and isinstance(code := item.get("code"), str)
+        and bool(code.strip())
+        for item in value
+    )
+
+
 def _daily_info_is_valid(data: Any) -> bool:
     """Return whether a validation response contains usable dailyInfo."""
     daily_info = data.get("dailyInfo") if isinstance(data, dict) else None
@@ -185,10 +198,10 @@ def _daily_info_is_valid(data: Any) -> bool:
         ):
             has_usable_entry = True
 
-        if isinstance(item.get("pollenTypeInfo"), list) and item["pollenTypeInfo"]:
+        if _has_usable_pollen_info_items(item.get("pollenTypeInfo")):
             has_usable_entry = True
 
-        if isinstance(item.get("plantInfo"), list) and item["plantInfo"]:
+        if _has_usable_pollen_info_items(item.get("plantInfo")):
             has_usable_entry = True
 
     return has_usable_entry

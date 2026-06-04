@@ -721,6 +721,18 @@ def _valid_daily_info_payload() -> dict[str, list[dict[str, dict[str, int]]]]:
         {"dailyInfo": [{"day": "D0"}]},
         {"dailyInfo": [{"indexInfo": []}]},
         {"dailyInfo": ["bad"]},
+        {"dailyInfo": [{"pollenTypeInfo": []}]},
+        {"dailyInfo": [{"pollenTypeInfo": ["bad"]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{"displayName": "Grass"}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{"code": ""}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{"code": "   "}]}]},
+        {"dailyInfo": [{"plantInfo": []}]},
+        {"dailyInfo": [{"plantInfo": ["bad"]}]},
+        {"dailyInfo": [{"plantInfo": [{}]}]},
+        {"dailyInfo": [{"plantInfo": [{"displayName": "Olive"}]}]},
+        {"dailyInfo": [{"plantInfo": [{"code": ""}]}]},
+        {"dailyInfo": [{"plantInfo": [{"code": "   "}]}]},
     ],
 )
 def test_daily_info_is_valid_rejects_structurally_empty_payloads(
@@ -737,6 +749,7 @@ def test_daily_info_is_valid_rejects_structurally_empty_payloads(
     [
         _valid_daily_info_payload(),
         {"dailyInfo": [{"pollenTypeInfo": [{"code": "GRASS"}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{}, {"code": "GRASS"}]}]},
         {"dailyInfo": [{"plantInfo": [{"code": "OLIVE"}]}]},
     ],
 )
