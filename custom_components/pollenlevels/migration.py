@@ -79,14 +79,24 @@ def _location_unique_id(lat: Any, lon: Any) -> str | None:
 def _has_invalid_legacy_coordinates(entry: ConfigEntry) -> bool:
     """Return whether legacy entry data contains unusable stored coordinates."""
     data = entry.data or {}
+    if not _has_any_legacy_coordinate_key(entry):
+        return False
+    if not _has_legacy_coordinate_pair(entry):
+        return True
+
     return (
-        _has_legacy_coordinates(entry)
-        and validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+        validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
         is None
     )
 
 
-def _has_legacy_coordinates(entry: ConfigEntry) -> bool:
+def _has_any_legacy_coordinate_key(entry: ConfigEntry) -> bool:
+    """Return whether legacy entry data contains any stored coordinate key."""
+    data = entry.data or {}
+    return CONF_LATITUDE in data or CONF_LONGITUDE in data
+
+
+def _has_legacy_coordinate_pair(entry: ConfigEntry) -> bool:
     """Return whether legacy entry data contains a stored coordinate pair."""
     data = entry.data or {}
     return CONF_LATITUDE in data and CONF_LONGITUDE in data
@@ -367,7 +377,7 @@ def _migration_group_entries(
             continue
         if (
             candidate is entry
-            or _has_legacy_coordinates(candidate)
+            or _has_any_legacy_coordinate_key(candidate)
             or _has_migration_locations(candidate)
             or _has_location_subentries(candidate)
             or getattr(candidate, "unique_id", None) == target_unique_id
