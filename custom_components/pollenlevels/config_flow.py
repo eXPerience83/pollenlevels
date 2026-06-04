@@ -167,14 +167,44 @@ def _redact_validation_error(
     ).strip()
 
 
+def _has_usable_pollen_info_items(value: Any) -> bool:
+    """Return whether pollen info contains at least one usable coded item."""
+    if not isinstance(value, list):
+        return False
+
+    return any(
+        isinstance(item, dict)
+        and isinstance(code := item.get("code"), str)
+        and bool(code.strip())
+        for item in value
+    )
+
+
 def _daily_info_is_valid(data: Any) -> bool:
     """Return whether a validation response contains usable dailyInfo."""
     daily_info = data.get("dailyInfo") if isinstance(data, dict) else None
-    return (
-        isinstance(daily_info, list)
-        and bool(daily_info)
-        and all(isinstance(item, dict) for item in daily_info)
-    )
+    if not isinstance(daily_info, list) or not daily_info:
+        return False
+
+    has_usable_entry = False
+    for item in daily_info:
+        if not isinstance(item, dict):
+            return False
+
+        date = item.get("date")
+        if isinstance(date, dict) and all(
+            safe_parse_int(date.get(part)) is not None
+            for part in ("year", "month", "day")
+        ):
+            has_usable_entry = True
+
+        if _has_usable_pollen_info_items(item.get("pollenTypeInfo")):
+            has_usable_entry = True
+
+        if _has_usable_pollen_info_items(item.get("plantInfo")):
+            has_usable_entry = True
+
+    return has_usable_entry
 
 
 async def _async_validate_api_location(

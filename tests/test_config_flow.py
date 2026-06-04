@@ -696,7 +696,7 @@ def _patch_client_fetch(
         calls.append(kwargs)
         if error is not None:
             raise error
-        return result or {"dailyInfo": [{"day": "D0"}]}
+        return result or _valid_daily_info_payload()
 
     monkeypatch.setattr(
         config_flow_stubs.config_flow.GooglePollenApiClient,
@@ -704,6 +704,62 @@ def _patch_client_fetch(
         _fake_fetch,
     )
     return calls
+
+
+def _valid_daily_info_payload() -> dict[str, list[dict[str, dict[str, int]]]]:
+    return {"dailyInfo": [{"date": {"year": 2026, "month": 6, "day": 3}}]}
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"dailyInfo": None},
+        {"dailyInfo": []},
+        {"dailyInfo": "invalid"},
+        {"dailyInfo": [{}]},
+        {"dailyInfo": [{"day": "D0"}]},
+        {"dailyInfo": [{"indexInfo": []}]},
+        {"dailyInfo": ["bad"]},
+        {"dailyInfo": [{"pollenTypeInfo": []}]},
+        {"dailyInfo": [{"pollenTypeInfo": ["bad"]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{"displayName": "Grass"}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{"code": ""}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{"code": "   "}]}]},
+        {"dailyInfo": [{"plantInfo": []}]},
+        {"dailyInfo": [{"plantInfo": ["bad"]}]},
+        {"dailyInfo": [{"plantInfo": [{}]}]},
+        {"dailyInfo": [{"plantInfo": [{"displayName": "Olive"}]}]},
+        {"dailyInfo": [{"plantInfo": [{"code": ""}]}]},
+        {"dailyInfo": [{"plantInfo": [{"code": "   "}]}]},
+    ],
+)
+def test_daily_info_is_valid_rejects_structurally_empty_payloads(
+    config_flow_stubs: ConfigFlowStubs,
+    payload: object,
+) -> None:
+    """Structurally empty validation responses should not pass the flow."""
+
+    assert not config_flow_stubs.config_flow._daily_info_is_valid(payload)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        _valid_daily_info_payload(),
+        {"dailyInfo": [{"pollenTypeInfo": [{"code": "GRASS"}]}]},
+        {"dailyInfo": [{"pollenTypeInfo": [{}, {"code": "GRASS"}]}]},
+        {"dailyInfo": [{"plantInfo": [{"code": "OLIVE"}]}]},
+    ],
+)
+def test_daily_info_is_valid_accepts_structurally_useful_payloads(
+    config_flow_stubs: ConfigFlowStubs,
+    payload: object,
+) -> None:
+    """Validation accepts forecast data that can seed setup sensors."""
+
+    assert config_flow_stubs.config_flow._daily_info_is_valid(payload)
 
 
 def _base_user_input(config_flow_stubs) -> dict:
@@ -1007,7 +1063,7 @@ def test_validate_input_update_interval_float_string(
     calls = _patch_client_fetch(
         config_flow_stubs,
         monkeypatch,
-        result={"dailyInfo": [{"indexInfo": []}]},
+        result=_valid_daily_info_payload(),
     )
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()
@@ -1354,7 +1410,7 @@ def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
     assert placeholders.get("error_message")
 
     _patch_client_fetch(
-        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+        config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
     )
 
     errors, normalized = asyncio.run(
@@ -1420,7 +1476,7 @@ def test_validate_input_valid_forecast_mode_combinations_are_accepted(
     """User flow should accept forecast mode combinations that have enough days."""
 
     calls = _patch_client_fetch(
-        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+        config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
     )
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()
@@ -1952,7 +2008,7 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     """Successful validation should normalize data and set unique ID."""
 
     calls = _patch_client_fetch(
-        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+        config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
     )
 
     class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
@@ -2000,7 +2056,7 @@ def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
     """Unique-id format should match legacy 4-decimal duplicate detection."""
 
     calls = _patch_client_fetch(
-        config_flow_stubs, monkeypatch, result={"dailyInfo": [{"day": "D0"}]}
+        config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
     )
 
     class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
