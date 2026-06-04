@@ -170,11 +170,28 @@ def _redact_validation_error(
 def _daily_info_is_valid(data: Any) -> bool:
     """Return whether a validation response contains usable dailyInfo."""
     daily_info = data.get("dailyInfo") if isinstance(data, dict) else None
-    return (
-        isinstance(daily_info, list)
-        and bool(daily_info)
-        and all(isinstance(item, dict) for item in daily_info)
-    )
+    if not isinstance(daily_info, list) or not daily_info:
+        return False
+
+    has_usable_entry = False
+    for item in daily_info:
+        if not isinstance(item, dict):
+            return False
+
+        date = item.get("date")
+        if isinstance(date, dict) and all(
+            safe_parse_int(date.get(part)) is not None
+            for part in ("year", "month", "day")
+        ):
+            has_usable_entry = True
+
+        if isinstance(item.get("pollenTypeInfo"), list) and item["pollenTypeInfo"]:
+            has_usable_entry = True
+
+        if isinstance(item.get("plantInfo"), list) and item["plantInfo"]:
+            has_usable_entry = True
+
+    return has_usable_entry
 
 
 async def _async_validate_api_location(
