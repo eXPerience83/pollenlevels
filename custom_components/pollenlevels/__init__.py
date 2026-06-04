@@ -302,7 +302,6 @@ async def async_setup_entry(
                 entry.entry_id,
                 subentry_id,
             )
-            entry.runtime_data = None
             raise ConfigEntryNotReady(
                 "Pollen Levels location has invalid stored coordinates"
             ) from None
@@ -329,8 +328,6 @@ async def async_setup_entry(
             await coordinator.async_config_entry_first_refresh()
         except ConfigEntryAuthFailed:
             raise
-        except asyncio.CancelledError:
-            raise
         except ConfigEntryNotReady as err:
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
@@ -342,7 +339,6 @@ async def async_setup_entry(
                 type(err).__name__,
                 safe_message or "no error details",
             )
-            entry.runtime_data = None
             raise ConfigEntryNotReady(
                 safe_message or "Pollen Levels location is not ready"
             ) from None
@@ -357,7 +353,6 @@ async def async_setup_entry(
                 type(err).__name__,
                 safe_message or "no error details",
             )
-            entry.runtime_data = None
             raise ConfigEntryNotReady(
                 safe_message or "Pollen Levels location setup failed"
             ) from None
