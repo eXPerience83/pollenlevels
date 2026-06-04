@@ -26,7 +26,7 @@ from .const import (
     DOMAIN,
     SUBENTRY_TYPE_LOCATION,
 )
-from .util import api_key_unique_id, normalize_sensor_mode
+from .util import api_key_unique_id, normalize_sensor_mode, validate_location_pair
 
 _LOGGER = logging.getLogger(__name__)
 LEGACY_HTTP_REFERER_KEY = "http_referer"
@@ -74,6 +74,56 @@ def _location_unique_id(lat: Any, lon: Any) -> str | None:
     if not _coordinates_are_valid(lat_float, lon_float):
         return None
     return f"{lat_float:.4f}_{lon_float:.4f}"
+
+
+def _has_invalid_legacy_coordinates(entry: ConfigEntry) -> bool:
+    """Return whether legacy entry data contains unusable stored coordinates."""
+    data = entry.data or {}
+    if not _has_any_legacy_coordinate_key(entry):
+        return False
+    if not _has_legacy_coordinate_pair(entry):
+        return True
+
+    return (
+        validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+        is None
+    )
+
+
+def _has_any_legacy_coordinate_key(entry: ConfigEntry) -> bool:
+    """Return whether legacy entry data contains any stored coordinate key."""
+    data = entry.data or {}
+    return CONF_LATITUDE in data or CONF_LONGITUDE in data
+
+
+def _has_legacy_coordinate_pair(entry: ConfigEntry) -> bool:
+    """Return whether legacy entry data contains a stored coordinate pair."""
+    data = entry.data or {}
+    return CONF_LATITUDE in data and CONF_LONGITUDE in data
+
+
+def _log_invalid_legacy_coordinates(entry: ConfigEntry) -> None:
+    """Log an actionable migration failure for corrupt legacy coordinates."""
+    _LOGGER.error(
+        "Cannot migrate Pollen Levels entry %s because it contains invalid stored "
+        "coordinates. The entry was left unchanged. Remove and recreate this "
+        "location or fix the configuration before retrying the migration.",
+        entry.entry_id,
+    )
+
+
+def _invalid_legacy_coordinate_entry(
+    entries: list[ConfigEntry],
+) -> ConfigEntry | None:
+    """Return the first entry with corrupt legacy coordinates, if any."""
+    return next(
+        (
+            candidate
+            for candidate in entries
+            if _has_invalid_legacy_coordinates(candidate)
+        ),
+        None,
+    )
 
 
 def _entry_version(entry: ConfigEntry) -> int:
@@ -139,6 +189,11 @@ def _location_from_legacy_entry(entry: ConfigEntry) -> _MigrationLocation | None
     """Return the location stored directly on a legacy config entry."""
     data = dict(entry.data or {})
     if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
+        return None
+    if (
+        validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+        is None
+    ):
         return None
 
     subentry_data = {
@@ -322,6 +377,7 @@ def _migration_group_entries(
             continue
         if (
             candidate is entry
+            or _has_any_legacy_coordinate_key(candidate)
             or _has_migration_locations(candidate)
             or _has_location_subentries(candidate)
             or getattr(candidate, "unique_id", None) == target_unique_id
@@ -694,6 +750,15 @@ async def _async_migrate_grouped_entries(
     target_version: int,
 ) -> bool:
     """Migrate all legacy entries sharing one API key into one parent."""
+    if (invalid_entry := _invalid_legacy_coordinate_entry(group)) is not None:
+        _log_invalid_legacy_coordinates(invalid_entry)
+        _LOGGER.error(
+            "Aborted Pollen Levels API-key migration group because entry %s "
+            "contains invalid stored coordinates. The group was left unchanged.",
+            invalid_entry.entry_id,
+        )
+        return False
+
     parent = _select_migration_parent(group, entry, api_key)
     _LOGGER.info(
         "Selected parent entry %s for API-key migration group with %d entries",
@@ -889,6 +954,10 @@ async def async_handle_entry_migration(
                 return await _async_migrate_grouped_entries(
                     hass, entry, group, api_key, target_version
                 )
+
+        if _has_invalid_legacy_coordinates(entry):
+            _log_invalid_legacy_coordinates(entry)
+            return False
 
         existing_data = entry.data or {}
         existing_options = entry.options or {}
