@@ -1933,6 +1933,77 @@ def test_migrate_legacy_entries_with_same_api_key_group_under_one_parent(
     assert hass.config_entries.removed_entries == ["legacy-office"]
 
 
+def test_migrate_group_with_invalid_legacy_coordinates_is_left_unchanged(
+    integration_modules: _InitModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Grouped migration should abort if any legacy entry has corrupt coordinates."""
+    integration = integration_modules.integration
+    parent_data = {
+        integration.CONF_API_KEY: "shared-secret",
+        integration.CONF_LATITUDE: 1.0,
+        integration.CONF_LONGITUDE: 2.0,
+        integration.CONF_UPDATE_INTERVAL: 12,
+    }
+    invalid_data = {
+        integration.CONF_API_KEY: "shared-secret",
+        integration.CONF_LATITUDE: "123.456789",
+        integration.CONF_LONGITUDE: "-222.987654",
+        integration.CONF_LANGUAGE_CODE: "en",
+    }
+    parent = _FakeEntry(
+        integration,
+        entry_id="legacy-home",
+        title="Home",
+        data=dict(parent_data),
+        options={},
+        version=3,
+        subentries={},
+        unique_id="1.0000_2.0000",
+    )
+    duplicate = _FakeEntry(
+        integration,
+        entry_id="legacy-corrupt",
+        title="Corrupt",
+        data=dict(invalid_data),
+        options={},
+        version=3,
+        subentries={},
+    )
+    hass = _FakeHass(entries=[parent, duplicate])
+
+    with caplog.at_level("ERROR"):
+        assert asyncio.run(integration.async_migrate_entry(hass, parent)) is False
+
+    assert parent.data == parent_data
+    assert parent.options == {}
+    assert parent.version == 3
+    assert parent.subentries == {}
+    assert duplicate.data == invalid_data
+    assert duplicate.options == {}
+    assert duplicate.version == 3
+    assert duplicate.subentries == {}
+    assert "merged_into_entry_id" not in parent.data
+    assert "merged_into_entry_id" not in duplicate.data
+    assert hass.config_entries.added_subentries == []
+    assert hass.config_entries.removed_entries == []
+    assert [entry.entry_id for entry in hass.config_entries.async_entries()] == [
+        "legacy-home",
+        "legacy-corrupt",
+    ]
+    assert (
+        "Cannot migrate Pollen Levels entry legacy-corrupt because it contains "
+        "invalid stored coordinates"
+    ) in caplog.text
+    assert (
+        "Aborted Pollen Levels API-key migration group because entry legacy-corrupt "
+        "contains invalid stored coordinates. The group was left unchanged."
+    ) in caplog.text
+    assert "shared-secret" not in caplog.text
+    assert "123.456789" not in caplog.text
+    assert "-222.987654" not in caplog.text
+
+
 def test_migrate_legacy_entry_into_existing_clean_v3_parent(
     integration_modules: _InitModules,
 ) -> None:
@@ -2062,6 +2133,51 @@ def test_migrate_entry_without_location_does_not_create_corrupt_subentry(
     assert entry.subentries == {}
     assert entry.version == integration.TARGET_ENTRY_VERSION
     assert hass.config_entries.added_subentries == []
+
+
+def test_migrate_entry_with_invalid_legacy_coordinates_is_left_unchanged(
+    integration_modules: _InitModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Legacy entries with corrupt coordinates should fail without side effects."""
+    integration = integration_modules.integration
+    original_data = {
+        integration.CONF_API_KEY: "secret-api-key",
+        integration.CONF_LATITUDE: "123.456789",
+        integration.CONF_LONGITUDE: "-222.987654",
+        integration.CONF_UPDATE_INTERVAL: 12,
+    }
+    entry = _FakeEntry(
+        integration,
+        entry_id="legacy-corrupt",
+        title="Corrupt Legacy",
+        data=dict(original_data),
+        options={},
+        version=3,
+        subentries={},
+        unique_id="legacy-corrupt-id",
+    )
+    hass = _FakeHass(entries=[entry])
+
+    with caplog.at_level("ERROR"):
+        assert asyncio.run(integration.async_migrate_entry(hass, entry)) is False
+
+    assert entry.data == original_data
+    assert entry.options == {}
+    assert entry.version == 3
+    assert entry.subentries == {}
+    assert hass.config_entries.added_subentries == []
+    assert hass.config_entries.removed_entries == []
+    assert "merged_into_entry_id" not in entry.data
+    assert (
+        "Cannot migrate Pollen Levels entry legacy-corrupt because it contains "
+        "invalid stored coordinates. The entry was left unchanged. Remove and "
+        "recreate this location or fix the configuration before retrying the "
+        "migration."
+    ) in caplog.text
+    assert "secret-api-key" not in caplog.text
+    assert "123.456789" not in caplog.text
+    assert "-222.987654" not in caplog.text
 
 
 def test_migrate_current_entry_updates_parent_unique_id_to_api_key_identity(
