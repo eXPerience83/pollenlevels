@@ -297,11 +297,15 @@ async def async_setup_entry(
         latlon = validate_location_pair(raw_lat, raw_lon)
         if latlon is None:
             _LOGGER.warning(
-                "Invalid coordinates for entry %s subentry %s",
+                "Invalid coordinates for Pollen Levels entry %s subentry %s; "
+                "setup will be retried after the stored location is fixed",
                 entry.entry_id,
                 subentry_id,
             )
-            continue
+            entry.runtime_data = None
+            raise ConfigEntryNotReady(
+                "Pollen Levels location has invalid stored coordinates"
+            ) from None
         lat, lon = latlon
 
         coordinator = PollenDataUpdateCoordinator(
@@ -325,6 +329,8 @@ async def async_setup_entry(
             await coordinator.async_config_entry_first_refresh()
         except ConfigEntryAuthFailed:
             raise
+        except asyncio.CancelledError:
+            raise
         except ConfigEntryNotReady as err:
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
@@ -336,7 +342,10 @@ async def async_setup_entry(
                 type(err).__name__,
                 safe_message or "no error details",
             )
-            continue
+            entry.runtime_data = None
+            raise ConfigEntryNotReady(
+                safe_message or "Pollen Levels location is not ready"
+            ) from None
         except Exception as err:
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
@@ -348,7 +357,10 @@ async def async_setup_entry(
                 type(err).__name__,
                 safe_message or "no error details",
             )
-            continue
+            entry.runtime_data = None
+            raise ConfigEntryNotReady(
+                safe_message or "Pollen Levels location setup failed"
+            ) from None
 
         locations[subentry_id] = PollenLocationRuntime(
             subentry_id=subentry_id,

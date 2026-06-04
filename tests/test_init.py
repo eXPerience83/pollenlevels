@@ -629,12 +629,12 @@ def test_setup_entry_boundary_coordinates_are_allowed(
         assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
 
-def test_setup_entry_keeps_working_locations_when_one_subentry_fails(
+def test_setup_entry_raises_not_ready_when_one_subentry_fails(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A local refresh failure should not block other configured locations."""
+    """A local refresh failure should retry the whole parent entry."""
     integration = integration_modules.integration
 
     bad_subentry = integration.ConfigSubentry(
@@ -680,11 +680,12 @@ def test_setup_entry_keeps_working_locations_when_one_subentry_fails(
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
     with caplog.at_level("WARNING", logger=integration.__name__):
-        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+        with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
+            asyncio.run(integration.async_setup_entry(hass, entry))
 
-    assert entry.runtime_data is not None
-    assert set(entry.runtime_data.locations) == {"good-location"}
-    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+    assert exc_info.value.__cause__ is None
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
     log_text = caplog.text
     assert "Initial data refresh failed for entry entry-1 subentry bad-location" in (
         log_text
@@ -692,6 +693,98 @@ def test_setup_entry_keeps_working_locations_when_one_subentry_fails(
     assert "secret-key" not in log_text
     assert "3.123456" not in log_text
     assert "-4.654321" not in log_text
+
+
+def test_setup_entry_raises_not_ready_when_subentry_coordinates_are_invalid(
+    integration_modules: _InitModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Invalid subentry coordinates should retry without partial runtime data."""
+    integration = integration_modules.integration
+
+    bad_subentry = integration.ConfigSubentry(
+        data={
+            integration.CONF_LATITUDE: 91.123456,
+            integration.CONF_LONGITUDE: 2.654321,
+        },
+        subentry_id="bad-location",
+        title="Bad",
+    )
+    good_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="good-location",
+        title="Good",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "secret-key"},
+        subentries={
+            good_subentry.subentry_id: good_subentry,
+            bad_subentry.subentry_id: bad_subentry,
+        },
+    )
+    hass = _FakeHass()
+
+    with caplog.at_level("WARNING", logger=integration.__name__):
+        with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
+            asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert exc_info.value.__cause__ is None
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
+    log_text = caplog.text
+    assert (
+        "Invalid coordinates for Pollen Levels entry entry-1 subentry bad-location"
+        in (log_text)
+    )
+    assert "secret-key" not in log_text
+    assert "91.123456" not in log_text
+    assert "2.654321" not in log_text
+
+
+def test_setup_entry_raises_not_ready_when_later_subentry_is_not_ready(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A later not-ready location should discard earlier successful setup work."""
+    integration = integration_modules.integration
+
+    first = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="first-location",
+    )
+    second = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
+        subentry_id="second-location",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "key"},
+        subentries={first.subentry_id: first, second.subentry_id: second},
+    )
+    hass = _FakeHass()
+    refreshed: list[str] = []
+
+    class _PartiallyReadyCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+
+        async def async_config_entry_first_refresh(self):
+            refreshed.append(self.subentry_id)
+            if self.subentry_id == "second-location":
+                raise integration.ConfigEntryNotReady("retry later")
+
+    monkeypatch.setattr(
+        integration, "PollenDataUpdateCoordinator", _PartiallyReadyCoordinator
+    )
+
+    with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert exc_info.value.__cause__ is None
+    assert refreshed == ["first-location", "second-location"]
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
 
 
 def test_setup_entry_raises_not_ready_when_all_subentries_fail(
