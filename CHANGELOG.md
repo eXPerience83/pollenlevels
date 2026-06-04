@@ -1,3 +1,15 @@
+## [3.0.0a4] - 2026-06-05
+### Fixed
+- Hardened Google Pollen `dailyInfo` validation during config flow.
+- Prevented invalid or partial legacy coordinates from being migrated into v3
+  location subentries.
+- Aborted API-key group migration safely when any grouped legacy entry has
+  invalid coordinates.
+- Prevented partial parent setup when one configured location fails initial
+  refresh.
+- Kept parent entries without location subentries supported with an empty
+  runtime.
+
 ## [3.0.0a3] - 2026-06-02
 ### Fixed
 - Skipped stale runtime location coordinators after a location subentry is
