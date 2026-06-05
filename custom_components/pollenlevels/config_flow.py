@@ -96,7 +96,7 @@ def is_valid_language_code(value: str) -> str:
     if not norm:
         raise vol.Invalid("empty")
     if not LANGUAGE_CODE_REGEX.match(norm):
-        _LOGGER.warning("Invalid language code format (BCP-47-like): %s", value)
+        _LOGGER.warning("Invalid language code format (BCP-47-like)")
         raise vol.Invalid("invalid_language")
     return norm
 
@@ -776,9 +776,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         except vol.Invalid as ve:
             _LOGGER.warning(
-                "Language code validation failed for '%s': %s",
-                user_input.get(CONF_LANGUAGE_CODE),
-                ve,
+                "Language code validation failed: %s",
+                _language_error_to_form_key(ve),
             )
             errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
             placeholders.pop("error_message", None)
@@ -1227,9 +1226,8 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
 
             except vol.Invalid as ve:
                 _LOGGER.warning(
-                    "Options language validation failed for '%s': %s",
-                    normalized_input.get(CONF_LANGUAGE_CODE),
-                    ve,
+                    "Options language validation failed: %s",
+                    _language_error_to_form_key(ve),
                 )
                 errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
             except Exception as err:  # defensive

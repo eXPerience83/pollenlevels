@@ -1,3 +1,26 @@
+## [3.0.0b1] - 2026-06-05
+
+### Changed
+- Promoted the v3 config subentries migration from alpha to beta for wider
+  real-world validation.
+- Documented the beta upgrade path and clarified that downgrading to Pollen
+  Levels 2.x after the v3 subentry migration is not supported.
+- Aligned release metadata for the beta package.
+
+### Fixed
+- Hardened v3 migration against invalid legacy location subentries before setup
+  can reuse them.
+- Redacted API keys and exact coordinates from user-controlled diagnostics
+  titles across legacy, subentry, and runtime locations.
+- Clarified duplicate API-key errors during setup, reauthentication, and
+  reconfiguration.
+- Updated migration retry logs so partial migration preparation is not described
+  as fully unchanged.
+- Avoided logging user-controlled setup/config-flow text that may accidentally
+  contain secrets.
+- Corrected README wording about multi-location startup behavior during beta
+  validation.
+
 ## [3.0.0a4] - 2026-06-05
 ### Fixed
 - Hardened Google Pollen `dailyInfo` validation during config flow.
