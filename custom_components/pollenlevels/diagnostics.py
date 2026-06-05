@@ -102,6 +102,20 @@ def _redact_diagnostics_text(
     return redacted
 
 
+def _coordinate_pairs_from_location_subentries(
+    entry: ConfigEntry,
+) -> list[tuple[Any, Any]]:
+    """Return stored coordinate pairs from active location subentries."""
+    subentries = getattr(entry, "subentries", {}) or {}
+    coordinate_pairs: list[tuple[Any, Any]] = []
+    for subentry_id in active_location_subentry_ids(entry):
+        subentry = subentries.get(subentry_id)
+        data = dict(getattr(subentry, "data", {}) or {})
+        if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+            coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
+    return coordinate_pairs
+
+
 def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     """Return diagnostics for one location coordinator."""
     coord_info = {
@@ -303,6 +317,7 @@ async def async_get_config_entry_diagnostics(
     api_key_text = api_key if isinstance(api_key, str) else None
     if CONF_LATITUDE in data or CONF_LONGITUDE in data:
         coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
+    coordinate_pairs.extend(_coordinate_pairs_from_location_subentries(entry))
     if runtime is not None:
         active_subentry_ids = active_location_subentry_ids(entry)
         filter_stale_locations = bool(
