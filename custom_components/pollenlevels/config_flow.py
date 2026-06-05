@@ -812,7 +812,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     getattr(self.hass, "config_entries", None),
                     "async_entry_for_domain_unique_id",
                 ):
-                    self._abort_if_unique_id_configured()
+                    existing_entry = _entry_for_parent_unique_id(
+                        self.hass, _api_key_unique_id(normalized[CONF_API_KEY])
+                    )
+                    if existing_entry is not None:
+                        return self.async_abort(reason="api_key_already_configured")
                 entry_name = str(user_input.get(CONF_NAME, "")).strip()
                 title = entry_name or DEFAULT_ENTRY_TITLE
                 subentry = _location_subentry_data(
@@ -892,7 +896,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if existing_entry is not None and getattr(
                         existing_entry, "entry_id", None
                     ) != getattr(entry, "entry_id", None):
-                        errors = {"base": "already_configured"}
+                        errors = {"base": "api_key_already_configured"}
                         display_errors = errors
                         display_placeholders = candidate_placeholders
                         break

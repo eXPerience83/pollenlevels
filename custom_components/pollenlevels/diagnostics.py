@@ -301,25 +301,13 @@ async def async_get_config_entry_diagnostics(
     coordinate_pairs: list[tuple[Any, Any]] = []
     api_key = data.get(CONF_API_KEY)
     api_key_text = api_key if isinstance(api_key, str) else None
+    if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+        coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
     if runtime is not None:
         active_subentry_ids = active_location_subentry_ids(entry)
         filter_stale_locations = bool(
             active_subentry_ids
         ) or not has_legacy_location_data(entry)
-        for subentry_id, location in runtime.locations.items():
-            if filter_stale_locations and subentry_id not in active_subentry_ids:
-                continue
-            coordinator = location.coordinator
-            coordinate_pairs.append(
-                (
-                    _coordinate_from_coordinator_or_data(
-                        coordinator, data, CONF_LATITUDE
-                    ),
-                    _coordinate_from_coordinator_or_data(
-                        coordinator, data, CONF_LONGITUDE
-                    ),
-                )
-            )
         for subentry_id, location in runtime.locations.items():
             if filter_stale_locations and subentry_id not in active_subentry_ids:
                 stale_location_ids.append(subentry_id)
@@ -329,6 +317,8 @@ async def async_get_config_entry_diagnostics(
             lon = _coordinate_from_coordinator_or_data(
                 coordinator, data, CONF_LONGITUDE
             )
+            if lat is not None or lon is not None:
+                coordinate_pairs.append((lat, lon))
             request_params_example: dict[str, Any] = {
                 "key": redact_api_key(api_key, api_key_text) or "***",
                 "location.latitude": _rounded(lat),

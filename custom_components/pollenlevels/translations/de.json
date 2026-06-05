@@ -40,10 +40,12 @@
       "unknown": "Unbekannter Fehler",
       "invalid_update_interval": "Das Aktualisierungsintervall muss zwischen 1 und 24 Stunden liegen.",
       "invalid_forecast_days": "Vorhersagetage müssen zwischen 1 und 5 liegen.",
-      "already_configured": "Dieser Standort ist bereits konfiguriert."
+      "already_configured": "Dieser Standort ist bereits konfiguriert.",
+      "api_key_already_configured": "This API key is already configured."
     },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
+      "api_key_already_configured": "This API key is already configured.",
       "reauth_successful": "Die erneute Authentifizierung war erfolgreich.",
       "reauth_failed": "Die erneute Authentifizierung ist fehlgeschlagen. Bitte versuche es erneut.",
       "reconfigure_successful": "Die Neukonfiguration wurde erfolgreich abgeschlossen.",

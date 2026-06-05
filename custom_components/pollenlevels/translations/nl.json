@@ -40,10 +40,12 @@
       "unknown": "Onbekende fout",
       "invalid_update_interval": "Het update-interval moet tussen 1 en 24 uur liggen.",
       "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen.",
-      "already_configured": "Deze locatie is al geconfigureerd."
+      "already_configured": "Deze locatie is al geconfigureerd.",
+      "api_key_already_configured": "This API key is already configured."
     },
     "abort": {
       "already_configured": "Deze locatie is al geconfigureerd.",
+      "api_key_already_configured": "This API key is already configured.",
       "reauth_successful": "Opnieuw autoriseren voltooid.",
       "reauth_failed": "Opnieuw autoriseren is mislukt. Probeer het opnieuw.",
       "reconfigure_successful": "Herconfiguratie is succesvol voltooid.",

@@ -40,10 +40,12 @@
       "unknown": "Ukjent feil",
       "invalid_update_interval": "Oppdateringsintervallet må være mellom 1 og 24 timer.",
       "invalid_forecast_days": "Prognosedager må være mellom 1 og 5.",
-      "already_configured": "Denne plasseringen er allerede konfigurert."
+      "already_configured": "Denne plasseringen er allerede konfigurert.",
+      "api_key_already_configured": "This API key is already configured."
     },
     "abort": {
       "already_configured": "Dette stedet er allerede konfigurert.",
+      "api_key_already_configured": "This API key is already configured.",
       "reauth_successful": "Ny autentisering fullført.",
       "reauth_failed": "Ny autentisering mislyktes. Prøv igjen.",
       "reconfigure_successful": "Omkonfigurering fullført.",

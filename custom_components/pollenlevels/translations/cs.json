@@ -40,10 +40,12 @@
       "unknown": "Neznámá chyba",
       "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
       "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5.",
-      "already_configured": "Toto umístění je již nakonfigurováno."
+      "already_configured": "Toto umístění je již nakonfigurováno.",
+      "api_key_already_configured": "This API key is already configured."
     },
     "abort": {
       "already_configured": "Toto umístění je již nakonfigurováno.",
+      "api_key_already_configured": "This API key is already configured.",
       "reauth_successful": "Opětovné ověření proběhlo úspěšně.",
       "reauth_failed": "Opětovné ověření se nezdařilo. Zkuste to znovu.",
       "reconfigure_successful": "Překonfigurování bylo úspěšně dokončeno.",

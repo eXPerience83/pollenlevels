@@ -31,7 +31,8 @@
     },
     "error": {
       "invalid_auth": "Invalid API key\n\n{error_message}",
-      "already_configured": "This API key or location is already configured.",
+      "already_configured": "This location is already configured.",
+      "api_key_already_configured": "This API key is already configured.",
       "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded\n\n{error_message}",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
@@ -43,7 +44,8 @@
       "invalid_forecast_days": "Forecast days must be between 1 and 5."
     },
     "abort": {
-      "already_configured": "This API key or location is already configured.",
+      "already_configured": "This location is already configured.",
+      "api_key_already_configured": "This API key is already configured.",
       "reauth_successful": "Re-authentication completed successfully.",
       "reauth_failed": "Re-authentication failed. Please try again.",
       "reconfigure_successful": "Reconfiguration completed successfully.",
@@ -76,7 +78,7 @@
         }
       },
       "error": {
-        "already_configured": "This API key or location is already configured.",
+        "already_configured": "This location is already configured.",
         "invalid_coordinates": "Please select a valid location on the map.",
         "unknown": "Unknown error",
         "invalid_auth": "Invalid API key\n\n{error_message}",

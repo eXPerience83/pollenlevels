@@ -313,6 +313,34 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
 
 
 @pytest.mark.asyncio
+async def test_diagnostics_redacts_legacy_title_without_runtime_data(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should redact legacy title secrets before runtime exists."""
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LATITUDE: 12.345678,
+        diagnostics_modules.CONF_LONGITUDE: -98.765432,
+    }
+    entry = _ConfigEntry(
+        data=data,
+        options={},
+        entry_id="entry",
+        title="Home secret-token 12.345678 -98.765432",
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert diagnostics["entry"]["title"] == "Home *** *** ***"
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+
+
+@pytest.mark.asyncio
 async def test_diagnostics_summarizes_runtime_locations_when_parent_has_no_locations(
     diagnostics_modules: DiagnosticsModules,
 ) -> None:

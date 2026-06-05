@@ -40,10 +40,12 @@
       "unknown": "Tuntematon virhe",
       "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
       "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5.",
-      "already_configured": "Tämä sijainti on jo määritetty."
+      "already_configured": "Tämä sijainti on jo määritetty.",
+      "api_key_already_configured": "This API key is already configured."
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
+      "api_key_already_configured": "This API key is already configured.",
       "reauth_successful": "Uudelleentodennus onnistui.",
       "reauth_failed": "Uudelleentodennus epäonnistui. Yritä uudelleen.",
       "reconfigure_successful": "Uudelleenmääritys onnistui.",
