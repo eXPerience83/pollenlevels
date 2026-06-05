@@ -112,6 +112,17 @@ def _log_invalid_legacy_coordinates(entry: ConfigEntry) -> None:
     )
 
 
+def _log_unmigratable_location_subentries(entry: ConfigEntry) -> None:
+    """Log an actionable migration failure for corrupt location subentries."""
+    _LOGGER.error(
+        "Cannot migrate Pollen Levels entry %s because it has location subentries "
+        "with invalid stored migration data. The entry was left unchanged. Remove "
+        "and recreate the affected location or fix the configuration before "
+        "retrying the migration.",
+        entry.entry_id,
+    )
+
+
 def _invalid_legacy_coordinate_entry(
     entries: list[ConfigEntry],
 ) -> ConfigEntry | None:
@@ -225,6 +236,11 @@ def _location_from_subentry(
         return None
     if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
         return None
+    if (
+        validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+        is None
+    ):
+        return None
 
     subentry_data = {
         CONF_LATITUDE: data.get(CONF_LATITUDE),
@@ -274,6 +290,25 @@ def _has_location_subentries(entry: ConfigEntry) -> bool:
     )
 
 
+def _has_invalid_legacy_location_subentry(entry: ConfigEntry) -> bool:
+    """Return whether a legacy location subentry has unusable coordinates."""
+    for subentry in (getattr(entry, "subentries", {}) or {}).values():
+        if getattr(subentry, "subentry_type", None) != SUBENTRY_TYPE_LOCATION:
+            continue
+        data = dict(getattr(subentry, "data", {}) or {})
+        legacy_entry_id = data.get(CONF_LEGACY_ENTRY_ID)
+        if not isinstance(legacy_entry_id, str) or not legacy_entry_id:
+            continue
+        if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
+            return True
+        if (
+            validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+            is None
+        ):
+            return True
+    return False
+
+
 def _has_unmigratable_location_subentries(entry: ConfigEntry) -> bool:
     """Return whether location subentries cannot be safely auto-merged."""
     for subentry in (getattr(entry, "subentries", {}) or {}).values():
@@ -290,6 +325,11 @@ def _has_unmigratable_location_subentries(entry: ConfigEntry) -> bool:
         if not looks_like_location:
             continue
         if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
+            return True
+        if (
+            validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
+            is None
+        ):
             return True
         legacy_entry_id = data.get(CONF_LEGACY_ENTRY_ID)
         if not isinstance(legacy_entry_id, str) or not legacy_entry_id:
@@ -767,15 +807,12 @@ async def _async_migrate_grouped_entries(
     )
     for source in group:
         if source is parent:
+            if _has_invalid_legacy_location_subentry(source):
+                _log_unmigratable_location_subentries(source)
+                return False
             continue
         if _has_unmigratable_location_subentries(source):
-            _LOGGER.error(
-                "Cannot merge Pollen Levels entry %s into parent %s because it "
-                "has location subentries that cannot be safely mapped to "
-                "migration targets",
-                source.entry_id,
-                parent.entry_id,
-            )
+            _log_unmigratable_location_subentries(source)
             return False
 
     parent_options = _clean_parent_options(parent)
@@ -856,7 +893,7 @@ async def _async_migrate_grouped_entries(
             )
         if not entity_registry_migrated or not device_registry_migrated:
             _LOGGER.warning(
-                "Registry migration incomplete; keeping entries unchanged for retry"
+                "Registry migration incomplete; migration state will be reused on retry"
             )
             return False
 
@@ -928,7 +965,7 @@ def _repair_existing_parent_registry_links(
         )
     if not entity_registry_migrated or not device_registry_migrated:
         _LOGGER.warning(
-            "Registry migration incomplete; keeping entries unchanged for retry"
+            "Registry migration incomplete; migration state will be reused on retry"
         )
         return False
     return True
@@ -957,6 +994,9 @@ async def async_handle_entry_migration(
 
         if _has_invalid_legacy_coordinates(entry):
             _log_invalid_legacy_coordinates(entry)
+            return False
+        if _has_invalid_legacy_location_subentry(entry):
+            _log_unmigratable_location_subentries(entry)
             return False
 
         existing_data = entry.data or {}
@@ -1041,7 +1081,7 @@ async def async_handle_entry_migration(
                 )
             if not entity_registry_migrated or not device_registry_migrated:
                 _LOGGER.warning(
-                    "Registry migration incomplete; keeping entries unchanged for retry"
+                    "Registry migration incomplete; migration state will be reused on retry"
                 )
                 return False
 

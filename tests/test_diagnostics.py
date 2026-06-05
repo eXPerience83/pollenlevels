@@ -269,7 +269,12 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
         diagnostics_modules.CONF_LATITUDE: 12.345678,
         diagnostics_modules.CONF_LONGITUDE: -98.765432,
     }
-    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    entry = _ConfigEntry(
+        data=data,
+        options={},
+        entry_id="entry",
+        title="Home secret-token 12.345678",
+    )
     coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="entry",
@@ -280,7 +285,7 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=12.345678,
         lon=-98.765432,
-        entry_title="Home",
+        entry_title="Home secret-token -98.765432",
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
@@ -299,6 +304,8 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
     assert set(diagnostics["locations"]) == {"entry"}
     assert diagnostics["runtime_summary"]["stale_location_count"] == 0
     assert diagnostics["runtime_summary"]["stale_location_ids"] == []
+    assert diagnostics["entry"]["title"] == "Home *** ***"
+    assert diagnostics["locations"]["entry"]["title"] == "Home *** ***"
     serialized = json.dumps(diagnostics, sort_keys=True)
     assert "secret-token" not in serialized
     assert "12.345678" not in serialized
