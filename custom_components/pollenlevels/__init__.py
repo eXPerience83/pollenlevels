@@ -232,9 +232,8 @@ async def async_setup_entry(
 ) -> bool:
     """Forward config entry to sensor platform."""
     _LOGGER.debug(
-        "PollenLevels async_setup_entry for entry_id=%s title=%s",
+        "PollenLevels async_setup_entry for entry_id=%s",
         entry.entry_id,
-        entry.title,
     )
     if is_entry_merged(entry):
         _LOGGER.debug(

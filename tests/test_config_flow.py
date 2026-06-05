@@ -539,6 +539,32 @@ def test_validate_input_invalid_language_key_mapping(
     assert normalized is None
 
 
+def test_validate_input_invalid_language_code_not_logged_raw(
+    config_flow_stubs: ConfigFlowStubs, caplog
+) -> None:
+    """Invalid language code should not log the raw user-provided value."""
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace()
+
+    with caplog.at_level("WARNING", logger=config_flow_stubs.config_flow.__name__):
+        errors, normalized = asyncio.run(
+            flow._async_validate_input(
+                {
+                    config_flow_stubs.CONF_API_KEY: "test-key",
+                    config_flow_stubs.CONF_LOCATION: {
+                        config_flow_stubs.CONF_LATITUDE: "1",
+                        config_flow_stubs.CONF_LONGITUDE: "2",
+                    },
+                    config_flow_stubs.CONF_LANGUAGE_CODE: "bad code",
+                },
+                check_unique_id=False,
+            )
+        )
+
+    assert "bad code" not in caplog.text
+    assert errors == {config_flow_stubs.CONF_LANGUAGE_CODE: "invalid_language_format"}
+
+
 def test_validate_input_empty_api_key(
     config_flow_stubs: ConfigFlowStubs, monkeypatch: pytest.MonkeyPatch
 ) -> None:

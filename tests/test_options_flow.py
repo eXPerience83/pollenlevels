@@ -253,6 +253,30 @@ def test_options_flow_invalid_language_sets_error(
     }
 
 
+def test_options_flow_invalid_language_code_not_logged_raw(
+    options_flow_env: OptionsFlowEnv, caplog
+) -> None:
+    """Invalid language in options should not log the raw user-provided value."""
+    flow = _flow(options_flow_env)
+
+    with caplog.at_level("WARNING", logger=options_flow_env.config_flow.__name__):
+        result = asyncio.run(
+            flow.async_step_init(
+                {
+                    options_flow_env.CONF_LANGUAGE_CODE: "bad code",
+                    options_flow_env.CONF_FORECAST_DAYS: 2,
+                    options_flow_env.CONF_CREATE_FORECAST_SENSORS: "none",
+                    options_flow_env.CONF_UPDATE_INTERVAL: 6,
+                }
+            )
+        )
+
+    assert "bad code" not in caplog.text
+    assert result["errors"] == {
+        options_flow_env.CONF_LANGUAGE_CODE: "invalid_language_format"
+    }
+
+
 def test_options_flow_forecast_days_below_min_sets_error(
     options_flow_env: OptionsFlowEnv,
 ) -> None:

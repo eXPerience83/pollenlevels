@@ -495,6 +495,30 @@ def test_setup_entry_without_location_subentries_loads_empty_runtime(
     assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
 
 
+def test_setup_entry_debug_log_does_not_include_entry_title(
+    integration_modules: _InitModules, caplog
+) -> None:
+    """async_setup_entry debug log should include entry_id but not entry.title."""
+    integration = integration_modules.integration
+
+    hass = _FakeHass()
+    entry = _FakeEntry(
+        integration,
+        entry_id="test-entry",
+        title="secret-api-key-abc-123",
+        data={integration.CONF_API_KEY: "actual-key"},
+        subentries={},
+    )
+
+    with caplog.at_level("DEBUG"):
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    log_text = caplog.text
+    assert "entry_id=test-entry" in log_text
+    assert "secret-api-key-abc-123" not in log_text
+    assert "actual-key" not in log_text
+
+
 def test_setup_entry_invalid_coordinates_raise_not_ready(
     integration_modules: _InitModules,
 ) -> None:
