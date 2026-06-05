@@ -41,11 +41,11 @@
       "invalid_update_interval": "Інтервал оновлення має бути між 1 і 24 годинами.",
       "invalid_forecast_days": "Дні прогнозу мають бути від 1 до 5.",
       "already_configured": "Це місце вже налаштовано.",
-      "api_key_already_configured": "This API key is already configured."
+      "api_key_already_configured": "Цей API-ключ уже налаштовано."
     },
     "abort": {
       "already_configured": "Це розташування вже налаштовано.",
-      "api_key_already_configured": "This API key is already configured.",
+      "api_key_already_configured": "Цей API-ключ уже налаштовано.",
       "reauth_successful": "Повторна автентифікація виконана успішно.",
       "reauth_failed": "Повторна автентифікація не вдалася. Спробуйте ще раз.",
       "reconfigure_successful": "Переналаштування успішно завершено.",

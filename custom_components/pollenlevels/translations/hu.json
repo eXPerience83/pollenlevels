@@ -41,11 +41,11 @@
       "invalid_update_interval": "A frissítési időköznek 1 és 24 óra között kell lennie.",
       "invalid_forecast_days": "Az előrejelzési napoknak 1 és 5 között kell lenniük.",
       "already_configured": "Ez a hely már be van állítva.",
-      "api_key_already_configured": "This API key is already configured."
+      "api_key_already_configured": "Ez az API-kulcs már be van állítva."
     },
     "abort": {
       "already_configured": "Ez a hely már konfigurálva van.",
-      "api_key_already_configured": "This API key is already configured.",
+      "api_key_already_configured": "Ez az API-kulcs már be van állítva.",
       "reauth_successful": "Az újrahitelesítés sikerült.",
       "reauth_failed": "Az újrahitelesítés nem sikerült. Próbáld meg újra.",
       "reconfigure_successful": "Az újrakonfigurálás sikeresen befejeződött.",

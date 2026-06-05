@@ -41,11 +41,11 @@
       "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
       "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5.",
       "already_configured": "Den här platsen är redan konfigurerad.",
-      "api_key_already_configured": "This API key is already configured."
+      "api_key_already_configured": "Den här API-nyckeln är redan konfigurerad."
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
-      "api_key_already_configured": "This API key is already configured.",
+      "api_key_already_configured": "Den här API-nyckeln är redan konfigurerad.",
       "reauth_successful": "Återautentiseringen lyckades.",
       "reauth_failed": "Återautentiseringen misslyckades. Försök igen.",
       "reconfigure_successful": "Omkonfigureringen slutfördes.",

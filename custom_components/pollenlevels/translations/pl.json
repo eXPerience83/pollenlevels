@@ -41,11 +41,11 @@
       "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
       "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5.",
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
-      "api_key_already_configured": "This API key is already configured."
+      "api_key_already_configured": "Ten klucz API jest już skonfigurowany."
     },
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
-      "api_key_already_configured": "This API key is already configured.",
+      "api_key_already_configured": "Ten klucz API jest już skonfigurowany.",
       "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie.",
       "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie.",
       "reconfigure_successful": "Ponowna konfiguracja została zakończona pomyślnie.",
