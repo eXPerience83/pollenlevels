@@ -323,17 +323,28 @@ async def async_get_config_entry_diagnostics(
         filter_stale_locations = bool(
             active_subentry_ids
         ) or not has_legacy_location_data(entry)
+        # Pre-collect all runtime coordinate pairs before redacting any titles.
+        # This ensures a user-controlled title for one location can have all
+        # configured location coordinates redacted.
+        runtime_coords: dict[str, tuple[Any, Any]] = {}
         for subentry_id, location in runtime.locations.items():
             if filter_stale_locations and subentry_id not in active_subentry_ids:
-                stale_location_ids.append(subentry_id)
                 continue
             coordinator = location.coordinator
             lat = _coordinate_from_coordinator_or_data(coordinator, data, CONF_LATITUDE)
             lon = _coordinate_from_coordinator_or_data(
                 coordinator, data, CONF_LONGITUDE
             )
+            runtime_coords[subentry_id] = (lat, lon)
             if lat is not None or lon is not None:
                 coordinate_pairs.append((lat, lon))
+
+        for subentry_id, location in runtime.locations.items():
+            if filter_stale_locations and subentry_id not in active_subentry_ids:
+                stale_location_ids.append(subentry_id)
+                continue
+            coordinator = location.coordinator
+            lat, lon = runtime_coords.get(subentry_id, (None, None))
             request_params_example: dict[str, Any] = {
                 "key": redact_api_key(api_key, api_key_text) or "***",
                 "location.latitude": _rounded(lat),
