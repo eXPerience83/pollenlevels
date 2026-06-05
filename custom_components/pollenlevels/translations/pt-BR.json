@@ -40,10 +40,12 @@
       "unknown": "Erro desconhecido",
       "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
       "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5.",
-      "already_configured": "Este local já está configurado."
+      "already_configured": "Este local já está configurado.",
+      "api_key_already_configured": "Esta chave de API já está configurada."
     },
     "abort": {
       "already_configured": "Este local já está configurado.",
+      "api_key_already_configured": "Esta chave de API já está configurada.",
       "reauth_successful": "Reautenticação concluída com sucesso.",
       "reauth_failed": "A reautenticação falhou. Tente novamente.",
       "reconfigure_successful": "A reconfiguração foi concluída com sucesso.",

@@ -40,10 +40,12 @@
       "unknown": "Ukendt fejl",
       "invalid_update_interval": "Opdateringsintervallet skal være mellem 1 og 24 timer.",
       "invalid_forecast_days": "Prognosedage skal være mellem 1 og 5.",
-      "already_configured": "Denne placering er allerede konfigureret."
+      "already_configured": "Denne placering er allerede konfigureret.",
+      "api_key_already_configured": "Denne API-nøgle er allerede konfigureret."
     },
     "abort": {
       "already_configured": "Denne placering er allerede konfigureret.",
+      "api_key_already_configured": "Denne API-nøgle er allerede konfigureret.",
       "reauth_successful": "Genautentificering fuldført.",
       "reauth_failed": "Genautentificering mislykkedes. Prøv igen.",
       "reconfigure_successful": "Omkonfiguration blev fuldført.",

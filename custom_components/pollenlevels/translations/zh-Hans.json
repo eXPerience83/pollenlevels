@@ -40,10 +40,12 @@
       "unknown": "未知错误",
       "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
       "invalid_forecast_days": "预测天数必须在 1 到 5 之间。",
-      "already_configured": "此位置已配置。"
+      "already_configured": "此位置已配置。",
+      "api_key_already_configured": "此 API 密钥已配置。"
     },
     "abort": {
       "already_configured": "该位置已配置。",
+      "api_key_already_configured": "此 API 密钥已配置。",
       "reauth_successful": "重新验证已成功完成。",
       "reauth_failed": "重新验证失败。请重试。",
       "reconfigure_successful": "重新配置已成功完成。",

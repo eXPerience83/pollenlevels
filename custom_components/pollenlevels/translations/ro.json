@@ -40,10 +40,12 @@
       "unknown": "Eroare necunoscută",
       "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore.",
       "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5.",
-      "already_configured": "Această locație este deja configurată."
+      "already_configured": "Această locație este deja configurată.",
+      "api_key_already_configured": "Această cheie API este deja configurată."
     },
     "abort": {
       "already_configured": "Această locație este deja configurată.",
+      "api_key_already_configured": "Această cheie API este deja configurată.",
       "reauth_successful": "Reautentificarea s-a încheiat cu succes.",
       "reauth_failed": "Reautentificarea a eșuat. Încercați din nou.",
       "reconfigure_successful": "Reconfigurarea s-a finalizat cu succes.",

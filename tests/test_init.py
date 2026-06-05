@@ -2359,6 +2359,55 @@ def test_migrate_entry_with_invalid_legacy_coordinates_is_left_unchanged(
     assert precise_coordinate not in caplog.text
 
 
+def test_migrate_entry_with_invalid_legacy_subentry_is_left_unchanged(
+    integration_modules: _InitModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Alpha-state location subentries with corrupt coordinates should fail safely."""
+    integration = integration_modules.integration
+
+    existing_subentry = integration.ConfigSubentry(
+        data={
+            integration.CONF_LATITUDE: "123.456789",
+            integration.CONF_LONGITUDE: "-222.987654",
+            integration.CONF_LEGACY_ENTRY_ID: "legacy-corrupt",
+        },
+        subentry_id="existing-corrupt",
+        title="Corrupt Home",
+        unique_id=None,
+    )
+    entry = _FakeEntry(
+        integration,
+        entry_id="legacy-corrupt",
+        title="Corrupt Legacy",
+        data={integration.CONF_API_KEY: "secret-api-key"},
+        options={},
+        version=integration.TARGET_ENTRY_VERSION - 1,
+        subentries={existing_subentry.subentry_id: existing_subentry},
+        unique_id=integration.api_key_unique_id("secret-api-key"),
+    )
+    hass = _FakeHass(entries=[entry])
+
+    with caplog.at_level("ERROR"):
+        assert asyncio.run(integration.async_migrate_entry(hass, entry)) is False
+
+    assert entry.data == {integration.CONF_API_KEY: "secret-api-key"}
+    assert entry.options == {}
+    assert entry.version == integration.TARGET_ENTRY_VERSION - 1
+    assert entry.subentries == {existing_subentry.subentry_id: existing_subentry}
+    assert hass.config_entries.added_subentries == []
+    assert hass.config_entries.removed_entries == []
+    assert (
+        "Cannot migrate Pollen Levels entry legacy-corrupt because it has location "
+        "subentries with invalid stored migration data. The entry was left "
+        "unchanged. Remove and recreate the affected location or fix the "
+        "configuration before retrying the migration."
+    ) in caplog.text
+    assert "secret-api-key" not in caplog.text
+    assert "123.456789" not in caplog.text
+    assert "-222.987654" not in caplog.text
+
+
 def test_migrate_current_entry_updates_parent_unique_id_to_api_key_identity(
     integration_modules: _InitModules,
 ) -> None:
@@ -2874,7 +2923,7 @@ def test_migrate_grouped_entry_keeps_clean_v3_source_with_unmigratable_subentry(
     assert parent.subentries == {parent_subentry.subentry_id: parent_subentry}
     assert hass.config_entries.added_subentries == []
     assert hass.config_entries.removed_entries == []
-    assert "cannot be safely mapped to migration targets" in caplog.text
+    assert "location subentries with invalid stored migration data" in caplog.text
 
 
 def test_migrate_grouped_entry_keeps_source_with_corrupt_location_subentry(

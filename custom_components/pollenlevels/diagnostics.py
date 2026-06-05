@@ -40,6 +40,7 @@ from .util import (
     active_location_subentry_ids,
     has_legacy_location_data,
     redact_api_key,
+    redact_sensitive_values,
     safe_parse_int,
 )
 
@@ -87,6 +88,32 @@ def _effective_days(options: dict[str, Any], data: dict[str, Any]) -> int:
     parsed_days = safe_parse_int(days_raw)
     days_effective = DEFAULT_FORECAST_DAYS if parsed_days is None else parsed_days
     return max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, days_effective))
+
+
+def _redact_diagnostics_text(
+    value: Any,
+    api_key: str | None,
+    coordinate_pairs: list[tuple[Any, Any]],
+) -> str:
+    """Redact secrets from user-controlled diagnostics text."""
+    redacted = redact_sensitive_values(value, api_key=api_key)
+    for lat, lon in coordinate_pairs:
+        redacted = redact_sensitive_values(redacted, latitude=lat, longitude=lon)
+    return redacted
+
+
+def _coordinate_pairs_from_location_subentries(
+    entry: ConfigEntry,
+) -> list[tuple[Any, Any]]:
+    """Return stored coordinate pairs from active location subentries."""
+    subentries = getattr(entry, "subentries", {}) or {}
+    coordinate_pairs: list[tuple[Any, Any]] = []
+    for subentry_id in active_location_subentry_ids(entry):
+        subentry = subentries.get(subentry_id)
+        data = dict(getattr(subentry, "data", {}) or {})
+        if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+            coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
+    return coordinate_pairs
 
 
 def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
@@ -285,23 +312,41 @@ async def async_get_config_entry_diagnostics(
     locations: dict[str, Any] = {}
     stale_location_ids: list[str] = []
     first_location_payload: dict[str, Any] | None = None
+    coordinate_pairs: list[tuple[Any, Any]] = []
+    api_key = data.get(CONF_API_KEY)
+    api_key_text = api_key if isinstance(api_key, str) else None
+    if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+        coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
+    coordinate_pairs.extend(_coordinate_pairs_from_location_subentries(entry))
     if runtime is not None:
         active_subentry_ids = active_location_subentry_ids(entry)
         filter_stale_locations = bool(
             active_subentry_ids
         ) or not has_legacy_location_data(entry)
+        # Pre-collect all runtime coordinate pairs before redacting any titles.
+        # This ensures a user-controlled title for one location can have all
+        # configured location coordinates redacted.
+        runtime_coords: dict[str, tuple[Any, Any]] = {}
         for subentry_id, location in runtime.locations.items():
             if filter_stale_locations and subentry_id not in active_subentry_ids:
-                stale_location_ids.append(subentry_id)
                 continue
             coordinator = location.coordinator
             lat = _coordinate_from_coordinator_or_data(coordinator, data, CONF_LATITUDE)
             lon = _coordinate_from_coordinator_or_data(
                 coordinator, data, CONF_LONGITUDE
             )
+            runtime_coords[subentry_id] = (lat, lon)
+            if lat is not None or lon is not None:
+                coordinate_pairs.append((lat, lon))
+
+        for subentry_id, location in runtime.locations.items():
+            if filter_stale_locations and subentry_id not in active_subentry_ids:
+                stale_location_ids.append(subentry_id)
+                continue
+            coordinator = location.coordinator
+            lat, lon = runtime_coords.get(subentry_id, (None, None))
             request_params_example: dict[str, Any] = {
-                "key": redact_api_key(data.get(CONF_API_KEY), data.get(CONF_API_KEY))
-                or "***",
+                "key": redact_api_key(api_key, api_key_text) or "***",
                 "location.latitude": _rounded(lat),
                 "location.longitude": _rounded(lon),
                 "days": days_effective,
@@ -309,8 +354,10 @@ async def async_get_config_entry_diagnostics(
             if lang:
                 request_params_example["languageCode"] = lang
             location_payload = _coordinator_diagnostics(coordinator)
-            location_payload["title"] = getattr(
-                coordinator, "entry_title", DEFAULT_ENTRY_TITLE
+            location_payload["title"] = _redact_diagnostics_text(
+                getattr(coordinator, "entry_title", DEFAULT_ENTRY_TITLE),
+                api_key_text,
+                coordinate_pairs,
             )
             location_payload["approximate_location"] = {
                 "label": "approximate_location (rounded)",
@@ -326,7 +373,11 @@ async def async_get_config_entry_diagnostics(
     diag: dict[str, Any] = {
         "entry": {
             "entry_id": entry.entry_id,
-            "title": entry.title,
+            "title": _redact_diagnostics_text(
+                entry.title,
+                api_key_text,
+                coordinate_pairs,
+            ),
             "options": {
                 CONF_UPDATE_INTERVAL: options.get(CONF_UPDATE_INTERVAL),
                 CONF_LANGUAGE_CODE: options.get(CONF_LANGUAGE_CODE),

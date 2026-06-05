@@ -2250,7 +2250,7 @@ def test_api_key_confirm_rejects_duplicate_parent_unique_id(
 
     assert result == {
         "step_id": step_method_name.removeprefix("async_step_"),
-        "errors": {"base": "already_configured"},
+        "errors": {"base": "api_key_already_configured"},
     }
     assert recorder.updated is None
     assert recorder.reloaded is None
@@ -2837,9 +2837,9 @@ def test_async_step_user_checks_api_key_unique_id_for_existing_parent(
         },
     }
 
-    with pytest.raises(_AlreadyConfigured):
-        asyncio.run(flow.async_step_user(user_input))
+    result = asyncio.run(flow.async_step_user(user_input))
 
+    assert result == {"type": "abort", "reason": "api_key_already_configured"}
     assert flow.unique_ids == [
         config_flow_stubs.config_flow._api_key_unique_id("shared-key")
     ]

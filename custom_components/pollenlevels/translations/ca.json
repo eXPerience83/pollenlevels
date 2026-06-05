@@ -40,10 +40,12 @@
       "unknown": "Error desconegut",
       "invalid_update_interval": "L’interval d’actualització ha d’estar entre 1 i 24 hores.",
       "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5.",
-      "already_configured": "Aquesta ubicació ja està configurada."
+      "already_configured": "Aquesta ubicació ja està configurada.",
+      "api_key_already_configured": "Aquesta clau API ja està configurada."
     },
     "abort": {
       "already_configured": "Aquesta ubicació ja està configurada.",
+      "api_key_already_configured": "Aquesta clau API ja està configurada.",
       "reauth_successful": "La reautenticació s'ha completat correctament.",
       "reauth_failed": "La reautenticació ha fallat. Torna-ho a provar.",
       "reconfigure_successful": "La reconfiguració s'ha completat correctament.",

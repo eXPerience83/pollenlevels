@@ -259,6 +259,87 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
 
 
 @pytest.mark.asyncio
+async def test_diagnostics_redacts_multi_location_titles(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Multi-location title redaction should cover all runtime coordinates.
+
+    The first coordinator's user-controlled title contains exact coordinates
+    of the second runtime location. Those must be redacted even though the
+    second location's payload has not been built yet.
+    """
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+    }
+    entry = _ConfigEntry(
+        data=data,
+        options={},
+        entry_id="entry",
+        title="Home secret-token 40.7128 -74.006",
+    )
+    entry.subentries = {
+        "casa": SimpleNamespace(subentry_id="casa", subentry_type="location"),
+        "trabajo": SimpleNamespace(subentry_id="trabajo", subentry_type="location"),
+    }
+
+    casa_coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="casa",
+        forecast_days=2,
+        language=None,
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=12.345678,
+        lon=-98.765432,
+        entry_title="Casa secret-token 40.7128 -74.006",
+        data={"type_grass": {"source": "type", "code": "GRASS", "value": 2}},
+    )
+    trabajo_coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="trabajo",
+        forecast_days=2,
+        language=None,
+        create_d1=True,
+        create_d2=False,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=40.7128,
+        lon=-74.006,
+        entry_title="Trabajo",
+        data={"type_tree": {"source": "type", "code": "TREE", "value": 4}},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "casa": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="casa",
+                coordinator=casa_coordinator,
+                legacy_entry_id=None,
+            ),
+            "trabajo": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="trabajo",
+                coordinator=trabajo_coordinator,
+                legacy_entry_id=None,
+            ),
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert diagnostics["locations"]["casa"]["title"] == "Casa *** *** ***"
+    assert diagnostics["locations"]["trabajo"]["title"] == "Trabajo"
+    assert diagnostics["entry"]["title"] == "Home *** *** ***"
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+    assert "40.7128" not in serialized
+    assert "-74.006" not in serialized
+
+
+@pytest.mark.asyncio
 async def test_diagnostics_includes_fallback_location_without_subentries(
     diagnostics_modules: DiagnosticsModules,
 ) -> None:
@@ -269,7 +350,12 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
         diagnostics_modules.CONF_LATITUDE: 12.345678,
         diagnostics_modules.CONF_LONGITUDE: -98.765432,
     }
-    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    entry = _ConfigEntry(
+        data=data,
+        options={},
+        entry_id="entry",
+        title="Home secret-token 12.345678",
+    )
     coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="entry",
@@ -280,7 +366,7 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=12.345678,
         lon=-98.765432,
-        entry_title="Home",
+        entry_title="Home secret-token -98.765432",
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
@@ -299,6 +385,70 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
     assert set(diagnostics["locations"]) == {"entry"}
     assert diagnostics["runtime_summary"]["stale_location_count"] == 0
     assert diagnostics["runtime_summary"]["stale_location_ids"] == []
+    assert diagnostics["entry"]["title"] == "Home *** ***"
+    assert diagnostics["locations"]["entry"]["title"] == "Home *** ***"
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_redacts_legacy_title_without_runtime_data(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should redact legacy title secrets before runtime exists."""
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LATITUDE: 12.345678,
+        diagnostics_modules.CONF_LONGITUDE: -98.765432,
+    }
+    entry = _ConfigEntry(
+        data=data,
+        options={},
+        entry_id="entry",
+        title="Home secret-token 12.345678 -98.765432",
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert diagnostics["entry"]["title"] == "Home *** *** ***"
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
+    assert "-98.765432" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_redacts_v3_subentry_title_without_runtime_data(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should redact v3 title coordinates before runtime exists."""
+    data = {diagnostics_modules.CONF_API_KEY: "secret-token"}
+    entry = _ConfigEntry(
+        data=data,
+        options={},
+        entry_id="entry",
+        title="Home secret-token 12.345678 -98.765432",
+    )
+    entry.subentries = {
+        "subentry-1": SimpleNamespace(
+            subentry_id="subentry-1",
+            subentry_type="location",
+            data={
+                diagnostics_modules.CONF_LATITUDE: 12.345678,
+                diagnostics_modules.CONF_LONGITUDE: -98.765432,
+            },
+        )
+    }
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert diagnostics["entry"]["title"] == "Home *** *** ***"
     serialized = json.dumps(diagnostics, sort_keys=True)
     assert "secret-token" not in serialized
     assert "12.345678" not in serialized
