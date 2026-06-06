@@ -246,6 +246,18 @@ async def test_setup_entry_raises_if_runtime_data_missing(
 
 
 @pytest.mark.asyncio
+async def test_setup_entry_raises_if_runtime_data_attribute_missing(
+    button_platform: SimpleNamespace,
+) -> None:
+    entry = types.SimpleNamespace()
+
+    with pytest.raises(button_platform.exceptions.ConfigEntryNotReady):
+        await button_platform.module.async_setup_entry(
+            button_platform.hass_class(), entry, lambda entities: None
+        )
+
+
+@pytest.mark.asyncio
 async def test_setup_entry_adds_one_button_entity(
     button_platform: SimpleNamespace,
 ) -> None:
