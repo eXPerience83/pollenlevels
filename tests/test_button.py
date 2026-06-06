@@ -291,3 +291,34 @@ async def test_setup_entry_without_locations_adds_no_button(
     )
 
     assert added == []
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_skips_stale_runtime_locations(
+    button_platform: SimpleNamespace,
+) -> None:
+    """Button setup should not recreate buttons for deleted location subentries."""
+
+    coordinator = _FakeCoordinator()
+    entry = types.SimpleNamespace(
+        data={},
+        subentries={},
+        runtime_data=types.SimpleNamespace(
+            locations={
+                "deleted-location": types.SimpleNamespace(
+                    subentry_id="deleted-location",
+                    coordinator=coordinator,
+                )
+            }
+        ),
+    )
+    added = []
+
+    def _add_entities(entities, **_kwargs):
+        added.extend(entities)
+
+    await button_platform.module.async_setup_entry(
+        button_platform.hass_class(), entry, _add_entities
+    )
+
+    assert added == []

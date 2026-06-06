@@ -2959,6 +2959,14 @@ class _SubentryRecorder:
         self.reload_calls.append(entry_id)
 
 
+class _ReloadOnlySubentryRecorder:
+    def __init__(self) -> None:
+        self.reload_calls: list[str] = []
+
+    async def async_reload(self, entry_id: str) -> None:
+        self.reload_calls.append(entry_id)
+
+
 def _build_location_subentry_flow(config_flow_stubs: ConfigFlowStubs, entry):
     recorder = _SubentryRecorder(entry)
 
@@ -3026,8 +3034,11 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
             }
         )
         assert recorder.reload_calls == []
-        await asyncio.sleep(0)
-        await asyncio.sleep(0)
+        assert len(recorder.created_tasks) == 1
+        assert recorder.created_tasks[0].get_name() == (
+            "reload Pollen Levels parent after location subentry create"
+        )
+        await recorder.created_tasks[0]
         return result
 
     result = asyncio.run(run_flow())
@@ -3049,6 +3060,23 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
             "language_code": "es-ES",
         }
     ]
+
+
+def test_location_subentry_create_reload_helper_falls_back_to_async_reload(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """Subentry reload helper should use async_reload when schedule_reload is absent."""
+
+    recorder = _ReloadOnlySubentryRecorder()
+    hass = SimpleNamespace(config_entries=recorder)
+
+    asyncio.run(
+        config_flow_stubs.config_flow._async_reload_parent_after_subentry_create(
+            hass, "entry-id"
+        )
+    )
+
+    assert recorder.reload_calls == ["entry-id"]
 
 
 def test_location_subentry_user_step_rejects_invalid_api_payload(

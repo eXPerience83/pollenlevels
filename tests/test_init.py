@@ -2248,7 +2248,10 @@ def test_migrate_legacy_entry_into_existing_clean_v3_parent(
         "merged_into_entry_id": "clean-parent",
     }
     assert legacy.version == integration.TARGET_ENTRY_VERSION
-    assert hass.created_tasks
+    assert len(hass.created_tasks) == 1
+    assert hass.created_tasks[0].get_name() == (
+        "remove merged pollenlevels entry legacy-office"
+    )
 
 
 def test_migrate_legacy_entries_with_different_api_keys_stay_separate(
@@ -3940,7 +3943,10 @@ def test_migrate_current_duplicate_entry_is_marked_and_removed_later(
         "merged_into_entry_id": "legacy-home",
     }
     assert duplicate.version == integration.TARGET_ENTRY_VERSION
-    assert hass.created_tasks
+    assert len(hass.created_tasks) == 1
+    assert hass.created_tasks[0].get_name() == (
+        "remove merged pollenlevels entry legacy-office"
+    )
 
 
 def test_setup_entry_skips_entries_already_marked_as_merged(

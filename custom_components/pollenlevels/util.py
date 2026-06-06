@@ -45,6 +45,15 @@ def has_legacy_location_data(entry: Any) -> bool:
     )
 
 
+def stale_runtime_location_filter(entry: Any) -> tuple[set[str], bool]:
+    """Return active location ids and whether stale runtime locations should skip."""
+    active_subentry_ids = active_location_subentry_ids(entry)
+    filter_stale_locations = bool(active_subentry_ids) or not has_legacy_location_data(
+        entry
+    )
+    return active_subentry_ids, filter_stale_locations
+
+
 async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
     """Extract and normalize an HTTP error message without secrets."""
 
@@ -296,6 +305,7 @@ __all__ = [
     "redact_api_key",
     "redact_sensitive_values",
     "safe_parse_int",
+    "stale_runtime_location_filter",
     "validate_latitude",
     "validate_location_pair",
     "validate_longitude",
