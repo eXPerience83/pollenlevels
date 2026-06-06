@@ -53,7 +53,7 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
-from .util import active_location_subentry_ids, has_legacy_location_data, safe_parse_int
+from .util import safe_parse_int, stale_runtime_location_filter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -221,8 +221,7 @@ async def async_setup_entry(
         )
         return
 
-    active_subentry_ids = active_location_subentry_ids(config_entry)
-    filter_stale_locations = bool(active_subentry_ids) or not has_legacy_location_data(
+    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
         config_entry
     )
     opts = config_entry.options or {}

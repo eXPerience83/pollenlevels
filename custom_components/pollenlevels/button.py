@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .runtime import PollenLevelsConfigEntry
-from .util import active_location_subentry_ids, has_legacy_location_data
+from .util import stale_runtime_location_filter
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -68,8 +68,7 @@ async def async_setup_entry(
         _LOGGER.debug("No location subentries configured; no update buttons to add")
         return
 
-    active_subentry_ids = active_location_subentry_ids(config_entry)
-    filter_stale_locations = bool(active_subentry_ids) or not has_legacy_location_data(
+    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
         config_entry
     )
     for location in locations.values():

@@ -564,6 +564,7 @@ def _entry_for_parent_unique_id(
 
 async def _async_reload_parent_after_subentry_create(hass: Any, entry_id: str) -> None:
     """Reload the parent after Home Assistant persists the created subentry."""
+    # Let Home Assistant finish attaching the newly-created subentry before reload.
     await asyncio.sleep(0)
     schedule_reload = getattr(hass.config_entries, "async_schedule_reload", None)
     if callable(schedule_reload):
