@@ -516,7 +516,7 @@ def _location_data_for_validation(
     if locations:
         return locations
     data = dict(entry.data or {})
-    if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+    if CONF_LATITUDE in data and CONF_LONGITUDE in data:
         return [data]
     return []
 
@@ -745,6 +745,8 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await self.async_set_unique_id(uid, raise_on_progress=False)
                 self._abort_if_unique_id_configured()
+            except config_entries.AbortFlow:
+                raise
             except Exception as err:  # defensive
                 _LOGGER.exception(
                     "Unique ID setup failed for coordinates (values redacted): %s",
@@ -807,15 +809,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _api_key_unique_id(normalized[CONF_API_KEY]),
                     raise_on_progress=False,
                 )
-                if hasattr(
-                    getattr(self.hass, "config_entries", None),
-                    "async_entry_for_domain_unique_id",
-                ):
-                    existing_entry = _entry_for_parent_unique_id(
-                        self.hass, _api_key_unique_id(normalized[CONF_API_KEY])
-                    )
-                    if existing_entry is not None:
-                        return self.async_abort(reason="api_key_already_configured")
+                existing_entry = _entry_for_parent_unique_id(
+                    self.hass, _api_key_unique_id(normalized[CONF_API_KEY])
+                )
+                if existing_entry is not None:
+                    return self.async_abort(reason="api_key_already_configured")
                 entry_name = str(user_input.get(CONF_NAME, "")).strip()
                 title = entry_name or DEFAULT_ENTRY_TITLE
                 subentry = _location_subentry_data(

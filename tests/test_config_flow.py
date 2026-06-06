@@ -90,6 +90,10 @@ class _StubOptionsFlowWithReload(_StubOptionsFlow):
     pass
 
 
+class _StubAbortFlow(Exception):
+    pass
+
+
 class _StubConfigSubentry:
     _next_id = 1
 
@@ -287,6 +291,7 @@ def _install_homeassistant_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     config_entries_mod.OptionsFlow = _StubOptionsFlow
     config_entries_mod.OptionsFlowWithReload = _StubOptionsFlowWithReload
     config_entries_mod.ConfigEntry = _StubConfigEntry
+    config_entries_mod.AbortFlow = _StubAbortFlow
     config_entries_mod.ConfigSubentry = _StubConfigSubentry
     config_entries_mod.ConfigSubentryFlow = _StubConfigSubentryFlow
     config_entries_mod.ConfigSubentryData = dict
@@ -797,6 +802,24 @@ def _base_user_input(config_flow_stubs) -> dict:
             config_flow_stubs.CONF_LONGITUDE: "2.0",
         },
     }
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"latitude": 1.0},
+        {"longitude": 2.0},
+    ],
+)
+def test_location_data_for_validation_ignores_partial_legacy_coordinates(
+    config_flow_stubs: ConfigFlowStubs,
+    data: dict[str, float],
+) -> None:
+    """Partial legacy coordinates should not be used for API-key validation."""
+
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(data=data)
+
+    assert config_flow_stubs.config_flow._location_data_for_validation(entry) == []
 
 
 def _build_options_flow(
@@ -2869,6 +2892,58 @@ def test_async_step_user_checks_api_key_unique_id_for_existing_parent(
     assert flow.unique_ids == [
         config_flow_stubs.config_flow._api_key_unique_id("shared-key")
     ]
+
+
+def test_async_step_user_checks_api_key_unique_id_with_async_entries_fallback(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """New setup should detect duplicate API-key parents via async_entries fallback."""
+
+    class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.unique_ids: list[str] = []
+
+        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
+            self.unique_ids.append(uid)
+            return None
+
+    duplicate_unique_id = config_flow_stubs.config_flow._api_key_unique_id("shared-key")
+    flow = _TrackingFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
+        config_entries=SimpleNamespace(
+            async_entries=lambda _domain: [
+                SimpleNamespace(unique_id=duplicate_unique_id)
+            ]
+        ),
+    )
+
+    normalized = {
+        config_flow_stubs.CONF_API_KEY: "shared-key",
+        config_flow_stubs.CONF_LATITUDE: 1.0,
+        config_flow_stubs.CONF_LONGITUDE: 2.0,
+        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
+    }
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        assert check_unique_id is False
+        return {}, normalized
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    result = asyncio.run(
+        flow.async_step_user(
+            {
+                config_flow_stubs.CONF_API_KEY: "shared-key",
+            }
+        )
+    )
+
+    assert result == {"type": "abort", "reason": "api_key_already_configured"}
+    assert flow.unique_ids == [duplicate_unique_id]
 
 
 class _SubentryRecorder:

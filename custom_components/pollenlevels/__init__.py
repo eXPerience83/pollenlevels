@@ -362,11 +362,6 @@ async def async_setup_entry(
             legacy_entry_id=legacy_entry_id,
         )
 
-    if location_configs and not locations:
-        raise ConfigEntryNotReady(
-            "No Pollen Levels locations could be initialized"
-        ) from None
-
     entry.runtime_data = PollenLevelsRuntimeData(client=client, locations=locations)
 
     try:

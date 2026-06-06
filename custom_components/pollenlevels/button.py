@@ -55,7 +55,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Pollen Levels update buttons for all configured locations."""
-    runtime = config_entry.runtime_data
+    runtime = getattr(config_entry, "runtime_data", None)
     if runtime is None:
         raise ConfigEntryNotReady("Runtime data not ready")
     locations = getattr(runtime, "locations", None) or {}
