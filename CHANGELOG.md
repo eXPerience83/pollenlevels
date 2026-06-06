@@ -20,6 +20,9 @@
   contain secrets.
 - Corrected README wording about multi-location startup behavior during beta
   validation.
+- Hardened v3 beta setup against duplicate API-key fallback detection, partial
+  legacy coordinates, missing button runtime data, and expected abort flow
+  handling.
 
 ## [3.0.0a4] - 2026-06-05
 ### Fixed
