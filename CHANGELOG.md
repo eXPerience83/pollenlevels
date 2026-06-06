@@ -1,3 +1,20 @@
+## [3.0.0b2] - 2026-06-07
+
+### Changed
+
+- Reiterated that this is still a beta pre-release for the v3 config subentry
+  migration.
+- Reminded users to create a Home Assistant backup before upgrading from `2.x`.
+- Clarified that downgrading from `3.x` to `2.x` is not supported without
+  restoring a backup.
+
+### Fixed
+
+- Prevent deleted location subentries from temporarily recreating sensors or
+  update buttons from stale runtime data before the parent entry is reloaded.
+- Keep stale runtime location filtering consistent across sensor setup, update
+  button setup, and the `pollenlevels.force_update` service.
+
 ## [3.0.0b1] - 2026-06-05
 
 ### Changed
