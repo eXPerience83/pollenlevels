@@ -2649,6 +2649,55 @@ async def test_async_setup_entry_skips_disabled_d1_d2_sensors(
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_skips_stale_runtime_locations(
+    sensor_modules: SensorModules,
+) -> None:
+    """Sensor setup should not recreate entities for deleted location subentries."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        entry_id="entry",
+    )
+    coordinator = types.SimpleNamespace(
+        data={
+            "date": {"source": "meta", "value": "2026-05-08"},
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 3,
+            },
+        },
+        entry_id="entry",
+        subentry_id="deleted-location",
+        entry_title="Deleted",
+        lat=1.0,
+        lon=2.0,
+        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
+        create_d1=False,
+        create_d2=False,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "deleted-location": types.SimpleNamespace(
+                subentry_id="deleted-location",
+                coordinator=coordinator,
+            )
+        },
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    assert captured == []
+
+
+@pytest.mark.asyncio
 async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_update(
     sensor_modules: SensorModules,
 ) -> None:

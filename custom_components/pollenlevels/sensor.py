@@ -53,7 +53,7 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
-from .util import safe_parse_int
+from .util import active_location_subentry_ids, has_legacy_location_data, safe_parse_int
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -221,8 +221,20 @@ async def async_setup_entry(
         )
         return
 
+    active_subentry_ids = active_location_subentry_ids(config_entry)
+    filter_stale_locations = bool(active_subentry_ids) or not has_legacy_location_data(
+        config_entry
+    )
     opts = config_entry.options or {}
     for location in runtime.locations.values():
+        if filter_stale_locations and location.subentry_id not in active_subentry_ids:
+            _LOGGER.debug(
+                "Skipping stale Pollen Levels sensor runtime location %s for entry %s",
+                location.subentry_id,
+                config_entry.entry_id,
+            )
+            continue
+
         coordinator = location.coordinator
         raw_days = opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days)
         parsed = safe_parse_int(raw_days)
