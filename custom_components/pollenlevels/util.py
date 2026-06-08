@@ -39,7 +39,8 @@ def coordinator_device_id(coordinator: PollenDataUpdateCoordinator, group: str) 
 
 def entry_api_key(entry: Any) -> str | None:
     """Return a stripped parent API key or None when unavailable."""
-    raw_api_key = (entry.data or {}).get(CONF_API_KEY)
+    data = getattr(entry, "data", {}) or {}
+    raw_api_key = data.get(CONF_API_KEY)
     if not isinstance(raw_api_key, str):
         return None
     api_key = raw_api_key.strip()
