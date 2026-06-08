@@ -247,7 +247,7 @@ async def async_setup_entry(
 
         data = coordinator.data or {}
         has_daily = ("date" in data) or any(
-            key.startswith(("type_", "plants_")) for key in data
+            key.startswith(("type_", "plant_", "plants_")) for key in data
         )
         if not has_daily:
             message = (
