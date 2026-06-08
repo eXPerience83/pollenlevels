@@ -2942,3 +2942,67 @@ async def test_device_info_trims_custom_title(
 
     placeholders = region_sensor.device_info["translation_placeholders"]
     assert placeholders["title"] == "My Location"
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
+    sensor_modules: SensorModules,
+) -> None:
+    """setup_entry should accept current-day plant_ keys without date, type_, or plants_."""
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor_modules.sensor.CONF_API_KEY: "key",
+            sensor_modules.sensor.CONF_LATITUDE: 1.0,
+            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
+            sensor_modules.sensor.CONF_UPDATE_INTERVAL: (
+                sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL
+            ),
+            sensor_modules.sensor.CONF_FORECAST_DAYS: (
+                sensor_modules.sensor.DEFAULT_FORECAST_DAYS
+            ),
+        },
+        entry_id="entry",
+    )
+    coordinator = types.SimpleNamespace(
+        data={
+            "plant_oak": {
+                "source": "plant",
+                "displayName": "Oak",
+                "value": 1,
+                "type": "TREE",
+            },
+        },
+        entry_id="entry",
+        entity_identity_id="entry",
+        entry_title="Home",
+        lat=1.0,
+        lon=2.0,
+        subentry_id="legacy",
+        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
+        create_d1=False,
+        create_d2=False,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "legacy": types.SimpleNamespace(
+                subentry_id="legacy",
+                coordinator=coordinator,
+            ),
+        },
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    codes = {
+        getattr(entity, "code", None)
+        for entity in captured
+        if isinstance(entity, sensor_modules.sensor.PollenSensor)
+    }
+    assert "plant_oak" in codes

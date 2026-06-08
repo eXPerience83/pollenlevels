@@ -5,6 +5,8 @@
 - Propagated asyncio.CancelledError from the global pollenlevels.force_update
   action so Home Assistant shutdown, reload, and task cancellation are not
   swallowed.
+- Accepted current-day `plant_` pollen payload keys during sensor setup so
+  valid plant-only data is not treated as missing pollen data.
 
 ## [3.0.0b2] - 2026-06-07
 
