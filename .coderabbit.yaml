@@ -58,7 +58,7 @@ reviews:
     - "!**/*.pdf"
     - "!**/.pytest_cache/**"
     - "!**/.ruff_cache/**"
-    - "!**/**pycache**/**"
+    - "!**/__pycache__/**"
     - "!**/dist/**"
     - "!**/build/**"
     - "!**/*.egg-info/**"
