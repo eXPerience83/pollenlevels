@@ -1,0 +1,169 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "en-US"
+early_access: false
+enable_free_tier: true
+
+tone_instructions: >
+  Be concise, practical, and evidence-based. Focus on correctness, security,
+  Home Assistant compatibility, async behavior, privacy, and maintainability.
+  Avoid cosmetic suggestions unless they prevent a real bug or CI failure.
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  in_progress_fortune: false
+  enable_prompt_for_ai_agents: false
+  abort_on_close: true
+  disable_cache: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    base_branches:
+      - ".*"
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "[skip review]"
+      - "skip review"
+    labels:
+      - "!do-not-review"
+      - "!skip-review"
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "renovate[bot]"
+      - "github-actions[bot]"
+
+  path_filters:
+    - "!**/*.zip"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.jpeg"
+    - "!**/*.gif"
+    - "!**/*.ico"
+    - "!**/*.pdf"
+    - "!**/.pytest_cache/**"
+    - "!**/.ruff_cache/**"
+    - "!**/**pycache**/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/*.egg-info/**"
+
+  path_instructions:
+    - path: "custom_components/pollenlevels/**/*.py"
+      instructions: |
+        Review as a Home Assistant custom integration.
+        Focus on:
+        - Correct async Home Assistant patterns.
+        - No blocking I/O in the event loop.
+        - Proper use of DataUpdateCoordinator and ConfigEntry lifecycle.
+        - Stable unique_id, device_info, entity naming, and registry behavior.
+        - Safe setup/unload/reload behavior.
+        - ConfigEntryNotReady usage for startup API failures.
+        - No logging of API keys, full coordinates, URLs with secrets, or raw payloads containing secrets.
+        - Minimal public API churn and no unnecessary renames.
+
+    - path: "custom_components/pollenlevels/coordinator.py"
+      instructions: |
+        Pay special attention to:
+        - aiohttp timeout handling.
+        - 429/5xx retry and backoff behavior.
+        - Coordinator availability semantics.
+        - Avoiding stale data bugs.
+        - Avoiding request storms or quota regressions.
+
+    - path: "custom_components/pollenlevels/config_flow.py"
+      instructions: |
+        Pay special attention to:
+        - Friendly validation errors.
+        - API key handling and redaction.
+        - Coordinate validation.
+        - Reauth/reconfigure behavior.
+        - Duplicate detection and stable unique IDs.
+        - Avoiding secrets in form defaults, placeholders, logs, or exceptions.
+
+    - path: "custom_components/pollenlevels/diagnostics.py"
+      instructions: |
+        Treat diagnostics as privacy-sensitive.
+        Flag any exposure of:
+        - API keys.
+        - Full precision coordinates.
+        - Raw URLs containing query parameters.
+        - Raw API payloads that may contain sensitive user data.
+        Prefer redacted, rounded, or summarized diagnostics.
+
+    - path: "custom_components/pollenlevels/translations/**/*.json"
+      instructions: |
+        Check that translation keys stay consistent across locales.
+        Do not suggest changing stable public keys unless required.
+        English technical strings are acceptable when intentionally shared
+        across locales during development.
+
+    - path: ".github/workflows/**/*.yml"
+      instructions: |
+        Review GitHub Actions carefully.
+        Check:
+        - Minimal permissions.
+        - concurrency is present where appropriate.
+        - actions are pinned to versioned major tags.
+        - setup-python uses python-version "3.11" unless intentionally changed.
+        - shell: bash is present when using set -euo pipefail.
+        - ruff check and black --check fail the job on issues.
+        - YAML syntax is valid.
+        - No placeholders, TODOs, or empty keys.
+
+    - path: "tests/**/*.py"
+      instructions: |
+        Focus on behavioral coverage, not cosmetic test rewrites.
+        Check:
+        - Async test correctness.
+        - Stable Home Assistant stubs/fixtures.
+        - Regression coverage for config flow, coordinator, diagnostics,
+          migration, entity registry, and services/actions.
+        - No tests depending on real network calls or real API keys.
+
+    - path: "README.md"
+      instructions: |
+        Review for user-facing accuracy and upgrade safety.
+        For Home Assistant/HACS documentation, check installation, migration,
+        backup, diagnostics, troubleshooting, and release notes consistency.
+
+    - path: "CHANGELOG.md"
+      instructions: |
+        Check that changelog entries are accurate, concise, and SemVer-aware.
+        Flag missing breaking-change notes, migration warnings, or prerelease
+        labels when applicable.
+
+tools:
+  ruff:
+    enabled: true
+  shellcheck:
+    enabled: true
+  markdownlint:
+    enabled: true
+  github-checks:
+    enabled: true
+  timeout_ms: 900000
+
+chat:
+  auto_reply: true
+
+knowledge_base: {}
+
+code_generation:
+  docstrings:
+    language: "en-US"
+  unit_tests: {}
+
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+  planning:
+    enabled: false
+  labeling: {}
