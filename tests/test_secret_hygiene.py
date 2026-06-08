@@ -6,9 +6,21 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TEXT_SUFFIXES = {".json", ".md", ".py", ".toml", ".txt", ".yaml", ".yml"}
+TEXT_SUFFIXES = {
+    ".json",
+    ".md",
+    ".py",
+    ".toml",
+    ".txt",
+    ".yaml",
+    ".yml",
+    ".http",
+    ".curl",
+    ".har",
+}
 IGNORED_DIRS = {
     ".git",
+    ".local",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
@@ -16,6 +28,9 @@ IGNORED_DIRS = {
     "__pycache__",
     "build",
     "dist",
+    "local",
+    "scratch",
+    "tmp",
     "venv",
 }
 GOOGLE_API_KEY_RE = re.compile(r"AIza[0-9A-Za-z_-]{20,}")
