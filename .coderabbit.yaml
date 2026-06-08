@@ -20,6 +20,14 @@ reviews:
   abort_on_close: true
   disable_cache: false
 
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+
   auto_review:
     enabled: true
     drafts: false
@@ -112,7 +120,7 @@ reviews:
         - Minimal permissions.
         - concurrency is present where appropriate.
         - actions are pinned to versioned major tags.
-        - setup-python uses python-version "3.11" unless intentionally changed.
+        - setup-python uses python-version "3.14" unless intentionally changed.
         - shell: bash is present when using set -euo pipefail.
         - ruff check and black --check fail the job on issues.
         - YAML syntax is valid.
@@ -140,16 +148,16 @@ reviews:
         Flag missing breaking-change notes, migration warnings, or prerelease
         labels when applicable.
 
-tools:
-  ruff:
-    enabled: true
-  shellcheck:
-    enabled: true
-  markdownlint:
-    enabled: true
-  github-checks:
-    enabled: true
-  timeout_ms: 900000
+  tools:
+    ruff:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    github-checks:
+      enabled: true
+      timeout_ms: 900000
 
 chat:
   auto_reply: true
