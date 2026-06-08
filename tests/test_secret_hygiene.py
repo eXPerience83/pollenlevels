@@ -20,6 +20,7 @@ TEXT_SUFFIXES = {
 }
 IGNORED_DIRS = {
     ".git",
+    ".local",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
@@ -27,6 +28,9 @@ IGNORED_DIRS = {
     "__pycache__",
     "build",
     "dist",
+    "local",
+    "scratch",
+    "tmp",
     "venv",
 }
 GOOGLE_API_KEY_RE = re.compile(r"AIza[0-9A-Za-z_-]{20,}")
