@@ -1,3 +1,11 @@
+## [3.0.0b3] - 2026-06-08
+
+### Fixed
+
+- Propagated asyncio.CancelledError from the global pollenlevels.force_update
+  action so Home Assistant shutdown, reload, and task cancellation are not
+  swallowed.
+
 ## [3.0.0b2] - 2026-06-07
 
 ### Changed

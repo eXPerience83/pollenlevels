@@ -1185,10 +1185,10 @@ def test_force_update_continues_after_single_coordinator_failure(
     assert good_entry.runtime_data.coordinator.calls == 1
 
 
-def test_force_update_handles_per_entry_cancelled_error(
+def test_force_update_propagates_per_entry_cancelled_error(
     integration_modules: _InitModules, caplog
 ) -> None:
-    """Per-entry cancellation results should not abort the global service."""
+    """Per-entry cancellation must propagate through the global service."""
     integration = integration_modules.integration
 
     class _CancelledCoordinator:
@@ -1202,7 +1202,8 @@ def test_force_update_handles_per_entry_cancelled_error(
 
     assert asyncio.run(integration.async_setup(hass, {})) is True
     with caplog.at_level("DEBUG"):
-        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
 
     assert "Manual refresh cancelled for entry entry-cancel" in caplog.text
 
@@ -1538,45 +1539,36 @@ def test_force_update_continues_after_one_location_failure(
     assert "location.longitude=***" in text
 
 
-def test_force_update_handles_location_cancelled_error(
+def test_force_update_propagates_location_cancelled_error(
     integration_modules: _InitModules, caplog
 ) -> None:
-    """A cancelled location refresh should not abort the global service."""
+    """A cancelled location refresh must propagate through the global service."""
     integration = integration_modules.integration
 
     class _CancelledCoordinator:
         async def async_request_refresh(self):
             raise asyncio.CancelledError
 
-    class _OkCoordinator:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def async_request_refresh(self):
-            self.calls += 1
-
-    ok = _OkCoordinator()
     entry = _FakeEntry(
         integration,
         entry_id="entry-parent",
         data={integration.CONF_API_KEY: "key"},
-        subentries=_location_subentries(integration, "loc-cancel", "loc-good"),
+        subentries=_location_subentries(integration, "loc-cancel"),
     )
     entry.runtime_data = types.SimpleNamespace(
         locations={
             "loc-cancel": types.SimpleNamespace(
                 subentry_id="loc-cancel", coordinator=_CancelledCoordinator()
             ),
-            "loc-good": types.SimpleNamespace(subentry_id="loc-good", coordinator=ok),
         }
     )
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_setup(hass, {})) is True
     with caplog.at_level("DEBUG"):
-        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
 
-    assert ok.calls == 1
     assert (
         "Manual refresh cancelled for entry entry-parent subentry loc-cancel"
         in caplog.text

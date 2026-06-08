@@ -121,6 +121,7 @@ async def _refresh_force_update_target(
             entry.entry_id,
             subentry_id,
         )
+        raise
     except Exception as result:  # noqa: BLE001
         api_key = (entry.data or {}).get(CONF_API_KEY)
         safe_message = redact_sensitive_values(
