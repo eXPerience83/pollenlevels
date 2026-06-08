@@ -172,3 +172,31 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Local secrets and scratch files
+.env.*
+*.env
+*.env.*
+*.local
+.local/
+local/
+tmp/
+scratch/
+
+# Credentials and private keys
+*.key
+*.pem
+*.p12
+*.p8
+*.credentials
+credentials.json
+client_secret*.json
+secrets.yaml
+*.secret
+*.secrets
+
+# Local API request/debug exports
+*.http
+*.curl
+*.har
+comando CURL*.txt
