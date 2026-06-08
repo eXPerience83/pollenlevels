@@ -1,8 +1,14 @@
 ## [3.0.0b3] - 2026-06-08
 
+### Changed
+
+- Extracted duplicated coordinator identity, device identifier, API key, and
+  location unique ID helpers into shared utilities without changing entity IDs,
+  device IDs, diagnostics, or migration behavior.
+
 ### Fixed
 
-- Propagated asyncio.CancelledError from the global pollenlevels.force_update
+- Propagated `asyncio.CancelledError` from the global `pollenlevels.force_update`
   action so Home Assistant shutdown, reload, and task cancellation are not
   swallowed.
 - Accepted current-day `plant_` pollen payload keys during sensor setup so
