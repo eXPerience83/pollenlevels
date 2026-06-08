@@ -9,6 +9,7 @@ from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
 from .const import (
+    CONF_API_KEY,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     FORECAST_SENSORS_CHOICES,
@@ -17,8 +18,37 @@ from .const import (
 
 if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from aiohttp import ClientResponse
+
+    from .coordinator import PollenDataUpdateCoordinator
 else:  # pragma: no cover - runtime fallback for test environments without aiohttp
     ClientResponse = Any
+
+
+def coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
+    """Return the stable identity used for entity unique IDs."""
+    return getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
+
+
+def coordinator_device_id(coordinator: PollenDataUpdateCoordinator, group: str) -> str:
+    """Return the stable device identifier for a location/group pair."""
+    identity_id = getattr(coordinator, "device_identity_id", None) or (
+        getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
+    )
+    return f"{identity_id}_{group}"
+
+
+def entry_api_key(entry: Any) -> str | None:
+    """Return a stripped parent API key or None when unavailable."""
+    raw_api_key = (entry.data or {}).get(CONF_API_KEY)
+    if not isinstance(raw_api_key, str):
+        return None
+    api_key = raw_api_key.strip()
+    return api_key or None
+
+
+def format_location_unique_id(lat: float, lon: float) -> str:
+    """Format a coordinate pair as a location unique ID."""
+    return f"{lat:.4f}_{lon:.4f}"
 
 
 def active_location_subentry_ids(entry: Any) -> set[str]:
@@ -299,7 +329,11 @@ _redact_api_key = redact_api_key
 
 __all__ = [
     "api_key_unique_id",
+    "coordinator_device_id",
+    "coordinator_identity_id",
+    "entry_api_key",
     "extract_error_message",
+    "format_location_unique_id",
     "normalize_sensor_mode",
     "parse_finite_float",
     "redact_api_key",

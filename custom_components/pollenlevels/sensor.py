@@ -53,7 +53,12 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
-from .util import safe_parse_int, stale_runtime_location_filter
+from .util import (
+    coordinator_device_id,
+    coordinator_identity_id,
+    safe_parse_int,
+    stale_runtime_location_filter,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,19 +81,6 @@ TYPE_ICONS = {
 # Plants reuse the same icon mapping by type.
 PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
-
-
-def _coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
-    """Return the stable identity used for entity unique IDs."""
-    return getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
-
-
-def _coordinator_device_id(coordinator: PollenDataUpdateCoordinator, group: str) -> str:
-    """Return the stable device identifier for a location/group pair."""
-    identity_id = getattr(coordinator, "device_identity_id", None) or (
-        getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
-    )
-    return f"{identity_id}_{group}"
 
 
 class ForecastSensorMode(StrEnum):
@@ -265,7 +257,7 @@ async def async_setup_entry(
             _LOGGER.warning(message)
             raise ConfigEntryNotReady(message)
 
-        identity_id = _coordinator_identity_id(coordinator)
+        identity_id = coordinator_identity_id(coordinator)
         await _cleanup_per_day_entities(
             hass,
             config_entry.entry_id,
@@ -332,7 +324,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         self.code = code
         # Pre-compute a stable unique_id; this never changes for the entity.
         self._attr_unique_id = (
-            f"{_coordinator_identity_id(self.coordinator)}_{self.code}"
+            f"{coordinator_identity_id(self.coordinator)}_{self.code}"
         )
 
     @property
@@ -460,7 +452,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             else:
                 group = "meta"
 
-        device_id = _coordinator_device_id(self.coordinator, group)
+        device_id = coordinator_device_id(self.coordinator, group)
         translation_keys = {"type": "types", "plant": "plants", "meta": "info"}
         translation_key = translation_keys.get(group, "info")
         return {
@@ -484,7 +476,7 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-        device_id = _coordinator_device_id(self.coordinator, group)
+        device_id = coordinator_device_id(self.coordinator, group)
         translation_keys = {"type": "types", "plant": "plants"}
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
@@ -539,7 +531,7 @@ class PlantsInSeasonTodaySensor(_BaseSummarySensor):
         """Initialize the plants in season summary sensor."""
         super().__init__(coordinator, "plant")
         self._attr_unique_id = (
-            f"{_coordinator_identity_id(self.coordinator)}_plants_in_season_today"
+            f"{coordinator_identity_id(self.coordinator)}_plants_in_season_today"
         )
 
     @property
@@ -567,7 +559,7 @@ class OverallPollenRiskTodaySensor(_BaseSummarySensor):
         """Initialize the overall pollen risk summary sensor."""
         super().__init__(coordinator, "type")
         self._attr_unique_id = (
-            f"{_coordinator_identity_id(self.coordinator)}_overall_pollen_risk_today"
+            f"{coordinator_identity_id(self.coordinator)}_overall_pollen_risk_today"
         )
 
     @property
@@ -593,7 +585,7 @@ class TopPollenTypesTodaySensor(_BaseSummarySensor):
         """Initialize the top pollen types summary sensor."""
         super().__init__(coordinator, "type")
         self._attr_unique_id = (
-            f"{_coordinator_identity_id(self.coordinator)}_top_pollen_types_today"
+            f"{coordinator_identity_id(self.coordinator)}_top_pollen_types_today"
         )
 
     @property
@@ -620,7 +612,7 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-        device_id = _coordinator_device_id(self.coordinator, "meta")
+        device_id = coordinator_device_id(self.coordinator, "meta")
         # Precompute device_info; location and identifiers are stable for the entry.
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
@@ -653,7 +645,7 @@ class RegionSensor(_BaseMetaSensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize region sensor with static attributes."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{_coordinator_identity_id(self.coordinator)}_region"
+        self._attr_unique_id = f"{coordinator_identity_id(self.coordinator)}_region"
         self._attr_icon = "mdi:earth"
 
     @property
@@ -675,7 +667,7 @@ class DateSensor(_BaseMetaSensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize date sensor with static attributes."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{_coordinator_identity_id(self.coordinator)}_date"
+        self._attr_unique_id = f"{coordinator_identity_id(self.coordinator)}_date"
         self._attr_icon = "mdi:calendar"
 
     @property
@@ -708,7 +700,7 @@ class LastUpdatedSensor(_BaseMetaSensor):
         """Initialize last updated sensor with static attributes."""
         super().__init__(coordinator)
         self._attr_unique_id = (
-            f"{_coordinator_identity_id(self.coordinator)}_last_updated"
+            f"{coordinator_identity_id(self.coordinator)}_last_updated"
         )
         self._attr_icon = "mdi:clock-check"
 
