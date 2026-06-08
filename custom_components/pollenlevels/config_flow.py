@@ -62,6 +62,8 @@ from .const import (
 )
 from .util import (
     api_key_unique_id,
+    entry_api_key,
+    format_location_unique_id,
     normalize_sensor_mode,
     redact_api_key,
     redact_sensitive_values,
@@ -431,11 +433,6 @@ def _api_key_unique_id(api_key: str) -> str:
     return api_key_unique_id(api_key)
 
 
-def _location_unique_id(lat: float, lon: float) -> str:
-    """Return the legacy coordinate unique ID format."""
-    return f"{lat:.4f}_{lon:.4f}"
-
-
 def _location_subentry_data(
     *,
     title: str,
@@ -454,7 +451,7 @@ def _location_subentry_data(
         "subentry_type": SUBENTRY_TYPE_LOCATION,
         "title": title,
         "data": data,
-        "unique_id": _location_unique_id(lat, lon),
+        "unique_id": format_location_unique_id(lat, lon),
     }
 
 
@@ -475,15 +472,6 @@ def _parent_entry_options(normalized: dict[str, Any]) -> dict[str, Any]:
         if key in normalized:
             options[key] = normalized[key]
     return options
-
-
-def _entry_api_key(entry: config_entries.ConfigEntry) -> str | None:
-    """Return a stripped parent API key or None when unavailable."""
-    raw_api_key = (entry.data or {}).get(CONF_API_KEY)
-    if not isinstance(raw_api_key, str):
-        return None
-    api_key = raw_api_key.strip()
-    return api_key or None
 
 
 def _entry_language_code(entry: config_entries.ConfigEntry) -> str | None:
@@ -988,11 +976,11 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                 errors[CONF_LOCATION] = "invalid_coordinates"
             else:
                 lat, lon = latlon
-                unique_id = _location_unique_id(lat, lon)
+                unique_id = format_location_unique_id(lat, lon)
                 if _has_duplicate_location(entry, unique_id):
                     errors["base"] = "already_configured"
                 else:
-                    api_key = _entry_api_key(entry)
+                    api_key = entry_api_key(entry)
                     if api_key is None:
                         errors["base"] = "invalid_auth"
                         description_placeholders["error_message"] = "Invalid API key."
@@ -1050,13 +1038,13 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
                 errors[CONF_LOCATION] = "invalid_coordinates"
             else:
                 lat, lon = latlon
-                unique_id = _location_unique_id(lat, lon)
+                unique_id = format_location_unique_id(lat, lon)
                 if _has_duplicate_location(
                     entry, unique_id, current_subentry_id=subentry.subentry_id
                 ):
                     errors["base"] = "already_configured"
                 else:
-                    api_key = _entry_api_key(entry)
+                    api_key = entry_api_key(entry)
                     if api_key is None:
                         errors["base"] = "invalid_auth"
                         description_placeholders["error_message"] = "Invalid API key."

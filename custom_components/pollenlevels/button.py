@@ -14,7 +14,11 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .runtime import PollenLevelsConfigEntry
-from .util import stale_runtime_location_filter
+from .util import (
+    coordinator_device_id,
+    coordinator_identity_id,
+    stale_runtime_location_filter,
+)
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -23,19 +27,6 @@ if TYPE_CHECKING:
     from .runtime import PollenLocationRuntime
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
-    """Return the stable identity used for entity unique IDs."""
-    return getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
-
-
-def _coordinator_device_id(coordinator: PollenDataUpdateCoordinator, group: str) -> str:
-    """Return the stable device identifier for a location/group pair."""
-    identity_id = getattr(coordinator, "device_identity_id", None) or (
-        getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
-    )
-    return f"{identity_id}_{group}"
 
 
 def _add_button_for_location(
@@ -91,10 +82,10 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize update button entity."""
         super().__init__(coordinator)
-        identity_id = _coordinator_identity_id(coordinator)
+        identity_id = coordinator_identity_id(coordinator)
         self._attr_unique_id = f"{identity_id}_update_now"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, _coordinator_device_id(coordinator, "meta"))},
+            "identifiers": {(DOMAIN, coordinator_device_id(coordinator, "meta"))},
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": "info",

@@ -26,7 +26,12 @@ from .const import (
     DOMAIN,
     SUBENTRY_TYPE_LOCATION,
 )
-from .util import api_key_unique_id, normalize_sensor_mode, validate_location_pair
+from .util import (
+    api_key_unique_id,
+    entry_api_key,
+    normalize_sensor_mode,
+    validate_location_pair,
+)
 
 _LOGGER = logging.getLogger(__name__)
 LEGACY_HTTP_REFERER_KEY = "http_referer"
@@ -141,15 +146,6 @@ def _entry_version(entry: ConfigEntry) -> int:
     """Return a safe integer config-entry version."""
     current_version_raw = getattr(entry, "version", 1)
     return current_version_raw if isinstance(current_version_raw, int) else 1
-
-
-def _entry_api_key(entry: ConfigEntry) -> str | None:
-    """Return the normalized API key stored on an entry."""
-    api_key = (entry.data or {}).get(CONF_API_KEY)
-    if not isinstance(api_key, str):
-        return None
-    api_key = api_key.strip()
-    return api_key or None
 
 
 def is_entry_merged(entry: ConfigEntry) -> bool:
@@ -413,7 +409,7 @@ def _migration_group_entries(
     for candidate in entries:
         if is_entry_merged(candidate):
             continue
-        if _entry_api_key(candidate) != api_key:
+        if entry_api_key(candidate) != api_key:
             continue
         if (
             candidate is entry
@@ -984,7 +980,7 @@ async def async_handle_entry_migration(
             )
             return True
 
-        api_key = _entry_api_key(entry)
+        api_key = entry_api_key(entry)
         if api_key is not None:
             group = _migration_group_entries(hass, entry, api_key)
             if len(group) > 1:
