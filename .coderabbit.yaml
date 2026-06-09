@@ -5,13 +5,10 @@ early_access: false
 enable_free_tier: true
 
 tone_instructions: >
-  Be concise, practical, and evidence-based. Focus on correctness, security,
-  Home Assistant compatibility, async behavior, migration safety, privacy,
-  registry stability, and maintainability. Prefer actionable bug-risk comments
-  over style-only comments. Do not stay silent on plausible functional bugs,
-  Home Assistant API misuse, migration regressions, privacy leaks, or lifecycle
-  cleanup issues. Avoid cosmetic suggestions unless they prevent a real bug,
-  user-facing regression, or CI failure.
+  Be concise and evidence-based. Focus on correctness, HA compatibility,
+  async behavior, migration safety, privacy, registry stability, and
+  maintainability. Flag plausible bugs, API misuse, lifecycle issues,
+  and privacy leaks.
 
 reviews:
   profile: "assertive"
