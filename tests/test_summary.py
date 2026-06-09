@@ -541,6 +541,79 @@ def test_overall_forecast_future_only_types_included() -> None:
     assert overall["forecast"][0]["top_pollen_codes"] == ["GRASS"]
 
 
+def test_overall_forecast_future_only_type_can_win_future_risk() -> None:
+    """A future-only type (no value today) can dominate the aggregated forecast."""
+    summary = daily_summary(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 3,
+                "category": "Moderate",
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 2,
+                        "category": "Low",
+                        "description": "Low",
+                        "color_hex": "#00FF00",
+                        "color_rgb": [0, 255, 0],
+                    }
+                ],
+            },
+            "type_tree": {
+                "source": "type",
+                "code": "TREE",
+                "displayName": "Tree",
+                "value": None,
+                "category": None,
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 5,
+                        "category": "High",
+                        "description": "High",
+                        "color_hex": "#FF0000",
+                        "color_rgb": [255, 0, 0],
+                    }
+                ],
+            },
+        }
+    )
+
+    overall = summary["overall_pollen_risk_today"]
+    assert overall["state"] == 3
+    assert "value" not in overall
+    assert len(overall["forecast"]) == 1
+    assert overall["forecast"][0]["offset"] == 1
+    assert overall["forecast"][0]["date"] == "2026-06-10"
+    assert overall["forecast"][0]["has_index"] is True
+    assert overall["forecast"][0]["value"] == 5
+    assert overall["forecast"][0]["category"] == "High"
+    assert overall["forecast"][0]["description"] == "High"
+    assert overall["forecast"][0]["color_hex"] == "#FF0000"
+    assert overall["forecast"][0]["color_rgb"] == [255, 0, 0]
+    assert overall["forecast"][0]["top_pollen_codes"] == ["TREE"]
+    assert overall["forecast"][0]["top_pollen_names"] == ["Tree"]
+    assert overall["forecast"][0]["top_pollen_categories"] == ["High"]
+    assert overall["forecast"][0]["tie_count"] == 1
+    assert overall["tomorrow_has_index"] is True
+    assert overall["tomorrow_value"] == 5
+    assert overall["tomorrow_category"] == "High"
+    assert overall["trend"] == "up"
+    assert overall["expected_peak"] == {
+        "offset": 1,
+        "date": "2026-06-10",
+        "value": 5,
+        "category": "High",
+    }
+
+
 def test_overall_forecast_all_current_values_missing_with_future() -> None:
     """Overall can still produce forecast when no type has a finite current-day value."""
     summary = daily_summary(
