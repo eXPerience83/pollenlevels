@@ -13,6 +13,7 @@ from typing import Any
 def attach_forecast_attributes(
     base: dict[str, Any],
     forecast_list: list[dict[str, Any]],
+    current_value: Any = None,
 ) -> dict[str, Any]:
     """Attach common forecast attributes to *base* in-place and return it.
 
@@ -47,7 +48,7 @@ def attach_forecast_attributes(
     _set_convenience("d2", 2)
 
     # Trend (today vs tomorrow)
-    now_val = base.get("value")
+    now_val = current_value if current_value is not None else base.get("value")
     tomorrow_val = base.get("tomorrow_value")
     if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
         if tomorrow_val > now_val:

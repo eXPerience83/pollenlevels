@@ -67,6 +67,24 @@ def current_day_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
     return sorted(entries, key=lambda entry: entry.code)
 
 
+def forecast_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
+    """Collect all base type entries for forecast aggregation.
+
+    Unlike current_day_type_entries, this does not require a finite
+    current-day value so future-only types are included.
+    """
+    entries: list[SummaryEntry] = []
+    for key, info in data_map.items():
+        if key.endswith(("_d1", "_d2")):
+            continue
+        if not isinstance(info, dict) or info.get("source") != "type":
+            continue
+        code = normalize_entry_code(key, info, "type_")
+        name = info.get("displayName") or code
+        entries.append(SummaryEntry(code, str(name), key, info))
+    return sorted(entries, key=lambda entry: entry.code)
+
+
 def top_type_entries(
     data_map: dict[str, Any],
 ) -> tuple[float | int | None, list[SummaryEntry]]:
@@ -98,7 +116,10 @@ def _overall_forecast_from_type_forecasts(
             if not isinstance(f_item, dict):
                 continue
             offset = f_item.get("offset")
-            if not isinstance(offset, int) or offset < 1:
+            if (
+                not (isinstance(offset, int) and not isinstance(offset, bool))
+                or offset < 1
+            ):
                 continue
             offsets.setdefault(offset, []).append((entry, f_item))
 
@@ -113,7 +134,7 @@ def _overall_forecast_from_type_forecasts(
         valid = [
             (entry, f)
             for entry, f in pairs
-            if f.get("has_index") and is_finite_number(f.get("value"))
+            if f.get("has_index") is True and is_finite_number(f.get("value"))
         ]
 
         if not valid:
@@ -192,12 +213,13 @@ def daily_summary(data_map: dict[str, Any]) -> dict[str, Any]:
         "tie_count": len(top_entries),
     }
 
-    # Build aggregated forecast from type entries and attach if non-empty.
-    type_entries = current_day_type_entries(data_map)
+    # Build aggregated forecast from all type entries (including future-only).
+    type_entries = forecast_type_entries(data_map)
     forecast_list = _overall_forecast_from_type_forecasts(type_entries)
     if forecast_list:
-        overall["value"] = top_value
-        overall = attach_forecast_attributes(overall, forecast_list)
+        overall = attach_forecast_attributes(
+            overall, forecast_list, current_value=top_value
+        )
 
     return {
         "plants_in_season_today": {

@@ -61,6 +61,7 @@ def _load_summary_module() -> ModuleType:
 _module = _load_summary_module()
 daily_summary = _module.daily_summary
 current_day_type_entries = _module.current_day_type_entries
+forecast_type_entries = _module.forecast_type_entries
 is_finite_number = _module.is_finite_number
 
 
@@ -239,7 +240,7 @@ def test_overall_forecast_two_days() -> None:
 
     overall = summary["overall_pollen_risk_today"]
     assert overall["state"] == 2
-    assert overall["value"] == 2
+    assert "value" not in overall
     assert len(overall["forecast"]) == 1
     assert overall["forecast"][0]["offset"] == 1
     assert overall["forecast"][0]["value"] == 5
@@ -459,3 +460,186 @@ def test_overall_forecast_ignores_per_day_d1_d2_keys() -> None:
     assert len(overall["forecast"]) == 1
     assert overall["forecast"][0]["value"] == 3  # from current-day entry
     assert overall["forecast"][0]["top_pollen_codes"] == ["GRASS"]
+
+
+def test_forecast_type_entries_includes_future_only_types() -> None:
+    """Forecast aggregation includes types with no finite current-day value."""
+    entries = forecast_type_entries(
+        {
+            "type_tree": {
+                "source": "type",
+                "code": "TREE",
+                "displayName": "Tree",
+                "value": None,
+            },
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 3,
+            },
+            "type_mold_d1": {
+                "source": "type",
+                "displayName": "Mold tomorrow",
+                "value": 5,
+            },
+        }
+    )
+
+    codes = {e.code for e in entries}
+    assert codes == {"GRASS", "TREE"}
+
+
+def test_overall_forecast_future_only_types_included() -> None:
+    """A type with no current-day value can still contribute to overall forecast."""
+    summary = daily_summary(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 3,
+                "category": "Moderate",
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 5,
+                        "category": "High",
+                        "description": "High",
+                        "color_hex": "#FF0000",
+                        "color_rgb": [255, 0, 0],
+                    }
+                ],
+            },
+            "type_tree": {
+                "source": "type",
+                "code": "TREE",
+                "displayName": "Tree",
+                "value": None,
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 4,
+                        "category": "Moderate",
+                        "description": "Moderate",
+                        "color_hex": "#FFFF00",
+                        "color_rgb": [255, 255, 0],
+                    }
+                ],
+            },
+        }
+    )
+
+    overall = summary["overall_pollen_risk_today"]
+    assert overall["state"] == 3
+    assert "value" not in overall
+    assert overall["forecast"][0]["value"] == 5
+    assert overall["forecast"][0]["top_pollen_codes"] == ["GRASS"]
+
+
+def test_overall_forecast_all_current_values_missing_with_future() -> None:
+    """Overall can still produce forecast when no type has a finite current-day value."""
+    summary = daily_summary(
+        {
+            "type_tree": {
+                "source": "type",
+                "code": "TREE",
+                "displayName": "Tree",
+                "value": None,
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 4,
+                        "category": "Moderate",
+                        "description": "Moderate",
+                        "color_hex": "#FFFF00",
+                        "color_rgb": [255, 255, 0],
+                    }
+                ],
+            },
+        }
+    )
+
+    overall = summary["overall_pollen_risk_today"]
+    assert overall["state"] is None
+    assert "value" not in overall
+    assert len(overall["forecast"]) == 1
+    assert overall["forecast"][0]["value"] == 4
+
+
+def test_overall_forecast_bool_offset_ignored() -> None:
+    """Forecast entries with bool offsets are not treated as valid offsets."""
+    summary = daily_summary(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 3,
+                "forecast": [
+                    {
+                        "offset": True,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 5,
+                        "category": "High",
+                        "description": "High",
+                        "color_hex": "#FF0000",
+                        "color_rgb": [255, 0, 0],
+                    },
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 4,
+                        "category": "Moderate",
+                        "description": "Moderate",
+                        "color_hex": "#FFFF00",
+                        "color_rgb": [255, 255, 0],
+                    },
+                ],
+            },
+        }
+    )
+
+    overall = summary["overall_pollen_risk_today"]
+    assert len(overall["forecast"]) == 1
+    assert overall["forecast"][0]["value"] == 4
+
+
+def test_overall_forecast_has_index_must_be_true_explicit() -> None:
+    """Only has_index=True (not truthy 1) is accepted as indexed for overall."""
+    summary = daily_summary(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 3,
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": 1,
+                        "value": 5,
+                        "category": "High",
+                        "description": "High",
+                        "color_hex": "#FF0000",
+                        "color_rgb": [255, 0, 0],
+                    },
+                ],
+            },
+        }
+    )
+
+    overall = summary["overall_pollen_risk_today"]
+    assert len(overall["forecast"]) == 1
+    item = overall["forecast"][0]
+    assert item["has_index"] is False
+    assert item["value"] is None

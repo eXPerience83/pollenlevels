@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 FORECAST_PATH = (
     Path(__file__).resolve().parents[1]
@@ -209,6 +210,26 @@ def test_expected_peak_picks_highest() -> None:
 
     assert result["expected_peak"]["offset"] == 2
     assert result["expected_peak"]["value"] == 7
+
+
+def test_attach_current_value_overrides_base_value() -> None:
+    """current_value param is used for trend when base has no 'value' key."""
+    base: dict[str, Any] = {}
+    forecast = [
+        {
+            "offset": 1,
+            "date": "2026-06-10",
+            "has_index": True,
+            "value": 5,
+            "category": "High",
+            "description": "High",
+            "color_hex": "#FF0000",
+            "color_rgb": [255, 0, 0],
+        }
+    ]
+    result = attach_forecast_attributes(base, forecast, current_value=3)
+    assert result["trend"] == "up"
+    assert "value" not in result
 
 
 def test_expected_peak_none_when_all_missing() -> None:
