@@ -160,5 +160,11 @@
         "reconfigure_successful": "Reconfigurarea locației s-a finalizat cu succes."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Locație stocată invalidă în Pollen Levels",
+      "description": "Pollen Levels a găsit date de locație stocate invalide pentru {entry_title}: {location_title}. Ștergeți și recreați locația afectată sau restaurați o copie de rezervă Home Assistant dinaintea creării locației invalide."
+    }
   }
 }

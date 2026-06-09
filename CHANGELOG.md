@@ -1,3 +1,11 @@
+## [3.0.0b4] - 2026-06-09
+
+### Fixed
+
+- Added a Home Assistant Repair issue when stored Pollen Levels location
+  data is invalid, so users get visible guidance to delete/recreate the
+  affected location or restore a backup.
+
 ## [3.0.0b3] - 2026-06-09
 
 ### Added

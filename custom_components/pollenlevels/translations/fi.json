@@ -160,5 +160,11 @@
         "reconfigure_successful": "Sijainnin uudelleenmääritys onnistui."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Virheellinen tallennettu Pollen Levels -sijainti",
+      "description": "Pollen Levels löysi virheellisiä tallennettuja sijaintitietoja kohteelle {entry_title}: {location_title}. Poista ja luo kyseinen sijainti uudelleen tai palauta Home Assistant -varmuuskopio ajalta ennen virheellisen sijainnin luomista."
+    }
   }
 }

@@ -160,5 +160,11 @@
     "refresh_failed": {
       "message": "Failed to refresh pollen data"
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Invalid stored Pollen Levels location",
+      "description": "Pollen Levels found invalid stored location data for {entry_title}: {location_title}. Delete and recreate the affected location, or restore a Home Assistant backup from before the invalid location was created."
+    }
   }
 }

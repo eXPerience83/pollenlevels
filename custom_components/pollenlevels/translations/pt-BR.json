@@ -160,5 +160,11 @@
         "reconfigure_successful": "A reconfiguração do local foi concluída com sucesso."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Localização armazenada inválida no Pollen Levels",
+      "description": "Pollen Levels encontrou dados de localização armazenados inválidos para {entry_title}: {location_title}. Exclua e recrie a localização afetada ou restaure um backup do Home Assistant anterior à criação da localização inválida."
+    }
   }
 }

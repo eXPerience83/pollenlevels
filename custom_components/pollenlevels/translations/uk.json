@@ -160,5 +160,11 @@
         "reconfigure_successful": "Переналаштування місця успішно завершено."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Недійсне збережене розташування Pollen Levels",
+      "description": "Pollen Levels виявив недійсні збережені дані розташування для {entry_title}: {location_title}. Видаліть і створіть заново відповідне розташування або відновіть резервну копію Home Assistant, створену до появи недійсного розташування."
+    }
   }
 }

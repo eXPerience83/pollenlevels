@@ -527,6 +527,38 @@ def test_services_yaml_labels_match_translations() -> None:
             ), f"Service {service_name} {key} mismatch: {value!r} != {expected!r}"
 
 
+def test_issues_invalid_stored_location_keys_present() -> None:
+    """Ensure all locales have issues.invalid_stored_location with correct placeholders."""
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        data = _load_translation(translation_path)
+        issues = data.get("issues", {})
+        invalid_location = issues.get("invalid_stored_location", {})
+        title = invalid_location.get("title")
+        description = invalid_location.get("description")
+        if not isinstance(title, str) or not title.strip():
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.title "
+                "is missing or empty"
+            )
+        if not isinstance(description, str) or not description.strip():
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.description "
+                "is missing or empty"
+            )
+        if "{entry_title}" not in (description or ""):
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.description "
+                "missing {{entry_title}} placeholder"
+            )
+        if "{location_title}" not in (description or ""):
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.description "
+                "missing {{location_title}} placeholder"
+            )
+    assert not problems, "Issues translation validation failed: " + "; ".join(problems)
+
+
 def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:
     """Collect string literal assignments from an AST.
 

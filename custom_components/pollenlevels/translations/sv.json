@@ -160,5 +160,11 @@
         "reconfigure_successful": "Platsen har konfigurerats om."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Ogiltig lagrad Pollen Levels-plats",
+      "description": "Pollen Levels hittade ogiltiga lagrade platsdata för {entry_title}: {location_title}. Ta bort och återskapa den berörda platsen eller återställ en Home Assistant-säkerhetskopia från före den ogiltiga platsen skapades."
+    }
   }
 }

@@ -160,5 +160,11 @@
         "reconfigure_successful": "Ponowna konfiguracja lokalizacji zakończona pomyślnie."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Nieprawidłowa zapisana lokalizacja Pollen Levels",
+      "description": "Pollen Levels znalazł nieprawidłowe zapisane dane lokalizacji dla {entry_title}: {location_title}. Usuń i utwórz ponownie dotkniętą lokalizację lub przywróć kopię zapasową Home Assistant sprzed utworzenia nieprawidłowej lokalizacji."
+    }
   }
 }

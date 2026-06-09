@@ -160,5 +160,11 @@
         "reconfigure_successful": "Placeringen blev omkonfigureret."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Ugyldig gemt Pollen Levels-placering",
+      "description": "Pollen Levels fandt ugyldige gemte placeringsdata for {entry_title}: {location_title}. Slet og opret den berørte placering igen, eller gendan en Home Assistant-sikkerhedskopi før den ugyldige placering blev oprettet."
+    }
   }
 }

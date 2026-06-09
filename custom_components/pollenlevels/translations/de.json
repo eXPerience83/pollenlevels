@@ -160,5 +160,11 @@
         "reconfigure_successful": "Die Standort-Neukonfiguration wurde erfolgreich abgeschlossen."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Ungültiger gespeicherter Pollen Levels-Standort",
+      "description": "Pollen Levels hat ungültige gespeicherte Standortdaten für {entry_title}: {location_title} gefunden. Löschen und erstellen Sie den betroffenen Standort neu oder stellen Sie ein Home Assistant-Backup von vor der Erstellung des ungültigen Standorts wieder her."
+    }
   }
 }

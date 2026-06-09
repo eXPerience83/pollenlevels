@@ -38,6 +38,11 @@ from .const import (
     SUBENTRY_TYPE_LOCATION,
 )
 from .coordinator import PollenDataUpdateCoordinator
+from .issue_helpers import (
+    create_invalid_stored_location_issue,
+    delete_invalid_stored_location_issue,
+    invalid_stored_location_issue_id as invalid_stored_location_issue_id,
+)
 from .migration import (
     CONF_MERGED_INTO_ENTRY_ID,
     async_handle_entry_migration,
@@ -294,6 +299,13 @@ async def async_setup_entry(
         raw_lon = data.get(CONF_LONGITUDE)
         latlon = validate_location_pair(raw_lat, raw_lon)
         if latlon is None:
+            create_invalid_stored_location_issue(
+                hass,
+                entry_id=entry.entry_id,
+                entry_title=entry.title,
+                location_title=title,
+                subentry_id=subentry_id,
+            )
             _LOGGER.warning(
                 "Invalid coordinates for Pollen Levels entry %s subentry %s; "
                 "setup will be retried after the stored location is fixed",
@@ -304,6 +316,11 @@ async def async_setup_entry(
                 "Pollen Levels location has invalid stored coordinates"
             ) from None
         lat, lon = latlon
+        delete_invalid_stored_location_issue(
+            hass,
+            entry_id=entry.entry_id,
+            subentry_id=subentry_id,
+        )
 
         coordinator = PollenDataUpdateCoordinator(
             hass=hass,
