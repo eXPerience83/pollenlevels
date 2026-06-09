@@ -1,4 +1,10 @@
-## [3.0.0b3] - 2026-06-08
+## [3.0.0b3] - 2026-06-09
+
+### Added
+
+- Exposed plant-style forecast attributes on the overall pollen risk summary
+  sensor so compatible Lovelace cards can render upcoming-day general pollen
+  risk values.
 
 ### Changed
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from typing import Any, NamedTuple
 
+from .forecast import attach_forecast_attributes
+
 
 class SummaryEntry(NamedTuple):
     """Represent a normalized daily summary entry."""
@@ -65,6 +67,24 @@ def current_day_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
     return sorted(entries, key=lambda entry: entry.code)
 
 
+def forecast_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
+    """Collect all base type entries for forecast aggregation.
+
+    Unlike current_day_type_entries, this does not require a finite
+    current-day value so future-only types are included.
+    """
+    entries: list[SummaryEntry] = []
+    for key, info in data_map.items():
+        if key.endswith(("_d1", "_d2")):
+            continue
+        if not isinstance(info, dict) or info.get("source") != "type":
+            continue
+        code = normalize_entry_code(key, info, "type_")
+        name = info.get("displayName") or code
+        entries.append(SummaryEntry(code, str(name), key, info))
+    return sorted(entries, key=lambda entry: entry.code)
+
+
 def top_type_entries(
     data_map: dict[str, Any],
 ) -> tuple[float | int | None, list[SummaryEntry]]:
@@ -75,6 +95,89 @@ def top_type_entries(
     top_value = max(entry.info["value"] for entry in entries)
     top_entries = [entry for entry in entries if entry.info["value"] == top_value]
     return top_value, top_entries
+
+
+def _overall_forecast_from_type_forecasts(
+    type_entries: list[SummaryEntry],
+) -> list[dict[str, Any]]:
+    """Build aggregated forecast list from current-day type forecast attributes.
+
+    Returns an empty list when there are no future offsets (forecast_days=1).
+
+    For each future offset, the highest indexed value across all types is used.
+    Ties are preserved with deterministic ordering by normalised type code.
+    """
+    offsets: dict[int, list[tuple[SummaryEntry, dict[str, Any]]]] = {}
+    for entry in type_entries:
+        forecast = entry.info.get("forecast")
+        if not isinstance(forecast, list) or not forecast:
+            continue
+        for f_item in forecast:
+            if not isinstance(f_item, dict):
+                continue
+            offset = f_item.get("offset")
+            if (
+                not (isinstance(offset, int) and not isinstance(offset, bool))
+                or offset < 1
+            ):
+                continue
+            offsets.setdefault(offset, []).append((entry, f_item))
+
+    if not offsets:
+        return []
+
+    result: list[dict[str, Any]] = []
+    for offset in sorted(offsets):
+        pairs = offsets[offset]
+        pairs.sort(key=lambda pair: pair[0].code)
+
+        valid = [
+            (entry, f)
+            for entry, f in pairs
+            if f.get("has_index") is True and is_finite_number(f.get("value"))
+        ]
+
+        if not valid:
+            _, first_f = pairs[0]
+            result.append(
+                {
+                    "offset": offset,
+                    "date": first_f.get("date"),
+                    "has_index": False,
+                    "value": None,
+                    "category": None,
+                    "description": None,
+                    "color_hex": None,
+                    "color_rgb": None,
+                    "top_pollen_codes": [],
+                    "top_pollen_names": [],
+                    "top_pollen_categories": [],
+                    "tie_count": 0,
+                }
+            )
+        else:
+            max_val = max(f["value"] for _, f in valid)
+            tied = [(entry, f) for entry, f in valid if f["value"] == max_val]
+            tied.sort(key=lambda pair: pair[0].code)
+            _, first_f = tied[0]
+            result.append(
+                {
+                    "offset": offset,
+                    "date": first_f.get("date"),
+                    "has_index": True,
+                    "value": max_val,
+                    "category": first_f.get("category"),
+                    "description": first_f.get("description"),
+                    "color_hex": first_f.get("color_hex"),
+                    "color_rgb": first_f.get("color_rgb"),
+                    "top_pollen_codes": [entry.code for entry, _ in tied],
+                    "top_pollen_names": [entry.name for entry, _ in tied],
+                    "top_pollen_categories": [f.get("category") for _, f in tied],
+                    "tie_count": len(tied),
+                }
+            )
+
+    return result
 
 
 def daily_summary(data_map: dict[str, Any]) -> dict[str, Any]:
@@ -100,6 +203,24 @@ def daily_summary(data_map: dict[str, Any]) -> dict[str, Any]:
     top_names = [entry.name for entry in top_entries]
     first_info = top_entries[0].info if top_entries else {}
 
+    overall: dict[str, Any] = {
+        "state": top_value,
+        "category": first_info.get("category"),
+        "description": first_info.get("description"),
+        "top_pollen_codes": [entry.code for entry in top_entries],
+        "top_pollen_names": top_names,
+        "top_pollen_categories": [entry.info.get("category") for entry in top_entries],
+        "tie_count": len(top_entries),
+    }
+
+    # Build aggregated forecast from all type entries (including future-only).
+    type_entries = forecast_type_entries(data_map)
+    forecast_list = _overall_forecast_from_type_forecasts(type_entries)
+    if forecast_list:
+        overall = attach_forecast_attributes(
+            overall, forecast_list, current_value=top_value
+        )
+
     return {
         "plants_in_season_today": {
             "state": season_state,
@@ -112,17 +233,7 @@ def daily_summary(data_map: dict[str, Any]) -> dict[str, Any]:
             "unknown_season_codes": [entry.code for entry in unknown_entries],
             "unknown_season_names": [entry.name for entry in unknown_entries],
         },
-        "overall_pollen_risk_today": {
-            "state": top_value,
-            "category": first_info.get("category"),
-            "description": first_info.get("description"),
-            "top_pollen_codes": [entry.code for entry in top_entries],
-            "top_pollen_names": top_names,
-            "top_pollen_categories": [
-                entry.info.get("category") for entry in top_entries
-            ],
-            "tie_count": len(top_entries),
-        },
+        "overall_pollen_risk_today": overall,
         "top_pollen_types_today": {
             "state": ", ".join(top_names) if top_names else None,
             "top_value": top_value,
