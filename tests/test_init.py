@@ -4181,7 +4181,7 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     assert hass.config_entries.forward_calls == []
 
     expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, bad_subentry.subentry_id
+        entry.entry_id, subentry_id=None
     )
     assert expected_issue_id in registry.issues
     issue = registry.issues[expected_issue_id]
@@ -4251,9 +4251,77 @@ def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
     expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, good_subentry.subentry_id
+        entry.entry_id, subentry_id=None
     )
     assert (hass, integration.DOMAIN, expected_issue_id) in registry.deleted
+
+
+def test_setup_entry_removes_entry_level_repair_issue_when_no_invalid_subentries(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Pre-existing entry-level Repair should be cleaned up when setup runs with valid subentries."""
+    import sys
+
+    integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    existing_issue_id = integration.invalid_stored_location_issue_id(
+        "entry-clean", subentry_id=None
+    )
+    registry.async_create_issue(
+        None,
+        integration.DOMAIN,
+        existing_issue_id,
+        is_fixable=False,
+        is_persistent=False,
+        severity="error",
+        translation_key="invalid_stored_location",
+        translation_placeholders={"entry_title": "Old", "location_title": "Old"},
+    )
+    assert existing_issue_id in registry.issues
+
+    good_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="good-location",
+        title="Good",
+    )
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-clean",
+        title="Clean Home",
+        data={integration.CONF_API_KEY: "key"},
+        subentries={good_subentry.subentry_id: good_subentry},
+    )
+    hass = _FakeHass()
+
+    class _StubCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.api_key = kwargs["api_key"]
+            self.lat = kwargs["lat"]
+            self.lon = kwargs["lon"]
+            self.entry_id = kwargs["entry_id"]
+            self.entry_title = kwargs.get("entry_title")
+            self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
+            self.last_updated = None
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
+
+    class _StubClient:
+        def __init__(self, _session, _api_key):
+            self.session = _session
+            self.api_key = _api_key
+
+        async def async_fetch_pollen_data(self, **_kwargs):
+            return {"region": {"source": "meta"}, "dailyInfo": []}
+
+    monkeypatch.setattr(integration, "GooglePollenApiClient", _StubClient)
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+    assert (hass, integration.DOMAIN, existing_issue_id) in registry.deleted
 
 
 def test_setup_entry_does_not_create_repair_issue_for_temporal_refresh_failure(
