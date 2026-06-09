@@ -160,5 +160,11 @@
         "reconfigure_successful": "位置重新配置已成功完成。"
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Pollen Levels 中无效的存储位置",
+      "description": "Pollen Levels 发现 {entry_title}：{location_title} 的存储位置数据无效。请删除并重新创建受影响的设置，或恢复在创建无效位置之前的 Home Assistant 备份。"
+    }
   }
 }

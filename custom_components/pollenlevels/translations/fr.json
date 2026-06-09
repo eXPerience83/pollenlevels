@@ -160,5 +160,11 @@
         "reconfigure_successful": "La reconfiguration de l'emplacement a réussi."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Emplacement stocké invalide dans Pollen Levels",
+      "description": "Pollen Levels a trouvé des données de localisation stockées invalides pour {entry_title} : {location_title}. Supprimez et recréez l'emplacement concerné, ou restaurez une sauvegarde Home Assistant antérieure à la création de l'emplacement invalide."
+    }
   }
 }

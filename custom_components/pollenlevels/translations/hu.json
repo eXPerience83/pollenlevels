@@ -160,5 +160,11 @@
         "reconfigure_successful": "A hely újrakonfigurálása sikeresen befejeződött."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Érvénytelen tárolt Pollen Levels hely",
+      "description": "A Pollen Levels érvénytelen tárolt helyadatokat talált a következőhöz: {entry_title}: {location_title}. Törölje és hozza létre újra az érintett helyet, vagy állítson vissza egy Home Assistant biztonsági mentést az érvénytelen hely létrehozása előtti időből."
+    }
   }
 }

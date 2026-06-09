@@ -160,5 +160,11 @@
         "reconfigure_successful": "Překonfigurace umístění byla úspěšně dokončena."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Neplatná uložená lokalita Pollen Levels",
+      "description": "Pollen Levels našel neplatná uložená data lokality pro {entry_title}: {location_title}. Odstraňte a znovu vytvořte dotčenou lokalitu nebo obnovte zálohu Home Assistant z doby před vytvořením neplatné lokality."
+    }
   }
 }

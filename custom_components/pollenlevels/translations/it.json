@@ -160,5 +160,11 @@
         "reconfigure_successful": "La riconfigurazione della posizione è stata completata correttamente."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Posizione memorizzata non valida in Pollen Levels",
+      "description": "Pollen Levels ha trovato dati di posizione memorizzati non validi per {entry_title}: {location_title}. Elimina e ricrea la posizione interessata o ripristina un backup di Home Assistant precedente alla creazione della posizione non valida."
+    }
   }
 }

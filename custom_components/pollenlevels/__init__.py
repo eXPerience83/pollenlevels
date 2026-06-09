@@ -38,6 +38,11 @@ from .const import (
     SUBENTRY_TYPE_LOCATION,
 )
 from .coordinator import PollenDataUpdateCoordinator
+from .issue_helpers import (
+    create_invalid_stored_location_issue,
+    delete_entry_invalid_stored_location_issue,
+    invalid_stored_location_issue_id as invalid_stored_location_issue_id,
+)
 from .migration import (
     CONF_MERGED_INTO_ENTRY_ID,
     async_handle_entry_migration,
@@ -288,12 +293,22 @@ async def async_setup_entry(
     client = GooglePollenApiClient(session, api_key)
 
     location_configs = _iter_location_subentries(entry)
-    locations: dict[str, PollenLocationRuntime] = {}
+
+    validated_location_configs: list[
+        tuple[str, str, dict[str, Any], str | None, float, float]
+    ] = []
     for subentry_id, title, data, legacy_entry_id in location_configs:
         raw_lat = data.get(CONF_LATITUDE)
         raw_lon = data.get(CONF_LONGITUDE)
         latlon = validate_location_pair(raw_lat, raw_lon)
         if latlon is None:
+            create_invalid_stored_location_issue(
+                hass,
+                entry_id=entry.entry_id,
+                entry_title=entry.title,
+                location_title=title,
+                subentry_id=None,
+            )
             _LOGGER.warning(
                 "Invalid coordinates for Pollen Levels entry %s subentry %s; "
                 "setup will be retried after the stored location is fixed",
@@ -304,7 +319,20 @@ async def async_setup_entry(
                 "Pollen Levels location has invalid stored coordinates"
             ) from None
         lat, lon = latlon
+        validated_location_configs.append(
+            (subentry_id, title, data, legacy_entry_id, lat, lon)
+        )
 
+    delete_entry_invalid_stored_location_issue(hass, entry)
+    locations: dict[str, PollenLocationRuntime] = {}
+    for (
+        subentry_id,
+        title,
+        _data,
+        legacy_entry_id,
+        lat,
+        lon,
+    ) in validated_location_configs:
         coordinator = PollenDataUpdateCoordinator(
             hass=hass,
             api_key=api_key,

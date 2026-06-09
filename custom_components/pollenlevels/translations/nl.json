@@ -160,5 +160,11 @@
         "reconfigure_successful": "Locatie opnieuw configureren is voltooid."
       }
     }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Ongeldige opgeslagen Pollen Levels-locatie",
+      "description": "Pollen Levels heeft ongeldige opgeslagen locatiegegevens gevonden voor {entry_title}: {location_title}. Verwijder en maak de betreffende locatie opnieuw aan, of herstel een Home Assistant-backup van vóór het aanmaken van de ongeldige locatie."
+    }
   }
 }

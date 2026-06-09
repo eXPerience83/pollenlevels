@@ -26,6 +26,10 @@ from .const import (
     DOMAIN,
     SUBENTRY_TYPE_LOCATION,
 )
+from .issue_helpers import (
+    create_entry_invalid_stored_location_issue,
+    delete_entry_invalid_stored_location_issue,
+)
 from .util import (
     api_key_unique_id,
     entry_api_key,
@@ -788,6 +792,7 @@ async def _async_migrate_grouped_entries(
     """Migrate all legacy entries sharing one API key into one parent."""
     if (invalid_entry := _invalid_legacy_coordinate_entry(group)) is not None:
         _log_invalid_legacy_coordinates(invalid_entry)
+        create_entry_invalid_stored_location_issue(hass, invalid_entry)
         _LOGGER.error(
             "Aborted Pollen Levels API-key migration group because entry %s "
             "contains invalid stored coordinates. The group was left unchanged.",
@@ -805,10 +810,12 @@ async def _async_migrate_grouped_entries(
         if source is parent:
             if _has_invalid_legacy_location_subentry(source):
                 _log_unmigratable_location_subentries(source)
+                create_entry_invalid_stored_location_issue(hass, source)
                 return False
             continue
         if _has_unmigratable_location_subentries(source):
             _log_unmigratable_location_subentries(source)
+            create_entry_invalid_stored_location_issue(hass, source)
             return False
 
     parent_options = _clean_parent_options(parent)
@@ -901,6 +908,9 @@ async def _async_migrate_grouped_entries(
         _mark_entry_merged(hass, source, parent, api_key, target_version)
         await _remove_or_schedule_merged_entry(hass, source, entry)
 
+    for source in group:
+        delete_entry_invalid_stored_location_issue(hass, source)
+
     _LOGGER.info(
         "Completed Pollen Levels v3 migration for parent %s "
         "(entities=%d devices=%d legacy_device_associations_removed=%d)",
@@ -990,9 +1000,11 @@ async def async_handle_entry_migration(
 
         if _has_invalid_legacy_coordinates(entry):
             _log_invalid_legacy_coordinates(entry)
+            create_entry_invalid_stored_location_issue(hass, entry)
             return False
         if _has_invalid_legacy_location_subentry(entry):
             _log_unmigratable_location_subentries(entry)
+            create_entry_invalid_stored_location_issue(hass, entry)
             return False
 
         existing_data = entry.data or {}
@@ -1097,6 +1109,7 @@ async def async_handle_entry_migration(
             hass.config_entries.async_update_entry(entry, **updates)
         else:
             hass.config_entries.async_update_entry(entry, version=new_version)
+        delete_entry_invalid_stored_location_issue(hass, entry)
         _LOGGER.info(
             "Completed Pollen Levels v3 migration for parent %s "
             "(entities=%d devices=%d legacy_device_associations_removed=%d)",
