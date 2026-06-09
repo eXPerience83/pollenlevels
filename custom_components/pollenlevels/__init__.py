@@ -293,8 +293,10 @@ async def async_setup_entry(
     client = GooglePollenApiClient(session, api_key)
 
     location_configs = _iter_location_subentries(entry)
-    delete_entry_invalid_stored_location_issue(hass, entry)
-    locations: dict[str, PollenLocationRuntime] = {}
+
+    validated_location_configs: list[
+        tuple[str, str, dict[str, Any], str | None, float, float]
+    ] = []
     for subentry_id, title, data, legacy_entry_id in location_configs:
         raw_lat = data.get(CONF_LATITUDE)
         raw_lon = data.get(CONF_LONGITUDE)
@@ -317,7 +319,20 @@ async def async_setup_entry(
                 "Pollen Levels location has invalid stored coordinates"
             ) from None
         lat, lon = latlon
+        validated_location_configs.append(
+            (subentry_id, title, data, legacy_entry_id, lat, lon)
+        )
 
+    delete_entry_invalid_stored_location_issue(hass, entry)
+    locations: dict[str, PollenLocationRuntime] = {}
+    for (
+        subentry_id,
+        title,
+        _data,
+        legacy_entry_id,
+        lat,
+        lon,
+    ) in validated_location_configs:
         coordinator = PollenDataUpdateCoordinator(
             hass=hass,
             api_key=api_key,

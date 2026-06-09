@@ -4199,6 +4199,66 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     assert "91.123456" not in caplog.text
 
 
+def test_setup_entry_creates_repair_for_later_invalid_subentry_before_refresh(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A later invalid subentry should create the Repair before any coordinator is created."""
+    import sys
+
+    integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    first_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="first-location",
+        title="First",
+    )
+    bad_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 91.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="bad-location",
+        title="Bad",
+    )
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-multi",
+        title="Multi Home",
+        data={integration.CONF_API_KEY: "key"},
+        subentries={
+            first_subentry.subentry_id: first_subentry,
+            bad_subentry.subentry_id: bad_subentry,
+        },
+    )
+    hass = _FakeHass()
+
+    def _fail_coordinator(*_args, **_kwargs):
+        pytest.fail(
+            "Coordinator should not be instantiated before all coordinates are validated"
+        )
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _fail_coordinator)
+
+    class _StubClient:
+        def __init__(self, _session, _api_key):
+            self.session = _session
+            self.api_key = _api_key
+
+    monkeypatch.setattr(integration, "GooglePollenApiClient", _StubClient)
+
+    with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
+        asyncio.run(integration.async_setup_entry(hass, entry))
+
+    assert exc_info.value.__cause__ is None
+
+    expected_issue_id = integration.invalid_stored_location_issue_id(
+        entry.entry_id, subentry_id=None
+    )
+    assert expected_issue_id in registry.issues
+    assert (hass, integration.DOMAIN, expected_issue_id) not in registry.deleted
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
+
+
 def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are_valid(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
