@@ -19,6 +19,7 @@ from .const import (
     MAX_FORECAST_DAYS,
     MIN_FORECAST_DAYS,
 )
+from .forecast import attach_forecast_attributes
 from .util import redact_api_key, safe_parse_int
 
 if TYPE_CHECKING:
@@ -216,76 +217,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             return False
         return self._utcnow() - self.last_updated <= self._stale_data_ttl()
 
-    # ------------------------------
-    # DRY helper for forecast attrs
-    # ------------------------------
-    def _process_forecast_attributes(
-        self, base: dict[str, Any], forecast_list: list[dict[str, Any]]
-    ) -> dict[str, Any]:
-        """Attach common forecast attributes to a base sensor dict.
-
-        This keeps TYPE and PLANT processing consistent without duplicating code.
-
-        Adds:
-          - 'forecast' list
-          - Convenience: tomorrow_* / d2_*
-          - Derived: trend, expected_peak
-
-        Does NOT touch per-day TYPE sensor creation (kept elsewhere).
-        """
-        base["forecast"] = forecast_list
-        forecast_by_offset = {item.get("offset"): item for item in forecast_list}
-
-        def _set_convenience(prefix: str, off: int) -> None:
-            f = forecast_by_offset.get(off)
-            base[f"{prefix}_has_index"] = f.get("has_index") if f else False
-            base[f"{prefix}_value"] = (
-                f.get("value") if f and f.get("has_index") else None
-            )
-            base[f"{prefix}_category"] = (
-                f.get("category") if f and f.get("has_index") else None
-            )
-            base[f"{prefix}_description"] = (
-                f.get("description") if f and f.get("has_index") else None
-            )
-            base[f"{prefix}_color_hex"] = (
-                f.get("color_hex") if f and f.get("has_index") else None
-            )
-
-        _set_convenience("tomorrow", 1)
-        _set_convenience("d2", 2)
-
-        # Trend (today vs tomorrow)
-        now_val = base.get("value")
-        tomorrow_val = base.get("tomorrow_value")
-        if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
-            if tomorrow_val > now_val:
-                base["trend"] = "up"
-            elif tomorrow_val < now_val:
-                base["trend"] = "down"
-            else:
-                base["trend"] = "flat"
-        else:
-            base["trend"] = None
-
-        # Expected peak (excluding today)
-        peak = None
-        for f in forecast_list:
-            if f.get("has_index") and isinstance(f.get("value"), (int, float)):
-                if peak is None or f["value"] > peak["value"]:
-                    peak = f
-        base["expected_peak"] = (
-            {
-                "offset": peak["offset"],
-                "date": peak["date"],
-                "value": peak["value"],
-                "category": peak["category"],
-            }
-            if peak
-            else None
-        )
-        return base
-
     async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         """Fetch pollen data and extract sensors for current day and forecast."""
         try:
@@ -465,7 +396,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 daily, type_by_day_code, tcode, self.forecast_days
             )
             # Attach common forecast attributes (convenience, trend, expected_peak)
-            base = self._process_forecast_attributes(base, forecast_list)
+            base = attach_forecast_attributes(base, forecast_list)
             new_data[type_key] = base
 
             # Optional per-day sensors (only if requested and day exists)
@@ -530,7 +461,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             )
 
             # Attach common forecast attributes (convenience, trend, expected_peak)
-            base = self._process_forecast_attributes(base, forecast_list)
+            base = attach_forecast_attributes(base, forecast_list)
             new_data[key] = base
 
         self.data = new_data
