@@ -309,6 +309,7 @@ class StubIssueRegistry:
 
     def async_delete_issue(self, hass, domain, issue_id):
         self.deleted.append((hass, domain, issue_id))
+        self.issues.pop(issue_id, None)
 
 
 class StubIssueSeverity:

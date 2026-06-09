@@ -4322,6 +4322,7 @@ def test_setup_entry_removes_entry_level_repair_issue_when_no_invalid_subentries
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert (hass, integration.DOMAIN, existing_issue_id) in registry.deleted
+    assert existing_issue_id not in registry.issues
 
 
 def test_setup_entry_does_not_create_repair_issue_for_temporal_refresh_failure(
