@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 import importlib.util
 import sys
 from pathlib import Path
 from types import ModuleType
+
+import pytest
 
 PKG_PATH = Path(__file__).resolve().parents[1] / "custom_components" / "pollenlevels"
 
@@ -13,6 +16,16 @@ SUMMARY_PATH = PKG_PATH / "summary.py"
 FORECAST_PATH = PKG_PATH / "forecast.py"
 
 _PKG_NAME = "custom_components.pollenlevels"
+_MODULE_NAMES = (
+    "custom_components",
+    _PKG_NAME,
+    f"{_PKG_NAME}.forecast",
+    f"{_PKG_NAME}.summary",
+)
+
+DailySummaryCallable = Callable[
+    [dict[str, dict[str, object]]], dict[str, dict[str, object]]
+]
 
 
 def _load_summary_module() -> ModuleType:
@@ -54,11 +67,26 @@ def _load_summary_module() -> ModuleType:
     return summary_module
 
 
-_module = _load_summary_module()
-daily_summary = _module.daily_summary
+@pytest.fixture
+def daily_summary_callable() -> Iterator[DailySummaryCallable]:
+    """Load daily_summary and restore pre-existing module state after the test."""
+    missing = object()
+    original_modules = {name: sys.modules.get(name, missing) for name in _MODULE_NAMES}
+
+    module = _load_summary_module()
+    try:
+        yield module.daily_summary
+    finally:
+        for name, original_module in original_modules.items():
+            if original_module is missing:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = original_module
 
 
-def test_summary_sensor_attribute_contract_distinguishes_summary_sensors() -> None:
+def test_summary_sensor_attribute_contract_distinguishes_summary_sensors(
+    daily_summary_callable: DailySummaryCallable,
+) -> None:
     """Lock the public attribute contract of the three daily summary sensors."""
     data_map: dict[str, dict[str, object]] = {
         "type_grass": {
@@ -91,7 +119,7 @@ def test_summary_sensor_attribute_contract_distinguishes_summary_sensors() -> No
         },
     }
 
-    summary = daily_summary(data_map)
+    summary = daily_summary_callable(data_map)
 
     overall = summary["overall_pollen_risk_today"]
     top_types = summary["top_pollen_types_today"]
@@ -101,7 +129,7 @@ def test_summary_sensor_attribute_contract_distinguishes_summary_sensors() -> No
     assert type(overall["state"]) is int, "overall state must be strictly an int"
     assert overall["state"] == 3
 
-    assert isinstance(top_types["state"], str), "top_types state must be textual"
+    assert type(top_types["state"]) is str, "top_types state must be strictly a str"
     assert top_types["state"] == "Grass"
 
     assert type(plants["state"]) is int, "plants state must be strictly an int"
