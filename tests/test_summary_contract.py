@@ -66,8 +66,8 @@ def daily_summary_callable() -> Iterator[DailySummaryCallable]:
     missing = object()
     original_modules = {name: sys.modules.get(name, missing) for name in _MODULE_NAMES}
 
-    module = _load_summary_module()
     try:
+        module = _load_summary_module()
         yield module.daily_summary
     finally:
         for name, original_module in original_modules.items():
