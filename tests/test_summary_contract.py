@@ -15,9 +15,8 @@ PKG_PATH = Path(__file__).resolve().parents[1] / "custom_components" / "pollenle
 SUMMARY_PATH = PKG_PATH / "summary.py"
 FORECAST_PATH = PKG_PATH / "forecast.py"
 
-_PKG_NAME = "custom_components.pollenlevels"
+_PKG_NAME = "_test_pollenlevels_summary_contract"
 _MODULE_NAMES = (
-    "custom_components",
     _PKG_NAME,
     f"{_PKG_NAME}.forecast",
     f"{_PKG_NAME}.summary",
@@ -30,19 +29,13 @@ DailySummaryCallable = Callable[
 
 def _load_summary_module() -> ModuleType:
     """Load summary.py with package context so relative imports resolve."""
-    # -- create stub packages in sys.modules so relative imports work --------
-    parent_name = "custom_components"
-    if parent_name not in sys.modules:
-        parent = ModuleType(parent_name)
-        parent.__path__ = [str(PKG_PATH.parent)]
-        parent.__package__ = parent_name
-        sys.modules[parent_name] = parent
+    for name in reversed(_MODULE_NAMES):
+        sys.modules.pop(name, None)
 
-    if _PKG_NAME not in sys.modules:
-        pkg = ModuleType(_PKG_NAME)
-        pkg.__path__ = [str(PKG_PATH)]
-        pkg.__package__ = _PKG_NAME
-        sys.modules[_PKG_NAME] = pkg
+    pkg = ModuleType(_PKG_NAME)
+    pkg.__path__ = [str(PKG_PATH)]
+    pkg.__package__ = _PKG_NAME
+    sys.modules[_PKG_NAME] = pkg
 
     # -- load forecast.py first (dependency of summary.py) ------------------
     forecast_spec = importlib.util.spec_from_file_location(
