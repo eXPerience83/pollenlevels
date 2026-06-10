@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
 import importlib.util
 import sys
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from types import ModuleType
 
@@ -126,14 +126,19 @@ def test_summary_sensor_attribute_contract_distinguishes_summary_sensors(
     plants = summary["plants_in_season_today"]
 
     # -- state sanity --------------------------------------------------------
-    assert type(overall["state"]) is int, "overall state must be strictly an int"
-    assert overall["state"] == 3
+    overall_state = overall["state"]
+    assert isinstance(overall_state, int), "overall state must be numeric"
+    assert not isinstance(overall_state, bool), "overall state must not be boolean"
+    assert overall_state == 3
 
-    assert type(top_types["state"]) is str, "top_types state must be strictly a str"
-    assert top_types["state"] == "Grass"
+    top_types_state = top_types["state"]
+    assert isinstance(top_types_state, str), "top_types state must be textual"
+    assert top_types_state == "Grass"
 
-    assert type(plants["state"]) is int, "plants state must be strictly an int"
-    assert plants["state"] == 1
+    plants_state = plants["state"]
+    assert isinstance(plants_state, int), "plants state must be numeric"
+    assert not isinstance(plants_state, bool), "plants state must not be boolean"
+    assert plants_state == 1
 
     # -- top_pollen_codes contract ------------------------------------------
     assert "top_pollen_codes" in overall
