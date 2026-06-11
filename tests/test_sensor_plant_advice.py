@@ -51,7 +51,7 @@ def _install_coordinator_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
         pass
 
     class _StubDataUpdateCoordinator:
-        def __init__(self, hass, logger, *, name: str, update_interval):
+        def __init__(self, hass, logger, *, name: str, update_interval) -> None:
             self.hass = hass
             self.logger = logger
             self.name = name
@@ -59,9 +59,14 @@ def _install_coordinator_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
             self.data = None
             self.last_updated = None
 
+    class _StubCoordinatorEntity:
+        def __init__(self, coordinator) -> None:
+            self.coordinator = coordinator
+
     stub_update_coordinator_module(
         update_failed=_StubUpdateFailed,
         data_update_coordinator=_StubDataUpdateCoordinator,
+        coordinator_entity=_StubCoordinatorEntity,
         monkeypatch=monkeypatch,
     )
     stub_util_dt_module(monkeypatch=monkeypatch)
