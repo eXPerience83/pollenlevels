@@ -6,6 +6,7 @@
 - Lint and sort imports with Ruff targeting `py314`, with minimum `ruff>=0.14` (enforced via CI), matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.
+- Tests run with pytest>=9 on Python 3.14.
 
 ## Release & API boundaries
 - Do not change the integration version or changelog entries unless explicitly requested.
