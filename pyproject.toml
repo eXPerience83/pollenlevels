@@ -1,12 +1,13 @@
 # Tooling aligned to the Home Assistant Python floor (>=3.14.0).
-# NOTE: We purposely DO NOT set [tool.black].required-version; CI pins Black/Ruff
-# to the current minor series. If you ever need an exact lock, set both:
+# NOTE: We purposely DO NOT set [tool.black].required-version; CI installs
+# Black/Ruff from minimum supported versions to keep tooling forward-compatible.
+# If you ever need an exact lock, set both:
 #   - pyproject: required-version = "<desired black version>"
 #   - CI: pip install "black==<desired black version>" "ruff==<desired ruff version>"
 
 [project]
 name = "pollenlevels"
-version = "3.0.0b3"
+version = "3.0.0b4"
 # Enforce the runtime floor aligned with Home Assistant Python 3.14 images.
 requires-python = ">=3.14"
 
@@ -36,9 +37,6 @@ known-first-party = ["custom_components.pollenlevels"]
 combine-as-imports = true
 
 [tool.pytest.ini_options]
-# Use importlib mode to avoid test module name collisions in environments
-# where unrelated packages (or plugins) ship a top-level "tests" package.
-addopts = ["--import-mode=importlib"]
 testpaths = ["tests"]
 
 # --- Optional hardening (uncomment if needed) ---
