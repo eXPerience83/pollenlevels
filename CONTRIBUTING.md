@@ -9,3 +9,7 @@
 - Do not add or rely on a `strings.json` file; translation updates should flow from `en.json` to the other language files.
 - Do not introduce `%key:` translation references in this custom repository.
 - Preserve the existing coordinator-driven architecture and avoid introducing blocking I/O in the event loop.
+- Before submitting changes, run:
+  - `ruff check --fix --select I && ruff check` — lint and import ordering.
+  - `black .` — code formatting.
+  - `pytest tests/` — unit tests.

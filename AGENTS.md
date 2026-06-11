@@ -2,8 +2,8 @@
 
 ## Tooling
 - Tooling (CI, lint, format) runs on **Python 3.14**. The `pyproject.toml` targets packaging/tooling and also pins `requires-python = ">=3.14"`. All code under `custom_components/pollenlevels/` targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
-- Format code with Black (line length 88, target-version `py314`) pinned at `black==25.*`.
-- Lint and sort imports with Ruff targeting `py314`, pinned at `ruff==0.14.*`, matching the configuration in `pyproject.toml`.
+- Format code with Black (line length 88, target-version `py314`) with minimum `black>=25` (enforced via CI; version pin not stored in `pyproject.toml`).
+- Lint and sort imports with Ruff targeting `py314`, with minimum `ruff>=0.14` (enforced via CI), matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.
 
@@ -53,3 +53,7 @@
 
 ## Verification
 - Ensure the integration still loads within Home Assistant with the existing config flows and maintains parity with the current logic paths for entity updates and notifications.
+- Before submitting changes, run the following checks:
+  - `ruff check --fix --select I && ruff check` — lint and import ordering.
+  - `black .` — code formatting.
+  - `pytest tests/` — unit tests.
