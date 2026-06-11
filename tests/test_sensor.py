@@ -927,6 +927,7 @@ def test_type_sensor_preserves_source_with_single_day(
 
     assert entry["source"] == "type"
     assert entry["displayName"] == "Grass"
+    assert entry["advice"] == ["Limit outdoor activity"]
     assert entry["forecast"] == []
     assert entry["tomorrow_has_index"] is False
     assert entry["tomorrow_value"] is None
@@ -1438,7 +1439,7 @@ def test_plant_sensor_includes_forecast_attributes(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Plant sensors expose forecast attributes and derived convenience fields."""
+    """Plant sensors expose forecast attributes without type-level health advice."""
 
     payload = {
         "regionCode": "us_co_denver",
@@ -1450,7 +1451,6 @@ def test_plant_sensor_includes_forecast_attributes(
                         "code": "ragweed",
                         "displayName": "Ragweed",
                         "inSeason": True,
-                        "healthRecommendations": ["Limit outdoor exposure"],
                         "indexInfo": {
                             "value": 2,
                             "category": "LOW",
@@ -1475,7 +1475,6 @@ def test_plant_sensor_includes_forecast_attributes(
                         "code": "ragweed",
                         "displayName": "Ragweed",
                         "inSeason": True,
-                        "healthRecommendations": ["Carry medication"],
                         "indexInfo": {
                             "value": 4,
                             "category": "HIGH",
@@ -1492,7 +1491,6 @@ def test_plant_sensor_includes_forecast_attributes(
                         "code": "ragweed",
                         "displayName": "Ragweed",
                         "inSeason": False,
-                        "healthRecommendations": ["Expect relief"],
                         "indexInfo": {
                             "value": 1,
                             "category": "LOW",
@@ -1533,6 +1531,7 @@ def test_plant_sensor_includes_forecast_attributes(
 
     assert entry["source"] == "plant"
     assert entry["value"] == 2
+    assert entry["advice"] is None
     assert len(entry["forecast"]) == 2
     assert entry["forecast"][0]["offset"] == 1
     assert entry["forecast"][0]["value"] == 4
@@ -1547,6 +1546,45 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["trend"] == "up"
     assert entry["expected_peak"]["offset"] == 1
     assert entry["expected_peak"]["value"] == 4
+
+
+def test_plant_sensor_preserves_future_health_recommendations_if_present(
+    sensor_modules: SensorModules,
+) -> None:
+    """Plant advice is preserved only when a payload explicitly provides it."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 6, "day": 1},
+                "plantInfo": [
+                    {
+                        "code": "ragweed",
+                        "displayName": "Ragweed",
+                        "healthRecommendations": ["Future plant-specific advice"],
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert data["plants_ragweed"]["advice"] == ["Future plant-specific advice"]
 
 
 @pytest.mark.parametrize(

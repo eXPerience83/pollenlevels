@@ -44,8 +44,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Configurable updates** — Change update interval, language, forecast days, and per-day sensors without reinstalling.  
 - **Manual refresh** — Use the per-location **Update now** button entity to refresh a single configured location, or call the global `pollenlevels.force_update` service to refresh all configured locations.
 - **Last Updated sensor** — Shows timestamp of last successful update.
-- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`,
-  `color_hex`, `color_rgb`, and plant details.
+- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`
+  for pollen types, `color_hex`, `color_rgb`, and plant details.
 - **Resilient startup** — Retries setup automatically when the first API response lacks daily pollen info (`dailyInfo` types/plants), ensuring entities appear once data is ready.
 
 ---
@@ -154,6 +154,15 @@ Diagnostics include two support summaries for the v3 migration:
 
 Diagnostics redact the API key and only include approximate coordinates rounded
 to 1 decimal for support purposes.
+
+---
+
+## Health recommendations
+
+Google Pollen API currently provides health recommendations at pollen type level
+(`GRASS`, `TREE`, `WEED`). Plant sensors expose plant-specific index and
+description data when available, but health advice is usually not provided for
+individual plants.
 
 ---
 
