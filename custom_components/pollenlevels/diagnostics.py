@@ -282,7 +282,6 @@ async def async_get_config_entry_diagnostics(
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
     locations: dict[str, Any] = {}
     stale_location_ids: list[str] = []
-    first_location_payload: dict[str, Any] | None = None
     coordinate_pairs: list[tuple[Any, Any]] = []
     api_key = data.get(CONF_API_KEY)
     api_key_text = api_key if isinstance(api_key, str) else None
@@ -337,8 +336,6 @@ async def async_get_config_entry_diagnostics(
             }
             location_payload["request_params_example"] = request_params_example
             locations[subentry_id] = location_payload
-            if first_location_payload is None:
-                first_location_payload = location_payload
 
     # Final diagnostics payload (with secrets redacted)
     diag: dict[str, Any] = {
@@ -364,14 +361,6 @@ async def async_get_config_entry_diagnostics(
         },
         "registry_summary": _registry_summary(hass, entry),
     }
-    if first_location_payload is not None:
-        diag["approximate_location"] = first_location_payload["approximate_location"]
-        diag["coordinator"] = first_location_payload["coordinator"]
-        diag["forecast_summary"] = first_location_payload["forecast_summary"]
-        diag["daily_summary"] = first_location_payload["daily_summary"]
-        diag["request_params_example"] = first_location_payload[
-            "request_params_example"
-        ]
 
     # NOTE: Home Assistant's `async_redact_data` is a synchronous callback helper
     # despite its `async_` prefix. Do not `await` it.
