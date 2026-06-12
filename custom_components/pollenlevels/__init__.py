@@ -386,7 +386,7 @@ async def async_setup_entry(
 
     try:
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    except ConfigEntryAuthFailed, ConfigEntryNotReady:
+    except (ConfigEntryAuthFailed, ConfigEntryNotReady):
         entry.runtime_data = None
         raise
     except Exception as err:

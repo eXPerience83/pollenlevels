@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Konfiguration af pollenniveauer",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Indtast din Google API Key ([hent den her]({api_key_url})) og gennemgå anbefalet praksis ([anbefalet praksis]({restricting_api_keys_url})). Vælg din placering på kortet, opdateringsinterval (timer) og sprogkode for API-svaret. Pollen Levels anmoder altid om den maksimale prognosehorisont på 5 dage.",
         "data": {
           "api_key": "API-nøgle",
           "name": "Navn",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Indstillinger",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Skift opdateringsinterval og API-sprog for {title}. Pollen Levels anmoder altid om den maksimale prognosehorisont på 5 dage.",
         "data": {
           "update_interval": "Opdateringsinterval (timer)",
           "language_code": "Sprogkode for API-svar"
@@ -158,8 +158,8 @@
       "description": "Pollen Levels fandt ugyldige gemte placeringsdata for {entry_title}: {location_title}. Slet og opret den berørte placering igen, eller gendan en Home Assistant-sikkerhedskopi før den ugyldige placering blev oprettet."
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "Prognosesensorer pr. dag blev fjernet",
+      "description": "Pollen Levels opretter ikke længere separate prognoseenheder, der slutter på _d1 eller _d2. Prognosedata er stadig tilgængelige på de grundlæggende pollensensorer via attributterne forecast, tomorrow_* og d2_*. Opdater dashboards, automatiseringer, skabeloner og brugerdefinerede kort, der stadig henviser til de gamle enheder."
     }
   }
 }

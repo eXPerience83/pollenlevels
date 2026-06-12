@@ -154,6 +154,7 @@ Create a Home Assistant backup before upgrading. Downgrading to Pollen Levels
 ---
 
 ## 13. Can I choose how many forecast days Pollen Levels requests?
+
 No. Starting with v3 RC1, Pollen Levels always requests 5 forecast days. This
 keeps the integration simpler and gives all existing sensors the maximum
 available forecast attributes.
@@ -164,6 +165,7 @@ No base sensors are renamed or recreated.
 ---
 
 ## 14. Where did my `_d1` and `_d2` forecast sensors go?
+
 Pollen Levels no longer creates separate per-day forecast entities. Future
 forecast data is available on the base pollen sensors through the `forecast`,
 `tomorrow_*` and `d2_*` attributes.

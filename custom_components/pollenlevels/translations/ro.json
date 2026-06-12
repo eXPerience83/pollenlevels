@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configurare Niveluri de Polen",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Introdu Google API Key ([obține-o aici]({api_key_url})) și consultă bunele practici ([bune practici]({restricting_api_keys_url})). Selectează locația pe hartă, intervalul de actualizare (ore) și codul de limbă al răspunsului API. Pollen Levels solicită întotdeauna orizontul maxim de prognoză de 5 zile.",
         "data": {
           "api_key": "Cheie API",
           "name": "Nume",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opțiuni",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Schimbă intervalul de actualizare și limba API pentru {title}. Pollen Levels solicită întotdeauna orizontul maxim de prognoză de 5 zile.",
         "data": {
           "update_interval": "Interval de actualizare (ore)",
           "language_code": "Codul limbii pentru răspunsul API"
@@ -158,8 +158,8 @@
       "description": "Pollen Levels a găsit date de locație stocate invalide pentru {entry_title}: {location_title}. Ștergeți și recreați locația afectată sau restaurați o copie de rezervă Home Assistant dinaintea creării locației invalide."
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "Senzorii de prognoză pe zi au fost eliminați",
+      "description": "Pollen Levels nu mai creează entități de prognoză separate care se termină în _d1 sau _d2. Datele de prognoză rămân disponibile pe senzorii de polen de bază prin atributele forecast, tomorrow_* și d2_*. Actualizează tablourile de bord, automatizările, șabloanele și cardurile personalizate care încă fac referire la entitățile vechi."
     }
   }
 }

@@ -79,7 +79,7 @@ def _location_unique_id(lat: Any, lon: Any) -> str | None:
     try:
         lat_float = float(lat)
         lon_float = float(lon)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return None
     if not _coordinates_are_valid(lat_float, lon_float):
         return None
@@ -539,7 +539,7 @@ def _migrate_entity_registry_for_merged_entry(
         from homeassistant.helpers import entity_registry as er
 
         registry = er.async_get(hass)
-    except ImportError, RuntimeError, KeyError, AttributeError:
+    except (ImportError, RuntimeError, KeyError, AttributeError):
         return True, 0
 
     migrated = True
@@ -598,7 +598,7 @@ def _migrate_device_registry_for_merged_entry(
         from homeassistant.helpers import device_registry as dr
 
         registry = dr.async_get(hass)
-    except ImportError, RuntimeError, KeyError, AttributeError:
+    except (ImportError, RuntimeError, KeyError, AttributeError):
         return True, 0, 0
 
     migrated = True

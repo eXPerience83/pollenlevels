@@ -374,6 +374,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
 
     english = _load_translation(TRANSLATIONS_DIR / "en.json")
     localized_paths = {
+        "config.step.user.description",
+        "options.step.init.description",
         "config.error.already_configured",
         "config_subentries.location.title",
         "config_subentries.location.entry_type",
@@ -389,6 +391,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
         "config_subentries.location.error.quota_exceeded",
         "config_subentries.location.error.unknown",
         "config_subentries.location.abort.reconfigure_successful",
+        "issues.per_day_forecast_sensors_removed.title",
+        "issues.per_day_forecast_sensors_removed.description",
     }
 
     problems: list[str] = []

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Pollen szintek – beállítás",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Add meg a Google API Key értékét ([itt szerezheted be]({api_key_url})), és nézd át a bevált gyakorlatokat ([bevált gyakorlatok]({restricting_api_keys_url})). Válaszd ki a helyet a térképen, a frissítési időközt (órában) és az API-válasz nyelvi kódját. A Pollen Levels mindig a maximális, 5 napos előrejelzési időtávot kéri le.",
         "data": {
           "api_key": "API-kulcs",
           "name": "Név",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Beállítások",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Módosítsd a frissítési időközt és az API nyelvét ehhez: {title}. A Pollen Levels mindig a maximális, 5 napos előrejelzési időtávot kéri le.",
         "data": {
           "update_interval": "Frissítési időköz (óra)",
           "language_code": "API-válasz nyelvi kódja"
@@ -158,8 +158,8 @@
       "description": "A Pollen Levels érvénytelen tárolt helyadatokat talált a következőhöz: {entry_title}: {location_title}. Törölje és hozza létre újra az érintett helyet, vagy állítson vissza egy Home Assistant biztonsági mentést az érvénytelen hely létrehozása előtti időből."
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "A napi előrejelzési szenzorok eltávolításra kerültek",
+      "description": "A Pollen Levels már nem hoz létre külön előrejelzési entitásokat _d1 vagy _d2 végződéssel. Az előrejelzési adatok továbbra is elérhetők az alap pollenszenzorokon a forecast, tomorrow_* és d2_* attribútumokon keresztül. Frissítsd azokat az irányítópultokat, automatizálásokat, sablonokat és egyéni kártyákat, amelyek még a régi entitásokra hivatkoznak."
     }
   }
 }

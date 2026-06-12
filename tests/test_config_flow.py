@@ -246,7 +246,7 @@ class _StubSchema:
 def _latitude(value=None):
     try:
         lat = float(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         # Mirror Home Assistant's cv.latitude behavior for invalid types.
         raise _StubInvalid("latitude_type") from None
     if lat < -90 or lat > 90:
@@ -257,7 +257,7 @@ def _latitude(value=None):
 def _longitude(value=None):
     try:
         lon = float(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         # Mirror Home Assistant's cv.longitude behavior for invalid types.
         raise _StubInvalid("longitude_type") from None
 
@@ -1605,7 +1605,9 @@ def test_validate_input_http_429_whitespace_redacted_uses_quota_fallback(
         error=config_flow_stubs.config_flow.PollenQuotaExceededError("HTTP 429"),
     )
     monkeypatch.setattr(
-        config_flow_stubs.config_flow, "redact_api_key", lambda *_args, **_kwargs: "   "
+        config_flow_stubs.config_flow,
+        "_redact_validation_error",
+        lambda *_args, **_kwargs: "   ",
     )
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()
@@ -1636,7 +1638,9 @@ def test_validate_input_update_failed_whitespace_redacted_uses_connect_fallback(
         config_flow_stubs, monkeypatch, error=config_flow_stubs.UpdateFailed("HTTP 500")
     )
     monkeypatch.setattr(
-        config_flow_stubs.config_flow, "redact_api_key", lambda *_args, **_kwargs: "   "
+        config_flow_stubs.config_flow,
+        "_redact_validation_error",
+        lambda *_args, **_kwargs: "   ",
     )
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()
@@ -1671,7 +1675,9 @@ def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
         error=config_flow_stubs.config_flow.PollenQuotaExceededError("HTTP 429"),
     )
     monkeypatch.setattr(
-        config_flow_stubs.config_flow, "redact_api_key", lambda *_args, **_kwargs: ""
+        config_flow_stubs.config_flow,
+        "_redact_validation_error",
+        lambda *_args, **_kwargs: "",
     )
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()

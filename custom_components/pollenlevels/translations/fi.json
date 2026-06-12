@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Siitepölytason asetukset",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Anna Google API Key ([hanki se täältä]({api_key_url})) ja tarkista parhaat käytännöt ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi. Pollen Levels pyytää aina enimmäismäärän eli 5 päivän ennustehorisontin.",
         "data": {
           "api_key": "API-avain",
           "name": "Nimi",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Asetukset",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Muuta kohteen {title} päivitysväliä ja API-kieltä. Pollen Levels pyytää aina enimmäismäärän eli 5 päivän ennustehorisontin.",
         "data": {
           "update_interval": "Päivitysväli (tunnit)",
           "language_code": "API-vastauksen kielikoodi"
@@ -158,8 +158,8 @@
       "description": "Pollen Levels löysi virheellisiä tallennettuja sijaintitietoja kohteelle {entry_title}: {location_title}. Poista ja luo kyseinen sijainti uudelleen tai palauta Home Assistant -varmuuskopio ajalta ennen virheellisen sijainnin luomista."
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "Päiväkohtaiset ennustesensorit poistettiin",
+      "description": "Pollen Levels ei enää luo erillisiä ennuste-entiteettejä, joiden loppu on _d1 tai _d2. Ennustetiedot ovat edelleen saatavilla perussiitepölysensoreissa attribuuttien forecast, tomorrow_* ja d2_* kautta. Päivitä koontinäytöt, automaatiot, mallit ja mukautetut kortit, jotka viittaavat vielä vanhoihin entiteetteihin."
     }
   }
 }

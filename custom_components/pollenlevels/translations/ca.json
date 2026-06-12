@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Configuració de Nivells de pol·len",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Introdueix la teva clau API de Google ([obtén-la aquí]({api_key_url})) i revisa les bones pràctiques ([bones pràctiques]({restricting_api_keys_url})). Selecciona la ubicació al mapa, l'interval d'actualització (hores) i el codi d'idioma de la resposta de l'API. Pollen Levels sempre sol·licita l'horitzó màxim de previsió de 5 dies.",
         "data": {
           "api_key": "Clau API",
           "name": "Nom",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcions",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Canvia l'interval d'actualització i l'idioma de l'API per a {title}. Pollen Levels sempre sol·licita l'horitzó màxim de previsió de 5 dies.",
         "data": {
           "update_interval": "Interval d’actualització (hores)",
           "language_code": "Codi d’idioma de la resposta de l’API"
@@ -158,8 +158,8 @@
       "description": "Pollen Levels ha trobat dades d'ubicació emmagatzemades no vàlides per a {entry_title}: {location_title}. Elimina i torna a crear la ubicació afectada, o restaura una còpia de seguretat de Home Assistant anterior a la creació de la ubicació no vàlida."
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "S'han eliminat els sensors de previsió per dia",
+      "description": "Pollen Levels ja no crea entitats de previsió separades acabades en _d1 o _d2. Les dades de previsió continuen disponibles als sensors base de pol·len mitjançant els atributs forecast, tomorrow_* i d2_*. Actualitza els taulers, automatitzacions, plantilles i targetes personalitzades que encara facin referència a les entitats antigues."
     }
   }
 }

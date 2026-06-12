@@ -278,7 +278,7 @@ def parse_finite_float(value: Any) -> float | None:
 
     try:
         parsed = float(value)
-    except TypeError, ValueError, OverflowError:
+    except (TypeError, ValueError, OverflowError):
         return None
 
     if not math.isfinite(parsed):
@@ -322,7 +322,7 @@ def safe_parse_int(value: Any) -> int | None:
 
     try:
         parsed_float = float(value)
-    except TypeError, ValueError, OverflowError:
+    except (TypeError, ValueError, OverflowError):
         return None
 
     if not math.isfinite(parsed_float) or not parsed_float.is_integer():

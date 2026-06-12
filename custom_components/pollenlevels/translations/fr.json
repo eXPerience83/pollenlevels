@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuration",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Saisissez votre Google API Key ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse API. Pollen Levels demande toujours l’horizon de prévision maximal de 5 jours.",
         "data": {
           "api_key": "Clé API",
           "name": "Nom",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Modifiez l’intervalle de mise à jour et la langue de l’API pour {title}. Pollen Levels demande toujours l’horizon de prévision maximal de 5 jours.",
         "data": {
           "update_interval": "Intervalle de mise à jour (heures)",
           "language_code": "Code de langue pour la réponse de l’API"
@@ -158,8 +158,8 @@
       "description": "Pollen Levels a trouvé des données de localisation stockées invalides pour {entry_title} : {location_title}. Supprimez et recréez l'emplacement concerné, ou restaurez une sauvegarde Home Assistant antérieure à la création de l'emplacement invalide."
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "Les capteurs de prévision par jour ont été supprimés",
+      "description": "Pollen Levels ne crée plus d’entités de prévision séparées se terminant par _d1 ou _d2. Les données de prévision restent disponibles sur les capteurs de pollen de base via les attributs forecast, tomorrow_* et d2_*. Mettez à jour les tableaux de bord, automatisations, modèles et cartes personnalisées qui font encore référence aux anciennes entités."
     }
   }
 }

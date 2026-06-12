@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Налаштування рівнів пилку",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Введіть свій Google API Key ([отримати тут]({api_key_url})) і перегляньте найкращі практики ([найкращі практики]({restricting_api_keys_url})). Виберіть місцезнаходження на мапі, інтервал оновлення (у годинах) і код мови відповіді API. Pollen Levels завжди запитує максимальний 5-денний горизонт прогнозу.",
         "data": {
           "api_key": "Ключ API",
           "name": "Ім'я",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Параметри",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "Змініть інтервал оновлення та мову API для {title}. Pollen Levels завжди запитує максимальний 5-денний горизонт прогнозу.",
         "data": {
           "update_interval": "Інтервал оновлення (у годинах)",
           "language_code": "Код мови відповіді API"
@@ -158,8 +158,8 @@
       "description": "Pollen Levels виявив недійсні збережені дані розташування для {entry_title}: {location_title}. Видаліть і створіть заново відповідне розташування або відновіть резервну копію Home Assistant, створену до появи недійсного розташування."
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "Денні сенсори прогнозу було видалено",
+      "description": "Pollen Levels більше не створює окремі сутності прогнозу, що закінчуються на _d1 або _d2. Дані прогнозу й надалі доступні в базових сенсорах пилку через атрибути forecast, tomorrow_* і d2_*. Оновіть панелі, автоматизації, шаблони та користувацькі картки, які все ще посилаються на старі сутності."
     }
   }
 }

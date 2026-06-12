@@ -36,7 +36,7 @@ def _normalize_channel(v: Any) -> int | None:
     """
     try:
         f = float(v)
-    except TypeError, ValueError, OverflowError:
+    except (TypeError, ValueError, OverflowError):
         return None
     if not math.isfinite(f):
         return None

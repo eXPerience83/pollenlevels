@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "花粉水平配置",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "输入你的 Google API Key（[在此获取]({api_key_url})），并查看最佳实践（[最佳实践]({restricting_api_keys_url})）。在地图上选择位置、更新间隔（小时）以及 API 响应语言代码。Pollen Levels 始终请求最长 5 天的预报范围。",
         "data": {
           "api_key": "API 密钥",
           "name": "名称",
@@ -52,7 +52,7 @@
     "step": {
       "init": {
         "title": "Pollen Levels – 选项",
-        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
+        "description": "更改 {title} 的更新间隔和 API 语言。Pollen Levels 始终请求最长 5 天的预报范围。",
         "data": {
           "update_interval": "更新间隔（小时）",
           "language_code": "API 响应语言代码"
@@ -158,8 +158,8 @@
       "description": "Pollen Levels 发现 {entry_title}：{location_title} 的存储位置数据无效。请删除并重新创建受影响的设置，或恢复在创建无效位置之前的 Home Assistant 备份。"
     },
     "per_day_forecast_sensors_removed": {
-      "title": "Per-day forecast sensors were removed",
-      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
+      "title": "已移除按天预报传感器",
+      "description": "Pollen Levels 不再创建以 _d1 或 _d2 结尾的独立预报实体。预报数据仍可通过基础花粉传感器上的 forecast、tomorrow_* 和 d2_* 属性获得。请更新仍引用旧实体的仪表板、自动化、模板和自定义卡片。"
     }
   }
 }
