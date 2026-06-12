@@ -246,7 +246,7 @@ You need a valid Google Cloud API key with access to the **Maps Pollen API**.
 The setup form also links directly to the Google documentation for obtaining
 an API key and best-practice restrictions.
 
-👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to avoid exhausting your free tier.
+👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to monitor and control Google Cloud billing.
 
 HTTP referrer (website) restrictions are intended for browser-based apps and
 are not supported by this integration.

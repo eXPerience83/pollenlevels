@@ -1,10 +1,18 @@
 # ❓ Frequently Asked Questions (FAQ)
-*Last verified: 2026-05-18 (UTC). Pricing and quota limits may change; always confirm the current values in the official Google Maps Platform pages linked below.*
+*Last verified: 2026-06-12 (UTC). Pricing and quota limits may change; always confirm the current values in the official Google Maps Platform pages linked below.*
 
 ## 1. How many requests can I make to the Google Maps Pollen API?
-As of **March 1, 2025**, Google Maps Platform applies **free monthly usage caps per SKU**.  
-For the **Pollen API (SKU: “Pollen Usage”, Pro)** the **free cap is 5,000 requests/month**. Beyond the free cap, usage is billed pay-as-you-go per 1,000 requests.  
-**Pricing list (official):** https://developers.google.com/maps/billing-and-pricing/pricing  
+Google's current Pollen API documentation describes pay-as-you-go pricing per
+request, based on usage volume tiers. The old Google Maps Platform monthly
+credit ended on **February 28, 2025**, so you should treat Pollen API usage as
+billable unless your own Google Cloud billing account, credits or contract say
+otherwise.
+
+Use Google Cloud quotas, budgets and alerts to control spend. The Pollen API
+currently documents a maximum **6,000 queries per minute (QPM)** limit for each
+API method, but that is a service limit, not an included usage allowance.
+
+**Pricing list (official):** https://developers.google.com/maps/billing-and-pricing/pricing
 **Pollen usage & billing page:** https://developers.google.com/maps/documentation/pollen/usage-and-billing
 
 **Quick links**
@@ -14,7 +22,10 @@ For the **Pollen API (SKU: “Pollen Usage”, Pro)** the **free cap is 5,000 re
 ---
 
 ## 2. Does this integration consume a lot of API calls?
-No. By default the integration fetches every **6 hours** (~**4 requests/day**), which is roughly **~120 requests/month per location**, well below the free cap.
+No. By default the integration fetches every **6 hours** (~**4 requests/day**),
+which is roughly **~120 requests/month per location**. Your actual cost depends
+on Google's current Pollen API pricing, your configured locations, manual
+refreshes, quota settings and any billing credits on your account.
 
 ---
 
@@ -28,7 +39,7 @@ Both methods request an immediate coordinator refresh. The normal scheduled poll
 
 ## 4. Why am I getting “Invalid API Key” or “Quota Exceeded” errors?
 - **Invalid API Key**: Confirm the key is correct and that the **Pollen API** is enabled in your project.  
-- **Quota Exceeded**: You may have hit **your custom daily/minute caps** (see §10) or the **monthly free cap**.  
+- **Quota Exceeded**: You may have hit **your custom daily/minute caps** (see §10) or another Google Cloud quota/billing limit on the project.
   **Check/adjust quotas**: https://console.cloud.google.com/google/maps-apis/quotas  
 
 > **Note:** **Budgets/alerts don’t stop usage**; they only notify.  
@@ -51,8 +62,8 @@ This controls localized fields returned by the API.
 ## 7. How can I reduce API usage?
 - Increase the update interval (e.g., every 12 or 24 hours).
 - Avoid excessive manual refreshes.
-- **Set daily/minute caps** (see §10).
-- Monitor usage and set alerts in Google Cloud.
+- **Set daily/minute quota caps** (see §10).
+- Monitor usage and set Google Cloud budgets/alerts for the billing account.
 
 ---
 
@@ -66,7 +77,7 @@ The API key is stored securely by Home Assistant and is **never shared** with th
 
 ---
 
-## 10. Which QUOTAS should I cap in Google Cloud Console (to stay within the free tier)?
+## 10. Which QUOTAS should I cap in Google Cloud Console?
 Open **Google Cloud Console → Google Maps Platform → Quotas** and select **Pollen API**.  
 Direct link: https://console.cloud.google.com/google/maps-apis/quotas
 
@@ -84,10 +95,13 @@ Typical quota items you’ll see (names may vary slightly by locale):
 > **Safe setting:** You can set **HeatMap** quotas to **0** (or the minimum allowed) to block tile usage and avoid accidental billing.
 
 **Recommended hard caps (safe defaults):**
-> **Caution:** Quota caps are a useful safety guard, but Google notes they may not be enforced with absolute precision due to latency. Keep a buffer below the free cap instead of setting limits right at the monthly maximum.
+> **Caution:** Quota caps are a useful safety guard, but Google notes they may
+> not be enforced with absolute precision due to latency. Keep conservative
+> limits and monitor billing instead of relying on a cap as your only guardrail.
 
-- **Forecast Usage per day** → **150**  
-  (≈ 4,500/month, comfortably under the 5,000 free cap; increase only if you have multiple locations or frequent manual refreshes)
+- **Forecast Usage per day** → choose a cap that matches your budget and number
+  of locations. For example, one location at the default 6-hour interval uses
+  about 4 forecast requests/day before manual refreshes.
 - **Forecast Usage per minute** → **10**
 - **Forecast Usage per minute per user** → **10**
 - **HeatMap quotas** → **0** (or minimum allowed) to disable tiles.
