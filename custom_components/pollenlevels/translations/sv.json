@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Konfiguration av pollennivåer",
-        "description": "Ange din Google API-nyckel ([hämta den här]({api_key_url})) och läs bästa praxis ([bästa praxis]({restricting_api_keys_url})). Välj din plats på kartan, uppdateringsintervallet (timmar) och språkkoden för API-svaret. Du kan också ange prognosdagar och omfånget för sensorer per dag (TYPER).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "API-nyckel",
           "name": "Namn",
           "location": "Plats",
           "update_interval": "Uppdateringsintervall (timmar)",
-          "language_code": "Språkkod för API-svar",
-          "forecast_days": "Prognosdagar (1–5)",
-          "create_forecast_sensors": "Omfång för sensorer per dag (TYPER)"
+          "language_code": "Språkkod för API-svar"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Kvoten har överskridits\n\n{error_message}",
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
-      "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "invalid_coordinates": "Välj en giltig plats på kartan.",
       "unknown": "Okänt fel",
       "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
-      "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5.",
       "already_configured": "Den här platsen är redan konfigurerad.",
       "api_key_already_configured": "Den här API-nyckeln är redan konfigurerad."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Alternativ",
-        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för {title}.\nAlternativ för sensorer per dag (TYPER): Endast idag (none), Till och med i morgon (D+1), Till och med i övermorgon (D+2; skapar både D+1- och D+2-sensorer).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Uppdateringsintervall (timmar)",
-          "language_code": "Språkkod för API-svar",
-          "forecast_days": "Prognosdagar (1–5)",
-          "create_forecast_sensors": "Omfång för sensorer per dag (TYPER)"
+          "language_code": "Språkkod för API-svar"
         }
       }
     },
     "error": {
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
-      "empty": "Detta fält får inte vara tomt",
-      "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "unknown": "Okänt fel",
-      "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
-      "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5."
+      "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Ogiltig lagrad Pollen Levels-plats",
       "description": "Pollen Levels hittade ogiltiga lagrade platsdata för {entry_title}: {location_title}. Ta bort och återskapa den berörda platsen eller återställ en Home Assistant-säkerhetskopia från före den ogiltiga platsen skapades."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

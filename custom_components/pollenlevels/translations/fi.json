@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Siitepölytason asetukset",
-        "description": "Syötä Google API -avaimesi ([hanki se täältä]({api_key_url})) ja tutustu parhaisiin käytäntöihin ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi. Voit myös määrittää ennustepäivät ja päiväsensorien laajuuden (TYYPIT).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "API-avain",
           "name": "Nimi",
           "location": "Sijainti",
           "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi",
-          "forecast_days": "Ennustepäivät (1–5)",
-          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
+          "language_code": "API-vastauksen kielikoodi"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
       "unknown": "Tuntematon virhe",
       "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
-      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5.",
       "already_configured": "Tämä sijainti on jo määritetty.",
       "api_key_already_configured": "Tämä API-avain on jo määritetty."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Asetukset",
-        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2; luo sekä D+1- että D+2-sensorit).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi",
-          "forecast_days": "Ennustepäivät (1–5)",
-          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
+          "language_code": "API-vastauksen kielikoodi"
         }
       }
     },
     "error": {
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
-      "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "unknown": "Tuntematon virhe",
-      "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
-      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5."
+      "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Virheellinen tallennettu Pollen Levels -sijainti",
       "description": "Pollen Levels löysi virheellisiä tallennettuja sijaintitietoja kohteelle {entry_title}: {location_title}. Poista ja luo kyseinen sijainti uudelleen tai palauta Home Assistant -varmuuskopio ajalta ennen virheellisen sijainnin luomista."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

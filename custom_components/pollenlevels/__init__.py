@@ -20,26 +20,24 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .client import GooglePollenApiClient
 from .const import (
     CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS,
+    CONF_CREATE_FORECAST_SENSORS as CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS as CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LEGACY_ENTRY_ID,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
-    DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    MAX_FORECAST_DAYS,
     MAX_UPDATE_INTERVAL_HOURS,
-    MIN_FORECAST_DAYS,
     MIN_UPDATE_INTERVAL_HOURS,
     SUBENTRY_TYPE_LOCATION,
 )
 from .coordinator import PollenDataUpdateCoordinator
 from .issue_helpers import (
     create_invalid_stored_location_issue,
+    create_per_day_forecast_sensors_removed_issue,
     delete_entry_invalid_stored_location_issue,
     invalid_stored_location_issue_id as invalid_stored_location_issue_id,
 )
@@ -53,13 +51,13 @@ from .runtime import (
     PollenLevelsRuntimeData,
     PollenLocationRuntime,
 )
-from .sensor import ForecastSensorMode
 from .util import (
     api_key_unique_id as api_key_unique_id,
-    normalize_sensor_mode,
+    has_legacy_per_day_option,
     redact_sensitive_values,
     safe_parse_int,
     stale_runtime_location_filter,
+    strip_legacy_forecast_options,
     validate_location_pair,
 )
 
@@ -70,6 +68,25 @@ _LOGGER = logging.getLogger(__name__)
 TARGET_ENTRY_VERSION = 6
 _FORCE_UPDATE_CONCURRENCY_LIMIT = 1
 PLATFORMS = ["sensor", "button"]
+
+
+def _drop_legacy_parent_options(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Remove obsolete parent data/options from earlier v3 prereleases."""
+    data = dict(entry.data or {})
+    options = dict(entry.options or {})
+    found_per_day_option = has_legacy_per_day_option(data, options)
+    cleaned_data = strip_legacy_forecast_options(data)
+    cleaned = strip_legacy_forecast_options(options)
+    updates: dict[str, Any] = {}
+    if cleaned_data != data:
+        updates["data"] = cleaned_data
+    if cleaned != options:
+        updates["options"] = cleaned
+    if not updates:
+        return found_per_day_option
+
+    hass.config_entries.async_update_entry(entry, **updates)
+    return found_per_day_option
 
 
 def _iter_location_subentries(
@@ -247,6 +264,10 @@ async def async_setup_entry(
         )
         return True
 
+    legacy_per_day_option_detected = _drop_legacy_parent_options(hass, entry)
+    if legacy_per_day_option_detected:
+        create_per_day_forecast_sensors_removed_issue(hass)
+
     options = entry.options or {}
 
     parsed_hours = safe_parse_int(
@@ -257,32 +278,7 @@ async def async_setup_entry(
     )
     hours = parsed_hours if parsed_hours is not None else DEFAULT_UPDATE_INTERVAL
     hours = max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, hours))
-    parsed_forecast_days = safe_parse_int(
-        options.get(
-            CONF_FORECAST_DAYS,
-            entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-        )
-    )
-    forecast_days = (
-        parsed_forecast_days
-        if parsed_forecast_days is not None
-        else DEFAULT_FORECAST_DAYS
-    )
-    forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
     language = options.get(CONF_LANGUAGE_CODE, entry.data.get(CONF_LANGUAGE_CODE))
-    raw_mode = options.get(
-        CONF_CREATE_FORECAST_SENSORS,
-        entry.data.get(CONF_CREATE_FORECAST_SENSORS, ForecastSensorMode.NONE),
-    )
-    normalized_mode = normalize_sensor_mode(raw_mode, _LOGGER)
-    try:
-        mode = ForecastSensorMode(normalized_mode)
-    except ValueError, TypeError:
-        mode = ForecastSensorMode.NONE
-    create_d1 = (
-        mode in (ForecastSensorMode.D1, ForecastSensorMode.D1_D2) and forecast_days >= 2
-    )
-    create_d2 = mode == ForecastSensorMode.D1_D2 and forecast_days >= 3
 
     api_key = entry.data.get(CONF_API_KEY)
     if not isinstance(api_key, str) or not api_key.strip():
@@ -344,9 +340,6 @@ async def async_setup_entry(
             subentry_id=subentry_id,
             entry_title=title,
             legacy_entry_id=legacy_entry_id,
-            forecast_days=forecast_days,
-            create_d1=create_d1,
-            create_d2=create_d2,
             client=client,
         )
 

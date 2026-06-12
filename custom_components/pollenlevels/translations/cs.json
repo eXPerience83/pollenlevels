@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Konfigurace úrovní pylu",
-        "description": "Zadejte svůj Google API klíč ([získejte jej zde]({api_key_url})) a přečtěte si doporučené postupy ([doporučené postupy]({restricting_api_keys_url})). Vyberte polohu na mapě, interval aktualizace (v hodinách) a jazykový kód odpovědi API. Můžete také nastavit dny předpovědi a rozsah senzorů po dnech (TYPY).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "Klíč API",
           "name": "Název",
           "location": "Poloha",
           "update_interval": "Interval aktualizace (hodiny)",
-          "language_code": "Kód jazyka odpovědi API",
-          "forecast_days": "Dny předpovědi (1–5)",
-          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
+          "language_code": "Kód jazyka odpovědi API"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Překročena kvóta\n\n{error_message}",
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
       "empty": "Toto pole nemůže být prázdné",
-      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "invalid_coordinates": "Vyberte platné umístění na mapě.",
       "unknown": "Neznámá chyba",
       "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
-      "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5.",
       "already_configured": "Toto umístění je již nakonfigurováno.",
       "api_key_already_configured": "Tento klíč API je již nakonfigurován."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Možnosti",
-        "description": "Změňte interval aktualizace, jazyk API, dny předpovědi a senzory po dnech pro {title}.\nMožnosti senzorů po dnech (TYPY): Pouze dnes (none), Do zítra (D+1), Do pozítří (D+2; vytvoří senzory D+1 i D+2).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Interval aktualizace (hodiny)",
-          "language_code": "Kód jazyka odpovědi API",
-          "forecast_days": "Dny předpovědi (1–5)",
-          "create_forecast_sensors": "Rozsah senzorů po dnech (TYPY)"
+          "language_code": "Kód jazyka odpovědi API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Použijte kanonický kód BCP-47, například \"en\" nebo \"es-ES\".",
-      "empty": "Toto pole nemůže být prázdné",
-      "invalid_option_combo": "Zvyšte „Dny předpovědi“, aby pokryly vybrané senzory po dnech.",
       "unknown": "Neznámá chyba",
-      "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami.",
-      "invalid_forecast_days": "Dny předpovědi musí být v rozmezí 1–5."
+      "invalid_update_interval": "Interval aktualizace musí být mezi 1 a 24 hodinami."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Neplatná uložená lokalita Pollen Levels",
       "description": "Pollen Levels našel neplatná uložená data lokality pro {entry_title}: {location_title}. Odstraňte a znovu vytvořte dotčenou lokalitu nebo obnovte zálohu Home Assistant z doby před vytvořením neplatné lokality."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

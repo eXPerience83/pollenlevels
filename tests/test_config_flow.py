@@ -375,12 +375,9 @@ class ConfigFlowStubs:
     CONF_LANGUAGE_CODE: str
     CONF_UPDATE_INTERVAL: str
     DEFAULT_ENTRY_TITLE: str
-    DEFAULT_FORECAST_DAYS: int
     DEFAULT_UPDATE_INTERVAL: int
-    FORECAST_SENSORS_CHOICES: tuple[str, ...]
-    MAX_FORECAST_DAYS: int
     MAX_UPDATE_INTERVAL_HOURS: int
-    MIN_FORECAST_DAYS: int
+    FORECAST_DAYS: int
 
 
 @pytest.fixture(name="config_flow_stubs", autouse=True)
@@ -414,12 +411,9 @@ def config_flow_stubs_fixture(monkeypatch: pytest.MonkeyPatch) -> ConfigFlowStub
         CONF_LANGUAGE_CODE=const.CONF_LANGUAGE_CODE,
         CONF_UPDATE_INTERVAL=const.CONF_UPDATE_INTERVAL,
         DEFAULT_ENTRY_TITLE=const.DEFAULT_ENTRY_TITLE,
-        DEFAULT_FORECAST_DAYS=const.DEFAULT_FORECAST_DAYS,
         DEFAULT_UPDATE_INTERVAL=const.DEFAULT_UPDATE_INTERVAL,
-        FORECAST_SENSORS_CHOICES=const.FORECAST_SENSORS_CHOICES,
-        MAX_FORECAST_DAYS=const.MAX_FORECAST_DAYS,
         MAX_UPDATE_INTERVAL_HOURS=const.MAX_UPDATE_INTERVAL_HOURS,
-        MIN_FORECAST_DAYS=const.MIN_FORECAST_DAYS,
+        FORECAST_DAYS=const.FORECAST_DAYS,
     )
 
     return stubs
@@ -614,7 +608,7 @@ def test_language_error_to_form_key_mapping(config_flow_stubs: ConfigFlowStubs) 
         config_flow_stubs.config_flow._language_error_to_form_key(
             config_flow_stubs.config_flow.vol.Invalid("empty")
         )
-        == "empty"
+        == "invalid_language_format"
     )
     assert (
         config_flow_stubs.config_flow._language_error_to_form_key(
@@ -828,11 +822,7 @@ def _build_options_flow(
     """Build an options flow with simple form/create-entry callbacks."""
 
     entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
-        data=data
-        or {
-            config_flow_stubs.CONF_FORECAST_DAYS: 3,
-            config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
-        }
+        data=data or {config_flow_stubs.CONF_LANGUAGE_CODE: "en"}
     )
     flow = config_flow_stubs.config_flow.PollenLevelsOptionsFlow()
     flow.config_entry = entry
@@ -885,68 +875,19 @@ def test_setup_schema_update_interval_default_is_sanitized(
     assert captured_defaults == [expected]
 
 
-@pytest.mark.parametrize(
-    ("raw_value", "expected"),
-    [
-        ("999", "5"),
-        (-5, "1"),
-        ("abc", "2"),
-    ],
-)
-def test_setup_schema_forecast_days_default_is_sanitized(
+def test_setup_schema_omits_removed_forecast_options(
     config_flow_stubs: ConfigFlowStubs,
-    monkeypatch: pytest.MonkeyPatch,
-    raw_value: object,
-    expected: str,
 ) -> None:
-    """Forecast days defaults should be sanitized for form rendering."""
-
-    captured_defaults: list[str | None] = []
-
-    def _capture_optional(key, **kwargs):
-        if key == config_flow_stubs.CONF_FORECAST_DAYS:
-            captured_defaults.append(kwargs.get("default"))
-        return key
-
-    monkeypatch.setattr(
-        config_flow_stubs.config_flow.vol, "Optional", _capture_optional
-    )
+    """Initial setup no longer exposes forecast days or per-day sensors."""
 
     hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
     )
-    config_flow_stubs.config_flow._build_step_user_schema(
-        hass, {config_flow_stubs.CONF_FORECAST_DAYS: raw_value}
-    )
+    schema = config_flow_stubs.config_flow._build_step_user_schema(hass, {})
+    keys = {str(getattr(key, "schema", key)) for key in schema.schema}
 
-    assert captured_defaults == [expected]
-
-
-def test_setup_schema_sensor_mode_default_is_sanitized(
-    config_flow_stubs: ConfigFlowStubs,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Per-day sensor defaults should fall back to a valid selector choice."""
-
-    captured_defaults: list[str | None] = []
-
-    def _capture_optional(key, **kwargs):
-        if key == config_flow_stubs.CONF_CREATE_FORECAST_SENSORS:
-            captured_defaults.append(kwargs.get("default"))
-        return key
-
-    monkeypatch.setattr(
-        config_flow_stubs.config_flow.vol, "Optional", _capture_optional
-    )
-
-    hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
-    )
-    config_flow_stubs.config_flow._build_step_user_schema(
-        hass, {config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "bad"}
-    )
-
-    assert captured_defaults == [config_flow_stubs.FORECAST_SENSORS_CHOICES[0]]
+    assert config_flow_stubs.CONF_FORECAST_DAYS not in keys
+    assert config_flow_stubs.CONF_CREATE_FORECAST_SENSORS not in keys
 
 
 def test_step_user_schema_masks_api_key_field(
@@ -1429,11 +1370,11 @@ def test_validate_input_clears_error_message_placeholder_on_validation_error(
     assert "error_message" not in placeholders
 
 
-def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
+def test_validate_input_connection_error_sets_error_message_placeholder(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """invalid_option_combo should clear stale error_message placeholders."""
+    """Connection errors should keep a safe error_message placeholder."""
 
     calls = _patch_client_fetch(
         config_flow_stubs,
@@ -1458,71 +1399,14 @@ def test_validate_input_invalid_option_combo_clears_error_message_placeholder(
     assert normalized is None
     assert placeholders.get("error_message")
 
-    _patch_client_fetch(
-        config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
-    )
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            {
-                **_base_user_input(config_flow_stubs),
-                config_flow_stubs.CONF_FORECAST_DAYS: 1,
-                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1",
-            },
-            check_unique_id=False,
-            description_placeholders=placeholders,
-        )
-    )
-
-    assert errors == {
-        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"
-    }
-    assert normalized is None
-    assert "error_message" not in placeholders
+    assert "error_message" in placeholders
 
 
-@pytest.mark.parametrize(
-    ("forecast_days", "mode"),
-    [(1, "D+1"), (2, "D+1+2")],
-)
-def test_validate_input_invalid_forecast_mode_combinations(
-    config_flow_stubs: ConfigFlowStubs,
-    forecast_days: int,
-    mode: str,
-) -> None:
-    """User flow should reject forecast modes requiring more forecast days."""
-
-    flow = config_flow_stubs.PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace()
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            {
-                **_base_user_input(config_flow_stubs),
-                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
-                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
-            },
-            check_unique_id=False,
-        )
-    )
-
-    assert errors == {
-        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"
-    }
-    assert normalized is None
-
-
-@pytest.mark.parametrize(
-    ("forecast_days", "mode"),
-    [(2, "D+1"), (3, "D+1+2"), (1, "none")],
-)
-def test_validate_input_valid_forecast_mode_combinations_are_accepted(
+def test_validate_input_ignores_removed_forecast_options_and_uses_fixed_days(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
-    forecast_days: int,
-    mode: str,
 ) -> None:
-    """User flow should accept forecast mode combinations that have enough days."""
+    """Removed forecast options are not saved and validation calls days=5."""
 
     calls = _patch_client_fetch(
         config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
@@ -1535,8 +1419,8 @@ def test_validate_input_valid_forecast_mode_combinations_are_accepted(
         flow._async_validate_input(
             {
                 **_base_user_input(config_flow_stubs),
-                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
-                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
+                config_flow_stubs.CONF_FORECAST_DAYS: "bad",
+                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
             },
             check_unique_id=False,
         )
@@ -1545,103 +1429,43 @@ def test_validate_input_valid_forecast_mode_combinations_are_accepted(
     assert calls
     assert errors == {}
     assert normalized is not None
-    assert normalized[config_flow_stubs.CONF_FORECAST_DAYS] == forecast_days
-    assert normalized[config_flow_stubs.CONF_CREATE_FORECAST_SENSORS] == mode
+    assert calls[0]["days"] == config_flow_stubs.FORECAST_DAYS
+    assert config_flow_stubs.CONF_FORECAST_DAYS not in normalized
+    assert config_flow_stubs.CONF_CREATE_FORECAST_SENSORS not in normalized
 
 
-def test_validate_input_invalid_forecast_days_returns_error(
+def test_options_flow_drops_removed_forecast_options(
     config_flow_stubs: ConfigFlowStubs,
 ) -> None:
-    """Invalid forecast days should keep the dedicated field error key."""
+    """Options flow preserves supported options and drops legacy forecast keys."""
 
-    flow = config_flow_stubs.PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace()
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            {
-                **_base_user_input(config_flow_stubs),
-                config_flow_stubs.CONF_FORECAST_DAYS: "not-a-number",
-            },
-            check_unique_id=False,
-        )
+    flow = _build_options_flow(
+        config_flow_stubs,
+        {
+            config_flow_stubs.CONF_LANGUAGE_CODE: "en",
+        },
     )
-
-    assert errors == {config_flow_stubs.CONF_FORECAST_DAYS: "invalid_forecast_days"}
-    assert normalized is None
-
-
-@pytest.mark.parametrize(
-    ("forecast_days", "mode"),
-    [(1, "D+1"), (2, "D+1+2")],
-)
-def test_options_flow_invalid_forecast_mode_combinations(
-    config_flow_stubs: ConfigFlowStubs,
-    forecast_days: int,
-    mode: str,
-) -> None:
-    """Options flow should reject forecast modes requiring more forecast days."""
-
-    flow = _build_options_flow(config_flow_stubs)
-
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
-                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
-            }
-        )
-    )
-
-    assert result["type"] == "form"
-    assert result["errors"] == {
-        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"
+    flow.config_entry.options = {
+        config_flow_stubs.CONF_UPDATE_INTERVAL: 12,
+        config_flow_stubs.CONF_FORECAST_DAYS: 1,
+        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1",
     }
 
-
-@pytest.mark.parametrize(
-    ("forecast_days", "mode"),
-    [(2, "D+1"), (3, "D+1+2"), (1, "none")],
-)
-def test_options_flow_valid_forecast_mode_combinations_are_accepted(
-    config_flow_stubs: ConfigFlowStubs,
-    forecast_days: int,
-    mode: str,
-) -> None:
-    """Options flow should accept forecast mode combinations with enough days."""
-
-    flow = _build_options_flow(config_flow_stubs)
-
     result = asyncio.run(
         flow.async_step_init(
             {
-                config_flow_stubs.CONF_FORECAST_DAYS: forecast_days,
-                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: mode,
+                config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
+                config_flow_stubs.CONF_LANGUAGE_CODE: "es",
+                config_flow_stubs.CONF_FORECAST_DAYS: "bad",
+                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
             }
         )
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"][config_flow_stubs.CONF_FORECAST_DAYS] == forecast_days
-    assert result["data"][config_flow_stubs.CONF_CREATE_FORECAST_SENSORS] == mode
-
-
-def test_options_flow_invalid_forecast_days_returns_error(
-    config_flow_stubs: ConfigFlowStubs,
-) -> None:
-    """Options flow should keep the dedicated invalid forecast days field error."""
-
-    flow = _build_options_flow(
-        config_flow_stubs, {config_flow_stubs.CONF_FORECAST_DAYS: 3}
-    )
-
-    result = asyncio.run(
-        flow.async_step_init({config_flow_stubs.CONF_FORECAST_DAYS: "not-a-number"})
-    )
-
-    assert result["type"] == "form"
-    assert result["errors"] == {
-        config_flow_stubs.CONF_FORECAST_DAYS: "invalid_forecast_days"
+    assert result["data"] == {
+        config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
+        config_flow_stubs.CONF_LANGUAGE_CODE: "es",
     }
 
 
@@ -3056,7 +2880,7 @@ def test_location_subentry_user_step_creates_entry_without_premature_reload(
         {
             "latitude": 12.34567,
             "longitude": -98.76543,
-            "days": 1,
+            "days": config_flow_stubs.FORECAST_DAYS,
             "language_code": "es-ES",
         }
     ]
@@ -3276,7 +3100,7 @@ def test_location_subentry_reconfigure_updates_entry_and_schedules_reload(
         {
             "latitude": 3.0,
             "longitude": 4.0,
-            "days": 1,
+            "days": config_flow_stubs.FORECAST_DAYS,
             "language_code": None,
         }
     ]

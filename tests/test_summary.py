@@ -310,6 +310,41 @@ def test_overall_forecast_three_days() -> None:
     assert overall["expected_peak"]["value"] == 7
 
 
+def test_overall_forecast_five_day_offsets() -> None:
+    """A 5-day type forecast exposes offsets 1 through 4 on the summary."""
+    summary = daily_summary(
+        {
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 1,
+                "category": "Low",
+                "forecast": [
+                    {
+                        "offset": offset,
+                        "date": f"2026-06-1{offset}",
+                        "has_index": True,
+                        "value": offset + 1,
+                        "category": f"Day {offset}",
+                        "description": f"Forecast day {offset}",
+                        "color_hex": "#00FF00",
+                        "color_rgb": [0, 255, 0],
+                    }
+                    for offset in range(1, 5)
+                ],
+            }
+        }
+    )
+
+    overall = summary["overall_pollen_risk_today"]
+    assert [item["offset"] for item in overall["forecast"]] == [1, 2, 3, 4]
+    assert overall["tomorrow_value"] == 2
+    assert overall["d2_value"] == 3
+    assert overall["expected_peak"]["offset"] == 4
+    assert overall["expected_peak"]["value"] == 5
+
+
 def test_overall_forecast_tie_handling() -> None:
     """Tied max future values preserve both type codes and names."""
     summary = daily_summary(

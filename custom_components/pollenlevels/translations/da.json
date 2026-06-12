@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Konfiguration af pollenniveauer",
-        "description": "Indtast din Google API-nøgle ([hent den her]({api_key_url})) og læs bedste praksis ([bedste praksis]({restricting_api_keys_url})). Vælg din placering på kortet, opdateringsinterval (timer) og sprogkode for API-svaret. Du kan også angive prognosedage og omfanget af sensorer pr. dag (TYPER).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "API-nøgle",
           "name": "Navn",
           "location": "Placering",
           "update_interval": "Opdateringsinterval (timer)",
-          "language_code": "Sprogkode for API-svar",
-          "forecast_days": "Prognosedage (1–5)",
-          "create_forecast_sensors": "Omfang af sensorer pr. dag (TYPER)"
+          "language_code": "Sprogkode for API-svar"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Kvote overskredet\n\n{error_message}",
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
       "empty": "Dette felt må ikke være tomt",
-      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
       "invalid_coordinates": "Vælg en gyldig placering på kortet.",
       "unknown": "Ukendt fejl",
       "invalid_update_interval": "Opdateringsintervallet skal være mellem 1 og 24 timer.",
-      "invalid_forecast_days": "Prognosedage skal være mellem 1 og 5.",
       "already_configured": "Denne placering er allerede konfigureret.",
       "api_key_already_configured": "Denne API-nøgle er allerede konfigureret."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Indstillinger",
-        "description": "Skift opdateringsinterval, API-sprog, prognosedage og sensorer pr. dag for {title}.\nIndstillinger for sensorer pr. dag (TYPER): Kun i dag (none), Til og med i morgen (D+1), Til og med overmorgen (D+2; opretter både D+1- og D+2-sensorer).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Opdateringsinterval (timer)",
-          "language_code": "Sprogkode for API-svar",
-          "forecast_days": "Prognosedage (1–5)",
-          "create_forecast_sensors": "Omfang af sensorer pr. dag (TYPER)"
+          "language_code": "Sprogkode for API-svar"
         }
       }
     },
     "error": {
       "invalid_language_format": "Brug en kanonisk BCP-47-kode som \"en\" eller \"es-ES\".",
-      "empty": "Dette felt må ikke være tomt",
-      "invalid_option_combo": "Forøg \"Prognosedage\" for at dække valgte sensorer pr. dag.",
       "unknown": "Ukendt fejl",
-      "invalid_update_interval": "Opdateringsintervallet skal være mellem 1 og 24 timer.",
-      "invalid_forecast_days": "Prognosedage skal være mellem 1 og 5."
+      "invalid_update_interval": "Opdateringsintervallet skal være mellem 1 og 24 timer."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Ugyldig gemt Pollen Levels-placering",
       "description": "Pollen Levels fandt ugyldige gemte placeringsdata for {entry_title}: {location_title}. Slet og opret den berørte placering igen, eller gendan en Home Assistant-sikkerhedskopi før den ugyldige placering blev oprettet."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

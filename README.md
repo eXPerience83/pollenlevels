@@ -30,18 +30,18 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Multi-language support** — UI in 21 languages (**EN, ES, CA, DE, FR, IT, PL, RU, UK, NL, ZH-Hans, SV, CS, PT-BR, DA, NB, PT-PT, RO, FI, HU, ZH-Hant**) + API responses in any language.
 - **Dynamic sensors** — Auto-creates sensors for all pollen types found in your location.  
 - **Daily summary sensors** — Adds plants in season today, overall pollen risk today, and top pollen types today.
-- **Multi-day forecast for TYPES & PLANTS** —
+- **Five-day forecast for TYPES, PLANTS, and summary sensors** —
+  Pollen Levels always requests the maximum 5-day forecast horizon supported by
+  the Google Maps Pollen API.
   - `forecast` list with `{offset, date, has_index, value, category, description, color_*}`
   - Convenience: `tomorrow_*` and `d2_*`
   - Derived: `trend` and `expected_peak`
-  - **Per-day sensors:** remain **TYPES-only** with selector options `none`, `D+1`,
-    or `D+1+2` (creates both `(D+1)` and `(D+2)` sensors).
-    **PLANTS** expose forecast **as attributes only** (no extra entities).
+  - **PLANTS** expose forecast as attributes only (no extra entities).
 - **Smart grouping** — Organizes sensors into:
   - **Pollen Types** (Grass / Tree / Weed)
   - **Plants** (Oak, Pine, Birch, etc.)
   - **Pollen Info** (Region / Date metadata)  
-- **Configurable updates** — Change update interval, language, forecast days, and per-day sensors without reinstalling.  
+- **Configurable updates** — Change update interval and API response language without reinstalling.
 - **Manual refresh** — Use the per-location **Update now** button entity to refresh a single configured location, or call the global `pollenlevels.force_update` service to refresh all configured locations.
 - **Last Updated sensor** — Shows timestamp of last successful update.
 - **Rich attributes** — Includes `inSeason`, index `description`, health `advice`
@@ -72,23 +72,58 @@ You can change:
 
 - **Update interval (hours)** (1–24)
 - **API response language code**
-- **Forecast days** (`1–5`) for pollen TYPES
-- **Per-day TYPE sensors** via `create_forecast_sensors`:
-  - `none` → no extra sensors
-  - `D+1` → sensors for each TYPE with suffix `(D+1)`
-  - `D+1+2` → sensors for `(D+1)` and `(D+2)`
-
-> **Validation rules:**
-> - `D+1` requires `forecast_days ≥ 2`
-> - `D+1+2` requires `forecast_days ≥ 3`
 
 The config and options flows use modern Home Assistant selectors and include
 links to Google’s API key setup and security best practices so you can follow
 the recommended restrictions.
 
-> **After saving Options:** if per-day sensors are disabled or `forecast_days` becomes insufficient, the integration **removes** any stale D+1/D+2 entities from the **Entity Registry** automatically. No manual cleanup needed.
+Forecast days are no longer configurable. Pollen Levels always requests 5 days
+of forecast data so existing sensors can expose the maximum available forecast
+attributes.
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
+
+---
+
+## Migrating from per-day forecast sensors
+
+Pollen Levels no longer creates separate per-day pollen type forecast sensors
+such as:
+
+```text
+sensor.example_grass_d1
+sensor.example_grass_d2
+```
+
+Forecast data is now exposed on the base pollen type sensor through attributes.
+Existing legacy `_d1` and `_d2` entity registry entries owned by Pollen Levels
+are removed automatically during setup/reload. Recorder history is not purged.
+
+Before:
+
+```jinja
+{{ states("sensor.example_grass_d1") }}
+{{ states("sensor.example_grass_d2") }}
+```
+
+After:
+
+```jinja
+{{ state_attr("sensor.example_grass", "tomorrow_value") }}
+{{ state_attr("sensor.example_grass", "d2_value") }}
+```
+
+For advanced templates, use the `forecast` attribute and select the desired
+offset:
+
+```jinja
+{% set forecast = state_attr("sensor.example_grass", "forecast") or [] %}
+{% set tomorrow = forecast | selectattr("offset", "eq", 1) | first %}
+{{ tomorrow.value if tomorrow else none }}
+```
+
+With the fixed 5-day horizon, the base sensor can expose future forecast items
+with offsets `1` to `4`, depending on the data returned by the API.
 
 ---
 
@@ -110,7 +145,7 @@ migration:
   entity unique IDs, devices, dashboards, history, and automations continue to
   match.
 
-If legacy entries sharing a key used different update, language, or forecast
+If legacy entries sharing a key used different update interval or language
 options, the parent entry keeps the first entry's options and fills missing
 values from the remaining entries. You can adjust the shared options after
 upgrading from **Settings -> Devices & Services -> Pollen Levels -> Configure**.
@@ -119,8 +154,8 @@ To add another location after upgrading, go to **Settings -> Devices & Services
 -> Pollen Levels**, open the parent entry, and add a new location subentry.
 Reconfigure a location from that same entry when only its name or map
 coordinates need to change. Each location has its own sensors and **Update now**
-button; shared options such as update interval, language, and forecast settings
-stay on the parent **Configure** flow.
+button; shared options such as update interval and language stay on the parent
+**Configure** flow.
 
 When reauthenticating or reconfiguring the parent API key, the integration tries
 the configured locations until one returns usable pollen data. Authentication
@@ -270,6 +305,8 @@ severity:
 
 If you want a dedicated pollen Lovelace card with forecast visualizations and a visual editor UI,
 **pollenprognos-card** supports this integration since **v2.9.0**.
+The base sensor `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`
+attributes keep their existing format for card compatibility.
 
 - Repo: [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
 - Install: HACS → Frontend
@@ -345,7 +382,7 @@ color: '[[[
 ## 🌐 Example API request
 
 ```bash
-curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&location.latitude=48.8566&location.longitude=2.3522&days=2&languageCode=es"
+curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&location.latitude=48.8566&location.longitude=2.3522&days=5&languageCode=es"
 ```
 
 > **Note:** Replace `YOUR_KEY` locally and never share full API URLs containing `key=...` publicly.

@@ -894,11 +894,11 @@ def test_setup_entry_auth_failure_still_fails_parent(
     assert hass.config_entries.forward_calls == []
 
 
-def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
+def test_setup_entry_decimal_update_interval_falls_back_and_drops_forecast_days(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Decimal options should not be truncated silently during setup."""
+    """Decimal interval falls back while legacy forecast-days is removed silently."""
     integration = integration_modules.integration
     base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
@@ -921,7 +921,9 @@ def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
     class _StubCoordinator(base_data_update_coordinator):
         def __init__(self, *args, **kwargs):
             seen["hours"] = kwargs["hours"]
-            seen["forecast_days"] = kwargs["forecast_days"]
+            assert "forecast_days" not in kwargs
+            assert "create_d1" not in kwargs
+            assert "create_d2" not in kwargs
             self.data = {"region": {"source": "meta"}, "date": {"source": "meta"}}
 
         async def async_config_entry_first_refresh(self):
@@ -931,7 +933,11 @@ def test_setup_entry_decimal_numeric_options_fallback_to_defaults(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert seen["hours"] == integration.DEFAULT_UPDATE_INTERVAL
-    assert seen["forecast_days"] == integration.DEFAULT_FORECAST_DAYS
+    assert integration.CONF_FORECAST_DAYS not in entry.options
+    assert (
+        integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+        not in integration.issue_helpers.ir.registry.issues
+    )
 
 
 def test_setup_entry_wraps_generic_error(integration_modules: _InitModules) -> None:
@@ -972,10 +978,10 @@ def test_setup_entry_success_and_unload(
             self.api_key = kwargs["api_key"]
             self.lat = kwargs["lat"]
             self.lon = kwargs["lon"]
-            self.forecast_days = kwargs["forecast_days"]
+            assert "forecast_days" not in kwargs
             self.language = kwargs["language"]
-            self.create_d1 = kwargs["create_d1"]
-            self.create_d2 = kwargs["create_d2"]
+            assert "create_d1" not in kwargs
+            assert "create_d2" not in kwargs
             self.entry_id = kwargs["entry_id"]
             self.entry_title = kwargs.get("entry_title")
             self.last_updated = None
@@ -1002,17 +1008,27 @@ def test_setup_entry_success_and_unload(
     assert entry.runtime_data is None
 
 
-def test_setup_entry_normalizes_forecast_sensor_mode(
+def test_setup_entry_drops_legacy_per_day_option_and_creates_repair_issue(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Setup should normalize stored forecast mode values before coordinator flags."""
+    """Setup should drop legacy per-day options and create a Repair warning."""
     integration = integration_modules.integration
     base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
     hass = _FakeHass()
     entry = _FakeEntry(
-        integration, options={integration.CONF_CREATE_FORECAST_SENSORS: " D+1 "}
+        integration,
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+        options={
+            integration.CONF_FORECAST_DAYS: 3,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+        },
     )
 
     class _StubClient:
@@ -1025,8 +1041,9 @@ def test_setup_entry_normalizes_forecast_sensor_mode(
 
     class _StubCoordinator(base_data_update_coordinator):
         def __init__(self, *args, **kwargs):
-            self.create_d1 = kwargs["create_d1"]
-            self.create_d2 = kwargs["create_d2"]
+            assert "forecast_days" not in kwargs
+            assert "create_d1" not in kwargs
+            assert "create_d2" not in kwargs
             self.entry_id = kwargs["entry_id"]
             self.entry_title = kwargs.get("entry_title")
             self.lat = kwargs["lat"]
@@ -1042,23 +1059,32 @@ def test_setup_entry_normalizes_forecast_sensor_mode(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert entry.runtime_data is not None
-    assert entry.runtime_data.coordinator.create_d1 is True
-    assert entry.runtime_data.coordinator.create_d2 is False
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration.CONF_FORECAST_DAYS not in entry.options
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    issue = integration.issue_helpers.ir.registry.issues[
+        integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    ]
+    assert issue["severity"] == integration.issue_helpers.ir.IssueSeverity.WARNING
+    assert issue["is_fixable"] is False
+    assert issue["is_persistent"] is True
 
 
-def test_setup_entry_disables_d1_when_forecast_days_is_one(
+def test_setup_entry_drops_legacy_forecast_days_from_data(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Setup should disable D+1/D+2 creation when forecast days disallow them."""
+    """Setup should remove obsolete forecast-days data without a Repair warning."""
     integration = integration_modules.integration
     base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
     hass = _FakeHass()
     entry = _FakeEntry(
         integration,
-        options={
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
             integration.CONF_FORECAST_DAYS: 1,
         },
     )
@@ -1073,8 +1099,9 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
 
     class _StubCoordinator(base_data_update_coordinator):
         def __init__(self, *args, **kwargs):
-            self.create_d1 = kwargs["create_d1"]
-            self.create_d2 = kwargs["create_d2"]
+            assert "forecast_days" not in kwargs
+            assert "create_d1" not in kwargs
+            assert "create_d2" not in kwargs
             self.entry_id = kwargs["entry_id"]
             self.entry_title = kwargs.get("entry_title")
             self.lat = kwargs["lat"]
@@ -1090,8 +1117,11 @@ def test_setup_entry_disables_d1_when_forecast_days_is_one(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert entry.runtime_data is not None
-    assert entry.runtime_data.coordinator.create_d1 is False
-    assert entry.runtime_data.coordinator.create_d2 is False
+    assert integration.CONF_FORECAST_DAYS not in entry.data
+    assert (
+        integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+        not in integration.issue_helpers.ir.registry.issues
+    )
 
 
 def test_force_update_service_is_registered_with_empty_schema(
@@ -1599,8 +1629,10 @@ def test_force_update_parent_without_locations_is_noop(
     assert "No coordinators available for force_update" in caplog.text
 
 
-def test_migrate_entry_moves_mode_to_options(integration_modules: _InitModules) -> None:
-    """Migration should copy per-day sensor mode from data to options."""
+def test_migrate_entry_removes_legacy_mode_and_creates_issue(
+    integration_modules: _InitModules,
+) -> None:
+    """Migration should drop per-day mode storage and create a Repair warning."""
     integration = integration_modules.integration
 
     entry = _FakeEntry(
@@ -1618,11 +1650,15 @@ def test_migrate_entry_moves_mode_to_options(integration_modules: _InitModules) 
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
     assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert "http_referer" not in entry.data
     assert "http_referer" not in entry.options
     assert entry.version == integration.TARGET_ENTRY_VERSION
+    assert (
+        integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+        in integration.issue_helpers.ir.registry.issues
+    )
 
 
 def test_migrate_entry_v3_legacy_creates_location_subentry(
@@ -1659,8 +1695,6 @@ def test_migrate_entry_v3_legacy_creates_location_subentry(
     assert entry.options == {
         integration.CONF_UPDATE_INTERVAL: 12,
         integration.CONF_LANGUAGE_CODE: "en",
-        integration.CONF_FORECAST_DAYS: 3,
-        integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
     }
     assert len(entry.subentries) == 1
     subentry = next(iter(entry.subentries.values()))
@@ -1673,6 +1707,10 @@ def test_migrate_entry_v3_legacy_creates_location_subentry(
         integration.CONF_LEGACY_ENTRY_ID: "legacy-entry",
     }
     assert hass.config_entries.added_subentries == [(entry, subentry)]
+    assert (
+        integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+        in integration.issue_helpers.ir.registry.issues
+    )
 
 
 def test_migrate_single_legacy_entry_attaches_registries_to_created_subentry(
@@ -2012,7 +2050,6 @@ def test_migrate_legacy_entries_with_same_api_key_group_under_one_parent(
     assert parent.options == {
         integration.CONF_UPDATE_INTERVAL: 12,
         integration.CONF_LANGUAGE_CODE: "en",
-        integration.CONF_FORECAST_DAYS: 3,
     }
     assert len(parent.subentries) == 2
     subentries_by_legacy_id = {
@@ -3964,97 +4001,6 @@ def test_setup_entry_skips_entries_already_marked_as_merged(
     assert hass.config_entries.forward_calls == []
 
 
-def test_migrate_entry_normalizes_invalid_mode(
-    integration_modules: _InitModules,
-) -> None:
-    """Migration should normalize invalid per-day sensor mode values."""
-    integration = integration_modules.integration
-    const = integration_modules.const
-
-    entry = _FakeEntry(
-        integration,
-        data={
-            integration.CONF_API_KEY: "key",
-            integration.CONF_LATITUDE: 1.0,
-            integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "bad-value",
-        },
-        options={},
-        version=1,
-    )
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert (
-        entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
-        == const.FORECAST_SENSORS_CHOICES[0]
-    )
-    assert entry.version == integration.TARGET_ENTRY_VERSION
-
-
-def test_migrate_entry_normalizes_invalid_mode_in_options(
-    integration_modules: _InitModules,
-) -> None:
-    """Migration should normalize invalid per-day sensor mode values in options."""
-    integration = integration_modules.integration
-    const = integration_modules.const
-
-    entry = _FakeEntry(
-        integration,
-        data={},
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "bad-value"},
-        version=1,
-    )
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert (
-        entry.options[integration.CONF_CREATE_FORECAST_SENSORS]
-        == const.FORECAST_SENSORS_CHOICES[0]
-    )
-    assert entry.version == integration.TARGET_ENTRY_VERSION
-
-
-def test_migrate_entry_normalizes_invalid_mode_in_options_when_version_current(
-    integration_modules: _InitModules,
-) -> None:
-    """Migration should normalize invalid mode values even at the target version."""
-    integration = integration_modules.integration
-
-    entry = _FakeEntry(
-        integration,
-        data={
-            integration.CONF_API_KEY: "key",
-            integration.CONF_LATITUDE: 1.0,
-            integration.CONF_LONGITUDE: 2.0,
-        },
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "invalid-value"},
-        version=integration.TARGET_ENTRY_VERSION,
-    )
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "none"
-    assert entry.version == integration.TARGET_ENTRY_VERSION
-
-
-def test_migrate_entry_marks_version_when_no_changes(
-    integration_modules: _InitModules,
-) -> None:
-    """Migration should still bump the version when no changes are needed."""
-    integration = integration_modules.integration
-
-    entry = _FakeEntry(
-        integration,
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1"},
-        version=1,
-    )
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert entry.version == integration.TARGET_ENTRY_VERSION
-
-
 def test_migrate_entry_cleans_legacy_keys_when_version_current(
     integration_modules: _InitModules,
 ) -> None:
@@ -4079,6 +4025,7 @@ def test_migrate_entry_cleans_legacy_keys_when_version_current(
     assert "http_referer" not in entry.data
     assert "http_referer" not in entry.options
     assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
@@ -4107,10 +4054,10 @@ def test_migrate_entry_does_not_downgrade_version(
     assert entry.version == integration.TARGET_ENTRY_VERSION + 1
 
 
-def test_migrate_entry_removes_mode_from_data_when_in_options(
+def test_migrate_entry_removes_mode_from_data_and_options(
     integration_modules: _InitModules,
 ) -> None:
-    """Migration should remove per-day sensor mode from data when already in options."""
+    """Migration should remove per-day sensor mode from both data and options."""
     integration = integration_modules.integration
 
     entry = _FakeEntry(
@@ -4128,7 +4075,11 @@ def test_migrate_entry_removes_mode_from_data_when_in_options(
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert entry.options[integration.CONF_CREATE_FORECAST_SENSORS] == "D+1"
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert (
+        integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+        in integration.issue_helpers.ir.registry.issues
+    )
 
 
 @pytest.mark.parametrize("version", [None, "x"])

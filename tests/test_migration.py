@@ -329,6 +329,72 @@ def migration_modules(
     )
 
 
+def test_migration_removes_forecast_days_without_repair_issue(
+    migration_modules: _MigrateModules,
+) -> None:
+    """Legacy forecast-day storage should be removed silently."""
+    integration = migration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    entry = _FakeEntry(
+        integration,
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_FORECAST_DAYS: 3,
+        },
+        options={integration.CONF_FORECAST_DAYS: 3},
+        version=3,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert integration.CONF_FORECAST_DAYS not in entry.data
+    assert integration.CONF_FORECAST_DAYS not in entry.options
+    assert (
+        migration_modules.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+        not in registry.issues
+    )
+
+
+def test_migration_removes_per_day_option_and_creates_repair_issue(
+    migration_modules: _MigrateModules,
+) -> None:
+    """Legacy per-day sensor storage should be removed with a Repair warning."""
+    integration = migration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    entry = _FakeEntry(
+        integration,
+        data={
+            integration.CONF_API_KEY: "key",
+            integration.CONF_LATITUDE: 1.0,
+            integration.CONF_LONGITUDE: 2.0,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+        options={
+            integration.CONF_FORECAST_DAYS: 3,
+            integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+        },
+        version=3,
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert integration.CONF_FORECAST_DAYS not in entry.options
+    issue = registry.issues[
+        migration_modules.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    ]
+    assert issue["domain"] == integration.DOMAIN
+    assert issue["translation_key"] == "per_day_forecast_sensors_removed"
+    assert issue["is_fixable"] is False
+    assert issue["is_persistent"] is True
+    assert issue["severity"] == migration_modules.issue_helpers.ir.IssueSeverity.WARNING
+
+
 def test_migration_creates_repair_issue_for_invalid_legacy_coordinates(
     migration_modules: _MigrateModules,
     caplog: pytest.LogCaptureFixture,

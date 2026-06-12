@@ -1,10 +1,27 @@
-## [3.0.0b4] - 2026-06-09
+## [3.0.0rc1] - 2026-06-11
+
+### Changed
+
+- Forecast days are now fixed at 5 for all entries and locations, so all users
+  get the maximum forecast horizon supported by the Google Maps Pollen API.
+- Removed the configuration options for forecast days and separate per-day TYPE
+  forecast sensors from setup and options flows.
+- **Breaking change:** Removed optional per-day pollen TYPE forecast sensors
+  ending in `_d1` and `_d2`. Forecast data remains available through attributes
+  on the base pollen type, plant, and summary sensors, including `forecast`,
+  `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`.
+- Existing entries with stored `forecast_days` or `create_forecast_sensors`
+  options are upgraded automatically. Legacy `_d1` and `_d2` entity registry
+  entries owned by Pollen Levels are removed during setup/reload.
 
 ### Fixed
 
 - Added a Home Assistant Repair issue when stored Pollen Levels location
   data is invalid, so users get visible guidance to delete/recreate the
   affected location or restore a backup.
+- Added a Home Assistant Repair warning when legacy per-day forecast sensors or
+  options are detected, so users know to update dashboards, automations,
+  templates, and custom cards that still reference `_d1` or `_d2` entities.
 
 ## [3.0.0b3] - 2026-06-09
 

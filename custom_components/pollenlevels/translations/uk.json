@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Налаштування рівнів пилку",
-        "description": "Введіть свій ключ Google API ([отримайте його тут]({api_key_url})) та ознайомтеся з найкращими практиками ([найкращі практики]({restricting_api_keys_url})). Виберіть місце на карті, інтервал оновлення (години) і код мови відповіді API. Ви також можете налаштувати дні прогнозу та діапазон денних датчиків (ТИПИ).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "Ключ API",
           "name": "Ім'я",
           "location": "Місцезнаходження",
           "update_interval": "Інтервал оновлення (у годинах)",
-          "language_code": "Код мови відповіді API",
-          "forecast_days": "Дні прогнозу (1–5)",
-          "create_forecast_sensors": "Діапазон денних датчиків (ТИПИ)"
+          "language_code": "Код мови відповіді API"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Перевищено ліміт запитів\n\n{error_message}",
       "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
       "empty": "Це поле не може бути порожнім",
-      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "invalid_coordinates": "Виберіть дійсне місце на карті.",
       "unknown": "Невідома помилка",
       "invalid_update_interval": "Інтервал оновлення має бути між 1 і 24 годинами.",
-      "invalid_forecast_days": "Дні прогнозу мають бути від 1 до 5.",
       "already_configured": "Це місце вже налаштовано.",
       "api_key_already_configured": "Цей API-ключ уже налаштовано."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Параметри",
-        "description": "Змініть інтервал оновлення, мову відповіді API, кількість днів прогнозу та денні датчики для ТИПІВ для {title}.\nПараметри денних датчиків (ТИПИ): Лише сьогодні (none), До завтра (D+1), До післязавтра (D+2; створює датчики D+1 і D+2).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Інтервал оновлення (у годинах)",
-          "language_code": "Код мови відповіді API",
-          "forecast_days": "Дні прогнозу (1–5)",
-          "create_forecast_sensors": "Діапазон денних датчиків (ТИПИ)"
+          "language_code": "Код мови відповіді API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Використовуйте канонічний код BCP-47, наприклад \"en\" або \"es-ES\".",
-      "empty": "Це поле не може бути порожнім",
-      "invalid_option_combo": "Збільшіть «Дні прогнозу», щоб охопити вибрані денні датчики.",
       "unknown": "Невідома помилка",
-      "invalid_update_interval": "Інтервал оновлення має бути між 1 і 24 годинами.",
-      "invalid_forecast_days": "Дні прогнозу мають бути від 1 до 5."
+      "invalid_update_interval": "Інтервал оновлення має бути між 1 і 24 годинами."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Недійсне збережене розташування Pollen Levels",
       "description": "Pollen Levels виявив недійсні збережені дані розташування для {entry_title}: {location_title}. Видаліть і створіть заново відповідне розташування або відновіть резервну копію Home Assistant, створену до появи недійсного розташування."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

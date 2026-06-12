@@ -122,7 +122,7 @@ Migrated location subentries keep the legacy entry ID internally so existing
 entity unique IDs, device identifiers, dashboards, history, and automations
 continue to match after the entries are consolidated.
 
-If grouped legacy entries used different update, language, or forecast options,
+If grouped legacy entries used different update interval or language options,
 the parent keeps the first entry's options and fills missing values from the
 remaining entries. You can adjust the shared options after upgrading.
 
@@ -150,6 +150,26 @@ underlying problem is fixed.
 
 Create a Home Assistant backup before upgrading. Downgrading to Pollen Levels
 2.x after this migration is not supported.
+
+---
+
+## 13. Can I choose how many forecast days Pollen Levels requests?
+No. Starting with v3 RC1, Pollen Levels always requests 5 forecast days. This
+keeps the integration simpler and gives all existing sensors the maximum
+available forecast attributes.
+
+Existing users who previously selected fewer days are upgraded automatically.
+No base sensors are renamed or recreated.
+
+---
+
+## 14. Where did my `_d1` and `_d2` forecast sensors go?
+Pollen Levels no longer creates separate per-day forecast entities. Future
+forecast data is available on the base pollen sensors through the `forecast`,
+`tomorrow_*` and `d2_*` attributes.
+
+Update any dashboards, automations, templates or custom cards that reference
+entities such as `sensor.example_grass_d1` or `sensor.example_grass_d2`.
 
 ---
 

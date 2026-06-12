@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Configuração dos Níveis de Pólen",
-        "description": "Introduza a sua chave de API do Google ([obtenha-a aqui]({api_key_url})) e reveja as melhores práticas ([melhores práticas]({restricting_api_keys_url})). Selecione a sua localização no mapa, o intervalo de atualização (horas) e o código de idioma da resposta da API. Também pode definir os dias de previsão e o âmbito dos sensores por dia (TIPOS).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "Chave da API",
           "name": "Nome",
           "location": "Localização",
           "update_interval": "Intervalo de atualização (horas)",
-          "language_code": "Código de idioma da resposta da API",
-          "forecast_days": "Dias de previsão (1–5)",
-          "create_forecast_sensors": "Âmbito dos sensores por dia (TIPOS)"
+          "language_code": "Código de idioma da resposta da API"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Quota excedida\n\n{error_message}",
       "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode estar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "invalid_coordinates": "Selecione uma localização válida no mapa.",
       "unknown": "Erro desconhecido",
       "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
-      "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5.",
       "already_configured": "Esta localização já está configurada.",
       "api_key_already_configured": "Esta chave de API já está configurada."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opções",
-        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para {title}.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2; cria sensores D+1 e D+2).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Intervalo de atualização (horas)",
-          "language_code": "Código de idioma da resposta da API",
-          "forecast_days": "Dias de previsão (1–5)",
-          "create_forecast_sensors": "Âmbito dos sensores por dia (TIPOS)"
+          "language_code": "Código de idioma da resposta da API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Use um código BCP-47 canónico, como \"en\" ou \"es-ES\".",
-      "empty": "Este campo não pode estar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "unknown": "Erro desconhecido",
-      "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
-      "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5."
+      "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Localização armazenada inválida no Pollen Levels",
       "description": "Pollen Levels encontrou dados de localização armazenados inválidos para {entry_title}: {location_title}. Elimine e recrie a localização afetada ou restaure um backup do Home Assistant anterior à criação da localização inválida."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

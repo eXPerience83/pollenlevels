@@ -1,7 +1,6 @@
 """Config & options flow for Pollen Levels.
 
 Notes:
-- Unified per-day sensors option ('create_forecast_sensors'): "none" | "D+1" | "D+1+2".
 - Allows empty language (omit languageCode). Trims language whitespace on save.
 - Redacts API keys in debug logs.
 - Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
@@ -30,9 +29,6 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
-    SelectSelector,
-    SelectSelectorConfig,
-    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -42,19 +38,14 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from .client import GooglePollenApiClient, PollenQuotaExceededError
 from .const import (
     CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LEGACY_ENTRY_ID,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
-    DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    FORECAST_SENSORS_CHOICES,
-    MAX_FORECAST_DAYS,
+    FORECAST_DAYS,
     MAX_UPDATE_INTERVAL_HOURS,
-    MIN_FORECAST_DAYS,
     MIN_UPDATE_INTERVAL_HOURS,
     POLLEN_API_KEY_URL,
     RESTRICTING_API_KEYS_URL,
@@ -64,21 +55,16 @@ from .util import (
     api_key_unique_id,
     entry_api_key,
     format_location_unique_id,
-    normalize_sensor_mode,
     redact_api_key,
     redact_sensitive_values,
     safe_parse_int,
+    strip_legacy_forecast_options,
     validate_latitude,
     validate_location_pair,
     validate_longitude,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-FORECAST_DAYS_OPTIONS = [
-    str(i) for i in range(MIN_FORECAST_DAYS, MAX_FORECAST_DAYS + 1)
-]
-_FORECAST_MODE_MIN_DAYS = {"D+1": 2, "D+1+2": 3}
 
 # BCP-47-ish regex (common patterns, not full grammar).
 LANGUAGE_CODE_REGEX = re.compile(
@@ -106,8 +92,6 @@ def is_valid_language_code(value: str) -> str:
 def _language_error_to_form_key(error: vol.Invalid) -> str:
     """Convert voluptuous validation errors into form error keys."""
     message = getattr(error, "error_message", "")
-    if message == "empty":
-        return "empty"
     if message == "invalid_language":
         return "invalid_language_format"
     return "invalid_language_format"
@@ -129,23 +113,6 @@ def _format_visible_coordinate(value: Any, *, lat: bool) -> str:
     if parsed is None:
         return ""
     return f"{parsed:.2f}"
-
-
-def _required_forecast_days_for_mode(mode: str) -> int:
-    """Return the minimum forecast days required for a sensor mode."""
-    return _FORECAST_MODE_MIN_DAYS.get(mode, MIN_FORECAST_DAYS)
-
-
-def _normalize_forecast_mode_for_save(raw_value: Any) -> str:
-    """Normalize a forecast sensor mode before saving it."""
-    return normalize_sensor_mode(raw_value, _LOGGER)
-
-
-def _forecast_mode_combo_error(forecast_days: int, mode: str) -> str | None:
-    """Return an error key when forecast days and mode are incompatible."""
-    if forecast_days < _required_forecast_days_for_mode(mode):
-        return "invalid_option_combo"
-    return None
 
 
 def _safe_error_message(error: Exception | str, fallback: str) -> str:
@@ -226,7 +193,7 @@ async def _async_validate_api_location(
         data = await client.async_fetch_pollen_data(
             latitude=latitude,
             longitude=longitude,
-            days=1,
+            days=FORECAST_DAYS,
             language_code=language_code,
         )
 
@@ -323,12 +290,6 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
 
     update_interval_raw = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     interval_default = _sanitize_update_interval_for_default(update_interval_raw)
-    forecast_days_default = _sanitize_forecast_days_for_default(
-        user_input.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS)
-    )
-    sensor_mode_default = _sanitize_forecast_mode_for_default(
-        user_input.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
-    )
 
     schema = vol.Schema(
         {
@@ -355,24 +316,6 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
                     CONF_LANGUAGE_CODE, getattr(hass.config, "language", "")
                 ),
             ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
-            vol.Optional(
-                CONF_FORECAST_DAYS,
-                default=forecast_days_default,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    mode=SelectSelectorMode.DROPDOWN,
-                    options=FORECAST_DAYS_OPTIONS,
-                )
-            ),
-            vol.Optional(
-                CONF_CREATE_FORECAST_SENSORS,
-                default=sensor_mode_default,
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    mode=SelectSelectorMode.DROPDOWN,
-                    options=FORECAST_SENSORS_CHOICES,
-                )
-            ),
         }
     )
     return schema
@@ -466,8 +409,6 @@ def _parent_entry_options(normalized: dict[str, Any]) -> dict[str, Any]:
     for key in (
         CONF_UPDATE_INTERVAL,
         CONF_LANGUAGE_CODE,
-        CONF_FORECAST_DAYS,
-        CONF_CREATE_FORECAST_SENSORS,
     ):
         if key in normalized:
             options[key] = normalized[key]
@@ -605,27 +546,6 @@ def _sanitize_update_interval_for_default(raw_value: Any) -> int:
     return max(MIN_UPDATE_INTERVAL_HOURS, min(MAX_UPDATE_INTERVAL_HOURS, parsed))
 
 
-def _sanitize_forecast_days_for_default(raw_value: Any) -> str:
-    """Parse and clamp forecast days to be used as a UI default."""
-    parsed, _ = _parse_int_option(
-        raw_value,
-        DEFAULT_FORECAST_DAYS,
-        min_value=MIN_FORECAST_DAYS,
-        max_value=MAX_FORECAST_DAYS,
-        error_key="invalid_forecast_days",
-    )
-    parsed = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, parsed))
-    return str(parsed)
-
-
-def _sanitize_forecast_mode_for_default(raw_value: Any) -> str:
-    """Normalize forecast sensor mode to be used as a UI default."""
-    mode = normalize_sensor_mode(raw_value, _LOGGER)
-    if mode in FORECAST_SENSORS_CHOICES:
-        return mode
-    return FORECAST_SENSORS_CHOICES[0]
-
-
 class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Pollen Levels."""
 
@@ -660,6 +580,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized: dict[str, Any] = dict(user_input)
         normalized.pop(CONF_NAME, None)
         normalized.pop(CONF_LOCATION, None)
+        normalized = strip_legacy_forecast_options(normalized)
 
         api_key = str(user_input.get(CONF_API_KEY, "")) if user_input else ""
         api_key = api_key.strip()
@@ -677,29 +598,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors[CONF_UPDATE_INTERVAL] = interval_error
             placeholders.pop("error_message", None)
             return errors, None
-
-        forecast_days, days_error = _parse_int_option(
-            normalized.get(CONF_FORECAST_DAYS),
-            DEFAULT_FORECAST_DAYS,
-            min_value=MIN_FORECAST_DAYS,
-            max_value=MAX_FORECAST_DAYS,
-            error_key="invalid_forecast_days",
-        )
-        normalized[CONF_FORECAST_DAYS] = forecast_days
-        if days_error:
-            errors[CONF_FORECAST_DAYS] = days_error
-            placeholders.pop("error_message", None)
-            return errors, None
-
-        mode = _normalize_forecast_mode_for_save(
-            normalized.get(CONF_CREATE_FORECAST_SENSORS, FORECAST_SENSORS_CHOICES[0])
-        )
-        combo_error = _forecast_mode_combo_error(forecast_days, mode)
-        if combo_error:
-            errors[CONF_CREATE_FORECAST_SENSORS] = combo_error
-            placeholders.pop("error_message", None)
-            return errors, None
-        normalized[CONF_CREATE_FORECAST_SENSORS] = mode
 
         latlon = None
         if CONF_LOCATION in user_input:
@@ -1106,18 +1004,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
             CONF_LANGUAGE_CODE,
             self.config_entry.data.get(CONF_LANGUAGE_CODE, self.hass.config.language),
         )
-        current_days_raw = self.config_entry.options.get(
-            CONF_FORECAST_DAYS,
-            self.config_entry.data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-        )
-        current_days_default = _sanitize_forecast_days_for_default(current_days_raw)
-        current_days = int(current_days_default)
-        current_mode = self.config_entry.options.get(CONF_CREATE_FORECAST_SENSORS)
-        if current_mode is None:
-            current_mode = self.config_entry.data.get(
-                CONF_CREATE_FORECAST_SENSORS, "none"
-            )
-        current_mode = _sanitize_forecast_mode_for_default(current_mode)
 
         options_schema = vol.Schema(
             {
@@ -1135,22 +1021,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
                 vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.TEXT)
                 ),
-                vol.Optional(
-                    CONF_FORECAST_DAYS, default=current_days_default
-                ): SelectSelector(
-                    SelectSelectorConfig(
-                        mode=SelectSelectorMode.DROPDOWN,
-                        options=FORECAST_DAYS_OPTIONS,
-                    )
-                ),
-                vol.Optional(
-                    CONF_CREATE_FORECAST_SENSORS, default=current_mode
-                ): SelectSelector(
-                    SelectSelectorConfig(
-                        mode=SelectSelectorMode.DROPDOWN,
-                        options=FORECAST_SENSORS_CHOICES,
-                    )
-                ),
             }
         )
 
@@ -1159,6 +1029,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
                 **self.config_entry.options,
                 **user_input,
             }
+            normalized_input = strip_legacy_forecast_options(normalized_input)
             interval_value, interval_error = _parse_update_interval(
                 normalized_input.get(CONF_UPDATE_INTERVAL, current_interval),
                 current_interval,
@@ -1175,17 +1046,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
                     description_placeholders=placeholders,
                 )
 
-            forecast_days, days_error = _parse_int_option(
-                normalized_input.get(CONF_FORECAST_DAYS, current_days),
-                current_days,
-                min_value=MIN_FORECAST_DAYS,
-                max_value=MAX_FORECAST_DAYS,
-                error_key="invalid_forecast_days",
-            )
-            normalized_input[CONF_FORECAST_DAYS] = forecast_days
-            if days_error:
-                errors[CONF_FORECAST_DAYS] = days_error
-
             try:
                 raw_lang = normalized_input.get(
                     CONF_LANGUAGE_CODE,
@@ -1198,18 +1058,6 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
                 if lang:
                     lang = is_valid_language_code(lang)
                 normalized_input[CONF_LANGUAGE_CODE] = lang
-
-                days = normalized_input[CONF_FORECAST_DAYS]
-                mode = _normalize_forecast_mode_for_save(
-                    normalized_input.get(
-                        CONF_CREATE_FORECAST_SENSORS,
-                        current_mode,
-                    )
-                )
-                normalized_input[CONF_CREATE_FORECAST_SENSORS] = mode
-                combo_error = _forecast_mode_combo_error(days, mode)
-                if combo_error:
-                    errors[CONF_CREATE_FORECAST_SENSORS] = combo_error
 
             except vol.Invalid as ve:
                 _LOGGER.warning(

@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Konfiguracja poziomów pyłku",
-        "description": "Wprowadź swój klucz Google API ([uzyskaj go tutaj]({api_key_url})) i zapoznaj się z dobrymi praktykami ([dobre praktyki]({restricting_api_keys_url})). Wybierz lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API. Możesz także ustawić dni prognozy oraz zakres czujników dziennych (TYPY).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "Klucz API",
           "name": "Nazwa",
           "location": "Lokalizacja",
           "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API",
-          "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
+          "language_code": "Kod języka odpowiedzi API"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
       "unknown": "Nieznany błąd",
       "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
-      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5.",
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
       "api_key_already_configured": "Ten klucz API jest już skonfigurowany."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcje",
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2; tworzy czujniki D+1 i D+2).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API",
-          "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
+          "language_code": "Kod języka odpowiedzi API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
-      "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
-      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Nieprawidłowa zapisana lokalizacja Pollen Levels",
       "description": "Pollen Levels znalazł nieprawidłowe zapisane dane lokalizacji dla {entry_title}: {location_title}. Usuń i utwórz ponownie dotkniętą lokalizację lub przywróć kopię zapasową Home Assistant sprzed utworzenia nieprawidłowej lokalizacji."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

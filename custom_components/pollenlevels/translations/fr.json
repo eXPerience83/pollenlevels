@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuration",
-        "description": "Saisissez votre clé API Google ([l’obtenir ici]({api_key_url})) et consultez les bonnes pratiques ([bonnes pratiques]({restricting_api_keys_url})). Sélectionnez votre emplacement sur la carte, l’intervalle de mise à jour (heures) et le code de langue de la réponse de l’API. Vous pouvez aussi définir les jours de prévision et la portée des capteurs par jour (TYPES).",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "Clé API",
           "name": "Nom",
           "location": "Emplacement",
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Code de langue pour la réponse de l’API",
-          "forecast_days": "Jours de prévision (1–5)",
-          "create_forecast_sensors": "Portée des capteurs par jour (TYPES)"
+          "language_code": "Code de langue pour la réponse de l’API"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Quota dépassé\n\n{error_message}",
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
       "empty": "Ce champ ne peut pas être vide",
-      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "invalid_coordinates": "Sélectionnez un emplacement valide sur la carte.",
       "unknown": "Erreur inconnue",
       "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
-      "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5.",
       "already_configured": "Cet emplacement est déjà configuré.",
       "api_key_already_configured": "Cette clé API est déjà configurée."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Modifiez l’intervalle de mise à jour, la langue de l’API, les jours de prévision et les capteurs par jour pour {title}.\nOptions des capteurs par jour (TYPES) : Aujourd’hui uniquement (none), Jusqu’à demain (D+1), Jusqu’au surlendemain (D+2 ; crée les capteurs D+1 et D+2).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Intervalle de mise à jour (heures)",
-          "language_code": "Code de langue pour la réponse de l’API",
-          "forecast_days": "Jours de prévision (1–5)",
-          "create_forecast_sensors": "Portée des capteurs par jour (TYPES)"
+          "language_code": "Code de langue pour la réponse de l’API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Utilisez un code BCP-47 canonique tel que \"en\" ou \"es-ES\".",
-      "empty": "Ce champ ne peut pas être vide",
-      "invalid_option_combo": "Augmentez le nombre de « Jours de prévision » afin de couvrir les capteurs par jour sélectionnés.",
       "unknown": "Erreur inconnue",
-      "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures.",
-      "invalid_forecast_days": "Les jours de prévision doivent être compris entre 1 et 5."
+      "invalid_update_interval": "L’intervalle de mise à jour doit être compris entre 1 et 24 heures."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Emplacement stocké invalide dans Pollen Levels",
       "description": "Pollen Levels a trouvé des données de localisation stockées invalides pour {entry_title} : {location_title}. Supprimez et recréez l'emplacement concerné, ou restaurez une sauvegarde Home Assistant antérieure à la création de l'emplacement invalide."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }
