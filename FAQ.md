@@ -3,14 +3,15 @@
 
 ## 1. How many requests can I make to the Google Maps Pollen API?
 Google's current Pollen API documentation describes pay-as-you-go pricing per
-request, based on usage volume tiers. The old Google Maps Platform monthly
-credit ended on **February 28, 2025**, so you should treat Pollen API usage as
-billable unless your own Google Cloud billing account, credits or contract say
-otherwise.
+request, based on usage volume tiers. The current global Google Maps Platform
+pricing list shows **Pollen Usage** with a **Free Usage Cap of 5,000 monthly
+billable events**, followed by paid per-1,000-event tiers.
 
-Use Google Cloud quotas, budgets and alerts to control spend. The Pollen API
-currently documents a maximum **6,000 queries per minute (QPM)** limit for each
-API method, but that is a service limit, not an included usage allowance.
+The old separate Google Maps Platform monthly credit ended on
+**February 28, 2025**. Use the Pollen SKU's current Free Usage Cap, plus Google
+Cloud quotas, budgets and alerts, to control spend. The Pollen API also
+documents a maximum **6,000 queries per minute (QPM)** limit for each API
+method; that is a service rate limit, not the monthly free usage cap.
 
 **Pricing list (official):** https://developers.google.com/maps/billing-and-pricing/pricing
 **Pollen usage & billing page:** https://developers.google.com/maps/documentation/pollen/usage-and-billing
@@ -23,9 +24,11 @@ API method, but that is a service limit, not an included usage allowance.
 
 ## 2. Does this integration consume a lot of API calls?
 No. By default the integration fetches every **6 hours** (~**4 requests/day**),
-which is roughly **~120 requests/month per location**. Your actual cost depends
-on Google's current Pollen API pricing, your configured locations, manual
-refreshes, quota settings and any billing credits on your account.
+which is roughly **~120 requests/month per location**. That is well below the
+current **5,000 monthly billable events** Free Usage Cap shown for the
+**Pollen Usage** SKU. Your actual cost depends on Google's current Pollen API
+pricing, your configured locations, manual refreshes, quota settings and any
+billing credits on your account.
 
 ---
 
@@ -96,12 +99,14 @@ Typical quota items you’ll see (names may vary slightly by locale):
 
 **Recommended hard caps (safe defaults):**
 > **Caution:** Quota caps are a useful safety guard, but Google notes they may
-> not be enforced with absolute precision due to latency. Keep conservative
-> limits and monitor billing instead of relying on a cap as your only guardrail.
+> not be enforced with absolute precision due to latency. Keep a buffer below
+> the monthly Free Usage Cap and monitor billing instead of relying on a cap as
+> your only guardrail.
 
-- **Forecast Usage per day** → choose a cap that matches your budget and number
-  of locations. For example, one location at the default 6-hour interval uses
-  about 4 forecast requests/day before manual refreshes.
+- **Forecast Usage per day** → **150**
+  (about 4,500/month, leaving a buffer below the current 5,000 monthly Free
+  Usage Cap; increase only if you have multiple locations or frequent manual
+  refreshes and accept the possible cost).
 - **Forecast Usage per minute** → **10**
 - **Forecast Usage per minute per user** → **10**
 - **HeatMap quotas** → **0** (or minimum allowed) to disable tiles.
