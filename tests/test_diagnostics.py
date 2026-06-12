@@ -150,29 +150,30 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
         None, entry
     )
 
-    assert diagnostics["request_params_example"]["key"] == "***"
+    location_payload = diagnostics["locations"]["entry"]
+    assert location_payload["request_params_example"]["key"] == "***"
     assert diagnostics_modules.CONF_LATITUDE not in diagnostics["entry"]["data"]
     assert diagnostics_modules.CONF_LONGITUDE not in diagnostics["entry"]["data"]
-    assert diagnostics["request_params_example"]["location.latitude"] == 12.3
-    assert diagnostics["request_params_example"]["location.longitude"] == 79.0
+    assert location_payload["request_params_example"]["location.latitude"] == 12.3
+    assert location_payload["request_params_example"]["location.longitude"] == 79.0
     assert (
-        diagnostics["coordinator"]["forecast_days"]
+        location_payload["coordinator"]["forecast_days"]
         == diagnostics_modules.diag.FORECAST_DAYS
     )
-    assert "create_d1" not in diagnostics["coordinator"]
-    assert "create_d2" not in diagnostics["coordinator"]
-    assert diagnostics["coordinator"]["data_keys_total"] == 60
-    assert len(diagnostics["coordinator"]["data_keys"]) == 50
+    assert "create_d1" not in location_payload["coordinator"]
+    assert "create_d2" not in location_payload["coordinator"]
+    assert location_payload["coordinator"]["data_keys_total"] == 60
+    assert len(location_payload["coordinator"]["data_keys"]) == 50
     serialized = json.dumps(diagnostics, sort_keys=True)
     assert "12.345678" not in serialized
     assert "78.987654" not in serialized
 
 
 @pytest.mark.asyncio
-async def test_diagnostics_includes_all_locations_with_top_level_first_location(
+async def test_diagnostics_includes_all_locations_without_top_level_duplicates(
     diagnostics_modules: DiagnosticsModules,
 ) -> None:
-    """Diagnostics should expose all locations and keep top-level compatibility."""
+    """Diagnostics should expose all locations without legacy top-level copies."""
 
     data = {
         diagnostics_modules.CONF_API_KEY: "secret-token",
@@ -234,14 +235,19 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
     )
 
     assert set(diagnostics["locations"]) == {"subentry-1", "subentry-2"}
+    assert set(diagnostics) == {
+        "entry",
+        "locations",
+        "runtime_summary",
+        "registry_summary",
+    }
     first_payload = diagnostics["locations"]["subentry-1"]
     second_payload = diagnostics["locations"]["subentry-2"]
-    assert diagnostics["coordinator"] == first_payload["coordinator"]
-    assert diagnostics["forecast_summary"] == first_payload["forecast_summary"]
-    assert diagnostics["daily_summary"] == first_payload["daily_summary"]
-    assert (
-        diagnostics["request_params_example"] == first_payload["request_params_example"]
-    )
+    assert diagnostics["runtime_summary"] == {
+        "stale_location_count": 0,
+        "stale_location_ids": [],
+    }
+    assert "registry_summary" in diagnostics
     assert first_payload["request_params_example"]["key"] == "***"
     assert second_payload["request_params_example"]["key"] == "***"
     assert first_payload["approximate_location"]["latitude_rounded"] == 12.3
@@ -636,8 +642,9 @@ async def test_diagnostics_request_days_are_fixed(
         None, entry
     )
 
+    location_payload = diagnostics["locations"]["entry"]
     assert (
-        diagnostics["request_params_example"]["days"]
+        location_payload["request_params_example"]["days"]
         == diagnostics_modules.diag.FORECAST_DAYS
     )
 
@@ -675,10 +682,11 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
         None, entry
     )
 
-    assert diagnostics["approximate_location"]["latitude_rounded"] is None
-    assert diagnostics["approximate_location"]["longitude_rounded"] is None
-    assert diagnostics["request_params_example"]["location.latitude"] is None
-    assert diagnostics["request_params_example"]["location.longitude"] is None
+    location_payload = diagnostics["locations"]["entry"]
+    assert location_payload["approximate_location"]["latitude_rounded"] is None
+    assert location_payload["approximate_location"]["longitude_rounded"] is None
+    assert location_payload["request_params_example"]["location.latitude"] is None
+    assert location_payload["request_params_example"]["location.longitude"] is None
 
 
 @pytest.mark.asyncio
@@ -755,7 +763,7 @@ async def test_diagnostics_includes_daily_summary_sensor_snapshot(
         None, entry
     )
 
-    daily_summary = diagnostics["daily_summary"]
+    daily_summary = diagnostics["locations"]["entry"]["daily_summary"]
     assert daily_summary["plants_in_season_today"] == {
         "state": 1,
         "plant_codes": ["OAK"],
@@ -811,7 +819,7 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data(
         None, entry
     )
 
-    daily_summary = diagnostics["daily_summary"]
+    daily_summary = diagnostics["locations"]["entry"]["daily_summary"]
     assert daily_summary["plants_in_season_today"]["state"] is None
     assert daily_summary["plants_in_season_today"]["total_plant_count"] == 0
     assert daily_summary["overall_pollen_risk_today"]["state"] is None
