@@ -232,7 +232,7 @@ def stub_util_dt_module(*, monkeypatch: pytest.MonkeyPatch | None = None) -> Mod
 
         try:
             parsed = parsedate_to_datetime(value) if value is not None else None
-        except (TypeError, ValueError, IndexError, OverflowError):
+        except TypeError, ValueError, IndexError, OverflowError:
             return None
 
         if parsed is None:

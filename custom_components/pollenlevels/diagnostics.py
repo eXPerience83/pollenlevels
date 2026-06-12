@@ -67,7 +67,7 @@ def _rounded(value: Any) -> float | None:
     """
     try:
         f = float(value)
-    except (TypeError, ValueError, OverflowError):
+    except TypeError, ValueError, OverflowError:
         return None
     if not math.isfinite(f):
         return None
@@ -230,7 +230,7 @@ def _registry_summary(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]
 
         entity_registry = er.async_get(hass)
         entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
-    except (ImportError, RuntimeError, KeyError, AttributeError):
+    except ImportError, RuntimeError, KeyError, AttributeError:
         entities = []
 
     for entity in entities:
@@ -249,7 +249,7 @@ def _registry_summary(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]
 
         device_registry = dr.async_get(hass)
         devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
-    except (ImportError, RuntimeError, KeyError, AttributeError):
+    except ImportError, RuntimeError, KeyError, AttributeError:
         devices = []
 
     for device in devices:

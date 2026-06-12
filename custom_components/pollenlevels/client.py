@@ -58,7 +58,7 @@ class GooglePollenApiClient:
             if math.isfinite(parsed) and parsed > 0:
                 return parsed
             return 2.0
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             retry_at = dt_util.parse_http_date(retry_after_raw)
             if retry_at is not None:
                 delay = (retry_at - dt_util.utcnow()).total_seconds()
