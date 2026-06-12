@@ -143,10 +143,10 @@ During parent API-key reauthentication or reconfiguration, the integration tries
 configured locations until one validates successfully. Authentication and quota
 errors are treated as API-key-level failures.
 
-During startup, the parent entry can still load when one location has a
-non-auth failure as long as another configured location loads successfully. A
-skipped location may need a manual reload of the parent entry after the
-underlying problem is fixed.
+During startup, if any configured location cannot complete its initial refresh,
+the parent entry is marked not ready and Home Assistant will retry setup. Fix
+the underlying location or API issue, then reload or retry the Pollen Levels
+entry.
 
 Create a Home Assistant backup before upgrading. Downgrading to Pollen Levels
 2.x after this migration is not supported.
@@ -169,6 +169,9 @@ No base sensors are renamed or recreated.
 Pollen Levels no longer creates separate per-day forecast entities. Future
 forecast data is available on the base pollen sensors through the `forecast`,
 `tomorrow_*`, `d2_*`, `trend`, and `expected_peak` attributes.
+
+If the integration detects legacy per-day forecast entities or settings during
+upgrade, it also creates a persistent Repair warning in Home Assistant.
 
 Update any dashboards, automations, templates or custom cards that reference
 entities such as `sensor.example_grass_d1` or `sensor.example_grass_d2`.
