@@ -1070,11 +1070,11 @@ def test_setup_entry_drops_legacy_per_day_option_and_creates_repair_issue(
     assert issue["is_persistent"] is True
 
 
-def test_setup_entry_drops_legacy_forecast_days_from_data(
+def test_setup_entry_drops_inactive_legacy_forecast_options_without_issue(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Setup should remove obsolete forecast-days data without a Repair warning."""
+    """Setup should remove inactive legacy forecast options without a Repair warning."""
     integration = integration_modules.integration
     base_data_update_coordinator = integration_modules.base_data_update_coordinator
 
@@ -1086,7 +1086,9 @@ def test_setup_entry_drops_legacy_forecast_days_from_data(
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
             integration.CONF_FORECAST_DAYS: 1,
+            integration.CONF_CREATE_FORECAST_SENSORS: "none",
         },
+        options={integration.CONF_CREATE_FORECAST_SENSORS: "none"},
     )
 
     class _StubClient:
@@ -1118,6 +1120,8 @@ def test_setup_entry_drops_legacy_forecast_days_from_data(
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert entry.runtime_data is not None
     assert integration.CONF_FORECAST_DAYS not in entry.data
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert (
         integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
         not in integration.issue_helpers.ir.registry.issues

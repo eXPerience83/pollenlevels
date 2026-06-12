@@ -329,10 +329,10 @@ def migration_modules(
     )
 
 
-def test_migration_removes_forecast_days_without_repair_issue(
+def test_migration_removes_inactive_legacy_forecast_options_without_repair_issue(
     migration_modules: _MigrateModules,
 ) -> None:
-    """Legacy forecast-day storage should be removed silently."""
+    """Inactive legacy forecast options should be removed silently."""
     integration = migration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
@@ -343,8 +343,12 @@ def test_migration_removes_forecast_days_without_repair_issue(
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
             integration.CONF_FORECAST_DAYS: 3,
+            integration.CONF_CREATE_FORECAST_SENSORS: "none",
         },
-        options={integration.CONF_FORECAST_DAYS: 3},
+        options={
+            integration.CONF_FORECAST_DAYS: 3,
+            integration.CONF_CREATE_FORECAST_SENSORS: "none",
+        },
         version=3,
     )
     hass = _FakeHass(entries=[entry])
@@ -352,6 +356,8 @@ def test_migration_removes_forecast_days_without_repair_issue(
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert integration.CONF_FORECAST_DAYS not in entry.data
     assert integration.CONF_FORECAST_DAYS not in entry.options
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert (
         migration_modules.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
         not in registry.issues

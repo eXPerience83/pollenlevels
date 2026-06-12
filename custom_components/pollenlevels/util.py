@@ -31,6 +31,7 @@ LEGACY_FORECAST_OPTION_KEYS = frozenset(
         CONF_CREATE_FORECAST_SENSORS,
     }
 )
+LEGACY_ACTIVE_PER_DAY_SENSOR_MODES = frozenset({"D+1", "D+1+2"})
 
 
 def strip_legacy_forecast_options(
@@ -45,8 +46,12 @@ def strip_legacy_forecast_options(
 
 
 def has_legacy_per_day_option(*mappings: Mapping[str, Any] | None) -> bool:
-    """Return whether any mapping stores the removed per-day sensor option."""
-    return any(CONF_CREATE_FORECAST_SENSORS in (mapping or {}) for mapping in mappings)
+    """Return whether any mapping stores an active removed per-day sensor mode."""
+    return any(
+        (mapping or {}).get(CONF_CREATE_FORECAST_SENSORS)
+        in LEGACY_ACTIVE_PER_DAY_SENSOR_MODES
+        for mapping in mappings
+    )
 
 
 def coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
