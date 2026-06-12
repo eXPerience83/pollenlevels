@@ -168,7 +168,7 @@ No base sensors are renamed or recreated.
 
 Pollen Levels no longer creates separate per-day forecast entities. Future
 forecast data is available on the base pollen sensors through the `forecast`,
-`tomorrow_*` and `d2_*` attributes.
+`tomorrow_*`, `d2_*`, `trend`, and `expected_peak` attributes.
 
 Update any dashboards, automations, templates or custom cards that reference
 entities such as `sensor.example_grass_d1` or `sensor.example_grass_d2`.

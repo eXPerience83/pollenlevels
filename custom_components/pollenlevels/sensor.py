@@ -187,6 +187,21 @@ async def async_setup_entry(
     active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
         config_entry
     )
+    legacy_entities_found = False
+    for location in runtime.locations.values():
+        identity_id = coordinator_identity_id(location.coordinator)
+        found_legacy_entities, _removed_legacy_entities = (
+            await _remove_legacy_per_day_entities(
+                hass,
+                config_entry.entry_id,
+                identity_id,
+            )
+        )
+        legacy_entities_found = legacy_entities_found or found_legacy_entities
+
+    if legacy_entities_found:
+        create_per_day_forecast_sensors_removed_issue(hass)
+
     for location in runtime.locations.values():
         if filter_stale_locations and location.subentry_id not in active_subentry_ids:
             _LOGGER.debug(
@@ -208,17 +223,6 @@ async def async_setup_entry(
             )
             _LOGGER.warning(message)
             raise ConfigEntryNotReady(message)
-
-        identity_id = coordinator_identity_id(coordinator)
-        found_legacy_entities, _removed_legacy_entities = (
-            await _remove_legacy_per_day_entities(
-                hass,
-                config_entry.entry_id,
-                identity_id,
-            )
-        )
-        if found_legacy_entities:
-            create_per_day_forecast_sensors_removed_issue(hass)
 
         sensors: list[CoordinatorEntity] = []
         for code in data:

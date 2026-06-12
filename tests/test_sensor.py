@@ -2894,6 +2894,152 @@ async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_cleans_legacy_entities_for_stale_locations(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Legacy cleanup should run even when stale runtime locations are skipped."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        entry_id="entry",
+    )
+    config_entry.subentries = {
+        "active-location": types.SimpleNamespace(
+            subentry_id="active-location",
+            subentry_type=sensor_modules.const.SUBENTRY_TYPE_LOCATION,
+        )
+    }
+    coordinator = types.SimpleNamespace(
+        data={
+            "date": {"source": "meta", "value": "2026-05-08"},
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 3,
+            },
+        },
+        entry_id="entry",
+        subentry_id="deleted-location",
+        entity_identity_id=coordinate_identity,
+        entry_title="Deleted",
+        lat=39.1234,
+        lon=-0.1234,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "deleted-location": types.SimpleNamespace(
+                subentry_id="deleted-location",
+                coordinator=coordinator,
+            )
+        },
+    )
+    registry = _setup_registry_stub(
+        sensor_modules,
+        monkeypatch,
+        [
+            RegistryEntry(
+                "sensor.pollen_type_grass_d1",
+                f"{coordinate_identity}_type_grass_d1",
+                "sensor",
+                sensor_modules.sensor.DOMAIN,
+            )
+        ],
+        entry_id="entry",
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    caplog.set_level(logging.DEBUG, logger=sensor_modules.sensor._LOGGER.name)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    issue_registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+    issue_helpers = sys.modules["custom_components.pollenlevels.issue_helpers"]
+    issue_id = issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    assert issue_id in issue_registry.issues
+    assert registry.removals == ["sensor.pollen_type_grass_d1"]
+    assert captured == []
+    assert coordinate_identity not in caplog.text
+    assert f"{coordinate_identity}_type_grass_d1" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_cleans_legacy_entities_before_no_data_error(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy cleanup should happen before no-data setup raises not-ready."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        entry_id="entry",
+    )
+    config_entry.subentries = {
+        "active-location": types.SimpleNamespace(
+            subentry_id="active-location",
+            subentry_type=sensor_modules.const.SUBENTRY_TYPE_LOCATION,
+        )
+    }
+    coordinator = types.SimpleNamespace(
+        data={"region": {"source": "meta"}},
+        entry_id="entry",
+        subentry_id="active-location",
+        entity_identity_id="entry",
+        entry_title="Home",
+        lat=1.0,
+        lon=2.0,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "active-location": types.SimpleNamespace(
+                subentry_id="active-location",
+                coordinator=coordinator,
+            )
+        },
+    )
+    registry = _setup_registry_stub(
+        sensor_modules,
+        monkeypatch,
+        [
+            RegistryEntry(
+                "sensor.pollen_type_grass_d2",
+                "entry_type_grass_d2",
+                "sensor",
+                sensor_modules.sensor.DOMAIN,
+            )
+        ],
+        entry_id="entry",
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    with pytest.raises(sensor_modules.sensor.ConfigEntryNotReady):
+        await sensor_modules.sensor.async_setup_entry(
+            hass, config_entry, _capture_entities
+        )
+
+    issue_registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+    issue_helpers = sys.modules["custom_components.pollenlevels.issue_helpers"]
+    issue_id = issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    assert issue_id in issue_registry.issues
+    assert registry.removals == ["sensor.pollen_type_grass_d2"]
+    assert captured == []
+
+
+@pytest.mark.asyncio
 async def test_async_setup_entry_skips_stale_runtime_locations(
     sensor_modules: SensorModules,
 ) -> None:
