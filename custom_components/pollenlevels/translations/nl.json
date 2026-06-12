@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Configuratie",
-        "description": "Voer je Google API-sleutel in ([haal hem hier]({api_key_url})) en bekijk de best practices ([best practices]({restricting_api_keys_url})). Selecteer je locatie op de kaart, het update-interval (uren) en de taalcode van de API-respons. Je kunt ook voorspellingsdagen en het bereik van per-dag TYPE-sensoren instellen.",
+        "description": "Voer je Google API Key in ([hier ophalen]({api_key_url})) en bekijk de best practices ([best practices]({restricting_api_keys_url})). Selecteer je locatie op de kaart, het update-interval (uren) en de taalcode voor het API-antwoord. Pollen Levels vraagt altijd de maximale voorspellingsperiode van 5 dagen op.",
         "data": {
           "api_key": "API-sleutel",
           "name": "Naam",
           "location": "Locatie",
           "update_interval": "Update-interval (uren)",
-          "language_code": "Taalcode voor API-respons",
-          "forecast_days": "Voorspellingsdagen (1–5)",
-          "create_forecast_sensors": "Bereik van per-dag TYPE-sensoren"
+          "language_code": "Taalcode voor API-respons"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Limiet overschreden\n\n{error_message}",
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
       "empty": "Dit veld mag niet leeg zijn",
-      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "invalid_coordinates": "Selecteer een geldige locatie op de kaart.",
       "unknown": "Onbekende fout",
       "invalid_update_interval": "Het update-interval moet tussen 1 en 24 uur liggen.",
-      "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen.",
       "already_configured": "Deze locatie is al geconfigureerd.",
       "api_key_already_configured": "Deze API-sleutel is al geconfigureerd."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opties",
-        "description": "Wijzig het update-interval, de API-taal, het aantal voorspellingsdagen en de per-dag TYPE-sensoren voor {title}.\nOpties voor per-dag TYPE-sensoren: Alleen vandaag (none), Tot en met morgen (D+1), Tot en met overmorgen (D+2; maakt zowel D+1- als D+2-sensoren aan).",
+        "description": "Wijzig het update-interval en de API-taal voor {title}. Pollen Levels vraagt altijd de maximale voorspellingsperiode van 5 dagen op.",
         "data": {
           "update_interval": "Update-interval (uren)",
-          "language_code": "Taalcode voor API-respons",
-          "forecast_days": "Voorspellingsdagen (1–5)",
-          "create_forecast_sensors": "Bereik van per-dag TYPE-sensoren"
+          "language_code": "Taalcode voor API-respons"
         }
       }
     },
     "error": {
       "invalid_language_format": "Gebruik een canonieke BCP-47-code zoals \"en\" of \"es-ES\".",
-      "empty": "Dit veld mag niet leeg zijn",
-      "invalid_option_combo": "Verhoog 'Voorspellingsdagen' om de geselecteerde per-dag sensoren te dekken.",
       "unknown": "Onbekende fout",
-      "invalid_update_interval": "Het update-interval moet tussen 1 en 24 uur liggen.",
-      "invalid_forecast_days": "Voorspellingsdagen moeten tussen 1 en 5 liggen."
+      "invalid_update_interval": "Het update-interval moet tussen 1 en 24 uur liggen."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Ongeldige opgeslagen Pollen Levels-locatie",
       "description": "Pollen Levels heeft ongeldige opgeslagen locatiegegevens gevonden voor {entry_title}: {location_title}. Verwijder en maak de betreffende locatie opnieuw aan, of herstel een Home Assistant-backup van vóór het aanmaken van de ongeldige locatie."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Voorspellingssensoren per dag zijn verwijderd",
+      "description": "Pollen Levels maakt geen afzonderlijke voorspellingsentiteiten meer aan die eindigen op _d1 of _d2. Voorspellingsgegevens blijven beschikbaar op de basispollensensoren via de attributen forecast, tomorrow_* en d2_*. Werk dashboards, automatiseringen, sjablonen en aangepaste kaarten bij die nog naar de oude entiteiten verwijzen."
     }
   }
 }

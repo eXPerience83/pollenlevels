@@ -16,11 +16,10 @@ from .client import GooglePollenApiClient
 from .const import (
     DEFAULT_ENTRY_TITLE,
     DOMAIN,
-    MAX_FORECAST_DAYS,
-    MIN_FORECAST_DAYS,
+    FORECAST_DAYS,
 )
 from .forecast import attach_forecast_attributes
-from .util import redact_api_key, safe_parse_int
+from .util import redact_api_key, redact_sensitive_values, safe_parse_int
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -149,9 +148,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         hours: int,
         language: str | None,
         entry_id: str,
-        forecast_days: int,
-        create_d1: bool,
-        create_d2: bool,
         client: GooglePollenApiClient,
         entry_title: str = DEFAULT_ENTRY_TITLE,
         subentry_id: str | None = None,
@@ -186,13 +182,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.device_identity_id = self.entity_identity_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
-        # Clamp defensively for legacy/manual entries to supported range.
-        parsed_days = safe_parse_int(forecast_days)
-        if parsed_days is None:
-            parsed_days = MIN_FORECAST_DAYS
-        self.forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, parsed_days))
-        self.create_d1 = create_d1
-        self.create_d2 = create_d2
+        self.forecast_days = FORECAST_DAYS
         self._client = client
         self._missing_dailyinfo_warned = False
         self._stale_dailyinfo_warned = False
@@ -234,6 +224,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             raise
         except Exception as err:  # Keep previous behavior for unexpected errors
             msg = redact_api_key(err, self.api_key)
+            msg = redact_sensitive_values(
+                msg,
+                latitude=self.lat,
+                longitude=self.lon,
+            )
             _LOGGER.error("Pollen API error: %s", msg)
             raise UpdateFailed(msg) from err
 
@@ -399,55 +394,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             base = attach_forecast_attributes(base, forecast_list)
             new_data[type_key] = base
 
-            # Optional per-day sensors (only if requested and day exists)
-            def _add_day_sensor(
-                off: int,
-                *,
-                _forecast_list=forecast_list,
-                _base=base,
-                _tcode=tcode,
-                _type_key=type_key,
-            ) -> None:
-                """Create a per-day type sensor for a given offset."""
-                f = next((d for d in _forecast_list if d["offset"] == off), None)
-                if not f:
-                    return
-
-                # Use day-specific 'inSeason' and 'advice' from the forecast day.
-                try:
-                    day_obj = daily[off]
-                except IndexError, TypeError:
-                    day_obj = None
-                day_item = type_by_day_code[off].get(_tcode) if day_obj else None
-                day_in_season = (
-                    day_item.get("inSeason") if isinstance(day_item, dict) else None
-                )
-                day_advice = (
-                    day_item.get("healthRecommendations")
-                    if isinstance(day_item, dict)
-                    else None
-                )
-
-                dname = f"{_base.get('displayName', _tcode)} (D+{off})"
-                new_data[f"{_type_key}_d{off}"] = {
-                    "source": "type",
-                    "displayName": dname,
-                    "value": f.get("value") if f.get("has_index") else None,
-                    "category": f.get("category") if f.get("has_index") else None,
-                    "description": f.get("description") if f.get("has_index") else None,
-                    "inSeason": day_in_season,
-                    "advice": day_advice,
-                    "color_hex": f.get("color_hex"),
-                    "color_rgb": f.get("color_rgb"),
-                    "date": f.get("date"),
-                    "has_index": f.get("has_index"),
-                }
-
-            if self.create_d1:
-                _add_day_sensor(1)
-            if self.create_d2:
-                _add_day_sensor(2)
-
         # Forecast for PLANTS (attributes only; no per-day plant sensors)
         for key in plant_keys:
             base = new_data.get(key) or {}
@@ -471,8 +417,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             types = 0
             plants = 0
             meta = 0
-            per_day = 0
-            for key, value in new_data.items():
+            for value in new_data.values():
                 source = value.get("source")
                 if source == "type":
                     types += 1
@@ -480,20 +425,15 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     plants += 1
                 else:
                     meta += 1
-                if key.endswith(("_d1", "_d2")):
-                    per_day += 1
             updated = self.last_updated.isoformat() if self.last_updated else "unknown"
             _LOGGER.debug(
-                "Update complete: entries=%d types=%d plants=%d meta=%d per_day=%d "
-                "forecast_days=%d d1=%s d2=%s updated=%s",
+                "Update complete: entries=%d types=%d plants=%d meta=%d "
+                "forecast_days=%d updated=%s",
                 total,
                 types,
                 plants,
                 meta,
-                per_day,
                 self.forecast_days,
-                self.create_d1,
-                self.create_d2,
                 updated,
             )
         return self.data

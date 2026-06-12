@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-import logging
 import math
 import re
+from collections.abc import Mapping
 from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
 from .const import (
     CONF_API_KEY,
+    CONF_CREATE_FORECAST_SENSORS,
+    CONF_FORECAST_DAYS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
-    FORECAST_SENSORS_CHOICES,
     SUBENTRY_TYPE_LOCATION,
 )
 
@@ -22,6 +23,38 @@ if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from .coordinator import PollenDataUpdateCoordinator
 else:  # pragma: no cover - runtime fallback for test environments without aiohttp
     ClientResponse = Any
+
+
+LEGACY_FORECAST_OPTION_KEYS = frozenset(
+    {
+        CONF_FORECAST_DAYS,
+        CONF_CREATE_FORECAST_SENSORS,
+    }
+)
+LEGACY_ACTIVE_PER_DAY_SENSOR_MODES = frozenset({"D+1", "D+1+2"})
+
+
+def strip_legacy_forecast_options(
+    mapping: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Return *mapping* without obsolete forecast configuration keys."""
+    return {
+        key: value
+        for key, value in dict(mapping or {}).items()
+        if key not in LEGACY_FORECAST_OPTION_KEYS
+    }
+
+
+def has_legacy_per_day_option(*mappings: Mapping[str, Any] | None) -> bool:
+    """Return whether any mapping stores an active removed per-day sensor mode."""
+    for mapping in mappings:
+        value = (mapping or {}).get(CONF_CREATE_FORECAST_SENSORS)
+        raw = getattr(value, "value", value)
+        if raw is None:
+            continue
+        if str(raw).strip() in LEGACY_ACTIVE_PER_DAY_SENSOR_MODES:
+            return True
+    return False
 
 
 def coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
@@ -285,30 +318,6 @@ def validate_location_pair(latitude: Any, longitude: Any) -> tuple[float, float]
     return parsed_latitude, parsed_longitude
 
 
-def normalize_sensor_mode(mode: Any, logger: logging.Logger) -> str:
-    """Normalize sensor mode, defaulting and logging a warning if invalid."""
-    raw_mode = getattr(mode, "value", mode)
-    mode_str = None if raw_mode is None else str(raw_mode).strip()
-    if not mode_str:
-        mode_str = None
-    if mode_str in FORECAST_SENSORS_CHOICES:
-        return mode_str
-
-    if "none" in FORECAST_SENSORS_CHOICES:
-        default_mode = "none"
-    else:
-        default_mode = (
-            FORECAST_SENSORS_CHOICES[0] if FORECAST_SENSORS_CHOICES else "none"
-        )
-    if mode_str is not None:
-        logger.warning(
-            "Invalid stored per-day sensor mode '%s'; defaulting to '%s'",
-            mode_str,
-            default_mode,
-        )
-    return default_mode
-
-
 def safe_parse_int(value: Any) -> int | None:
     """Parse an integer-like value, rejecting non-finite and decimal numbers."""
     if value is None or isinstance(value, bool):
@@ -335,12 +344,14 @@ __all__ = [
     "entry_api_key",
     "extract_error_message",
     "format_location_unique_id",
-    "normalize_sensor_mode",
+    "has_legacy_per_day_option",
+    "LEGACY_FORECAST_OPTION_KEYS",
     "parse_finite_float",
     "redact_api_key",
     "redact_sensitive_values",
     "safe_parse_int",
     "stale_runtime_location_filter",
+    "strip_legacy_forecast_options",
     "validate_latitude",
     "validate_location_pair",
     "validate_longitude",

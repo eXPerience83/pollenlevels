@@ -314,6 +314,7 @@ class StubIssueRegistry:
 
 class StubIssueSeverity:
     ERROR = "error"
+    WARNING = "warning"
 
 
 def stub_issue_registry_module(

@@ -374,6 +374,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
 
     english = _load_translation(TRANSLATIONS_DIR / "en.json")
     localized_paths = {
+        "config.step.user.description",
+        "options.step.init.description",
         "config.error.already_configured",
         "config_subentries.location.title",
         "config_subentries.location.entry_type",
@@ -389,6 +391,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
         "config_subentries.location.error.quota_exceeded",
         "config_subentries.location.error.unknown",
         "config_subentries.location.abort.reconfigure_successful",
+        "issues.per_day_forecast_sensors_removed.title",
+        "issues.per_day_forecast_sensors_removed.description",
     }
 
     problems: list[str] = []
@@ -424,8 +428,10 @@ def test_config_flow_extractor_includes_helper_error_keys() -> None:
     keys = _extract_config_flow_keys()
     assert "config.error.invalid_update_interval" in keys
     assert "options.error.invalid_update_interval" in keys
-    assert "config.error.invalid_forecast_days" in keys
-    assert "options.error.invalid_forecast_days" in keys
+    assert "config.error.invalid_language_format" in keys
+    assert "options.error.invalid_language_format" in keys
+    assert "config.error.invalid_forecast_days" not in keys
+    assert "options.error.invalid_forecast_days" not in keys
 
 
 def test_button_translation_keys_present() -> None:
@@ -557,6 +563,37 @@ def test_issues_invalid_stored_location_keys_present() -> None:
                 "missing {{location_title}} placeholder"
             )
     assert not problems, "Issues translation validation failed: " + "; ".join(problems)
+
+
+def test_issues_per_day_forecast_sensors_removed_keys_present() -> None:
+    """Ensure all locales have the per-day sensor removal Repair issue strings."""
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        data = _load_translation(translation_path)
+        issues = data.get("issues", {})
+        issue = issues.get("per_day_forecast_sensors_removed", {})
+        title = issue.get("title")
+        description = issue.get("description")
+        if not isinstance(title, str) or not title.strip():
+            problems.append(
+                f"{translation_path.name}: "
+                "issues.per_day_forecast_sensors_removed.title is missing or empty"
+            )
+        if not isinstance(description, str) or not description.strip():
+            problems.append(
+                f"{translation_path.name}: "
+                "issues.per_day_forecast_sensors_removed.description "
+                "is missing or empty"
+            )
+        if "{" in (description or "") or "}" in (description or ""):
+            problems.append(
+                f"{translation_path.name}: "
+                "issues.per_day_forecast_sensors_removed.description "
+                "must not contain placeholders"
+            )
+    assert not problems, "Per-day issue translation validation failed: " + "; ".join(
+        problems
+    )
 
 
 def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:

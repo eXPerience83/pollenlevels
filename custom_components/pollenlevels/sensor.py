@@ -1,7 +1,7 @@
 """Pollen Levels sensors with multi-day forecast (types & plants).
 
 Key points:
-- Cleans up stale per-day sensors (D+1/D+2) in Entity Registry on reload.
+- Cleans up legacy per-day sensors (D+1/D+2) in Entity Registry on reload.
 - Normalizes language (trim/omit when empty) before calling the API.
 - Redacts API keys in debug logs.
 - Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
@@ -16,7 +16,6 @@ import inspect
 import logging
 from collections.abc import Awaitable
 from datetime import date, datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
 # Modern sensor base + enums
@@ -40,23 +39,20 @@ if TYPE_CHECKING:
 from .const import (
     ATTRIBUTION,
     CONF_API_KEY,
-    CONF_FORECAST_DAYS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    MAX_FORECAST_DAYS,
-    MIN_FORECAST_DAYS,
+    FORECAST_DAYS,
 )
 from .coordinator import PollenDataUpdateCoordinator
+from .issue_helpers import create_per_day_forecast_sensors_removed_issue
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
 from .util import (
     coordinator_device_id,
     coordinator_identity_id,
-    safe_parse_int,
     stale_runtime_location_filter,
 )
 
@@ -67,7 +63,6 @@ __all__ = [
     "CONF_LATITUDE",
     "CONF_LONGITUDE",
     "CONF_UPDATE_INTERVAL",
-    "DEFAULT_FORECAST_DAYS",
     "DEFAULT_UPDATE_INTERVAL",
 ]
 
@@ -83,37 +78,24 @@ PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
 
 
-class ForecastSensorMode(StrEnum):
-    """Options for forecast sensor creation."""
-
-    NONE = "none"
-    D1 = "D+1"
-    D1_D2 = "D+1+2"
-
-
-async def _cleanup_per_day_entities(
+async def _remove_legacy_per_day_entities(
     hass: HomeAssistant,
     entry_id: str,
-    identity_id: str | None = None,
-    allow_d1: bool = False,
-    allow_d2: bool = False,
-) -> int:
-    """Remove stale per-day entities (D+1/D+2) from the Entity Registry.
-
-    HA keeps entity registry entries across reloads. If options disable per-day
-    sensors (or forecast_days is insufficient), we proactively remove registry
-    entries to avoid "Unavailable" ghosts in the UI.
-    """
+    identity_id: str,
+) -> tuple[int, int]:
+    """Remove legacy per-day type forecast entities from the Entity Registry."""
     registry = er.async_get(hass)
     entries = er.async_entries_for_config_entry(registry, entry_id)
+    found = 0
     removed = 0
-    identity_id = identity_id or entry_id
 
-    def _matches(uid: str, suffix: str) -> bool:
-        """Check if a unique_id belongs to this entry and ends with suffix."""
+    def _matches(uid: Any) -> bool:
+        """Check if a unique_id belongs to this identity and is legacy per-day."""
+        if not isinstance(uid, str):
+            return False
         if not uid.startswith(f"{identity_id}_"):
             return False
-        return uid.endswith(suffix)
+        return uid.endswith(("_d1", "_d2"))
 
     removals: list[tuple[str, str, Awaitable[Any]]] = []
 
@@ -124,9 +106,8 @@ async def _cleanup_per_day_entities(
             removal = registry.async_remove(entity_id)
         except Exception:
             _LOGGER.exception(
-                "Failed to remove stale per-day entity from registry: %s (%s)",
+                "Failed to remove legacy per-day entity from registry: %s",
                 entity_id,
-                unique_id,
             )
             return
 
@@ -138,19 +119,11 @@ async def _cleanup_per_day_entities(
     for ent in entries:
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
-        if not allow_d1 and _matches(ent.unique_id, "_d1"):
+        if _matches(ent.unique_id):
+            found += 1
             _LOGGER.debug(
-                "Removing stale D+1 entity from registry: %s (%s)",
+                "Removing legacy per-day entity from registry: %s",
                 ent.entity_id,
-                ent.unique_id,
-            )
-            _queue_removal(ent.entity_id, ent.unique_id)
-            continue
-        if not allow_d2 and _matches(ent.unique_id, "_d2"):
-            _LOGGER.debug(
-                "Removing stale D+2 entity from registry: %s (%s)",
-                ent.entity_id,
-                ent.unique_id,
             )
             _queue_removal(ent.entity_id, ent.unique_id)
 
@@ -158,16 +131,15 @@ async def _cleanup_per_day_entities(
         results = await asyncio.gather(
             *(removal for _, _, removal in removals), return_exceptions=True
         )
-        for (entity_id, unique_id, _removal), result in zip(
+        for (entity_id, _unique_id, _removal), result in zip(
             removals, results, strict=True
         ):
             if isinstance(result, asyncio.CancelledError):
                 raise result
             if isinstance(result, Exception):
                 _LOGGER.error(
-                    "Failed to remove stale per-day entity from registry: %s (%s)",
+                    "Failed to remove legacy per-day entity from registry: %s",
                     entity_id,
-                    unique_id,
                     exc_info=(type(result), result, result.__traceback__),
                 )
                 continue
@@ -175,12 +147,11 @@ async def _cleanup_per_day_entities(
 
     if removed:
         _LOGGER.info(
-            "Entity Registry cleanup: removed %d per-day sensors for entry %s identity %s",
+            "Entity Registry cleanup: removed %d legacy per-day sensors for entry %s",
             removed,
             entry_id,
-            identity_id,
         )
-    return removed
+    return found, removed
 
 
 def _add_entities_for_location(
@@ -216,7 +187,21 @@ async def async_setup_entry(
     active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
         config_entry
     )
-    opts = config_entry.options or {}
+    legacy_entities_found = False
+    for location in runtime.locations.values():
+        identity_id = coordinator_identity_id(location.coordinator)
+        found_legacy_entities, _removed_legacy_entities = (
+            await _remove_legacy_per_day_entities(
+                hass,
+                config_entry.entry_id,
+                identity_id,
+            )
+        )
+        legacy_entities_found = legacy_entities_found or found_legacy_entities
+
+    if legacy_entities_found:
+        create_per_day_forecast_sensors_removed_issue(hass)
+
     for location in runtime.locations.values():
         if filter_stale_locations and location.subentry_id not in active_subentry_ids:
             _LOGGER.debug(
@@ -227,24 +212,6 @@ async def async_setup_entry(
             continue
 
         coordinator = location.coordinator
-        raw_days = opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days)
-        parsed = safe_parse_int(raw_days)
-        if parsed is None:
-            _LOGGER.warning(
-                "Invalid forecast_days '%s' for entry %s subentry %s; defaulting to %s",
-                raw_days,
-                config_entry.entry_id,
-                location.subentry_id,
-                coordinator.forecast_days,
-            )
-        forecast_days = parsed if parsed is not None else coordinator.forecast_days
-        forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
-        create_d1 = coordinator.create_d1
-        create_d2 = coordinator.create_d2
-
-        allow_d1 = create_d1 and forecast_days >= 2
-        allow_d2 = create_d2 and forecast_days >= 3
-
         data = coordinator.data or {}
         has_daily = ("date" in data) or any(
             key.startswith(("type_", "plant_", "plants_")) for key in data
@@ -257,22 +224,11 @@ async def async_setup_entry(
             _LOGGER.warning(message)
             raise ConfigEntryNotReady(message)
 
-        identity_id = coordinator_identity_id(coordinator)
-        await _cleanup_per_day_entities(
-            hass,
-            config_entry.entry_id,
-            identity_id,
-            allow_d1=allow_d1,
-            allow_d2=allow_d2,
-        )
-
         sensors: list[CoordinatorEntity] = []
         for code in data:
             if code in ("region", "date"):
                 continue
-            if code.endswith("_d1") and not allow_d1:
-                continue
-            if code.endswith("_d2") and not allow_d2:
+            if code.endswith(("_d1", "_d2")):
                 continue
             sensors.append(PollenSensor(coordinator, code))
 
@@ -293,13 +249,13 @@ async def async_setup_entry(
         )
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
-            ids = [getattr(s, "unique_id", None) for s in sensors]
-            preview = ids[:10]
-            extra = max(0, len(ids) - len(preview))
+            labels = [getattr(s, "code", type(s).__name__) for s in sensors]
+            preview = labels[:10]
+            extra = max(0, len(labels) - len(preview))
             suffix = f", +{extra} more" if extra else ""
             _LOGGER.debug(
                 "Creating %d sensors for subentry %s (preview=%s%s)",
-                len(ids),
+                len(labels),
                 location.subentry_id,
                 preview,
                 suffix,
@@ -308,7 +264,7 @@ async def async_setup_entry(
 
 
 class PollenSensor(CoordinatorEntity, SensorEntity):
-    """Represent a pollen sensor for a type, plant, or per-day type."""
+    """Represent a pollen sensor for a type or plant."""
 
     # Enable long-term statistics for numeric pollen index values
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -347,7 +303,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         """
         info = self.coordinator.data.get(self.code, {})
         if info.get("source") == "type":
-            base_key = self.code.split("_", 1)[1].split("_d", 1)[0].upper()
+            base_key = self.code.split("_", 1)[1].upper()
             return TYPE_ICONS.get(base_key, DEFAULT_ICON)
         # Normalize plant 'type' to uppercase to map icons reliably
         ptype = (info.get("type") or "").upper()
@@ -375,13 +331,13 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
-        # Only include forecast-related attributes if more than 1 day was requested.
-        include_forecast = getattr(self.coordinator, "forecast_days", 1) > 1
+        # Forecast attributes are fixed by the integration-wide Google API horizon.
+        include_forecast = FORECAST_DAYS > 1
 
         # Forecast-related attributes:
-        # - For TYPE sensors: include on main sensors only (not per-day _d1/_d2)
+        # - For TYPE sensors: include on base sensors
         # - For PLANT sensors: include as attributes (no per-day plant sensors)
-        if info.get("source") == "type" and not self.code.endswith(("_d1", "_d2")):
+        if info.get("source") == "type":
             if include_forecast:
                 # Add forecast attributes only when forecast is enabled.
                 for k in (

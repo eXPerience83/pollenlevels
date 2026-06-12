@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Pollen Levels – Konfiguration",
-        "description": "Gib deinen Google API-Schlüssel ein ([hier abrufen]({api_key_url})) und lies die Best Practices ([Best Practices]({restricting_api_keys_url})). Wähle deinen Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode der API-Antwort. Sie können auch Vorhersagetage und den Umfang der Tagessensoren (TYPEN) festlegen.",
+        "description": "Gib deinen Google API Key ein ([hier erhalten]({api_key_url})) und prüfe die Best Practices ([Best Practices]({restricting_api_keys_url})). Wähle den Standort auf der Karte, das Aktualisierungsintervall (Stunden) und den Sprachcode für die API-Antwort. Pollen Levels fordert immer den maximalen 5-Tage-Vorhersagezeitraum an.",
         "data": {
           "api_key": "API-Schlüssel",
           "name": "Name",
           "location": "Standort",
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für die API-Antwort",
-          "forecast_days": "Vorhersagetage (1–5)",
-          "create_forecast_sensors": "Bereich der Tagessensoren (TYPEN)"
+          "language_code": "Sprachcode für die API-Antwort"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Kontingent überschritten\n\n{error_message}",
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
       "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
       "invalid_coordinates": "Wähle einen gültigen Standort auf der Karte aus.",
       "unknown": "Unbekannter Fehler",
       "invalid_update_interval": "Das Aktualisierungsintervall muss zwischen 1 und 24 Stunden liegen.",
-      "invalid_forecast_days": "Vorhersagetage müssen zwischen 1 und 5 liegen.",
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
       "api_key_already_configured": "Dieser API-Schlüssel ist bereits konfiguriert."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Optionen",
-        "description": "Ändere Aktualisierungsintervall, API-Sprache, Vorhersagetage und Tagessensoren für {title}.\nOptionen für Tagessensoren (TYPEN): Nur heute (none), Bis morgen (D+1), Bis übermorgen (D+2; erstellt sowohl D+1- als auch D+2-Sensoren).",
+        "description": "Ändere das Aktualisierungsintervall und die API-Sprache für {title}. Pollen Levels fordert immer den maximalen 5-Tage-Vorhersagezeitraum an.",
         "data": {
           "update_interval": "Aktualisierungsintervall (Stunden)",
-          "language_code": "Sprachcode für die API-Antwort",
-          "forecast_days": "Vorhersagetage (1–5)",
-          "create_forecast_sensors": "Bereich der Tagessensoren (TYPEN)"
+          "language_code": "Sprachcode für die API-Antwort"
         }
       }
     },
     "error": {
       "invalid_language_format": "Verwenden Sie einen kanonischen BCP-47-Code wie \"en\" oder \"es-ES\".",
-      "empty": "Dieses Feld darf nicht leer sein",
-      "invalid_option_combo": "Erhöhe 'Vorhersagetage', um die gewählten Tagessensoren abzudecken.",
       "unknown": "Unbekannter Fehler",
-      "invalid_update_interval": "Das Aktualisierungsintervall muss zwischen 1 und 24 Stunden liegen.",
-      "invalid_forecast_days": "Vorhersagetage müssen zwischen 1 und 5 liegen."
+      "invalid_update_interval": "Das Aktualisierungsintervall muss zwischen 1 und 24 Stunden liegen."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Ungültiger gespeicherter Pollen Levels-Standort",
       "description": "Pollen Levels hat ungültige gespeicherte Standortdaten für {entry_title}: {location_title} gefunden. Löschen und erstellen Sie den betroffenen Standort neu oder stellen Sie ein Home Assistant-Backup von vor der Erstellung des ungültigen Standorts wieder her."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Vorhersagesensoren pro Tag wurden entfernt",
+      "description": "Pollen Levels erstellt keine separaten Vorhersage-Entitäten mit der Endung _d1 oder _d2 mehr. Vorhersagedaten bleiben über die Attribute forecast, tomorrow_* und d2_* auf den Basis-Pollensensoren verfügbar. Aktualisiere Dashboards, Automationen, Vorlagen und benutzerdefinierte Karten, die noch auf die alten Entitäten verweisen."
     }
   }
 }

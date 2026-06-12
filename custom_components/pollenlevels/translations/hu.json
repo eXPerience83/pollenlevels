@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Pollen szintek – beállítás",
-        "description": "Add meg a Google API-kulcsodat ([itt szerezhető be]({api_key_url})) és nézd át a bevált gyakorlatokat ([bevált gyakorlatok]({restricting_api_keys_url})). Válaszd ki a helyszínt a térképen, a frissítési időközt (órában) és az API-válasz nyelvi kódját. Beállíthatod az előrejelzési napokat és a napi szenzorok tartományát (TÍPUSOK).",
+        "description": "Add meg a Google API Key értékét ([itt szerezheted be]({api_key_url})), és nézd át a bevált gyakorlatokat ([bevált gyakorlatok]({restricting_api_keys_url})). Válaszd ki a helyet a térképen, a frissítési időközt (órában) és az API-válasz nyelvi kódját. A Pollen Levels mindig a maximális, 5 napos előrejelzési időtávot kéri le.",
         "data": {
           "api_key": "API-kulcs",
           "name": "Név",
           "location": "Helyszín",
           "update_interval": "Frissítési időköz (óra)",
-          "language_code": "API-válasz nyelvi kódja",
-          "forecast_days": "Előrejelzési napok (1–5)",
-          "create_forecast_sensors": "Napi TÍPUS szenzorok tartománya"
+          "language_code": "API-válasz nyelvi kódja"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Kvóta túllépve\n\n{error_message}",
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
       "empty": "A mező nem lehet üres",
-      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "invalid_coordinates": "Válassz érvényes helyet a térképen.",
       "unknown": "Ismeretlen hiba",
       "invalid_update_interval": "A frissítési időköznek 1 és 24 óra között kell lennie.",
-      "invalid_forecast_days": "Az előrejelzési napoknak 1 és 5 között kell lenniük.",
       "already_configured": "Ez a hely már be van állítva.",
       "api_key_already_configured": "Ez az API-kulcs már be van állítva."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Beállítások",
-        "description": "Módosítsd a frissítési időközt, az API nyelvét, az előrejelzési napokat és a napi TÍPUS szenzorokat a(z) {title} bejegyzéshez.\nNapi TÍPUS szenzorok: Csak ma (none), Holnapig (D+1), Holnaputánig (D+2; létrehozza a D+1 és D+2 szenzorokat is).",
+        "description": "Módosítsd a frissítési időközt és az API nyelvét ehhez: {title}. A Pollen Levels mindig a maximális, 5 napos előrejelzési időtávot kéri le.",
         "data": {
           "update_interval": "Frissítési időköz (óra)",
-          "language_code": "API-válasz nyelvi kódja",
-          "forecast_days": "Előrejelzési napok (1–5)",
-          "create_forecast_sensors": "Napi TÍPUS szenzorok tartománya"
+          "language_code": "API-válasz nyelvi kódja"
         }
       }
     },
     "error": {
       "invalid_language_format": "Használjon kanonikus BCP-47 kódot, például \"en\" vagy \"es-ES\".",
-      "empty": "A mező nem lehet üres",
-      "invalid_option_combo": "Növeld a \"Előrejelzési napok\" értéket a kiválasztott napi szenzorok lefedéséhez.",
       "unknown": "Ismeretlen hiba",
-      "invalid_update_interval": "A frissítési időköznek 1 és 24 óra között kell lennie.",
-      "invalid_forecast_days": "Az előrejelzési napoknak 1 és 5 között kell lenniük."
+      "invalid_update_interval": "A frissítési időköznek 1 és 24 óra között kell lennie."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Érvénytelen tárolt Pollen Levels hely",
       "description": "A Pollen Levels érvénytelen tárolt helyadatokat talált a következőhöz: {entry_title}: {location_title}. Törölje és hozza létre újra az érintett helyet, vagy állítson vissza egy Home Assistant biztonsági mentést az érvénytelen hely létrehozása előtti időből."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "A napi előrejelzési szenzorok eltávolításra kerültek",
+      "description": "A Pollen Levels már nem hoz létre külön előrejelzési entitásokat _d1 vagy _d2 végződéssel. Az előrejelzési adatok továbbra is elérhetők az alap pollenszenzorokon a forecast, tomorrow_* és d2_* attribútumokon keresztül. Frissítsd azokat az irányítópultokat, automatizálásokat, sablonokat és egyéni kártyákat, amelyek még a régi entitásokra hivatkoznak."
     }
   }
 }

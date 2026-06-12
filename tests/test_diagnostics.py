@@ -25,7 +25,6 @@ class DiagnosticsModules(NamedTuple):
     PollenLevelsRuntimeData: type[object]
     PollenLocationRuntime: type[object]
     CONF_API_KEY: str
-    CONF_FORECAST_DAYS: str
     CONF_LANGUAGE_CODE: str
     CONF_LATITUDE: str
     CONF_LONGITUDE: str
@@ -97,7 +96,6 @@ def diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> DiagnosticsModules:
     from custom_components.pollenlevels import diagnostics as imported_diag
     from custom_components.pollenlevels.const import (
         CONF_API_KEY as imported_conf_api_key,
-        CONF_FORECAST_DAYS as imported_conf_forecast_days,
         CONF_LANGUAGE_CODE as imported_conf_language_code,
         CONF_LATITUDE as imported_conf_latitude,
         CONF_LONGITUDE as imported_conf_longitude,
@@ -112,7 +110,6 @@ def diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> DiagnosticsModules:
         PollenLevelsRuntimeData=ImportedRuntimeData,
         PollenLocationRuntime=ImportedLocationRuntime,
         CONF_API_KEY=imported_conf_api_key,
-        CONF_FORECAST_DAYS=imported_conf_forecast_days,
         CONF_LANGUAGE_CODE=imported_conf_language_code,
         CONF_LATITUDE=imported_conf_latitude,
         CONF_LONGITUDE=imported_conf_longitude,
@@ -135,16 +132,13 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
         diagnostics_modules.CONF_LONGITUDE: 78.987654,
         diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
+    options = {}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
     coordinator = SimpleNamespace(
         entry_id="entry",
-        forecast_days=3,
         language="en",
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         data={f"type_{idx}": {} for idx in range(60)},
     )
@@ -161,6 +155,12 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
     assert diagnostics_modules.CONF_LONGITUDE not in diagnostics["entry"]["data"]
     assert diagnostics["request_params_example"]["location.latitude"] == 12.3
     assert diagnostics["request_params_example"]["location.longitude"] == 79.0
+    assert (
+        diagnostics["coordinator"]["forecast_days"]
+        == diagnostics_modules.diag.FORECAST_DAYS
+    )
+    assert "create_d1" not in diagnostics["coordinator"]
+    assert "create_d2" not in diagnostics["coordinator"]
     assert diagnostics["coordinator"]["data_keys_total"] == 60
     assert len(diagnostics["coordinator"]["data_keys"]) == 50
     serialized = json.dumps(diagnostics, sort_keys=True)
@@ -178,7 +178,7 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
         diagnostics_modules.CONF_API_KEY: "secret-token",
         diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
+    options = {}
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
     entry.subentries = {
         "subentry-1": SimpleNamespace(
@@ -194,10 +194,7 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
         subentry_id="subentry-1",
         legacy_entry_id="legacy-entry",
         entity_identity_id="legacy-entry",
-        forecast_days=3,
         language="en",
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=12.3456,
         lon=78.9876,
@@ -209,10 +206,7 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
         subentry_id="subentry-2",
         legacy_entry_id=None,
         entity_identity_id="entry_subentry-2",
-        forecast_days=3,
         language="en",
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=40.7128,
         lon=-74.0060,
@@ -254,8 +248,69 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
     assert first_payload["approximate_location"]["longitude_rounded"] == 79.0
     assert second_payload["approximate_location"]["latitude_rounded"] == 40.7
     assert second_payload["approximate_location"]["longitude_rounded"] == -74.0
-    assert first_payload["coordinator"]["legacy_entry_id"] == "legacy-entry"
+    assert first_payload["coordinator"]["has_legacy_entry_id"] is True
+    assert first_payload["coordinator"]["has_entity_identity_id"] is True
+    assert second_payload["coordinator"]["has_legacy_entry_id"] is False
+    assert second_payload["coordinator"]["has_entity_identity_id"] is True
+    assert "legacy_entry_id" not in first_payload["coordinator"]
+    assert "entity_identity_id" not in first_payload["coordinator"]
     assert second_payload["coordinator"]["subentry_id"] == "subentry-2"
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_do_not_expose_coordinate_derived_identity_strings(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should summarize identity presence without raw identity values."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    entry = _ConfigEntry(
+        data={diagnostics_modules.CONF_API_KEY: "secret-token"},
+        options={},
+        entry_id="entry",
+        title="Home",
+    )
+    entry.subentries = {
+        "subentry-1": SimpleNamespace(
+            subentry_id="subentry-1", subentry_type="location"
+        )
+    }
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="subentry-1",
+        legacy_entry_id=coordinate_identity,
+        entity_identity_id=coordinate_identity,
+        language="en",
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=39.1234,
+        lon=-0.1234,
+        entry_title="Home",
+        data={},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "subentry-1": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="subentry-1",
+                coordinator=coordinator,
+                legacy_entry_id=coordinate_identity,
+            )
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    coord = diagnostics["locations"]["subentry-1"]["coordinator"]
+    assert coord["has_legacy_entry_id"] is True
+    assert coord["has_entity_identity_id"] is True
+    assert "legacy_entry_id" not in coord
+    assert "entity_identity_id" not in coord
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert coordinate_identity not in serialized
+    assert "39.1234" not in serialized
+    assert "-0.1234" not in serialized
 
 
 @pytest.mark.asyncio
@@ -285,10 +340,7 @@ async def test_diagnostics_redacts_multi_location_titles(
     casa_coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="casa",
-        forecast_days=2,
         language=None,
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=12.345678,
         lon=-98.765432,
@@ -298,10 +350,7 @@ async def test_diagnostics_redacts_multi_location_titles(
     trabajo_coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="trabajo",
-        forecast_days=2,
         language=None,
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=40.7128,
         lon=-74.006,
@@ -359,10 +408,7 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
     coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="entry",
-        forecast_days=2,
         language=None,
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=12.345678,
         lon=-98.765432,
@@ -467,10 +513,7 @@ async def test_diagnostics_summarizes_runtime_locations_when_parent_has_no_locat
     coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="deleted-location",
-        forecast_days=2,
         language=None,
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         lat=12.345678,
         lon=-98.765432,
@@ -521,10 +564,7 @@ async def test_diagnostics_summarizes_stale_runtime_locations(
         return SimpleNamespace(
             entry_id="entry",
             subentry_id=subentry_id,
-            forecast_days=2,
             language="en",
-            create_d1=True,
-            create_d2=False,
             last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
             lat=lat,
             lon=lon,
@@ -568,34 +608,23 @@ async def test_diagnostics_summarizes_stale_runtime_locations(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("raw_days", "expected_days"),
-    [
-        (999, 5),
-        (-3, 1),
-        ("nan", 2),
-    ],
-)
-async def test_diagnostics_clamps_request_days(
-    diagnostics_modules: DiagnosticsModules, raw_days: Any, expected_days: int
+async def test_diagnostics_request_days_are_fixed(
+    diagnostics_modules: DiagnosticsModules,
 ) -> None:
-    """Diagnostics request params should always show a supported day count."""
+    """Diagnostics request params should always show the fixed Google API limit."""
 
     data = {
         diagnostics_modules.CONF_LATITUDE: 12.3,
         diagnostics_modules.CONF_LONGITUDE: 45.6,
         diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {diagnostics_modules.CONF_FORECAST_DAYS: raw_days}
+    options = {}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
     coordinator = SimpleNamespace(
         entry_id="entry",
-        forecast_days=3,
         language="en",
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         data={"type_grass": {"source": "type"}},
     )
@@ -607,7 +636,10 @@ async def test_diagnostics_clamps_request_days(
         None, entry
     )
 
-    assert diagnostics["request_params_example"]["days"] == expected_days
+    assert (
+        diagnostics["request_params_example"]["days"]
+        == diagnostics_modules.diag.FORECAST_DAYS
+    )
 
 
 @pytest.mark.asyncio
@@ -621,7 +653,7 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
         diagnostics_modules.CONF_LONGITUDE: float("inf"),
         diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {diagnostics_modules.CONF_FORECAST_DAYS: 2}
+    options = {}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
     entry.subentries = {
@@ -631,10 +663,7 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
     coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="entry",
-        forecast_days=2,
         language="en",
-        create_d1=True,
-        create_d2=False,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         data={"type_grass": {"source": "type"}},
     )
@@ -663,16 +692,13 @@ async def test_diagnostics_includes_daily_summary_sensor_snapshot(
         diagnostics_modules.CONF_LONGITUDE: 45.6,
         diagnostics_modules.CONF_LANGUAGE_CODE: "en",
     }
-    options = {diagnostics_modules.CONF_FORECAST_DAYS: 3}
+    options = {}
 
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
     coordinator = SimpleNamespace(
         entry_id="entry",
-        forecast_days=3,
         language="en",
-        create_d1=True,
-        create_d2=True,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         data={
             "plants_oak": {
@@ -773,10 +799,7 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data(
     coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="entry",
-        forecast_days=1,
         language=None,
-        create_d1=False,
-        create_d2=False,
         last_updated=None,
         data={},
     )
@@ -853,10 +876,7 @@ async def test_diagnostics_includes_registry_summary_without_sensitive_values(
     entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
     coordinator = SimpleNamespace(
         entry_id="entry",
-        forecast_days=1,
         language=None,
-        create_d1=False,
-        create_d2=False,
         last_updated=None,
         lat=12.345678,
         lon=-98.765432,

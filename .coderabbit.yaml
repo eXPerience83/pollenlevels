@@ -69,6 +69,13 @@ reviews:
     - "!**/*.egg-info/**"
 
   path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        This repository targets Python 3.14+ and CI formats with Black using
+        target-version py314. Black 26+ may format multi-exception handlers as
+        `except A, B:`. Treat that syntax as valid for this repository; do not
+        flag it as a SyntaxError or request `except (A, B):` unless CI fails.
+
     - path: "custom_components/pollenlevels/**/*.py"
       instructions: |
         Review as a Home Assistant custom integration.

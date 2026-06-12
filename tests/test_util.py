@@ -55,6 +55,58 @@ def test_redact_sensitive_values_returns_empty_string_for_none(util_module):
     assert util_module.redact_sensitive_values(None, api_key="SECRET") == ""
 
 
+@pytest.mark.parametrize(
+    "mapping",
+    [
+        {},
+        {"create_forecast_sensors": None},
+        {"create_forecast_sensors": "none"},
+        {"create_forecast_sensors": " none "},
+        {"create_forecast_sensors": ""},
+        {"create_forecast_sensors": " "},
+        {"create_forecast_sensors": "bad"},
+    ],
+)
+def test_has_legacy_per_day_option_ignores_inactive_values(util_module, mapping):
+    """Inactive or invalid legacy modes should not create Repair warnings."""
+
+    assert util_module.has_legacy_per_day_option(mapping) is False
+
+
+@pytest.mark.parametrize("mode", ["D+1", "D+1+2"])
+def test_has_legacy_per_day_option_detects_active_modes(util_module, mode):
+    """Active legacy per-day modes should create Repair warnings."""
+
+    assert (
+        util_module.has_legacy_per_day_option(
+            {"create_forecast_sensors": "none"},
+            {"create_forecast_sensors": mode},
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize("mode", [" D+1 ", " D+1+2 "])
+def test_has_legacy_per_day_option_normalizes_active_strings(util_module, mode):
+    """Whitespace around active legacy modes should not hide Repair warnings."""
+
+    assert (
+        util_module.has_legacy_per_day_option({"create_forecast_sensors": mode}) is True
+    )
+
+
+def test_has_legacy_per_day_option_accepts_enum_like_values(util_module):
+    """Enum-like legacy option values should be read through their value."""
+
+    class _Mode:
+        value = "D+1"
+
+    assert (
+        util_module.has_legacy_per_day_option({"create_forecast_sensors": _Mode()})
+        is True
+    )
+
+
 def test_redact_sensitive_values_redacts_exact_api_key(util_module):
     """Exact API key values should be redacted."""
 

@@ -3,6 +3,7 @@
 ## Tooling
 - Tooling (CI, lint, format) runs on **Python 3.14**. The `pyproject.toml` targets packaging/tooling and also pins `requires-python = ">=3.14"`. All code under `custom_components/pollenlevels/` targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
 - Format code with Black (line length 88, target-version `py314`) with minimum `black>=25` (enforced via CI; version pin not stored in `pyproject.toml`).
+- Black 26+ may format multi-exception handlers as `except A, B:` for Python 3.14; keep the formatter output unless CI changes.
 - Lint and sort imports with Ruff targeting `py314`, with minimum `ruff>=0.14` (enforced via CI), matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.

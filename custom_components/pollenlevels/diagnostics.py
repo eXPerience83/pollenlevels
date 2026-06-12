@@ -2,7 +2,7 @@
 
 This exposes non-sensitive runtime details useful for support:
 - Entry data/options (with API key and location redacted)
-- Coordinator snapshot (last_updated, forecast_days, language, flags)
+- Coordinator snapshot (last_updated, forecast_days, language)
 - Forecast summaries for TYPES & PLANTS (attributes-only for plants)
 - Daily summary sensor snapshot derived from coordinator data
 - A sample of the request params with the API key redacted
@@ -22,17 +22,13 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ENTRY_TITLE,
-    DEFAULT_FORECAST_DAYS,  # use constant instead of magic number
     DOMAIN,
-    MAX_FORECAST_DAYS,
-    MIN_FORECAST_DAYS,
+    FORECAST_DAYS,
 )
 from .runtime import PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
@@ -41,7 +37,6 @@ from .util import (
     has_legacy_location_data,
     redact_api_key,
     redact_sensitive_values,
-    safe_parse_int,
 )
 
 # Redact potentially sensitive values from diagnostics. Diagnostics intentionally
@@ -79,17 +74,6 @@ def _rounded(value: Any) -> float | None:
     return round(f, 1)
 
 
-def _effective_days(options: dict[str, Any], data: dict[str, Any]) -> int:
-    """Return sanitized forecast days for diagnostics examples."""
-    days_raw = options.get(
-        CONF_FORECAST_DAYS,
-        data.get(CONF_FORECAST_DAYS, DEFAULT_FORECAST_DAYS),
-    )
-    parsed_days = safe_parse_int(days_raw)
-    days_effective = DEFAULT_FORECAST_DAYS if parsed_days is None else parsed_days
-    return max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, days_effective))
-
-
 def _redact_diagnostics_text(
     value: Any,
     api_key: str | None,
@@ -121,12 +105,12 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     coord_info = {
         "entry_id": getattr(coordinator, "entry_id", None),
         "subentry_id": getattr(coordinator, "subentry_id", None),
-        "legacy_entry_id": getattr(coordinator, "legacy_entry_id", None),
-        "entity_identity_id": getattr(coordinator, "entity_identity_id", None),
-        "forecast_days": getattr(coordinator, "forecast_days", None),
+        "has_legacy_entry_id": bool(getattr(coordinator, "legacy_entry_id", None)),
+        "has_entity_identity_id": bool(
+            getattr(coordinator, "entity_identity_id", None)
+        ),
+        "forecast_days": FORECAST_DAYS,
         "language": getattr(coordinator, "language", None),
-        "create_d1": getattr(coordinator, "create_d1", None),
-        "create_d2": getattr(coordinator, "create_d2", None),
         "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
         "data_keys_total": 0,
         "data_keys": [],
@@ -146,22 +130,10 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
         and v.get("source") == "type"
         and not k.endswith(("_d1", "_d2"))
     ]
-    type_perday_keys = [
-        k
-        for k, v in data_map.items()
-        if isinstance(v, dict)
-        and v.get("source") == "type"
-        and k.endswith(("_d1", "_d2"))
-    ]
-    type_codes = sorted(
-        {k.split("_", 1)[1].split("_d", 1)[0].upper() for k in type_main_keys}
-    )
+    type_codes = sorted({k.split("_", 1)[1].upper() for k in type_main_keys})
     forecast_summary["type"] = {
         "total_main": len(type_main_keys),
-        "total_per_day": len(type_perday_keys),
-        "create_d1": getattr(coordinator, "create_d1", None),
-        "create_d2": getattr(coordinator, "create_d2", None),
-        "days": getattr(coordinator, "forecast_days", None),
+        "days": FORECAST_DAYS,
         "codes": type_codes,
     }
 
@@ -176,8 +148,8 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     plants_with_trend = [v for v in plant_items if v.get("trend") is not None]
 
     forecast_summary["plant"] = {
-        "enabled": bool(getattr(coordinator, "forecast_days", 1) >= 2),
-        "days": getattr(coordinator, "forecast_days", None),
+        "enabled": FORECAST_DAYS >= 2,
+        "days": FORECAST_DAYS,
         "total": len(plant_items),
         "with_attr": len(plants_with_attr),
         "with_nonempty": len(plants_with_nonempty),
@@ -307,7 +279,6 @@ async def async_get_config_entry_diagnostics(
     options: dict[str, Any] = dict(entry.options or {})
     data: dict[str, Any] = dict(entry.data or {})
     runtime = cast(PollenLevelsRuntimeData | None, getattr(entry, "runtime_data", None))
-    days_effective = _effective_days(options, data)
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
     locations: dict[str, Any] = {}
     stale_location_ids: list[str] = []
@@ -349,7 +320,7 @@ async def async_get_config_entry_diagnostics(
                 "key": redact_api_key(api_key, api_key_text) or "***",
                 "location.latitude": _rounded(lat),
                 "location.longitude": _rounded(lon),
-                "days": days_effective,
+                "days": FORECAST_DAYS,
             }
             if lang:
                 request_params_example["languageCode"] = lang
@@ -381,8 +352,6 @@ async def async_get_config_entry_diagnostics(
             "options": {
                 CONF_UPDATE_INTERVAL: options.get(CONF_UPDATE_INTERVAL),
                 CONF_LANGUAGE_CODE: options.get(CONF_LANGUAGE_CODE),
-                CONF_FORECAST_DAYS: options.get(CONF_FORECAST_DAYS),
-                CONF_CREATE_FORECAST_SENSORS: options.get(CONF_CREATE_FORECAST_SENSORS),
             },
             "data": {
                 CONF_LANGUAGE_CODE: data.get(CONF_LANGUAGE_CODE),

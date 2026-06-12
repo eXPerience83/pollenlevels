@@ -15,8 +15,6 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LEGACY_ENTRY_ID,
@@ -28,12 +26,15 @@ from .const import (
 )
 from .issue_helpers import (
     create_entry_invalid_stored_location_issue,
+    create_per_day_forecast_sensors_removed_issue,
     delete_entry_invalid_stored_location_issue,
 )
 from .util import (
+    LEGACY_FORECAST_OPTION_KEYS,
     api_key_unique_id,
     entry_api_key,
-    normalize_sensor_mode,
+    has_legacy_per_day_option,
+    strip_legacy_forecast_options,
     validate_location_pair,
 )
 
@@ -169,28 +170,13 @@ def _clean_parent_options(entry: ConfigEntry) -> dict[str, Any]:
     """Return v3 parent options migrated from legacy data/options."""
     existing_data = entry.data or {}
     existing_options = entry.options or {}
-    new_options = dict(existing_options)
+    new_options = strip_legacy_forecast_options(existing_options)
     for option_key in (
         CONF_UPDATE_INTERVAL,
         CONF_LANGUAGE_CODE,
-        CONF_FORECAST_DAYS,
     ):
         if option_key not in new_options and option_key in existing_data:
             new_options[option_key] = existing_data[option_key]
-
-    mode = new_options.get(
-        CONF_CREATE_FORECAST_SENSORS,
-        existing_data.get(CONF_CREATE_FORECAST_SENSORS),
-    )
-
-    mode_raw = getattr(mode, "value", mode)
-    if mode_raw is not None:
-        mode_raw = str(mode_raw)
-        normalized_mode = normalize_sensor_mode(mode_raw, _LOGGER)
-        if new_options.get(CONF_CREATE_FORECAST_SENSORS) != normalized_mode:
-            new_options[CONF_CREATE_FORECAST_SENSORS] = normalized_mode
-    else:
-        new_options.pop(CONF_CREATE_FORECAST_SENSORS, None)
 
     new_options.pop(LEGACY_HTTP_REFERER_KEY, None)
     return new_options
@@ -461,26 +447,18 @@ def _entry_needs_cleanup(
     cleanup_needed = (
         LEGACY_HTTP_REFERER_KEY in existing_data
         or LEGACY_HTTP_REFERER_KEY in existing_options
-        or CONF_CREATE_FORECAST_SENSORS in existing_data
+        or any(key in existing_data for key in LEGACY_FORECAST_OPTION_KEYS)
+        or any(key in existing_options for key in LEGACY_FORECAST_OPTION_KEYS)
         or CONF_LATITUDE in existing_data
         or CONF_LONGITUDE in existing_data
         or CONF_UPDATE_INTERVAL in existing_data
         or CONF_LANGUAGE_CODE in existing_data
-        or CONF_FORECAST_DAYS in existing_data
         or (
             not existing_subentries
             and not is_entry_merged(entry)
             and current_version < target_version
         )
     )
-    if not cleanup_needed and CONF_CREATE_FORECAST_SENSORS in existing_options:
-        stored_mode = existing_options.get(CONF_CREATE_FORECAST_SENSORS)
-        stored_mode_raw = getattr(stored_mode, "value", stored_mode)
-        if stored_mode_raw is not None:
-            stored_mode_raw = str(stored_mode_raw)
-            cleanup_needed = (
-                normalize_sensor_mode(stored_mode_raw, _LOGGER) != stored_mode_raw
-            )
     return cleanup_needed
 
 
@@ -818,6 +796,10 @@ async def _async_migrate_grouped_entries(
             create_entry_invalid_stored_location_issue(hass, source)
             return False
 
+    legacy_per_day_option_detected = any(
+        has_legacy_per_day_option(candidate.data, candidate.options)
+        for candidate in group
+    )
     parent_options = _clean_parent_options(parent)
     for candidate in group:
         if candidate is parent:
@@ -901,6 +883,8 @@ async def _async_migrate_grouped_entries(
             return False
 
     _update_parent_entry(hass, parent, api_key, parent_options, target_version)
+    if legacy_per_day_option_detected:
+        create_per_day_forecast_sensors_removed_issue(hass)
 
     for source in group:
         if source is parent:
@@ -1009,6 +993,9 @@ async def async_handle_entry_migration(
 
         existing_data = entry.data or {}
         existing_options = entry.options or {}
+        legacy_per_day_option_detected = has_legacy_per_day_option(
+            entry.data, entry.options
+        )
         cleanup_needed = _entry_needs_cleanup(entry, current_version, target_version)
         target_unique_id = api_key_unique_id(api_key) if api_key is not None else None
         unique_id_changed = (
@@ -1109,6 +1096,8 @@ async def async_handle_entry_migration(
             hass.config_entries.async_update_entry(entry, **updates)
         else:
             hass.config_entries.async_update_entry(entry, version=new_version)
+        if legacy_per_day_option_detected:
+            create_per_day_forecast_sensors_removed_issue(hass)
         delete_entry_invalid_stored_location_issue(hass, entry)
         _LOGGER.info(
             "Completed Pollen Levels v3 migration for parent %s "

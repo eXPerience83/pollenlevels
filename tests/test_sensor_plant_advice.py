@@ -159,9 +159,6 @@ def _make_coordinator(
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 

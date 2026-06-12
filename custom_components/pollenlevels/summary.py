@@ -102,7 +102,7 @@ def _overall_forecast_from_type_forecasts(
 ) -> list[dict[str, Any]]:
     """Build aggregated forecast list from current-day type forecast attributes.
 
-    Returns an empty list when there are no future offsets (forecast_days=1).
+    Returns an empty list when there are no future offsets in the payload.
 
     For each future offset, the highest indexed value across all types is used.
     Ties are preserved with deterministic ordering by normalised type code.

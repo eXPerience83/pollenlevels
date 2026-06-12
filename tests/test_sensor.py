@@ -20,6 +20,7 @@ from tests._ha_stubs import (
     stub_custom_components_packages,
     stub_exceptions,
     stub_homeassistant_package,
+    stub_issue_registry_module,
     stub_update_coordinator_module,
     stub_util_dt_module,
 )
@@ -44,6 +45,14 @@ def _install_sensor_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_custom_components_packages(root=ROOT, monkeypatch=monkeypatch)
 
     ha = stub_homeassistant_package(monkeypatch=monkeypatch)
+
+    core_mod = types.ModuleType("homeassistant.core")
+
+    class _StubHomeAssistant:  # pragma: no cover - import-time type only
+        pass
+
+    core_mod.HomeAssistant = _StubHomeAssistant
+    monkeypatch.setitem(sys.modules, "homeassistant.core", core_mod)
 
     ha.components = types.ModuleType("homeassistant.components")
     monkeypatch.setitem(sys.modules, "homeassistant.components", ha.components)
@@ -194,6 +203,7 @@ def _install_sensor_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     stub_util_dt_module(monkeypatch=monkeypatch)
+    stub_issue_registry_module(monkeypatch=monkeypatch)
 
     stub_aiohttp_module(monkeypatch=monkeypatch)
 
@@ -362,9 +372,6 @@ def _make_coordinator(
     client: Any,
     *,
     hours: int = 12,
-    forecast_days: int = 1,
-    create_d1: bool = False,
-    create_d2: bool = False,
 ) -> Any:
     """Build a coordinator with stable defaults for refresh tests."""
 
@@ -376,9 +383,6 @@ def _make_coordinator(
         hours=hours,
         language=None,
         entry_id="entry",
-        forecast_days=forecast_days,
-        create_d1=create_d1,
-        create_d2=create_d2,
         client=client,
     )
 
@@ -414,6 +418,9 @@ class RegistryStub:
 
     def async_remove(self, entity_id: str) -> None:
         self.removals.append(entity_id)
+        self._entries = [
+            entry for entry in self._entries if entry.entity_id != entity_id
+        ]
 
 
 def _setup_registry_stub(
@@ -465,7 +472,6 @@ def test_sensor_unique_ids_and_devices_use_legacy_identity(
         entry_title="Home",
         lat=1.0,
         lon=2.0,
-        forecast_days=2,
     )
 
     entity = sensor_modules.sensor.PollenSensor(coordinator, "type_grass")
@@ -490,7 +496,6 @@ def test_sensor_unique_ids_survive_subentry_title_and_coordinate_changes(
         entry_title="Home",
         lat=1.0,
         lon=2.0,
-        forecast_days=2,
     )
     changed = types.SimpleNamespace(
         data=first.data,
@@ -501,7 +506,6 @@ def test_sensor_unique_ids_survive_subentry_title_and_coordinate_changes(
         entry_title="Renamed Home",
         lat=3.0,
         lon=4.0,
-        forecast_days=2,
     )
 
     first_entity = sensor_modules.sensor.PollenSensor(first, "type_grass")
@@ -513,6 +517,67 @@ def test_sensor_unique_ids_survive_subentry_title_and_coordinate_changes(
         first_entity.device_info["identifiers"]
         == changed_entity.device_info["identifiers"]
     )
+
+
+def test_pollen_sensor_forecast_attributes_do_not_require_coordinator_field(
+    sensor_modules: SensorModules,
+) -> None:
+    """Fixed forecast attributes should not depend on coordinator.forecast_days."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 2,
+                "forecast": [{"offset": 1, "value": 3}],
+                "tomorrow_has_index": True,
+                "tomorrow_value": 3,
+                "tomorrow_category": "Moderate",
+                "tomorrow_description": "Moderate risk",
+                "tomorrow_color_hex": "#ffff00",
+                "d2_has_index": True,
+                "d2_value": 4,
+                "d2_category": "High",
+                "d2_description": "High risk",
+                "d2_color_hex": "#ff0000",
+                "trend": "rising",
+                "expected_peak": {"offset": 2, "value": 4},
+            },
+            "plants_oak": {
+                "source": "plant",
+                "displayName": "Oak",
+                "value": 1,
+                "forecast": [{"offset": 1, "value": 2}],
+                "tomorrow_has_index": True,
+                "tomorrow_value": 2,
+                "d2_has_index": False,
+                "d2_value": None,
+                "trend": "stable",
+                "expected_peak": {"offset": 1, "value": 2},
+            },
+        }
+    )
+    assert not hasattr(coordinator, "forecast_days")
+
+    type_attrs = sensor_modules.sensor.PollenSensor(
+        coordinator, "type_grass"
+    ).extra_state_attributes
+    plant_attrs = sensor_modules.sensor.PollenSensor(
+        coordinator, "plants_oak"
+    ).extra_state_attributes
+
+    assert type_attrs["forecast"] == [{"offset": 1, "value": 3}]
+    assert type_attrs["tomorrow_value"] == 3
+    assert type_attrs["d2_value"] == 4
+    assert type_attrs["trend"] == "rising"
+    assert type_attrs["expected_peak"] == {"offset": 2, "value": 4}
+    assert plant_attrs["forecast"] == [{"offset": 1, "value": 2}]
+    assert plant_attrs["tomorrow_value"] == 2
+    assert plant_attrs["d2_has_index"] is False
+    assert "d2_value" not in plant_attrs
+    assert plant_attrs["trend"] == "stable"
+    assert plant_attrs["expected_peak"] == {"offset": 1, "value": 2}
 
 
 def test_plants_in_season_counts_mixed_boolean_and_unknown_values(
@@ -982,8 +1047,8 @@ def test_coordinator_preserves_last_data_when_dailyinfo_missing(
     assert second_data == coordinator.data
 
 
-def test_coordinator_clamps_forecast_days_low(sensor_modules: SensorModules) -> None:
-    """Forecast days are clamped to minimum for legacy or invalid values."""
+def test_coordinator_uses_fixed_forecast_days(sensor_modules: SensorModules) -> None:
+    """Coordinator always uses the fixed Google Pollen maximum forecast horizon."""
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -998,15 +1063,12 @@ def test_coordinator_clamps_forecast_days_low(sensor_modules: SensorModules) -> 
             hours=12,
             language=None,
             entry_id="entry",
-            forecast_days=0,
-            create_d1=False,
-            create_d2=False,
             client=client,
         )
     finally:
         loop.close()
 
-    assert coordinator.forecast_days == sensor_modules.const.MIN_FORECAST_DAYS
+    assert coordinator.forecast_days == sensor_modules.const.FORECAST_DAYS
 
 
 def test_coordinator_first_refresh_missing_dailyinfo_raises(
@@ -1131,7 +1193,7 @@ def test_coordinator_mixed_dailyinfo_items_keep_last_data(
     client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
 
     loop = asyncio.new_event_loop()
-    coordinator = _make_coordinator(sensor_modules, loop, client, forecast_days=2)
+    coordinator = _make_coordinator(sensor_modules, loop, client)
 
     try:
         first_data = loop.run_until_complete(coordinator._async_update_data())
@@ -1194,9 +1256,6 @@ def test_coordinator_stale_data_ttl_accounts_for_update_interval(
             hours=6,
             language=None,
             entry_id="entry-6h",
-            forecast_days=1,
-            create_d1=False,
-            create_d2=False,
             client=client,
         )
         twenty_four_hour = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
@@ -1207,9 +1266,6 @@ def test_coordinator_stale_data_ttl_accounts_for_update_interval(
             hours=24,
             language=None,
             entry_id="entry-24h",
-            forecast_days=1,
-            create_d1=False,
-            create_d2=False,
             client=client,
         )
     finally:
@@ -1260,89 +1316,32 @@ def test_coordinator_success_after_malformed_response_updates_last_updated(
     assert coordinator.last_updated == second_refresh
 
 
-def test_coordinator_clamps_forecast_days_negative(
+def test_coordinator_rejects_removed_forecast_day_arguments(
     sensor_modules: SensorModules,
 ) -> None:
-    """Negative forecast days are clamped to minimum."""
+    """Removed forecast sensor arguments are no longer part of the constructor."""
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
     client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
-            hass=hass,
-            api_key="test",
-            lat=1.0,
-            lon=2.0,
-            hours=12,
-            language=None,
-            entry_id="entry",
-            forecast_days=-5,
-            create_d1=False,
-            create_d2=False,
-            client=client,
-        )
+        with pytest.raises(TypeError):
+            sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+                hass=hass,
+                api_key="test",
+                lat=1.0,
+                lon=2.0,
+                hours=12,
+                language=None,
+                entry_id="entry",
+                forecast_days=1,
+                create_d1=False,
+                create_d2=False,
+                client=client,
+            )
     finally:
         loop.close()
-
-    assert coordinator.forecast_days == sensor_modules.const.MIN_FORECAST_DAYS
-
-
-def test_coordinator_clamps_forecast_days_high(sensor_modules: SensorModules) -> None:
-    """Forecast days are clamped to maximum for legacy or invalid values."""
-
-    loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "test")
-
-    try:
-        coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
-            hass=hass,
-            api_key="test",
-            lat=1.0,
-            lon=2.0,
-            hours=12,
-            language=None,
-            entry_id="entry",
-            forecast_days=10,
-            create_d1=False,
-            create_d2=False,
-            client=client,
-        )
-    finally:
-        loop.close()
-
-    assert coordinator.forecast_days == sensor_modules.const.MAX_FORECAST_DAYS
-
-
-def test_coordinator_keeps_forecast_days_within_range(
-    sensor_modules: SensorModules,
-) -> None:
-    """Valid forecast days remain unchanged after initialization."""
-
-    loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "test")
-
-    try:
-        coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
-            hass=hass,
-            api_key="test",
-            lat=1.0,
-            lon=2.0,
-            hours=12,
-            language=None,
-            entry_id="entry",
-            forecast_days=3,
-            create_d1=False,
-            create_d2=False,
-            client=client,
-        )
-    finally:
-        loop.close()
-
-    assert coordinator.forecast_days == 3
 
 
 def test_type_sensor_uses_forecast_metadata_when_today_missing(
@@ -1408,9 +1407,6 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=5,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 
@@ -1516,9 +1512,6 @@ def test_plant_sensor_includes_forecast_attributes(
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=5,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 
@@ -1546,6 +1539,80 @@ def test_plant_sensor_includes_forecast_attributes(
     assert entry["trend"] == "up"
     assert entry["expected_peak"]["offset"] == 1
     assert entry["expected_peak"]["value"] == 4
+
+
+def test_coordinator_requests_five_days_and_exposes_four_future_offsets(
+    sensor_modules: SensorModules,
+) -> None:
+    """Coordinator requests 5 days and keeps forecast offsets 1 through 4."""
+
+    daily_info = []
+    for offset in range(5):
+        day = offset + 1
+        daily_info.append(
+            {
+                "date": {"year": 2025, "month": 6, "day": day},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": day,
+                            "category": f"TYPE-{day}",
+                            "indexDescription": f"Type day {day}",
+                        },
+                    }
+                ],
+                "plantInfo": [
+                    {
+                        "code": "ragweed",
+                        "displayName": "Ragweed",
+                        "indexInfo": {
+                            "value": day + 10,
+                            "category": f"PLANT-{day}",
+                            "indexDescription": f"Plant day {day}",
+                        },
+                    }
+                ],
+            }
+        )
+
+    payload = {"dailyInfo": daily_info}
+
+    class _CapturingClient:
+        def __init__(self) -> None:
+            self.calls: list[dict[str, Any]] = []
+
+        async def async_fetch_pollen_data(self, **kwargs):
+            self.calls.append(kwargs)
+            return payload
+
+    client = _CapturingClient()
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert client.calls[0]["days"] == sensor_modules.const.FORECAST_DAYS
+    assert [item["offset"] for item in data["type_grass"]["forecast"]] == [
+        1,
+        2,
+        3,
+        4,
+    ]
+    assert [item["offset"] for item in data["plants_ragweed"]["forecast"]] == [
+        1,
+        2,
+        3,
+        4,
+    ]
+    assert data["type_grass"]["forecast"][3]["value"] == 5
+    assert data["plants_ragweed"]["forecast"][3]["value"] == 15
+    assert "type_grass_d1" not in data
+    assert "type_grass_d2" not in data
 
 
 def test_plant_sensor_preserves_future_health_recommendations_if_present(
@@ -1698,9 +1765,7 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior(
     client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
 
     loop = asyncio.new_event_loop()
-    coordinator = _make_coordinator(
-        sensor_modules, loop, client, forecast_days=3, create_d1=True, create_d2=True
-    )
+    coordinator = _make_coordinator(sensor_modules, loop, client)
 
     try:
         data = loop.run_until_complete(coordinator._async_update_data())
@@ -1721,19 +1786,8 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior(
     assert type_entry["forecast"][1]["date"] is None
     assert type_entry["forecast"][1]["has_index"] is True
     assert type_entry["forecast"][1]["color_hex"] == "#FF6432"
-    d1_entry = data["type_grass_d1"]
-    assert d1_entry["value"] is None
-    assert d1_entry["category"] is None
-    assert d1_entry["description"] is None
-    assert d1_entry["date"] == "2025-06-02"
-    assert d1_entry["has_index"] is False
-    assert d1_entry["inSeason"] is False
-    assert d1_entry["advice"] == ["Tomorrow advice"]
-
-    d2_entry = data["type_grass_d2"]
-    assert d2_entry["value"] == 5
-    assert d2_entry["date"] is None
-    assert d2_entry["has_index"] is True
+    assert "type_grass_d1" not in data
+    assert "type_grass_d2" not in data
 
     plant_entry = data["plants_oak"]
     assert plant_entry["forecast"][0] == {
@@ -1793,9 +1847,6 @@ def test_plant_forecast_matches_codes_case_insensitively(
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=3,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 
@@ -1973,27 +2024,11 @@ def test_coordinator_type_keys_are_deterministic_sorted(
     assert type_keys == sorted(type_keys)
 
 
-@pytest.mark.parametrize(
-    (
-        "allow_d1",
-        "allow_d2",
-        "expected_removed",
-        "expected_entities",
-    ),
-    [
-        (False, True, 1, ["sensor.pollen_type_grass_d1"]),
-        (True, False, 1, ["sensor.pollen_type_grass_d2"]),
-    ],
-)
-def test_cleanup_per_day_entities_removes_disabled_days(
+def test_remove_legacy_per_day_entities_removes_only_matching_legacy_entities(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
-    allow_d1: bool,
-    allow_d2: bool,
-    expected_removed: int,
-    expected_entities: list[str],
 ) -> None:
-    """D+1/D+2 entities are awaited and removed when disabled."""
+    """Legacy D+1/D+2 registry cleanup only removes matching Pollen Levels sensors."""
 
     entries = [
         RegistryEntry(
@@ -2014,18 +2049,37 @@ def test_cleanup_per_day_entities_removes_disabled_days(
             "sensor",
             sensor_modules.sensor.DOMAIN,
         ),
+        RegistryEntry(
+            "sensor.pollen_plants_oak",
+            "entry_plants_oak",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "sensor.pollen_overall",
+            "entry_overall_pollen_risk_today",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "sensor.other_grass_d1",
+            "entry_type_grass_d1",
+            "sensor",
+            "other",
+        ),
+        RegistryEntry(
+            "button.pollen_type_grass_d1",
+            "entry_type_grass_d1",
+            "button",
+            sensor_modules.sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "sensor.other_location_grass_d2",
+            "other_type_grass_d2",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        ),
     ]
-    entity_ids = [entry.entity_id for entry in entries]
-    assert entity_ids == [
-        "sensor.pollen_type_grass",
-        "sensor.pollen_type_grass_d1",
-        "sensor.pollen_type_grass_d2",
-    ]
-    assert all(entity_id.startswith("sensor.") for entity_id in entity_ids)
-    assert all("sensor_modules." not in entity_id for entity_id in entity_ids)
-    assert all(entity_id.startswith("sensor.") for entity_id in expected_entities)
-    assert all("sensor_modules." not in entity_id for entity_id in expected_entities)
-
     registry = _setup_registry_stub(
         sensor_modules, monkeypatch, entries, entry_id="entry"
     )
@@ -2033,19 +2087,30 @@ def test_cleanup_per_day_entities_removes_disabled_days(
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
     try:
-        removed = loop.run_until_complete(
-            sensor_modules.sensor._cleanup_per_day_entities(
-                hass, "entry", allow_d1=allow_d1, allow_d2=allow_d2
+        found, removed = loop.run_until_complete(
+            sensor_modules.sensor._remove_legacy_per_day_entities(
+                hass, "entry", "entry"
+            )
+        )
+        found_again, removed_again = loop.run_until_complete(
+            sensor_modules.sensor._remove_legacy_per_day_entities(
+                hass, "entry", "entry"
             )
         )
     finally:
         loop.close()
 
-    assert removed == expected_removed
-    assert registry.removals == expected_entities
+    assert found == 2
+    assert removed == 2
+    assert found_again == 0
+    assert removed_again == 0
+    assert registry.removals == [
+        "sensor.pollen_type_grass_d1",
+        "sensor.pollen_type_grass_d2",
+    ]
 
 
-def test_cleanup_per_day_entities_logs_failed_removal_without_raising(
+def test_remove_legacy_per_day_entities_logs_failed_removal_without_raising(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -2082,20 +2147,61 @@ def test_cleanup_per_day_entities_logs_failed_removal_without_raising(
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
     try:
-        removed = loop.run_until_complete(
-            sensor_modules.sensor._cleanup_per_day_entities(
-                hass, "entry", allow_d1=False, allow_d2=False
+        found, removed = loop.run_until_complete(
+            sensor_modules.sensor._remove_legacy_per_day_entities(
+                hass, "entry", "entry"
             )
         )
     finally:
         loop.close()
 
+    assert found == 2
     assert removed == 1
     assert registry.removals == ["sensor.pollen_type_grass_d2"]
-    assert "Failed to remove stale per-day entity from registry" in caplog.text
+    assert "Failed to remove legacy per-day entity from registry" in caplog.text
 
 
-def test_cleanup_per_day_entities_propagates_cancelled_removal(
+def test_remove_legacy_per_day_entities_does_not_log_coordinate_identity(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Legacy cleanup logs should not expose coordinate-derived unique IDs."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    entries = [
+        RegistryEntry(
+            "sensor.pollen_type_grass_d1",
+            f"{coordinate_identity}_type_grass_d1",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        )
+    ]
+    registry = _setup_registry_stub(
+        sensor_modules, monkeypatch, entries, entry_id="entry"
+    )
+    caplog.set_level(logging.DEBUG, logger=sensor_modules.sensor._LOGGER.name)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    try:
+        found, removed = loop.run_until_complete(
+            sensor_modules.sensor._remove_legacy_per_day_entities(
+                hass, "entry", coordinate_identity
+            )
+        )
+    finally:
+        loop.close()
+
+    assert found == 1
+    assert removed == 1
+    assert registry.removals == ["sensor.pollen_type_grass_d1"]
+    assert coordinate_identity not in caplog.text
+    assert f"{coordinate_identity}_type_grass_d1" not in caplog.text
+    assert "sensor.pollen_type_grass_d1" in caplog.text
+
+
+def test_remove_legacy_per_day_entities_propagates_cancelled_removal(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2131,8 +2237,8 @@ def test_cleanup_per_day_entities_propagates_cancelled_removal(
     try:
         with pytest.raises(asyncio.CancelledError):
             loop.run_until_complete(
-                sensor_modules.sensor._cleanup_per_day_entities(
-                    hass, "entry", allow_d1=False, allow_d2=False
+                sensor_modules.sensor._remove_legacy_per_day_entities(
+                    hass, "entry", "entry"
                 )
             )
     finally:
@@ -2157,9 +2263,6 @@ def test_coordinator_raises_auth_failed(sensor_modules: SensorModules) -> None:
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 
@@ -2186,9 +2289,6 @@ def test_coordinator_handles_forbidden(sensor_modules: SensorModules) -> None:
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 
@@ -2218,9 +2318,6 @@ def test_coordinator_invalid_key_message_triggers_reauth(
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 
@@ -2553,9 +2650,6 @@ def test_coordinator_retries_then_wraps_client_error(
         hours=12,
         language=None,
         entry_id="entry",
-        forecast_days=1,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
 
@@ -2567,6 +2661,50 @@ def test_coordinator_retries_then_wraps_client_error(
 
     assert session.calls == 2
     assert delays == [0.8]
+
+
+def test_coordinator_redacts_coordinates_in_unexpected_api_errors(
+    sensor_modules: SensorModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unexpected API errors should not log exact coordinates or API keys."""
+
+    class _FailingClient:
+        async def async_fetch_pollen_data(self, **_kwargs):
+            msg = (
+                "boom https://pollen.googleapis.com/v1/forecast:lookup?"
+                "key=secret&location.latitude=12.345678"
+                "&location.longitude=-98.765432"
+            )
+            raise RuntimeError(msg)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="secret",
+        lat=12.345678,
+        lon=-98.765432,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        client=_FailingClient(),
+    )
+    caplog.set_level(logging.ERROR, logger=sensor_modules.coordinator_mod._LOGGER.name)
+
+    try:
+        with pytest.raises(sensor_modules.client_mod.UpdateFailed) as exc_info:
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    rendered_error = str(exc_info.value)
+    assert "secret" not in rendered_error
+    assert "12.345678" not in rendered_error
+    assert "-98.765432" not in rendered_error
+    assert "secret" not in caplog.text
+    assert "12.345678" not in caplog.text
+    assert "-98.765432" not in caplog.text
 
 
 def test_async_setup_entry_raises_not_ready_if_runtime_data_missing(
@@ -2581,7 +2719,6 @@ def test_async_setup_entry_raises_not_ready_if_runtime_data_missing(
             sensor_modules.sensor.CONF_LATITUDE: 1.0,
             sensor_modules.sensor.CONF_LONGITUDE: 2.0,
             sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
-            sensor_modules.sensor.CONF_FORECAST_DAYS: sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
         }
     )
 
@@ -2624,10 +2761,10 @@ async def test_async_setup_entry_without_locations_adds_no_entities(
 
 
 @pytest.mark.asyncio
-async def test_async_setup_entry_skips_disabled_d1_d2_sensors(
+async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
     sensor_modules: SensorModules,
 ) -> None:
-    """Setup does not recreate D+1/D+2 sensors when forecast days disable them."""
+    """Setup does not recreate legacy D+1/D+2 sensors from accidental data keys."""
 
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
@@ -2636,9 +2773,7 @@ async def test_async_setup_entry_skips_disabled_d1_d2_sensors(
             sensor_modules.sensor.CONF_LATITUDE: 1.0,
             sensor_modules.sensor.CONF_LONGITUDE: 2.0,
             sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
-            sensor_modules.sensor.CONF_FORECAST_DAYS: sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
         },
-        options={sensor_modules.sensor.CONF_FORECAST_DAYS: 1},
         entry_id="entry",
     )
 
@@ -2652,9 +2787,6 @@ async def test_async_setup_entry_skips_disabled_d1_d2_sensors(
         language=None,
         entry_id="entry",
         entry_title=sensor_modules.const.DEFAULT_ENTRY_TITLE,
-        forecast_days=3,
-        create_d1=True,
-        create_d2=True,
         client=client,
     )
     coordinator.data = {
@@ -2687,6 +2819,227 @@ async def test_async_setup_entry_skips_disabled_d1_d2_sensors(
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy entity detection should warn even if registry removal fails."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor_modules.sensor.CONF_API_KEY: "key",
+            sensor_modules.sensor.CONF_LATITUDE: 1.0,
+            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
+            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        },
+        entry_id="entry",
+    )
+    entries = [
+        RegistryEntry(
+            "sensor.pollen_type_grass_d1",
+            "entry_type_grass_d1",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "sensor.pollen_type_grass_d2",
+            "entry_type_grass_d2",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        ),
+    ]
+    registry = _setup_registry_stub(
+        sensor_modules, monkeypatch, entries, entry_id="entry"
+    )
+
+    def _failing_remove(_entity_id: str) -> None:
+        raise RuntimeError("registry removal failed")
+
+    monkeypatch.setattr(registry, "async_remove", _failing_remove)
+
+    client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "key")
+    coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="key",
+        lat=1.0,
+        lon=2.0,
+        hours=sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        language=None,
+        entry_id="entry",
+        entry_title=sensor_modules.const.DEFAULT_ENTRY_TITLE,
+        client=client,
+    )
+    coordinator.data = {
+        "date": {"source": "meta"},
+        "region": {"source": "meta"},
+        "type_grass": {"source": "type", "name": "Grass"},
+    }
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=client
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    issue_registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+    issue_helpers = sys.modules["custom_components.pollenlevels.issue_helpers"]
+    issue_id = issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    assert issue_id in issue_registry.issues
+    assert registry.removals == []
+    assert captured
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_cleans_legacy_entities_for_stale_locations(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Legacy cleanup should run even when stale runtime locations are skipped."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        entry_id="entry",
+    )
+    config_entry.subentries = {
+        "active-location": types.SimpleNamespace(
+            subentry_id="active-location",
+            subentry_type=sensor_modules.const.SUBENTRY_TYPE_LOCATION,
+        )
+    }
+    coordinator = types.SimpleNamespace(
+        data={
+            "date": {"source": "meta", "value": "2026-05-08"},
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 3,
+            },
+        },
+        entry_id="entry",
+        subentry_id="deleted-location",
+        entity_identity_id=coordinate_identity,
+        entry_title="Deleted",
+        lat=39.1234,
+        lon=-0.1234,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "deleted-location": types.SimpleNamespace(
+                subentry_id="deleted-location",
+                coordinator=coordinator,
+            )
+        },
+    )
+    registry = _setup_registry_stub(
+        sensor_modules,
+        monkeypatch,
+        [
+            RegistryEntry(
+                "sensor.pollen_type_grass_d1",
+                f"{coordinate_identity}_type_grass_d1",
+                "sensor",
+                sensor_modules.sensor.DOMAIN,
+            )
+        ],
+        entry_id="entry",
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    caplog.set_level(logging.DEBUG, logger=sensor_modules.sensor._LOGGER.name)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    issue_registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+    issue_helpers = sys.modules["custom_components.pollenlevels.issue_helpers"]
+    issue_id = issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    assert issue_id in issue_registry.issues
+    assert registry.removals == ["sensor.pollen_type_grass_d1"]
+    assert captured == []
+    assert coordinate_identity not in caplog.text
+    assert f"{coordinate_identity}_type_grass_d1" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_cleans_legacy_entities_before_no_data_error(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy cleanup should happen before no-data setup raises not-ready."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        entry_id="entry",
+    )
+    config_entry.subentries = {
+        "active-location": types.SimpleNamespace(
+            subentry_id="active-location",
+            subentry_type=sensor_modules.const.SUBENTRY_TYPE_LOCATION,
+        )
+    }
+    coordinator = types.SimpleNamespace(
+        data={"region": {"source": "meta"}},
+        entry_id="entry",
+        subentry_id="active-location",
+        entity_identity_id="entry",
+        entry_title="Home",
+        lat=1.0,
+        lon=2.0,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "active-location": types.SimpleNamespace(
+                subentry_id="active-location",
+                coordinator=coordinator,
+            )
+        },
+    )
+    registry = _setup_registry_stub(
+        sensor_modules,
+        monkeypatch,
+        [
+            RegistryEntry(
+                "sensor.pollen_type_grass_d2",
+                "entry_type_grass_d2",
+                "sensor",
+                sensor_modules.sensor.DOMAIN,
+            )
+        ],
+        entry_id="entry",
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    with pytest.raises(sensor_modules.sensor.ConfigEntryNotReady):
+        await sensor_modules.sensor.async_setup_entry(
+            hass, config_entry, _capture_entities
+        )
+
+    issue_registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+    issue_helpers = sys.modules["custom_components.pollenlevels.issue_helpers"]
+    issue_id = issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    assert issue_id in issue_registry.issues
+    assert registry.removals == ["sensor.pollen_type_grass_d2"]
+    assert captured == []
+
+
+@pytest.mark.asyncio
 async def test_async_setup_entry_skips_stale_runtime_locations(
     sensor_modules: SensorModules,
 ) -> None:
@@ -2711,9 +3064,6 @@ async def test_async_setup_entry_skips_stale_runtime_locations(
         entry_title="Deleted",
         lat=1.0,
         lon=2.0,
-        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
-        create_d1=False,
-        create_d2=False,
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
@@ -2748,7 +3098,6 @@ async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_
             sensor_modules.sensor.CONF_LATITUDE: 1.0,
             sensor_modules.sensor.CONF_LONGITUDE: 2.0,
             sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
-            sensor_modules.sensor.CONF_FORECAST_DAYS: sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
         },
         entry_id="entry",
     )
@@ -2768,9 +3117,6 @@ async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_
         entry_title="Home",
         lat=1.0,
         lon=2.0,
-        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
-        create_d1=False,
-        create_d2=False,
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
@@ -2811,7 +3157,6 @@ async def test_async_setup_entry_adds_daily_summary_sensors(
             sensor_modules.sensor.CONF_LATITUDE: 1.0,
             sensor_modules.sensor.CONF_LONGITUDE: 2.0,
             sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
-            sensor_modules.sensor.CONF_FORECAST_DAYS: sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
         },
         entry_id=entry_id,
     )
@@ -2837,9 +3182,6 @@ async def test_async_setup_entry_adds_daily_summary_sensors(
         entry_title="Home",
         lat=1.0,
         lon=2.0,
-        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
-        create_d1=False,
-        create_d2=False,
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
@@ -2880,7 +3222,6 @@ async def test_device_info_uses_default_title_when_blank(
             sensor_modules.sensor.CONF_LATITUDE: 1.0,
             sensor_modules.sensor.CONF_LONGITUDE: 2.0,
             sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
-            sensor_modules.sensor.CONF_FORECAST_DAYS: sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
         },
         entry_id="entry",
     )
@@ -2897,9 +3238,6 @@ async def test_device_info_uses_default_title_when_blank(
         language=None,
         entry_id="entry",
         entry_title=clean_title,
-        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
     coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
@@ -2938,7 +3276,6 @@ async def test_device_info_trims_custom_title(
             sensor_modules.sensor.CONF_LATITUDE: 1.0,
             sensor_modules.sensor.CONF_LONGITUDE: 2.0,
             sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
-            sensor_modules.sensor.CONF_FORECAST_DAYS: sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
         },
         entry_id="entry",
     )
@@ -2955,9 +3292,6 @@ async def test_device_info_trims_custom_title(
         language=None,
         entry_id="entry",
         entry_title=clean_title,
-        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
-        create_d1=False,
-        create_d2=False,
         client=client,
     )
     coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
@@ -2996,9 +3330,6 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
             sensor_modules.sensor.CONF_UPDATE_INTERVAL: (
                 sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL
             ),
-            sensor_modules.sensor.CONF_FORECAST_DAYS: (
-                sensor_modules.sensor.DEFAULT_FORECAST_DAYS
-            ),
         },
         entry_id="entry",
     )
@@ -3017,9 +3348,6 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
         lat=1.0,
         lon=2.0,
         subentry_id="legacy",
-        forecast_days=sensor_modules.sensor.DEFAULT_FORECAST_DAYS,
-        create_d1=False,
-        create_d2=False,
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
@@ -3044,3 +3372,66 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
         if isinstance(entity, sensor_modules.sensor.PollenSensor)
     }
     assert "plant_oak" in codes
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_debug_logs_do_not_expose_coordinate_identity(
+    sensor_modules: SensorModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Sensor setup debug previews should not include raw unique IDs."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor_modules.sensor.CONF_API_KEY: "key",
+            sensor_modules.sensor.CONF_LATITUDE: 39.1234,
+            sensor_modules.sensor.CONF_LONGITUDE: -0.1234,
+            sensor_modules.sensor.CONF_UPDATE_INTERVAL: (
+                sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL
+            ),
+        },
+        entry_id="entry",
+    )
+    coordinator = types.SimpleNamespace(
+        data={
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 1,
+            },
+        },
+        entry_id="entry",
+        entity_identity_id=coordinate_identity,
+        entry_title="Home",
+        lat=39.1234,
+        lon=-0.1234,
+        subentry_id="legacy",
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "legacy": types.SimpleNamespace(
+                subentry_id="legacy",
+                coordinator=coordinator,
+            ),
+        },
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    caplog.set_level(logging.DEBUG, logger=sensor_modules.sensor._LOGGER.name)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    assert any(
+        getattr(entity, "unique_id", None) == f"{coordinate_identity}_type_grass"
+        for entity in captured
+    )
+    assert coordinate_identity not in caplog.text
+    assert f"{coordinate_identity}_type_grass" not in caplog.text
+    assert "type_grass" in caplog.text

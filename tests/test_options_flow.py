@@ -40,12 +40,8 @@ class OptionsFlowEnv:
     CONF_LATITUDE: str
     CONF_LONGITUDE: str
     CONF_UPDATE_INTERVAL: str
-    DEFAULT_FORECAST_DAYS: int
     DEFAULT_UPDATE_INTERVAL: int
-    FORECAST_SENSORS_CHOICES: list[str]
-    MAX_FORECAST_DAYS: int
     MAX_UPDATE_INTERVAL_HOURS: int
-    MIN_FORECAST_DAYS: int
     MIN_UPDATE_INTERVAL_HOURS: int
 
 
@@ -171,24 +167,21 @@ def options_flow_env(monkeypatch: pytest.MonkeyPatch) -> OptionsFlowEnv:
     monkeypatch.setitem(sys_modules, "voluptuous", vol_mod)
 
     cf = importlib.import_module("custom_components.pollenlevels.config_flow")
+    const = importlib.import_module("custom_components.pollenlevels.const")
 
     return OptionsFlowEnv(
         config_flow=cf,
         PollenLevelsOptionsFlow=cf.PollenLevelsOptionsFlow,
         StubConfigEntry=StubConfigEntry,
         CONF_API_KEY=cf.CONF_API_KEY,
-        CONF_CREATE_FORECAST_SENSORS=cf.CONF_CREATE_FORECAST_SENSORS,
-        CONF_FORECAST_DAYS=cf.CONF_FORECAST_DAYS,
+        CONF_CREATE_FORECAST_SENSORS=const.CONF_CREATE_FORECAST_SENSORS,
+        CONF_FORECAST_DAYS=const.CONF_FORECAST_DAYS,
         CONF_LANGUAGE_CODE=cf.CONF_LANGUAGE_CODE,
         CONF_LATITUDE=cf.CONF_LATITUDE,
         CONF_LONGITUDE=cf.CONF_LONGITUDE,
         CONF_UPDATE_INTERVAL=cf.CONF_UPDATE_INTERVAL,
-        DEFAULT_FORECAST_DAYS=cf.DEFAULT_FORECAST_DAYS,
         DEFAULT_UPDATE_INTERVAL=cf.DEFAULT_UPDATE_INTERVAL,
-        FORECAST_SENSORS_CHOICES=cf.FORECAST_SENSORS_CHOICES,
-        MAX_FORECAST_DAYS=cf.MAX_FORECAST_DAYS,
         MAX_UPDATE_INTERVAL_HOURS=cf.MAX_UPDATE_INTERVAL_HOURS,
-        MIN_FORECAST_DAYS=cf.MIN_FORECAST_DAYS,
         MIN_UPDATE_INTERVAL_HOURS=cf.MIN_UPDATE_INTERVAL_HOURS,
     )
 
@@ -206,8 +199,6 @@ def _flow(
             env.CONF_LONGITUDE: 2.0,
             env.CONF_LANGUAGE_CODE: "en",
             env.CONF_UPDATE_INTERVAL: 6,
-            env.CONF_FORECAST_DAYS: 2,
-            env.CONF_CREATE_FORECAST_SENSORS: "none",
         },
         options=options,
     )
@@ -241,8 +232,6 @@ def test_options_flow_invalid_language_sets_error(
         flow.async_step_init(
             {
                 options_flow_env.CONF_LANGUAGE_CODE: "bad code",
-                options_flow_env.CONF_FORECAST_DAYS: 2,
-                options_flow_env.CONF_CREATE_FORECAST_SENSORS: "none",
                 options_flow_env.CONF_UPDATE_INTERVAL: 6,
             }
         )
@@ -264,8 +253,6 @@ def test_options_flow_invalid_language_code_not_logged_raw(
             flow.async_step_init(
                 {
                     options_flow_env.CONF_LANGUAGE_CODE: "bad code",
-                    options_flow_env.CONF_FORECAST_DAYS: 2,
-                    options_flow_env.CONF_CREATE_FORECAST_SENSORS: "none",
                     options_flow_env.CONF_UPDATE_INTERVAL: 6,
                 }
             )
@@ -277,70 +264,50 @@ def test_options_flow_invalid_language_code_not_logged_raw(
     }
 
 
-def test_options_flow_forecast_days_below_min_sets_error(
+def test_options_flow_drops_removed_forecast_options(
     options_flow_env: OptionsFlowEnv,
 ) -> None:
-    """Forecast days below allowed range should error."""
+    """Legacy forecast option keys should be ignored and removed on save."""
 
-    flow = _flow(options_flow_env)
+    flow = _flow(
+        options_flow_env,
+        options={
+            options_flow_env.CONF_LANGUAGE_CODE: "en",
+            options_flow_env.CONF_UPDATE_INTERVAL: 6,
+            options_flow_env.CONF_FORECAST_DAYS: 2,
+            options_flow_env.CONF_CREATE_FORECAST_SENSORS: "D+1",
+        },
+    )
 
     result = asyncio.run(
         flow.async_step_init(
             {
-                options_flow_env.CONF_LANGUAGE_CODE: "en",
+                options_flow_env.CONF_LANGUAGE_CODE: " es ",
+                options_flow_env.CONF_UPDATE_INTERVAL: 8,
                 options_flow_env.CONF_FORECAST_DAYS: 0,
-                options_flow_env.CONF_CREATE_FORECAST_SENSORS: "none",
-                options_flow_env.CONF_UPDATE_INTERVAL: 6,
+                options_flow_env.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
             }
         )
     )
 
-    assert result["errors"] == {
-        options_flow_env.CONF_FORECAST_DAYS: "invalid_forecast_days",
-        options_flow_env.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo",
-    }
-
-
-@pytest.mark.parametrize(
-    "mode,days",
-    [("D+1", 1), ("D+1+2", 2)],
-)
-def test_options_flow_per_day_sensor_requires_enough_days(
-    options_flow_env: OptionsFlowEnv,
-    mode: str,
-    days: int,
-) -> None:
-    """Per-day sensor modes should enforce minimum forecast days."""
-
-    flow = _flow(options_flow_env)
-
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                options_flow_env.CONF_LANGUAGE_CODE: "en",
-                options_flow_env.CONF_FORECAST_DAYS: days,
-                options_flow_env.CONF_CREATE_FORECAST_SENSORS: mode,
-                options_flow_env.CONF_UPDATE_INTERVAL: 6,
-            }
-        )
-    )
-
-    assert result["errors"] == {
-        options_flow_env.CONF_CREATE_FORECAST_SENSORS: "invalid_option_combo"
+    assert result == {
+        "title": "",
+        "data": {
+            options_flow_env.CONF_LANGUAGE_CODE: "es",
+            options_flow_env.CONF_UPDATE_INTERVAL: 8,
+        },
     }
 
 
 def test_options_flow_valid_submission_returns_entry_data(
     options_flow_env: OptionsFlowEnv,
 ) -> None:
-    """A valid options submission should return the data unchanged."""
+    """A valid options submission should return supported options only."""
 
     flow = _flow(options_flow_env)
 
     user_input = {
         options_flow_env.CONF_LANGUAGE_CODE: " es ",
-        options_flow_env.CONF_FORECAST_DAYS: 3,
-        options_flow_env.CONF_CREATE_FORECAST_SENSORS: "D+1",
         options_flow_env.CONF_UPDATE_INTERVAL: 8,
     }
 
@@ -349,8 +316,8 @@ def test_options_flow_valid_submission_returns_entry_data(
     assert result == {
         "title": "",
         "data": {
-            **user_input,
             options_flow_env.CONF_LANGUAGE_CODE: "es",
+            options_flow_env.CONF_UPDATE_INTERVAL: 8,
         },
     }
 
@@ -366,8 +333,6 @@ def test_options_flow_update_interval_below_min_sets_error(
         flow.async_step_init(
             {
                 options_flow_env.CONF_LANGUAGE_CODE: "en",
-                options_flow_env.CONF_FORECAST_DAYS: 2,
-                options_flow_env.CONF_CREATE_FORECAST_SENSORS: "none",
                 options_flow_env.CONF_UPDATE_INTERVAL: 0,
             }
         )
@@ -389,8 +354,6 @@ def test_options_flow_invalid_update_interval_short_circuits(
         flow.async_step_init(
             {
                 options_flow_env.CONF_LANGUAGE_CODE: "en",
-                options_flow_env.CONF_FORECAST_DAYS: 0,
-                options_flow_env.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
                 options_flow_env.CONF_UPDATE_INTERVAL: "not-a-number",
             }
         )
@@ -412,8 +375,6 @@ def test_options_flow_update_interval_above_max_sets_error(
         flow.async_step_init(
             {
                 options_flow_env.CONF_LANGUAGE_CODE: "en",
-                options_flow_env.CONF_FORECAST_DAYS: 2,
-                options_flow_env.CONF_CREATE_FORECAST_SENSORS: "none",
                 options_flow_env.CONF_UPDATE_INTERVAL: 999,
             }
         )
@@ -463,66 +424,28 @@ def test_options_schema_update_interval_default_is_sanitized(
     assert captured_defaults == [expected]
 
 
-@pytest.mark.parametrize(
-    ("raw_value", "expected_name"),
-    [
-        (0, "MIN_FORECAST_DAYS"),
-        (999, "MAX_FORECAST_DAYS"),
-        ("abc", "DEFAULT_FORECAST_DAYS"),
-    ],
-)
-def test_options_schema_forecast_days_default_is_sanitized(
+def test_options_schema_omits_removed_forecast_options(
     monkeypatch: pytest.MonkeyPatch,
     options_flow_env: OptionsFlowEnv,
-    raw_value: object,
-    expected_name: str,
 ) -> None:
-    """Options form should clamp invalid forecast day defaults."""
+    """Removed forecast options should not be exposed in the options schema."""
 
-    expected = str(
-        {
-            "MIN_FORECAST_DAYS": options_flow_env.MIN_FORECAST_DAYS,
-            "MAX_FORECAST_DAYS": options_flow_env.MAX_FORECAST_DAYS,
-            "DEFAULT_FORECAST_DAYS": options_flow_env.DEFAULT_FORECAST_DAYS,
-        }[expected_name]
-    )
-    captured_defaults: list[str | None] = []
+    captured_keys: list[str] = []
 
     def _capture_optional(key, **kwargs):
-        if key == options_flow_env.CONF_FORECAST_DAYS:
-            captured_defaults.append(kwargs.get("default"))
+        captured_keys.append(key)
         return key
 
     monkeypatch.setattr(options_flow_env.config_flow.vol, "Optional", _capture_optional)
 
     flow = _flow(
         options_flow_env,
-        options={options_flow_env.CONF_FORECAST_DAYS: raw_value},
+        options={
+            options_flow_env.CONF_FORECAST_DAYS: 0,
+            options_flow_env.CONF_CREATE_FORECAST_SENSORS: "bad",
+        },
     )
     asyncio.run(flow.async_step_init(user_input=None))
 
-    assert captured_defaults == [expected]
-
-
-def test_options_schema_sensor_mode_default_is_sanitized(
-    monkeypatch: pytest.MonkeyPatch,
-    options_flow_env: OptionsFlowEnv,
-) -> None:
-    """Options form should fall back to a valid sensor mode default."""
-
-    captured_defaults: list[str | None] = []
-
-    def _capture_optional(key, **kwargs):
-        if key == options_flow_env.CONF_CREATE_FORECAST_SENSORS:
-            captured_defaults.append(kwargs.get("default"))
-        return key
-
-    monkeypatch.setattr(options_flow_env.config_flow.vol, "Optional", _capture_optional)
-
-    flow = _flow(
-        options_flow_env,
-        options={options_flow_env.CONF_CREATE_FORECAST_SENSORS: "bad"},
-    )
-    asyncio.run(flow.async_step_init(user_input=None))
-
-    assert captured_defaults == [options_flow_env.FORECAST_SENSORS_CHOICES[0]]
+    assert options_flow_env.CONF_FORECAST_DAYS not in captured_keys
+    assert options_flow_env.CONF_CREATE_FORECAST_SENSORS not in captured_keys

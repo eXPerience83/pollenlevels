@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Configuració de Nivells de pol·len",
-        "description": "Introdueix la teva clau API de Google ([aconsegueix-la aquí]({api_key_url})) i revisa les bones pràctiques ([bones pràctiques]({restricting_api_keys_url})). Selecciona la ubicació al mapa, l’interval d’actualització (hores) i el codi d’idioma de la resposta de l’API. També pots definir els dies de previsió i l'abast dels sensors per dia (TIPUS).",
+        "description": "Introdueix la teva clau API de Google ([obtén-la aquí]({api_key_url})) i revisa les bones pràctiques ([bones pràctiques]({restricting_api_keys_url})). Selecciona la ubicació al mapa, l'interval d'actualització (hores) i el codi d'idioma de la resposta de l'API. Pollen Levels sempre sol·licita l'horitzó màxim de previsió de 5 dies.",
         "data": {
           "api_key": "Clau API",
           "name": "Nom",
           "location": "Ubicació",
           "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta de l’API",
-          "forecast_days": "Dies de previsió (1–5)",
-          "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)"
+          "language_code": "Codi d’idioma de la resposta de l’API"
         }
       },
       "reauth_confirm": {
@@ -35,11 +33,9 @@
       "quota_exceeded": "Quota excedida\n\n{error_message}",
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
       "empty": "Aquest camp no pot estar buit",
-      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "invalid_coordinates": "Selecciona una ubicació vàlida al mapa.",
       "unknown": "Error desconegut",
       "invalid_update_interval": "L’interval d’actualització ha d’estar entre 1 i 24 hores.",
-      "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5.",
       "already_configured": "Aquesta ubicació ja està configurada.",
       "api_key_already_configured": "Aquesta clau API ja està configurada."
     },
@@ -56,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcions",
-        "description": "Canvia l’interval d’actualització, l’idioma de resposta de l’API, els dies de previsió i els sensors per dia per a {title}.\nOpcions de sensors per dia (TIPUS): Només avui (none), Fins demà (D+1), Fins demà passat (D+2; crea tant els sensors D+1 com D+2).",
+        "description": "Canvia l'interval d'actualització i l'idioma de l'API per a {title}. Pollen Levels sempre sol·licita l'horitzó màxim de previsió de 5 dies.",
         "data": {
           "update_interval": "Interval d’actualització (hores)",
-          "language_code": "Codi d’idioma de la resposta de l’API",
-          "forecast_days": "Dies de previsió (1–5)",
-          "create_forecast_sensors": "Abast dels sensors per dia (TIPUS)"
+          "language_code": "Codi d’idioma de la resposta de l’API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Utilitza un codi BCP-47 canònic com \"en\" o \"es-ES\".",
-      "empty": "Aquest camp no pot estar buit",
-      "invalid_option_combo": "Augmenta els 'Dies de previsió' per cobrir els sensors per dia seleccionats.",
       "unknown": "Error desconegut",
-      "invalid_update_interval": "L’interval d’actualització ha d’estar entre 1 i 24 hores.",
-      "invalid_forecast_days": "Els dies de previsió han d’estar entre 1 i 5."
+      "invalid_update_interval": "L’interval d’actualització ha d’estar entre 1 i 24 hores."
     }
   },
   "device": {
@@ -165,6 +156,10 @@
     "invalid_stored_location": {
       "title": "Ubicació emmagatzemada no vàlida a Pollen Levels",
       "description": "Pollen Levels ha trobat dades d'ubicació emmagatzemades no vàlides per a {entry_title}: {location_title}. Elimina i torna a crear la ubicació afectada, o restaura una còpia de seguretat de Home Assistant anterior a la creació de la ubicació no vàlida."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "S'han eliminat els sensors de previsió per dia",
+      "description": "Pollen Levels ja no crea entitats de previsió separades acabades en _d1 o _d2. Les dades de previsió continuen disponibles als sensors base de pol·len mitjançant els atributs forecast, tomorrow_* i d2_*. Actualitza els taulers, automatitzacions, plantilles i targetes personalitzades que encara facin referència a les entitats antigues."
     }
   }
 }

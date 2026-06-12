@@ -1,4 +1,4 @@
-"""Helpers for creating and deleting Home Assistant Repair issues for invalid stored locations."""
+"""Helpers for creating and deleting Home Assistant Repair issues."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
 from .const import DEFAULT_ENTRY_TITLE, DOMAIN
+
+PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID = "per_day_forecast_sensors_removed"
 
 
 def invalid_stored_location_issue_id(
@@ -42,6 +44,19 @@ def create_invalid_stored_location_issue(
             "entry_title": entry_title,
             "location_title": location_title,
         },
+    )
+
+
+def create_per_day_forecast_sensors_removed_issue(hass: HomeAssistant) -> None:
+    """Create a Repair issue for removed legacy per-day forecast sensors."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID,
+        is_fixable=False,
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID,
     )
 
 
