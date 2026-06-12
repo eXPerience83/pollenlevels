@@ -1,4 +1,4 @@
-## [3.0.0rc1] - 2026-06-11
+## [3.0.0b4] - 2026-06-11
 
 ### Changed
 
@@ -10,6 +10,9 @@
   ending in `_d1` and `_d2`. Forecast data remains available through attributes
   on the base pollen type, plant, and summary sensors, including `forecast`,
   `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`.
+- This beta intentionally brings the `_d1` and `_d2` cleanup forward so the
+  fixed 5-day forecast model, legacy entity cleanup, and Repair warning can be
+  tested together before the release candidate.
 - Existing entries with stored `forecast_days` or `create_forecast_sensors`
   options are upgraded automatically. Legacy `_d1` and `_d2` entity registry
   entries owned by Pollen Levels are removed during setup/reload.

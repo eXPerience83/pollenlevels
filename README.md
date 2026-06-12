@@ -98,6 +98,8 @@ sensor.example_grass_d2
 Forecast data is now exposed on the base pollen type sensor through attributes.
 Existing legacy `_d1` and `_d2` entity registry entries owned by Pollen Levels
 are removed automatically during setup/reload. Recorder history is not purged.
+This beta brings that cleanup forward so the migration can be tested with the
+fixed 5-day forecast model before the release candidate.
 
 Before:
 
