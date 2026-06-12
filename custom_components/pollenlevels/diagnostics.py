@@ -105,8 +105,10 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     coord_info = {
         "entry_id": getattr(coordinator, "entry_id", None),
         "subentry_id": getattr(coordinator, "subentry_id", None),
-        "legacy_entry_id": getattr(coordinator, "legacy_entry_id", None),
-        "entity_identity_id": getattr(coordinator, "entity_identity_id", None),
+        "has_legacy_entry_id": bool(getattr(coordinator, "legacy_entry_id", None)),
+        "has_entity_identity_id": bool(
+            getattr(coordinator, "entity_identity_id", None)
+        ),
         "forecast_days": FORECAST_DAYS,
         "language": getattr(coordinator, "language", None),
         "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),

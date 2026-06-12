@@ -44,6 +44,7 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
+    FORECAST_DAYS,
 )
 from .coordinator import PollenDataUpdateCoordinator
 from .issue_helpers import create_per_day_forecast_sensors_removed_issue
@@ -105,9 +106,8 @@ async def _remove_legacy_per_day_entities(
             removal = registry.async_remove(entity_id)
         except Exception:
             _LOGGER.exception(
-                "Failed to remove legacy per-day entity from registry: %s (%s)",
+                "Failed to remove legacy per-day entity from registry: %s",
                 entity_id,
-                unique_id,
             )
             return
 
@@ -122,9 +122,8 @@ async def _remove_legacy_per_day_entities(
         if _matches(ent.unique_id):
             found += 1
             _LOGGER.debug(
-                "Removing legacy per-day entity from registry: %s (%s)",
+                "Removing legacy per-day entity from registry: %s",
                 ent.entity_id,
-                ent.unique_id,
             )
             _queue_removal(ent.entity_id, ent.unique_id)
 
@@ -132,16 +131,15 @@ async def _remove_legacy_per_day_entities(
         results = await asyncio.gather(
             *(removal for _, _, removal in removals), return_exceptions=True
         )
-        for (entity_id, unique_id, _removal), result in zip(
+        for (entity_id, _unique_id, _removal), result in zip(
             removals, results, strict=True
         ):
             if isinstance(result, asyncio.CancelledError):
                 raise result
             if isinstance(result, Exception):
                 _LOGGER.error(
-                    "Failed to remove legacy per-day entity from registry: %s (%s)",
+                    "Failed to remove legacy per-day entity from registry: %s",
                     entity_id,
-                    unique_id,
                     exc_info=(type(result), result, result.__traceback__),
                 )
                 continue
@@ -149,10 +147,9 @@ async def _remove_legacy_per_day_entities(
 
     if removed:
         _LOGGER.info(
-            "Entity Registry cleanup: removed %d legacy per-day sensors for entry %s identity %s",
+            "Entity Registry cleanup: removed %d legacy per-day sensors for entry %s",
             removed,
             entry_id,
-            identity_id,
         )
     return found, removed
 
@@ -248,13 +245,13 @@ async def async_setup_entry(
         )
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
-            ids = [getattr(s, "unique_id", None) for s in sensors]
-            preview = ids[:10]
-            extra = max(0, len(ids) - len(preview))
+            labels = [getattr(s, "code", type(s).__name__) for s in sensors]
+            preview = labels[:10]
+            extra = max(0, len(labels) - len(preview))
             suffix = f", +{extra} more" if extra else ""
             _LOGGER.debug(
                 "Creating %d sensors for subentry %s (preview=%s%s)",
-                len(ids),
+                len(labels),
                 location.subentry_id,
                 preview,
                 suffix,
@@ -330,8 +327,8 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
-        # Only include forecast-related attributes if more than 1 day was requested.
-        include_forecast = getattr(self.coordinator, "forecast_days", 1) > 1
+        # Forecast attributes are fixed by the integration-wide Google API horizon.
+        include_forecast = FORECAST_DAYS > 1
 
         # Forecast-related attributes:
         # - For TYPE sensors: include on base sensors

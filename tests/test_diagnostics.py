@@ -248,8 +248,69 @@ async def test_diagnostics_includes_all_locations_with_top_level_first_location(
     assert first_payload["approximate_location"]["longitude_rounded"] == 79.0
     assert second_payload["approximate_location"]["latitude_rounded"] == 40.7
     assert second_payload["approximate_location"]["longitude_rounded"] == -74.0
-    assert first_payload["coordinator"]["legacy_entry_id"] == "legacy-entry"
+    assert first_payload["coordinator"]["has_legacy_entry_id"] is True
+    assert first_payload["coordinator"]["has_entity_identity_id"] is True
+    assert second_payload["coordinator"]["has_legacy_entry_id"] is False
+    assert second_payload["coordinator"]["has_entity_identity_id"] is True
+    assert "legacy_entry_id" not in first_payload["coordinator"]
+    assert "entity_identity_id" not in first_payload["coordinator"]
     assert second_payload["coordinator"]["subentry_id"] == "subentry-2"
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_do_not_expose_coordinate_derived_identity_strings(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should summarize identity presence without raw identity values."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    entry = _ConfigEntry(
+        data={diagnostics_modules.CONF_API_KEY: "secret-token"},
+        options={},
+        entry_id="entry",
+        title="Home",
+    )
+    entry.subentries = {
+        "subentry-1": SimpleNamespace(
+            subentry_id="subentry-1", subentry_type="location"
+        )
+    }
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="subentry-1",
+        legacy_entry_id=coordinate_identity,
+        entity_identity_id=coordinate_identity,
+        language="en",
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=39.1234,
+        lon=-0.1234,
+        entry_title="Home",
+        data={},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "subentry-1": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="subentry-1",
+                coordinator=coordinator,
+                legacy_entry_id=coordinate_identity,
+            )
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    coord = diagnostics["locations"]["subentry-1"]["coordinator"]
+    assert coord["has_legacy_entry_id"] is True
+    assert coord["has_entity_identity_id"] is True
+    assert "legacy_entry_id" not in coord
+    assert "entity_identity_id" not in coord
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert coordinate_identity not in serialized
+    assert "39.1234" not in serialized
+    assert "-0.1234" not in serialized
 
 
 @pytest.mark.asyncio

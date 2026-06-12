@@ -519,6 +519,67 @@ def test_sensor_unique_ids_survive_subentry_title_and_coordinate_changes(
     )
 
 
+def test_pollen_sensor_forecast_attributes_do_not_require_coordinator_field(
+    sensor_modules: SensorModules,
+) -> None:
+    """Fixed forecast attributes should not depend on coordinator.forecast_days."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 2,
+                "forecast": [{"offset": 1, "value": 3}],
+                "tomorrow_has_index": True,
+                "tomorrow_value": 3,
+                "tomorrow_category": "Moderate",
+                "tomorrow_description": "Moderate risk",
+                "tomorrow_color_hex": "#ffff00",
+                "d2_has_index": True,
+                "d2_value": 4,
+                "d2_category": "High",
+                "d2_description": "High risk",
+                "d2_color_hex": "#ff0000",
+                "trend": "rising",
+                "expected_peak": {"offset": 2, "value": 4},
+            },
+            "plants_oak": {
+                "source": "plant",
+                "displayName": "Oak",
+                "value": 1,
+                "forecast": [{"offset": 1, "value": 2}],
+                "tomorrow_has_index": True,
+                "tomorrow_value": 2,
+                "d2_has_index": False,
+                "d2_value": None,
+                "trend": "stable",
+                "expected_peak": {"offset": 1, "value": 2},
+            },
+        }
+    )
+    assert not hasattr(coordinator, "forecast_days")
+
+    type_attrs = sensor_modules.sensor.PollenSensor(
+        coordinator, "type_grass"
+    ).extra_state_attributes
+    plant_attrs = sensor_modules.sensor.PollenSensor(
+        coordinator, "plants_oak"
+    ).extra_state_attributes
+
+    assert type_attrs["forecast"] == [{"offset": 1, "value": 3}]
+    assert type_attrs["tomorrow_value"] == 3
+    assert type_attrs["d2_value"] == 4
+    assert type_attrs["trend"] == "rising"
+    assert type_attrs["expected_peak"] == {"offset": 2, "value": 4}
+    assert plant_attrs["forecast"] == [{"offset": 1, "value": 2}]
+    assert plant_attrs["tomorrow_value"] == 2
+    assert plant_attrs["d2_has_index"] is False
+    assert "d2_value" not in plant_attrs
+    assert plant_attrs["trend"] == "stable"
+    assert plant_attrs["expected_peak"] == {"offset": 1, "value": 2}
+
+
 def test_plants_in_season_counts_mixed_boolean_and_unknown_values(
     sensor_modules: SensorModules,
 ) -> None:
@@ -2100,6 +2161,46 @@ def test_remove_legacy_per_day_entities_logs_failed_removal_without_raising(
     assert "Failed to remove legacy per-day entity from registry" in caplog.text
 
 
+def test_remove_legacy_per_day_entities_does_not_log_coordinate_identity(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Legacy cleanup logs should not expose coordinate-derived unique IDs."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    entries = [
+        RegistryEntry(
+            "sensor.pollen_type_grass_d1",
+            f"{coordinate_identity}_type_grass_d1",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        )
+    ]
+    registry = _setup_registry_stub(
+        sensor_modules, monkeypatch, entries, entry_id="entry"
+    )
+    caplog.set_level(logging.DEBUG, logger=sensor_modules.sensor._LOGGER.name)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    try:
+        found, removed = loop.run_until_complete(
+            sensor_modules.sensor._remove_legacy_per_day_entities(
+                hass, "entry", coordinate_identity
+            )
+        )
+    finally:
+        loop.close()
+
+    assert found == 1
+    assert removed == 1
+    assert registry.removals == ["sensor.pollen_type_grass_d1"]
+    assert coordinate_identity not in caplog.text
+    assert f"{coordinate_identity}_type_grass_d1" not in caplog.text
+    assert "sensor.pollen_type_grass_d1" in caplog.text
+
+
 def test_remove_legacy_per_day_entities_propagates_cancelled_removal(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
@@ -3125,3 +3226,66 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
         if isinstance(entity, sensor_modules.sensor.PollenSensor)
     }
     assert "plant_oak" in codes
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_debug_logs_do_not_expose_coordinate_identity(
+    sensor_modules: SensorModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Sensor setup debug previews should not include raw unique IDs."""
+
+    coordinate_identity = "39.1234_-0.1234"
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor_modules.sensor.CONF_API_KEY: "key",
+            sensor_modules.sensor.CONF_LATITUDE: 39.1234,
+            sensor_modules.sensor.CONF_LONGITUDE: -0.1234,
+            sensor_modules.sensor.CONF_UPDATE_INTERVAL: (
+                sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL
+            ),
+        },
+        entry_id="entry",
+    )
+    coordinator = types.SimpleNamespace(
+        data={
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 1,
+            },
+        },
+        entry_id="entry",
+        entity_identity_id=coordinate_identity,
+        entry_title="Home",
+        lat=39.1234,
+        lon=-0.1234,
+        subentry_id="legacy",
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "legacy": types.SimpleNamespace(
+                subentry_id="legacy",
+                coordinator=coordinator,
+            ),
+        },
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, **_kwargs):
+        captured.extend(entities)
+
+    caplog.set_level(logging.DEBUG, logger=sensor_modules.sensor._LOGGER.name)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    assert any(
+        getattr(entity, "unique_id", None) == f"{coordinate_identity}_type_grass"
+        for entity in captured
+    )
+    assert coordinate_identity not in caplog.text
+    assert f"{coordinate_identity}_type_grass" not in caplog.text
+    assert "type_grass" in caplog.text

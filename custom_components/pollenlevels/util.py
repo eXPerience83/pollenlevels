@@ -47,11 +47,14 @@ def strip_legacy_forecast_options(
 
 def has_legacy_per_day_option(*mappings: Mapping[str, Any] | None) -> bool:
     """Return whether any mapping stores an active removed per-day sensor mode."""
-    return any(
-        (mapping or {}).get(CONF_CREATE_FORECAST_SENSORS)
-        in LEGACY_ACTIVE_PER_DAY_SENSOR_MODES
-        for mapping in mappings
-    )
+    for mapping in mappings:
+        value = (mapping or {}).get(CONF_CREATE_FORECAST_SENSORS)
+        raw = getattr(value, "value", value)
+        if raw is None:
+            continue
+        if str(raw).strip() in LEGACY_ACTIVE_PER_DAY_SENSOR_MODES:
+            return True
+    return False
 
 
 def coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
