@@ -1,7 +1,11 @@
 # ❓ Frequently Asked Questions (FAQ)
+
 *Last verified: 2026-06-12 (UTC). Pricing and quota limits may change; always confirm the current values in the official Google Maps Platform pages linked below.*
 
 ## 1. How many requests can I make to the Google Maps Pollen API?
+
+Pricing/free usage cap last checked: **2026-06-13 (UTC)**.
+
 Google's current Pollen API documentation describes pay-as-you-go pricing per
 request, based on usage volume tiers. The current global Google Maps Platform
 pricing list shows **Pollen Usage** with a **Free Usage Cap of 5,000 monthly
@@ -23,6 +27,7 @@ method; that is a service rate limit, not the monthly free usage cap.
 ---
 
 ## 2. Does this integration consume a lot of API calls?
+
 No. By default the integration fetches every **6 hours** (~**4 requests/day**),
 which is roughly **~120 requests/month per location**. That is well below the
 current **5,000 monthly billable events** Free Usage Cap shown for the
@@ -33,6 +38,7 @@ billing credits on your account.
 ---
 
 ## 3. Can I manually refresh the data?
+
 Yes. You can use either method:
 - Press the per-location **Update now** button entity created by the integration to refresh one configured location.
 - Call the `pollenlevels.force_update` service from **Developer Tools → Services** to refresh all configured locations.
@@ -41,6 +47,7 @@ Both methods request an immediate coordinator refresh. The normal scheduled poll
 ---
 
 ## 4. Why am I getting “Invalid API Key” or “Quota Exceeded” errors?
+
 - **Invalid API Key**: Confirm the key is correct and that the **Pollen API** is enabled in your project.  
 - **Quota Exceeded**: You may have hit **your custom daily/minute caps** (see §10) or another Google Cloud quota/billing limit on the project.
   **Check/adjust quotas**: https://console.cloud.google.com/google/maps-apis/quotas  
@@ -51,18 +58,21 @@ Both methods request an immediate coordinator refresh. The normal scheduled poll
 ---
 
 ## 5. How is the pollen data obtained?
+
 Data is sourced from the **Google Maps Pollen API**, which provides localized pollen levels for **trees, grasses, and weeds**, plus plant-level details and up to **5-day forecasts**.  
 Docs: https://developers.google.com/maps/documentation/pollen/overview
 
 ---
 
 ## 6. Can I request pollen data in my language?
+
 Yes. Set a **language code** in the integration options (e.g., `en`, `es`, `fr`, `de`, `uk`).  
 This controls localized fields returned by the API.
 
 ---
 
 ## 7. How can I reduce API usage?
+
 - Increase the update interval (e.g., every 12 or 24 hours).
 - Avoid excessive manual refreshes.
 - **Set daily/minute quota caps** (see §10).
@@ -71,16 +81,19 @@ This controls localized fields returned by the API.
 ---
 
 ## 8. Will this work without internet?
+
 No. The integration requires internet access to reach the Google Maps Pollen API.
 
 ---
 
 ## 9. Does the integration store my API key?
+
 The API key is stored securely by Home Assistant and is **never shared** with third parties.
 
 ---
 
 ## 10. Which QUOTAS should I cap in Google Cloud Console?
+
 Open **Google Cloud Console → Google Maps Platform → Quotas** and select **Pollen API**.  
 Direct link: https://console.cloud.google.com/google/maps-apis/quotas
 
@@ -120,12 +133,14 @@ Reference guide: https://cloud.google.com/apis/docs/capping-api-usage
 ---
 
 ## 11. Are there rate limits?
+
 Yes. The **default rate limit is 6,000 queries per minute (QPM)** for the Pollen API.  
 FAQ: https://developers.google.com/maps/documentation/pollen/faq
 
 ---
 
 ## 12. What happens to my entries when upgrading to the v3 pre-release?
+
 The v3 pre-release migrates Pollen Levels to Home Assistant config subentries.
 Legacy 2.x entries that share the same Google API key are grouped under one
 parent API-key entry, and each migrated location becomes one location subentry.
@@ -201,6 +216,7 @@ entities such as `sensor.example_grass_d1` or `sensor.example_grass_d2`.
 ---
 
 ## References (official)
+
 - **Core services pricing list (Environment → Pollen Usage)** — last updated shown on page: https://developers.google.com/maps/billing-and-pricing/pricing  
 - **Pollen API usage & billing (quota editing steps)**: https://developers.google.com/maps/documentation/pollen/usage-and-billing  
 - **Pollen API — Forecast endpoint**: https://developers.google.com/maps/documentation/pollen/forecast  
