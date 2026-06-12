@@ -81,10 +81,11 @@ async def _remove_legacy_per_day_entities(
     hass: HomeAssistant,
     entry_id: str,
     identity_id: str,
-) -> int:
+) -> tuple[int, int]:
     """Remove legacy per-day type forecast entities from the Entity Registry."""
     registry = er.async_get(hass)
     entries = er.async_entries_for_config_entry(registry, entry_id)
+    found = 0
     removed = 0
 
     def _matches(uid: Any) -> bool:
@@ -119,6 +120,7 @@ async def _remove_legacy_per_day_entities(
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
         if _matches(ent.unique_id):
+            found += 1
             _LOGGER.debug(
                 "Removing legacy per-day entity from registry: %s (%s)",
                 ent.entity_id,
@@ -152,7 +154,7 @@ async def _remove_legacy_per_day_entities(
             entry_id,
             identity_id,
         )
-    return removed
+    return found, removed
 
 
 def _add_entities_for_location(
@@ -211,12 +213,14 @@ async def async_setup_entry(
             raise ConfigEntryNotReady(message)
 
         identity_id = coordinator_identity_id(coordinator)
-        removed_legacy_entities = await _remove_legacy_per_day_entities(
-            hass,
-            config_entry.entry_id,
-            identity_id,
+        found_legacy_entities, _removed_legacy_entities = (
+            await _remove_legacy_per_day_entities(
+                hass,
+                config_entry.entry_id,
+                identity_id,
+            )
         )
-        if removed_legacy_entities:
+        if found_legacy_entities:
             create_per_day_forecast_sensors_removed_issue(hass)
 
         sensors: list[CoordinatorEntity] = []

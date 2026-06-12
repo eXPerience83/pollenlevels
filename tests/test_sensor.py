@@ -2026,12 +2026,12 @@ def test_remove_legacy_per_day_entities_removes_only_matching_legacy_entities(
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
     try:
-        removed = loop.run_until_complete(
+        found, removed = loop.run_until_complete(
             sensor_modules.sensor._remove_legacy_per_day_entities(
                 hass, "entry", "entry"
             )
         )
-        removed_again = loop.run_until_complete(
+        found_again, removed_again = loop.run_until_complete(
             sensor_modules.sensor._remove_legacy_per_day_entities(
                 hass, "entry", "entry"
             )
@@ -2039,7 +2039,9 @@ def test_remove_legacy_per_day_entities_removes_only_matching_legacy_entities(
     finally:
         loop.close()
 
+    assert found == 2
     assert removed == 2
+    assert found_again == 0
     assert removed_again == 0
     assert registry.removals == [
         "sensor.pollen_type_grass_d1",
@@ -2084,7 +2086,7 @@ def test_remove_legacy_per_day_entities_logs_failed_removal_without_raising(
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
     try:
-        removed = loop.run_until_complete(
+        found, removed = loop.run_until_complete(
             sensor_modules.sensor._remove_legacy_per_day_entities(
                 hass, "entry", "entry"
             )
@@ -2092,6 +2094,7 @@ def test_remove_legacy_per_day_entities_logs_failed_removal_without_raising(
     finally:
         loop.close()
 
+    assert found == 2
     assert removed == 1
     assert registry.removals == ["sensor.pollen_type_grass_d2"]
     assert "Failed to remove legacy per-day entity from registry" in caplog.text
@@ -2559,6 +2562,50 @@ def test_coordinator_retries_then_wraps_client_error(
     assert delays == [0.8]
 
 
+def test_coordinator_redacts_coordinates_in_unexpected_api_errors(
+    sensor_modules: SensorModules,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unexpected API errors should not log exact coordinates or API keys."""
+
+    class _FailingClient:
+        async def async_fetch_pollen_data(self, **_kwargs):
+            msg = (
+                "boom https://pollen.googleapis.com/v1/forecast:lookup?"
+                "key=secret&location.latitude=12.345678"
+                "&location.longitude=-98.765432"
+            )
+            raise RuntimeError(msg)
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="secret",
+        lat=12.345678,
+        lon=-98.765432,
+        hours=12,
+        language=None,
+        entry_id="entry",
+        client=_FailingClient(),
+    )
+    caplog.set_level(logging.ERROR, logger=sensor_modules.coordinator_mod._LOGGER.name)
+
+    try:
+        with pytest.raises(sensor_modules.client_mod.UpdateFailed) as exc_info:
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    rendered_error = str(exc_info.value)
+    assert "secret" not in rendered_error
+    assert "12.345678" not in rendered_error
+    assert "-98.765432" not in rendered_error
+    assert "secret" not in caplog.text
+    assert "12.345678" not in caplog.text
+    assert "-98.765432" not in caplog.text
+
+
 def test_async_setup_entry_raises_not_ready_if_runtime_data_missing(
     sensor_modules: SensorModules,
 ) -> None:
@@ -2668,6 +2715,81 @@ async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
     assert "entry_type_grass" in unique_ids
     assert all(not uid.endswith("_d1") for uid in unique_ids)
     assert all(not uid.endswith("_d2") for uid in unique_ids)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy entity detection should warn even if registry removal fails."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={
+            sensor_modules.sensor.CONF_API_KEY: "key",
+            sensor_modules.sensor.CONF_LATITUDE: 1.0,
+            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
+            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        },
+        entry_id="entry",
+    )
+    entries = [
+        RegistryEntry(
+            "sensor.pollen_type_grass_d1",
+            "entry_type_grass_d1",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        ),
+        RegistryEntry(
+            "sensor.pollen_type_grass_d2",
+            "entry_type_grass_d2",
+            "sensor",
+            sensor_modules.sensor.DOMAIN,
+        ),
+    ]
+    registry = _setup_registry_stub(
+        sensor_modules, monkeypatch, entries, entry_id="entry"
+    )
+
+    def _failing_remove(_entity_id: str) -> None:
+        raise RuntimeError("registry removal failed")
+
+    monkeypatch.setattr(registry, "async_remove", _failing_remove)
+
+    client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "key")
+    coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+        hass=hass,
+        api_key="key",
+        lat=1.0,
+        lon=2.0,
+        hours=sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        language=None,
+        entry_id="entry",
+        entry_title=sensor_modules.const.DEFAULT_ENTRY_TITLE,
+        client=client,
+    )
+    coordinator.data = {
+        "date": {"source": "meta"},
+        "region": {"source": "meta"},
+        "type_grass": {"source": "type", "name": "Grass"},
+    }
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=client
+    )
+    captured: list[Any] = []
+
+    def _capture_entities(entities, _update_before_add=False):
+        captured.extend(entities)
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    issue_registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+    issue_helpers = sys.modules["custom_components.pollenlevels.issue_helpers"]
+    issue_id = issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
+    assert issue_id in issue_registry.issues
+    assert registry.removals == []
+    assert captured
 
 
 @pytest.mark.asyncio

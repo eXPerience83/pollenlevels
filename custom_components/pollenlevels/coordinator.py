@@ -19,7 +19,7 @@ from .const import (
     FORECAST_DAYS,
 )
 from .forecast import attach_forecast_attributes
-from .util import redact_api_key, safe_parse_int
+from .util import redact_api_key, redact_sensitive_values, safe_parse_int
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -224,6 +224,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             raise
         except Exception as err:  # Keep previous behavior for unexpected errors
             msg = redact_api_key(err, self.api_key)
+            msg = redact_sensitive_values(
+                msg,
+                latitude=self.lat,
+                longitude=self.lon,
+            )
             _LOGGER.error("Pollen API error: %s", msg)
             raise UpdateFailed(msg) from err
 
