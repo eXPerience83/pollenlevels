@@ -7,6 +7,7 @@ from typing import Any
 from aioresponses import aioresponses
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
@@ -36,9 +37,13 @@ async def test_ha_setup_unload_reload_smoke(
         assert set(ha_config_entry.runtime_data.locations) == {"location-madrid"}
         assert_fixed_forecast_days(captured_params)
 
-        entity_ids = {state.entity_id for state in hass.states.async_all()}
-        assert any(entity_id.startswith("sensor.") for entity_id in entity_ids)
-        assert any(entity_id.startswith("button.") for entity_id in entity_ids)
+        registry = er.async_get(hass)
+        entries = er.async_entries_for_config_entry(
+            registry,
+            ha_config_entry.entry_id,
+        )
+        assert any(entity.domain == "sensor" for entity in entries)
+        assert any(entity.domain == "button" for entity in entries)
 
         assert await hass.config_entries.async_unload(ha_config_entry.entry_id)
         await hass.async_block_till_done()
