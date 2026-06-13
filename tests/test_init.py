@@ -71,6 +71,67 @@ class _StubServiceCall:  # pragma: no cover - structure only
     pass
 
 
+def test_safe_setup_failure_text_uses_fallback_for_none(
+    integration_modules: _InitModules,
+) -> None:
+    """None setup failure text should use the caller fallback."""
+    integration = integration_modules.integration
+
+    assert (
+        integration._safe_setup_failure_text(
+            None,
+            api_key="secret-key",
+            latitude=1.234567,
+            longitude=2.345678,
+            fallback="Location setup failed",
+        )
+        == "Location setup failed"
+    )
+
+
+def test_safe_setup_failure_text_stringifies_custom_objects(
+    integration_modules: _InitModules,
+) -> None:
+    """Custom object setup failure text should not break redaction/truncation."""
+    integration = integration_modules.integration
+
+    class _CustomFailure:
+        def __str__(self) -> str:
+            return "custom failure"
+
+    assert (
+        integration._safe_setup_failure_text(
+            _CustomFailure(),
+            api_key=None,
+            fallback="Location setup failed",
+        )
+        == "custom failure"
+    )
+
+
+def test_safe_setup_failure_text_redacts_secrets_and_coordinates(
+    integration_modules: _InitModules,
+) -> None:
+    """Setup failure text should not expose API keys or exact coordinates."""
+    integration = integration_modules.integration
+    reason = RuntimeError(
+        "boom secret-key at location.latitude=1.234567 " "location.longitude=2.345678"
+    )
+
+    redacted = integration._safe_setup_failure_text(
+        reason,
+        api_key="secret-key",
+        latitude=1.234567,
+        longitude=2.345678,
+        fallback="Location setup failed",
+    )
+
+    assert "secret-key" not in redacted
+    assert "1.234567" not in redacted
+    assert "2.345678" not in redacted
+    assert "***" in redacted
+
+
 class _StubSensorEntity:  # pragma: no cover - structure only
     def __init__(self, *args, **kwargs):
         self._attr_unique_id = None
@@ -125,6 +186,7 @@ class _StubDataUpdateCoordinator:
         self.last_updated = None
 
     async def async_config_entry_first_refresh(self):
+        self.data = {"date": {}, "region": {}}
         self.last_updated = "now"
         return None
 
@@ -281,6 +343,9 @@ class _FakeConfigEntries:
         return {"require_restart": False}
 
     async def async_reload(self, entry_id: str):  # pragma: no cover - used in tests
+        self.reload_calls.append(entry_id)
+
+    def async_schedule_reload(self, entry_id: str):
         self.reload_calls.append(entry_id)
 
     def async_get_entry(self, entry_id: str):
@@ -655,13 +720,14 @@ def test_setup_entry_boundary_coordinates_are_allowed(
         assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
 
-def test_setup_entry_raises_not_ready_when_one_subentry_fails(
+def test_setup_entry_loads_healthy_subentries_when_one_subentry_fails(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A local refresh failure should retry the whole parent entry."""
+    """A local refresh failure should not block other healthy locations."""
     integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
     bad_subentry = integration.ConfigSubentry(
         data={
@@ -706,12 +772,22 @@ def test_setup_entry_raises_not_ready_when_one_subentry_fails(
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
     with caplog.at_level("WARNING", logger=integration.__name__):
-        with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
-            asyncio.run(integration.async_setup_entry(hass, entry))
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
-    assert exc_info.value.__cause__ is None
-    assert entry.runtime_data is None
-    assert hass.config_entries.forward_calls == []
+    assert entry.runtime_data is not None
+    assert set(entry.runtime_data.locations) == {"good-location"}
+    assert set(entry.runtime_data.failed_locations) == {"bad-location"}
+    failure = entry.runtime_data.failed_locations["bad-location"]
+    assert failure.error_type == "RuntimeError"
+    assert "secret-key" not in failure.reason
+    assert "3.123456" not in failure.reason
+    assert "-4.654321" not in failure.reason
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+    issue_id = integration.issue_helpers.location_setup_failed_issue_id(
+        entry.entry_id, "bad-location"
+    )
+    assert issue_id not in registry.issues
+    assert hass.config_entries.reload_calls == [entry.entry_id]
     log_text = caplog.text
     assert "Initial data refresh failed for entry entry-1 subentry bad-location" in (
         log_text
@@ -721,12 +797,13 @@ def test_setup_entry_raises_not_ready_when_one_subentry_fails(
     assert "-4.654321" not in log_text
 
 
-def test_setup_entry_raises_not_ready_when_subentry_coordinates_are_invalid(
+def test_setup_entry_skips_invalid_subentry_coordinates_when_others_load(
     integration_modules: _InitModules,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Invalid subentry coordinates should retry without partial runtime data."""
+    """Invalid subentry coordinates should not block valid locations."""
     integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
     bad_subentry = integration.ConfigSubentry(
         data={
@@ -752,12 +829,18 @@ def test_setup_entry_raises_not_ready_when_subentry_coordinates_are_invalid(
     hass = _FakeHass()
 
     with caplog.at_level("WARNING", logger=integration.__name__):
-        with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
-            asyncio.run(integration.async_setup_entry(hass, entry))
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
-    assert exc_info.value.__cause__ is None
-    assert entry.runtime_data is None
-    assert hass.config_entries.forward_calls == []
+    assert entry.runtime_data is not None
+    assert set(entry.runtime_data.locations) == {"good-location"}
+    assert set(entry.runtime_data.failed_locations) == {"bad-location"}
+    failure = entry.runtime_data.failed_locations["bad-location"]
+    assert failure.error_type == "InvalidStoredLocation"
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+    expected_issue_id = integration.invalid_stored_location_issue_id(
+        entry.entry_id, subentry_id="bad-location"
+    )
+    assert expected_issue_id in registry.issues
     log_text = caplog.text
     assert (
         "Invalid coordinates for Pollen Levels entry entry-1 subentry bad-location"
@@ -768,12 +851,67 @@ def test_setup_entry_raises_not_ready_when_subentry_coordinates_are_invalid(
     assert "2.654321" not in log_text
 
 
-def test_setup_entry_raises_not_ready_when_later_subentry_is_not_ready(
+def test_setup_entry_skips_location_without_usable_initial_data(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A later not-ready location should discard earlier successful setup work."""
+    """A location with no usable initial data should not block healthy locations."""
     integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    empty = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="empty-location",
+        title="Empty",
+    )
+    good = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
+        subentry_id="good-location",
+        title="Good",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "key"},
+        subentries={empty.subentry_id: empty, good.subentry_id: good},
+    )
+    hass = _FakeHass()
+
+    class _StubCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.data = (
+                {"region": {"source": "meta"}}
+                if self.subentry_id == "empty-location"
+                else {"date": {"source": "meta"}}
+            )
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    assert entry.runtime_data is not None
+    assert set(entry.runtime_data.locations) == {"good-location"}
+    assert set(entry.runtime_data.failed_locations) == {"empty-location"}
+    failure = entry.runtime_data.failed_locations["empty-location"]
+    assert failure.error_type == "UpdateFailed"
+    assert failure.reason == "API response missing usable pollen data"
+    issue_id = integration.issue_helpers.location_setup_failed_issue_id(
+        entry.entry_id, "empty-location"
+    )
+    assert issue_id not in registry.issues
+    assert hass.config_entries.reload_calls == [entry.entry_id]
+
+
+def test_setup_entry_keeps_first_subentry_when_later_subentry_is_not_ready(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A later not-ready location should be isolated when another location works."""
+    integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
     first = integration.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
@@ -794,6 +932,7 @@ def test_setup_entry_raises_not_ready_when_later_subentry_is_not_ready(
     class _PartiallyReadyCoordinator:
         def __init__(self, *args, **kwargs):
             self.subentry_id = kwargs["subentry_id"]
+            self.data = {"date": {"source": "meta"}}
 
         async def async_config_entry_first_refresh(self):
             refreshed.append(self.subentry_id)
@@ -804,13 +943,73 @@ def test_setup_entry_raises_not_ready_when_later_subentry_is_not_ready(
         integration, "PollenDataUpdateCoordinator", _PartiallyReadyCoordinator
     )
 
-    with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
-        asyncio.run(integration.async_setup_entry(hass, entry))
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
-    assert exc_info.value.__cause__ is None
     assert refreshed == ["first-location", "second-location"]
-    assert entry.runtime_data is None
-    assert hass.config_entries.forward_calls == []
+    assert entry.runtime_data is not None
+    assert set(entry.runtime_data.locations) == {"first-location"}
+    assert set(entry.runtime_data.failed_locations) == {"second-location"}
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+    issue_id = integration.issue_helpers.location_setup_failed_issue_id(
+        entry.entry_id, "second-location"
+    )
+    assert issue_id not in registry.issues
+    assert hass.config_entries.reload_calls == [entry.entry_id]
+
+
+def test_setup_entry_creates_repair_after_retryable_failure_repeats(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeated retryable partial setup failures should create a Repair warning."""
+    integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    first = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="first-location",
+    )
+    second = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
+        subentry_id="second-location",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "key"},
+        subentries={first.subentry_id: first, second.subentry_id: second},
+    )
+    hass = _FakeHass()
+    hass.data[integration.DOMAIN] = {
+        integration._SETUP_RETRY_FAILURES_DATA_KEY: {
+            entry.entry_id: {"second-location"}
+        }
+    }
+
+    class _PartiallyReadyCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            if self.subentry_id == "second-location":
+                raise integration.ConfigEntryNotReady("retry later")
+
+    monkeypatch.setattr(
+        integration, "PollenDataUpdateCoordinator", _PartiallyReadyCoordinator
+    )
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    issue_id = integration.issue_helpers.location_setup_failed_issue_id(
+        entry.entry_id, "second-location"
+    )
+    assert issue_id in registry.issues
+    issue = registry.issues[issue_id]
+    assert issue["translation_key"] == "location_setup_failed"
+    assert issue["translation_placeholders"]["error_type"].endswith(
+        "ConfigEntryNotReady"
+    )
+    assert hass.config_entries.reload_calls == []
 
 
 def test_setup_entry_raises_not_ready_when_all_subentries_fail(
@@ -851,6 +1050,13 @@ def test_setup_entry_raises_not_ready_when_all_subentries_fail(
     assert exc_info.value.__cause__ is None
     assert entry.runtime_data is None
     assert hass.config_entries.forward_calls == []
+    assert hass.config_entries.reload_calls == []
+    assert not any(
+        issue_id.startswith("location_setup_failed_")
+        for issue_id in sys.modules[
+            "homeassistant.helpers.issue_registry"
+        ].registry.issues
+    )
 
 
 def test_setup_entry_auth_failure_still_fails_parent(
@@ -1631,6 +1837,49 @@ def test_force_update_parent_without_locations_is_noop(
 
     assert "Skipping force_update for entry entry-empty" in caplog.text
     assert "No coordinators available for force_update" in caplog.text
+
+
+def test_force_update_skips_failed_locations_without_coordinators(
+    integration_modules: _InitModules,
+) -> None:
+    """force_update should refresh only loaded runtime locations."""
+    integration = integration_modules.integration
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    coordinator = _Coordinator()
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-parent",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loaded", "failed"),
+    )
+    entry.runtime_data = types.SimpleNamespace(
+        locations={
+            "loaded": types.SimpleNamespace(
+                subentry_id="loaded", coordinator=coordinator
+            )
+        },
+        failed_locations={
+            "failed": types.SimpleNamespace(
+                subentry_id="failed",
+                title="Failed",
+                error_type="UpdateFailed",
+                reason="No data",
+            )
+        },
+    )
+    hass = _FakeHass(entries=[entry])
+
+    assert asyncio.run(integration.async_setup(hass, {})) is True
+    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
+
+    assert coordinator.calls == 1
 
 
 def test_migrate_entry_removes_legacy_mode_and_creates_issue(
@@ -4136,7 +4385,7 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     assert hass.config_entries.forward_calls == []
 
     expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id=None
+        entry.entry_id, subentry_id="bad-location"
     )
     assert expected_issue_id in registry.issues
     issue = registry.issues[expected_issue_id]
@@ -4154,11 +4403,11 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     assert "91.123456" not in caplog.text
 
 
-def test_setup_entry_creates_repair_for_later_invalid_subentry_before_refresh(
+def test_setup_entry_loads_valid_location_when_later_subentry_is_invalid(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A later invalid subentry should create the Repair before any coordinator is created."""
+    """A later invalid subentry should create a Repair without blocking setup."""
     import sys
 
     integration = integration_modules.integration
@@ -4185,13 +4434,18 @@ def test_setup_entry_creates_repair_for_later_invalid_subentry_before_refresh(
         },
     )
     hass = _FakeHass()
+    created_coordinators: list[str] = []
 
-    def _fail_coordinator(*_args, **_kwargs):
-        pytest.fail(
-            "Coordinator should not be instantiated before all coordinates are validated"
-        )
+    class _StubCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.data = {"date": {"source": "meta"}}
+            created_coordinators.append(self.subentry_id)
 
-    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _fail_coordinator)
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
     class _StubClient:
         def __init__(self, _session, _api_key):
@@ -4200,18 +4454,18 @@ def test_setup_entry_creates_repair_for_later_invalid_subentry_before_refresh(
 
     monkeypatch.setattr(integration, "GooglePollenApiClient", _StubClient)
 
-    with pytest.raises(integration.ConfigEntryNotReady) as exc_info:
-        asyncio.run(integration.async_setup_entry(hass, entry))
-
-    assert exc_info.value.__cause__ is None
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
     expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id=None
+        entry.entry_id, subentry_id="bad-location"
     )
     assert expected_issue_id in registry.issues
     assert (hass, integration.DOMAIN, expected_issue_id) not in registry.deleted
-    assert entry.runtime_data is None
-    assert hass.config_entries.forward_calls == []
+    assert created_coordinators == ["first-location"]
+    assert entry.runtime_data is not None
+    assert set(entry.runtime_data.locations) == {"first-location"}
+    assert set(entry.runtime_data.failed_locations) == {"bad-location"}
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
 
 
 def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are_valid(
@@ -4237,6 +4491,23 @@ def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are
         subentries={good_subentry.subentry_id: good_subentry},
     )
     hass = _FakeHass()
+    expected_issue_id = integration.invalid_stored_location_issue_id(
+        entry.entry_id, subentry_id=good_subentry.subentry_id
+    )
+    registry.async_create_issue(
+        None,
+        integration.DOMAIN,
+        expected_issue_id,
+        is_fixable=False,
+        is_persistent=False,
+        severity="error",
+        translation_key="invalid_stored_location",
+        translation_placeholders={
+            "entry_title": "Valid Home",
+            "location_title": "Good",
+        },
+    )
+    assert expected_issue_id in registry.issues
 
     class _StubCoordinator:
         def __init__(self, *args, **kwargs):
@@ -4265,10 +4536,8 @@ def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id=None
-    )
     assert (hass, integration.DOMAIN, expected_issue_id) in registry.deleted
+    assert expected_issue_id not in registry.issues
 
 
 def test_setup_entry_removes_entry_level_repair_issue_when_no_invalid_subentries(
@@ -4338,6 +4607,147 @@ def test_setup_entry_removes_entry_level_repair_issue_when_no_invalid_subentries
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert (hass, integration.DOMAIN, existing_issue_id) in registry.deleted
     assert existing_issue_id not in registry.issues
+
+
+def test_setup_entry_clears_location_repairs_for_deleted_subentries(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Setup should delete location Repair issues for removed subentries."""
+    integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    active_subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="active-location",
+        title="Active",
+    )
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-stale",
+        title="Stale Home",
+        data={integration.CONF_API_KEY: "key"},
+        subentries={active_subentry.subentry_id: active_subentry},
+    )
+    hass = _FakeHass()
+    hass.data[integration.DOMAIN] = {
+        integration._SETUP_RETRY_FAILURES_DATA_KEY: {
+            entry.entry_id: {"active-location", "deleted-location"}
+        }
+    }
+    stale_invalid_issue_id = integration.invalid_stored_location_issue_id(
+        entry.entry_id, subentry_id="deleted-location"
+    )
+    stale_setup_issue_id = integration.issue_helpers.location_setup_failed_issue_id(
+        entry.entry_id, "deleted-location"
+    )
+    integration.issue_helpers.create_invalid_stored_location_issue(
+        hass,
+        entry_id=entry.entry_id,
+        entry_title="Stale Home",
+        location_title="Deleted",
+        subentry_id="deleted-location",
+    )
+    integration.issue_helpers.create_location_setup_failed_issue(
+        hass,
+        entry_id=entry.entry_id,
+        entry_title="Stale Home",
+        location_title="Deleted",
+        subentry_id="deleted-location",
+        error_type="UpdateFailed",
+        reason="old failure",
+    )
+
+    class _StubCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    assert stale_invalid_issue_id not in registry.issues
+    assert stale_setup_issue_id not in registry.issues
+    assert (
+        hass.data[integration.DOMAIN][integration._SETUP_RETRY_FAILURES_DATA_KEY] == {}
+    )
+    deleted_issue_ids = {issue_id for _hass, _domain, issue_id in registry.deleted}
+    assert stale_invalid_issue_id in deleted_issue_ids
+    assert stale_setup_issue_id in deleted_issue_ids
+
+
+def test_setup_entry_clears_location_setup_failed_repair_on_success(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A successfully loaded location should clear its previous setup-failed Repair."""
+    import sys
+
+    integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+
+    subentry = integration.ConfigSubentry(
+        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        subentry_id="recovered-location",
+        title="Recovered",
+    )
+    entry = _FakeEntry(
+        integration,
+        entry_id="entry-recovered",
+        title="Recovered Home",
+        data={integration.CONF_API_KEY: "key"},
+        subentries={subentry.subentry_id: subentry},
+    )
+    issue_id = integration.issue_helpers.location_setup_failed_issue_id(
+        entry.entry_id, subentry.subentry_id
+    )
+    registry.async_create_issue(
+        None,
+        integration.DOMAIN,
+        issue_id,
+        is_fixable=False,
+        is_persistent=False,
+        severity="warning",
+        translation_key="location_setup_failed",
+        translation_placeholders={
+            "entry_title": "Recovered Home",
+            "location_title": "Recovered",
+            "error_type": "UpdateFailed",
+            "reason": "old failure",
+        },
+    )
+    assert issue_id in registry.issues
+    hass = _FakeHass()
+    hass.data[integration.DOMAIN] = {
+        integration._SETUP_RETRY_FAILURES_DATA_KEY: {
+            entry.entry_id: {subentry.subentry_id}
+        }
+    }
+
+    class _StubCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            return None
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
+
+    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+    assert any(
+        domain == integration.DOMAIN and deleted_issue_id == issue_id
+        for _hass, domain, deleted_issue_id in registry.deleted
+    )
+    assert issue_id not in registry.issues
+    assert (
+        hass.data[integration.DOMAIN][integration._SETUP_RETRY_FAILURES_DATA_KEY] == {}
+    )
 
 
 def test_setup_entry_does_not_create_repair_issue_for_temporal_refresh_failure(

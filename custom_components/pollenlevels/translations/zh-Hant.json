@@ -157,6 +157,10 @@
       "title": "Pollen Levels 中無效的儲存位置",
       "description": "Pollen Levels 發現 {entry_title}：{location_title} 的儲存位置資料無效。請刪除並重新建立受影響的位置，或還原建立無效位置之前的 Home Assistant 備份。"
     },
+    "location_setup_failed": {
+      "title": "無法載入 Pollen Levels 位置",
+      "description": "Pollen Levels 在設定期間無法為 {entry_title} 載入 {location_title}（{error_type}）。其他正常的位置仍可繼續運作。原因：{reason}。請修正回報的問題並重新載入該整合項目，以重試此位置。現有實體與歷史紀錄不會因為這個本機設定失敗而被移除。"
+    },
     "per_day_forecast_sensors_removed": {
       "title": "已移除按日預報感測器",
       "description": "Pollen Levels 不再建立以 _d1 或 _d2 結尾的獨立預報實體。預報資料仍可透過基礎花粉感測器上的 forecast、tomorrow_* 和 d2_* 屬性取得。請更新仍參照舊實體的儀表板、自動化、範本和自訂卡片。"

@@ -157,6 +157,10 @@
       "title": "Neplatná uložená lokalita Pollen Levels",
       "description": "Pollen Levels našel neplatná uložená data lokality pro {entry_title}: {location_title}. Odstraňte a znovu vytvořte dotčenou lokalitu nebo obnovte zálohu Home Assistant z doby před vytvořením neplatné lokality."
     },
+    "location_setup_failed": {
+      "title": "Umístění Pollen Levels se nepodařilo načíst",
+      "description": "Pollen Levels nemohl během nastavování načíst {location_title} pro {entry_title} ({error_type}). Ostatní funkční umístění mohou dál pracovat. Důvod: {reason}. Opravte nahlášený problém a znovu načtěte položku integrace, aby se toto umístění zkusilo načíst znovu. Existující entity a historie se kvůli tomuto místnímu selhání nastavení neodstraňují."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "Senzory denní předpovědi byly odstraněny",
       "description": "Pollen Levels již nevytváří samostatné entity předpovědi končící na _d1 nebo _d2. Data předpovědi jsou stále dostupná u základních pylových senzorů prostřednictvím atributů forecast, tomorrow_* a d2_*. Aktualizujte nástěnky, automatizace, šablony a vlastní karty, které stále odkazují na staré entity."

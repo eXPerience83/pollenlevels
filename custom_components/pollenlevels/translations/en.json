@@ -157,6 +157,10 @@
       "title": "Invalid stored Pollen Levels location",
       "description": "Pollen Levels found invalid stored location data for {entry_title}: {location_title}. Delete and recreate the affected location, or restore a Home Assistant backup from before the invalid location was created."
     },
+    "location_setup_failed": {
+      "title": "Pollen Levels location could not be loaded",
+      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "Per-day forecast sensors were removed",
       "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."

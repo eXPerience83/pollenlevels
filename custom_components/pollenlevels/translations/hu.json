@@ -157,6 +157,10 @@
       "title": "Érvénytelen tárolt Pollen Levels hely",
       "description": "A Pollen Levels érvénytelen tárolt helyadatokat talált a következőhöz: {entry_title}: {location_title}. Törölje és hozza létre újra az érintett helyet, vagy állítson vissza egy Home Assistant biztonsági mentést az érvénytelen hely létrehozása előtti időből."
     },
+    "location_setup_failed": {
+      "title": "A Pollen Levels helyet nem sikerült betölteni",
+      "description": "A Pollen Levels nem tudta betölteni a(z) {location_title} helyet a(z) {entry_title} beállítása közben ({error_type}). A többi megfelelő hely tovább működhet. Ok: {reason}. Javítsa a jelzett problémát, majd töltse újra az integráció bejegyzését, hogy ez a hely újra próbálkozzon. A meglévő entitások és az előzmények nem törlődnek emiatt a helyi beállítási hiba miatt."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "A napi előrejelzési szenzorok eltávolításra kerültek",
       "description": "A Pollen Levels már nem hoz létre külön előrejelzési entitásokat _d1 vagy _d2 végződéssel. Az előrejelzési adatok továbbra is elérhetők az alap pollenszenzorokon a forecast, tomorrow_* és d2_* attribútumokon keresztül. Frissítsd azokat az irányítópultokat, automatizálásokat, sablonokat és egyéni kártyákat, amelyek még a régi entitásokra hivatkoznak."

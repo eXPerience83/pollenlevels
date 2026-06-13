@@ -157,6 +157,10 @@
       "title": "Nieprawidłowa zapisana lokalizacja Pollen Levels",
       "description": "Pollen Levels znalazł nieprawidłowe zapisane dane lokalizacji dla {entry_title}: {location_title}. Usuń i utwórz ponownie dotkniętą lokalizację lub przywróć kopię zapasową Home Assistant sprzed utworzenia nieprawidłowej lokalizacji."
     },
+    "location_setup_failed": {
+      "title": "Nie udało się wczytać lokalizacji Pollen Levels",
+      "description": "Pollen Levels nie mógł wczytać {location_title} dla {entry_title} podczas konfiguracji ({error_type}). Inne działające lokalizacje mogą nadal pracować. Powód: {reason}. Napraw zgłoszony problem i przeładuj wpis integracji, aby ponowić próbę dla tej lokalizacji. Istniejące encje i historia nie są usuwane z powodu tej lokalnej awarii konfiguracji."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "Usunięto dzienne sensory prognozy",
       "description": "Pollen Levels nie tworzy już oddzielnych encji prognozy kończących się na _d1 lub _d2. Dane prognozy nadal są dostępne w podstawowych sensorach pyłków przez atrybuty forecast, tomorrow_* i d2_*. Zaktualizuj pulpity, automatyzacje, szablony i niestandardowe karty, które nadal odwołują się do starych encji."

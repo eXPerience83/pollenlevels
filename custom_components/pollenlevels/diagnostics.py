@@ -30,7 +30,7 @@ from .const import (
     DOMAIN,
     FORECAST_DAYS,
 )
-from .runtime import PollenLevelsRuntimeData
+from .runtime import PollenLevelsRuntimeData, PollenLocationSetupFailure
 from .summary import daily_summary as _daily_summary
 from .util import (
     active_location_subentry_ids,
@@ -164,6 +164,31 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     }
 
 
+def _failed_location_diagnostics(
+    failure: PollenLocationSetupFailure,
+    *,
+    api_key: str | None,
+    coordinate_pairs: list[tuple[Any, Any]],
+) -> dict[str, Any]:
+    """Return redacted diagnostics for one failed setup location."""
+    error_type = getattr(failure, "error_type", "UnknownError")
+    return {
+        "title": _redact_diagnostics_text(
+            getattr(failure, "title", DEFAULT_ENTRY_TITLE),
+            api_key,
+            coordinate_pairs,
+        ),
+        "error_type": error_type,
+        "reason": _redact_diagnostics_text(
+            getattr(failure, "reason", "Location setup failed"),
+            api_key,
+            coordinate_pairs,
+        ),
+        "is_auth_error": bool(getattr(failure, "is_auth_error", False)),
+        "will_retry_on_reload": error_type != "InvalidStoredLocation",
+    }
+
+
 def _coordinate_from_coordinator_or_data(
     coordinator: Any, data: dict[str, Any], key: str
 ) -> Any:
@@ -282,6 +307,8 @@ async def async_get_config_entry_diagnostics(
     lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
     locations: dict[str, Any] = {}
     stale_location_ids: list[str] = []
+    failed_locations: dict[str, Any] = {}
+    failed_location_ids: list[str] = []
     coordinate_pairs: list[tuple[Any, Any]] = []
     api_key = data.get(CONF_API_KEY)
     api_key_text = api_key if isinstance(api_key, str) else None
@@ -337,6 +364,17 @@ async def async_get_config_entry_diagnostics(
             location_payload["request_params_example"] = request_params_example
             locations[subentry_id] = location_payload
 
+        runtime_failed_locations = getattr(runtime, "failed_locations", {}) or {}
+        for subentry_id, failure in runtime_failed_locations.items():
+            if filter_stale_locations and subentry_id not in active_subentry_ids:
+                continue
+            failed_location_ids.append(subentry_id)
+            failed_locations[subentry_id] = _failed_location_diagnostics(
+                failure,
+                api_key=api_key_text,
+                coordinate_pairs=coordinate_pairs,
+            )
+
     # Final diagnostics payload (with secrets redacted)
     diag: dict[str, Any] = {
         "entry": {
@@ -355,9 +393,12 @@ async def async_get_config_entry_diagnostics(
             },
         },
         "locations": locations,
+        "failed_locations": failed_locations,
         "runtime_summary": {
             "stale_location_count": len(stale_location_ids),
             "stale_location_ids": sorted(stale_location_ids),
+            "failed_location_count": len(failed_location_ids),
+            "failed_location_ids": sorted(failed_location_ids),
         },
         "registry_summary": _registry_summary(hass, entry),
     }

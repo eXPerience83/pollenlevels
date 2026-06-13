@@ -3086,6 +3086,75 @@ async def test_async_setup_entry_skips_stale_runtime_locations(
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_ignores_failed_locations(
+    sensor_modules: SensorModules,
+) -> None:
+    """Sensor setup should create entities only for loaded runtime locations."""
+
+    hass = DummyHass(asyncio.get_running_loop())
+    config_entry = FakeConfigEntry(
+        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        entry_id="entry",
+    )
+    config_entry.subentries = {
+        "loaded-location": types.SimpleNamespace(
+            subentry_id="loaded-location",
+            subentry_type=sensor_modules.const.SUBENTRY_TYPE_LOCATION,
+        ),
+        "failed-location": types.SimpleNamespace(
+            subentry_id="failed-location",
+            subentry_type=sensor_modules.const.SUBENTRY_TYPE_LOCATION,
+        ),
+    }
+    coordinator = types.SimpleNamespace(
+        data={
+            "date": {"source": "meta", "value": "2026-05-08"},
+            "type_grass": {
+                "source": "type",
+                "displayName": "Grass",
+                "value": 3,
+            },
+        },
+        entry_id="entry",
+        subentry_id="loaded-location",
+        entity_identity_id="entry_loaded-location",
+        device_identity_id="entry_loaded-location",
+        entry_title="Loaded",
+        lat=1.0,
+        lon=2.0,
+        last_updated=None,
+    )
+    config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "loaded-location": types.SimpleNamespace(
+                subentry_id="loaded-location",
+                coordinator=coordinator,
+            )
+        },
+        failed_locations={
+            "failed-location": types.SimpleNamespace(
+                subentry_id="failed-location",
+                title="Failed",
+                error_type="UpdateFailed",
+                reason="No data",
+            )
+        },
+    )
+    add_calls: list[tuple[list[Any], dict[str, Any]]] = []
+
+    def _capture_entities(entities, **kwargs):
+        add_calls.append((list(entities), kwargs))
+
+    await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
+
+    assert add_calls
+    assert {call[1].get("config_subentry_id") for call in add_calls} == {
+        "loaded-location"
+    }
+
+
+@pytest.mark.asyncio
 async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_update(
     sensor_modules: SensorModules,
 ) -> None:

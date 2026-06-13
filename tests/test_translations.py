@@ -391,6 +391,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
         "config_subentries.location.error.quota_exceeded",
         "config_subentries.location.error.unknown",
         "config_subentries.location.abort.reconfigure_successful",
+        "issues.location_setup_failed.title",
+        "issues.location_setup_failed.description",
         "issues.per_day_forecast_sensors_removed.title",
         "issues.per_day_forecast_sensors_removed.description",
     }
