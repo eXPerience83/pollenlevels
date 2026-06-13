@@ -41,7 +41,7 @@ async def async_setup_config_entry(hass: HomeAssistant, config_entry: Any) -> No
 def assert_fixed_forecast_days(captured_params: list[dict[str, Any]]) -> None:
     """Assert every captured Google Pollen request used the fixed days value."""
     assert captured_params
-    assert all(params["days"] == FORECAST_DAYS for params in captured_params)
+    assert all(int(params["days"]) == FORECAST_DAYS for params in captured_params)
 
 
 def location_subentry_data(
