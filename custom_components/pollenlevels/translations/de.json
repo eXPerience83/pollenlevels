@@ -158,8 +158,8 @@
       "description": "Pollen Levels hat ungültige gespeicherte Standortdaten für {entry_title}: {location_title} gefunden. Löschen und erstellen Sie den betroffenen Standort neu oder stellen Sie ein Home Assistant-Backup von vor der Erstellung des ungültigen Standorts wieder her."
     },
     "location_setup_failed": {
-      "title": "Pollen Levels location could not be loaded",
-      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+      "title": "Pollen Levels-Standort konnte nicht geladen werden",
+      "description": "Pollen Levels konnte {location_title} für {entry_title} während der Einrichtung nicht laden ({error_type}). Andere fehlerfreie Standorte können weiter funktionieren. Grund: {reason}. Beheben Sie das gemeldete Problem und laden Sie den Integrationseintrag neu, um diesen Standort erneut zu versuchen. Vorhandene Entitäten und der Verlauf werden wegen dieses lokalen Einrichtungsfehlers nicht entfernt."
     },
     "per_day_forecast_sensors_removed": {
       "title": "Vorhersagesensoren pro Tag wurden entfernt",

@@ -158,8 +158,8 @@
       "description": "Pollen Levels 发现 {entry_title}：{location_title} 的存储位置数据无效。请删除并重新创建受影响的设置，或恢复在创建无效位置之前的 Home Assistant 备份。"
     },
     "location_setup_failed": {
-      "title": "Pollen Levels location could not be loaded",
-      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+      "title": "无法加载 Pollen Levels 位置",
+      "description": "Pollen Levels 在设置期间无法为 {entry_title} 加载 {location_title}（{error_type}）。其他正常的位置仍可继续工作。原因：{reason}。请修复报告的问题并重新加载该集成条目，以重试此位置。现有实体和历史记录不会因为这个本地设置失败而被删除。"
     },
     "per_day_forecast_sensors_removed": {
       "title": "已移除按天预报传感器",

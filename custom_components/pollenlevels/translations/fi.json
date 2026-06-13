@@ -158,8 +158,8 @@
       "description": "Pollen Levels löysi virheellisiä tallennettuja sijaintitietoja kohteelle {entry_title}: {location_title}. Poista ja luo kyseinen sijainti uudelleen tai palauta Home Assistant -varmuuskopio ajalta ennen virheellisen sijainnin luomista."
     },
     "location_setup_failed": {
-      "title": "Pollen Levels location could not be loaded",
-      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+      "title": "Pollen Levels -sijaintia ei voitu ladata",
+      "description": "Pollen Levels ei voinut ladata sijaintia {location_title} kohteelle {entry_title} määrityksen aikana ({error_type}). Muut kunnossa olevat sijainnit voivat jatkaa toimintaansa. Syy: {reason}. Korjaa ilmoitettu ongelma ja lataa integraatiomerkintä uudelleen, jotta tätä sijaintia yritetään uudestaan. Olemassa olevia entiteettejä ja historiaa ei poisteta tämän paikallisen määritysvirheen vuoksi."
     },
     "per_day_forecast_sensors_removed": {
       "title": "Päiväkohtaiset ennustesensorit poistettiin",

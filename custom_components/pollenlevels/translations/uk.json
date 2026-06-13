@@ -158,8 +158,8 @@
       "description": "Pollen Levels виявив недійсні збережені дані розташування для {entry_title}: {location_title}. Видаліть і створіть заново відповідне розташування або відновіть резервну копію Home Assistant, створену до появи недійсного розташування."
     },
     "location_setup_failed": {
-      "title": "Pollen Levels location could not be loaded",
-      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+      "title": "Не вдалося завантажити місце Pollen Levels",
+      "description": "Pollen Levels не вдалося завантажити {location_title} для {entry_title} під час налаштування ({error_type}). Інші справні місця можуть продовжувати працювати. Причина: {reason}. Виправте повідомлену проблему та перезавантажте запис інтеграції, щоб повторити спробу для цього місця. Наявні сутності та історія не видаляються через цей локальний збій налаштування."
     },
     "per_day_forecast_sensors_removed": {
       "title": "Денні сенсори прогнозу було видалено",

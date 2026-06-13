@@ -158,8 +158,8 @@
       "description": "Pollen Levels a găsit date de locație stocate invalide pentru {entry_title}: {location_title}. Ștergeți și recreați locația afectată sau restaurați o copie de rezervă Home Assistant dinaintea creării locației invalide."
     },
     "location_setup_failed": {
-      "title": "Pollen Levels location could not be loaded",
-      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+      "title": "Locația Pollen Levels nu a putut fi încărcată",
+      "description": "Pollen Levels nu a putut încărca {location_title} pentru {entry_title} în timpul configurării ({error_type}). Alte locații funcționale pot continua să meargă. Motiv: {reason}. Remediază problema raportată și reîncarcă intrarea integrării pentru a reîncerca această locație. Entitățile existente și istoricul nu sunt eliminate din cauza acestei erori locale de configurare."
     },
     "per_day_forecast_sensors_removed": {
       "title": "Senzorii de prognoză pe zi au fost eliminați",
