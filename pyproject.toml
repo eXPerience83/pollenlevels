@@ -39,6 +39,7 @@ combine-as-imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 
 # --- Optional hardening (uncomment if needed) ---
 # [tool.ruff]

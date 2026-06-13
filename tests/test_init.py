@@ -1511,46 +1511,6 @@ def test_force_update_logs_do_not_expose_secrets(
     assert "Manual refresh failed for entry entry-secrets (RuntimeError):" in text
 
 
-def test_force_update_refreshes_all_location_subentries(
-    integration_modules: _InitModules,
-) -> None:
-    """force_update should refresh every configured location coordinator."""
-    integration = integration_modules.integration
-
-    class _Coordinator:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def async_request_refresh(self):
-            self.calls += 1
-
-    coordinator_1 = _Coordinator()
-    coordinator_2 = _Coordinator()
-    entry = _FakeEntry(
-        integration,
-        entry_id="entry-parent",
-        data={integration.CONF_API_KEY: "key"},
-        subentries=_location_subentries(integration, "loc-1", "loc-2"),
-    )
-    entry.runtime_data = types.SimpleNamespace(
-        locations={
-            "loc-1": types.SimpleNamespace(
-                subentry_id="loc-1", coordinator=coordinator_1
-            ),
-            "loc-2": types.SimpleNamespace(
-                subentry_id="loc-2", coordinator=coordinator_2
-            ),
-        }
-    )
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_setup(hass, {})) is True
-    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
-
-    assert coordinator_1.calls == 1
-    assert coordinator_2.calls == 1
-
-
 def test_force_update_refreshes_location_subentries_sequentially(
     integration_modules: _InitModules,
 ) -> None:
@@ -1680,54 +1640,6 @@ def test_force_update_skips_runtime_locations_when_parent_has_no_locations(
     ) in caplog.text
 
 
-def test_force_update_skips_stale_location_subentries(
-    integration_modules: _InitModules, caplog
-) -> None:
-    """force_update should not refresh runtime locations removed from entry.subentries."""
-    integration = integration_modules.integration
-
-    class _Coordinator:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def async_request_refresh(self):
-            self.calls += 1
-
-    casa = _Coordinator()
-    trabajo = _Coordinator()
-    guineta = _Coordinator()
-    entry = _FakeEntry(
-        integration,
-        entry_id="entry-parent",
-        data={integration.CONF_API_KEY: "key"},
-        subentries=_location_subentries(integration, "casa", "guineta"),
-    )
-    entry.runtime_data = types.SimpleNamespace(
-        locations={
-            "casa": types.SimpleNamespace(subentry_id="casa", coordinator=casa),
-            "trabajo": types.SimpleNamespace(
-                subentry_id="trabajo", coordinator=trabajo
-            ),
-            "guineta": types.SimpleNamespace(
-                subentry_id="guineta", coordinator=guineta
-            ),
-        }
-    )
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_setup(hass, {})) is True
-    with caplog.at_level("DEBUG"):
-        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
-
-    assert casa.calls == 1
-    assert guineta.calls == 1
-    assert trabajo.calls == 0
-    assert (
-        "Skipping stale Pollen Levels runtime location trabajo for entry entry-parent"
-        in caplog.text
-    )
-
-
 def test_force_update_continues_after_one_location_failure(
     integration_modules: _InitModules, caplog
 ) -> None:
@@ -1815,28 +1727,6 @@ def test_force_update_propagates_location_cancelled_error(
         "Manual refresh cancelled for entry entry-parent subentry loc-cancel"
         in caplog.text
     )
-
-
-def test_force_update_parent_without_locations_is_noop(
-    integration_modules: _InitModules, caplog
-) -> None:
-    """A loaded parent entry with no locations should be a safe no-op."""
-    integration = integration_modules.integration
-
-    entry = _FakeEntry(
-        integration,
-        entry_id="entry-empty",
-        data={integration.CONF_API_KEY: "key"},
-    )
-    entry.runtime_data = types.SimpleNamespace(locations={})
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_setup(hass, {})) is True
-    with caplog.at_level("DEBUG"):
-        asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
-
-    assert "Skipping force_update for entry entry-empty" in caplog.text
-    assert "No coordinators available for force_update" in caplog.text
 
 
 def test_force_update_skips_failed_locations_without_coordinators(

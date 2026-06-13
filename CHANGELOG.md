@@ -1,4 +1,4 @@
-## [3.0.0b5] - 2026-06-13
+## [3.0.0b5] - 2026-06-14
 
 ### Added
 
@@ -10,6 +10,8 @@
 - Added a Home Assistant Repair warning for repeated isolated location setup
   failures, with privacy-safe details and guidance to reload the parent entry
   after fixing the affected location.
+- Added Home Assistant harness coverage for setup, subentry flows, services,
+  diagnostics, platform entity registration, and the fixed 5-day API request.
 
 ### Changed
 
@@ -19,6 +21,8 @@
   through separate summary fields.
 - Retryable partial setup failures now schedule a conservative automatic parent
   reload before surfacing the per-location Repair warning.
+- Replaced duplicated lightweight stub tests with Home Assistant harness tests
+  where the real runtime path now provides equivalent coverage.
 
 ### Fixed
 
@@ -38,6 +42,8 @@
 - Removed legacy single-location duplicate fields from diagnostics. In v3,
   per-location diagnostics are now exposed only under `locations`, avoiding
   misleading top-level data copied from the first location.
+- Passed the config entry into the data update coordinator when supported by
+  Home Assistant, preserving compatibility with newer coordinator contracts.
 
 ## [3.0.0b4] - 2026-06-11
 
