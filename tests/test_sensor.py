@@ -2371,7 +2371,7 @@ def test_client_raises_dedicated_quota_error_after_terminal_429(
         await client.async_fetch_pollen_data(
             latitude=1.0,
             longitude=2.0,
-            days=1,
+            days=5,
             language_code=None,
         )
 

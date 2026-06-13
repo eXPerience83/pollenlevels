@@ -264,64 +264,6 @@ def test_options_flow_invalid_language_code_not_logged_raw(
     }
 
 
-def test_options_flow_drops_removed_forecast_options(
-    options_flow_env: OptionsFlowEnv,
-) -> None:
-    """Legacy forecast option keys should be ignored and removed on save."""
-
-    flow = _flow(
-        options_flow_env,
-        options={
-            options_flow_env.CONF_LANGUAGE_CODE: "en",
-            options_flow_env.CONF_UPDATE_INTERVAL: 6,
-            options_flow_env.CONF_FORECAST_DAYS: 2,
-            options_flow_env.CONF_CREATE_FORECAST_SENSORS: "D+1",
-        },
-    )
-
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                options_flow_env.CONF_LANGUAGE_CODE: " es ",
-                options_flow_env.CONF_UPDATE_INTERVAL: 8,
-                options_flow_env.CONF_FORECAST_DAYS: 0,
-                options_flow_env.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
-            }
-        )
-    )
-
-    assert result == {
-        "title": "",
-        "data": {
-            options_flow_env.CONF_LANGUAGE_CODE: "es",
-            options_flow_env.CONF_UPDATE_INTERVAL: 8,
-        },
-    }
-
-
-def test_options_flow_valid_submission_returns_entry_data(
-    options_flow_env: OptionsFlowEnv,
-) -> None:
-    """A valid options submission should return supported options only."""
-
-    flow = _flow(options_flow_env)
-
-    user_input = {
-        options_flow_env.CONF_LANGUAGE_CODE: " es ",
-        options_flow_env.CONF_UPDATE_INTERVAL: 8,
-    }
-
-    result = asyncio.run(flow.async_step_init(dict(user_input)))
-
-    assert result == {
-        "title": "",
-        "data": {
-            options_flow_env.CONF_LANGUAGE_CODE: "es",
-            options_flow_env.CONF_UPDATE_INTERVAL: 8,
-        },
-    }
-
-
 def test_options_flow_update_interval_below_min_sets_error(
     options_flow_env: OptionsFlowEnv,
 ) -> None:

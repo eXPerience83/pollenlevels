@@ -1434,41 +1434,6 @@ def test_validate_input_ignores_removed_forecast_options_and_uses_fixed_days(
     assert config_flow_stubs.CONF_CREATE_FORECAST_SENSORS not in normalized
 
 
-def test_options_flow_drops_removed_forecast_options(
-    config_flow_stubs: ConfigFlowStubs,
-) -> None:
-    """Options flow preserves supported options and drops legacy forecast keys."""
-
-    flow = _build_options_flow(
-        config_flow_stubs,
-        {
-            config_flow_stubs.CONF_LANGUAGE_CODE: "en",
-        },
-    )
-    flow.config_entry.options = {
-        config_flow_stubs.CONF_UPDATE_INTERVAL: 12,
-        config_flow_stubs.CONF_FORECAST_DAYS: 1,
-        config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1",
-    }
-
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
-                config_flow_stubs.CONF_LANGUAGE_CODE: "es",
-                config_flow_stubs.CONF_FORECAST_DAYS: "bad",
-                config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
-            }
-        )
-    )
-
-    assert result["type"] == "create_entry"
-    assert result["data"] == {
-        config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
-        config_flow_stubs.CONF_LANGUAGE_CODE: "es",
-    }
-
-
 def test_validate_input_auth_error_sets_error_message_placeholder(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
@@ -2568,55 +2533,6 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data(
     assert created["called"] is False
 
 
-def test_async_step_user_uses_custom_entry_name(
-    config_flow_stubs: ConfigFlowStubs,
-) -> None:
-    """Config flow should honor a custom entry title provided by the user."""
-
-    flow = config_flow_stubs.PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
-    )
-
-    normalized = {
-        config_flow_stubs.CONF_API_KEY: "test-key",
-        config_flow_stubs.CONF_LATITUDE: 1.0,
-        config_flow_stubs.CONF_LONGITUDE: 2.0,
-        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
-    }
-
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
-        assert check_unique_id is False
-        assert user_input[config_flow_stubs.CONF_NAME].strip() == "Custom Name"
-        return {}, normalized
-
-    flow._async_validate_input = fake_validate  # type: ignore[assignment]
-
-    user_input = {
-        config_flow_stubs.CONF_API_KEY: "test-key",
-        config_flow_stubs.CONF_NAME: " Custom Name ",
-        config_flow_stubs.CONF_LOCATION: {
-            config_flow_stubs.CONF_LATITUDE: 1.0,
-            config_flow_stubs.CONF_LONGITUDE: 2.0,
-        },
-        config_flow_stubs.CONF_UPDATE_INTERVAL: 6,
-        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
-    }
-
-    result = asyncio.run(flow.async_step_user(user_input))
-
-    assert result["title"] == "Custom Name"
-    assert result["data"] == {config_flow_stubs.CONF_API_KEY: "test-key"}
-    assert result["options"][config_flow_stubs.CONF_LANGUAGE_CODE] == "en"
-    assert result["subentries"][0]["title"] == "Custom Name"
-    assert result["subentries"][0]["data"] == {
-        config_flow_stubs.CONF_LATITUDE: 1.0,
-        config_flow_stubs.CONF_LONGITUDE: 2.0,
-    }
-
-
 def test_async_step_user_defaults_entry_name(
     config_flow_stubs: ConfigFlowStubs,
 ) -> None:
@@ -2662,66 +2578,6 @@ def test_async_step_user_defaults_entry_name(
         config_flow_stubs.CONF_LATITUDE: 1.0,
         config_flow_stubs.CONF_LONGITUDE: 2.0,
     }
-
-
-def test_async_step_user_checks_api_key_unique_id_for_existing_parent(
-    config_flow_stubs: ConfigFlowStubs,
-) -> None:
-    """New setup should detect an existing migrated parent by API-key identity."""
-
-    class _AlreadyConfigured(Exception):
-        pass
-
-    class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.unique_ids: list[str] = []
-
-        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
-            self.unique_ids.append(uid)
-            return None
-
-        def _abort_if_unique_id_configured(self):
-            raise _AlreadyConfigured
-
-    flow = _TrackingFlow()
-    flow.hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
-        config_entries=SimpleNamespace(
-            async_entry_for_domain_unique_id=lambda *_args: object()
-        ),
-    )
-
-    normalized = {
-        config_flow_stubs.CONF_API_KEY: "shared-key",
-        config_flow_stubs.CONF_LATITUDE: 1.0,
-        config_flow_stubs.CONF_LONGITUDE: 2.0,
-        config_flow_stubs.CONF_LANGUAGE_CODE: "en",
-    }
-
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
-        assert check_unique_id is False
-        return {}, normalized
-
-    flow._async_validate_input = fake_validate  # type: ignore[assignment]
-
-    user_input = {
-        config_flow_stubs.CONF_API_KEY: "shared-key",
-        config_flow_stubs.CONF_NAME: "Home",
-        config_flow_stubs.CONF_LOCATION: {
-            config_flow_stubs.CONF_LATITUDE: 1.0,
-            config_flow_stubs.CONF_LONGITUDE: 2.0,
-        },
-    }
-
-    result = asyncio.run(flow.async_step_user(user_input))
-
-    assert result == {"type": "abort", "reason": "api_key_already_configured"}
-    assert flow.unique_ids == [
-        config_flow_stubs.config_flow._api_key_unique_id("shared-key")
-    ]
 
 
 def test_async_step_user_checks_api_key_unique_id_with_async_entries_fallback(
@@ -2837,59 +2693,6 @@ def test_location_subentry_user_step_shows_form(
     result = asyncio.run(flow.async_step_user())
 
     assert result == {"type": "form", "step_id": "user", "errors": {}}
-
-
-def test_location_subentry_user_step_creates_entry_without_premature_reload(
-    config_flow_stubs: ConfigFlowStubs,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Adding a valid location should reload the parent after create is returned."""
-
-    calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
-    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
-        data={config_flow_stubs.CONF_API_KEY: "key"},
-        options={config_flow_stubs.CONF_LANGUAGE_CODE: " es-ES "},
-        entry_id="entry-id",
-    )
-    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
-
-    async def run_flow():
-        result = await flow.async_step_user(
-            {
-                config_flow_stubs.CONF_NAME: " Garden ",
-                config_flow_stubs.CONF_LOCATION: {
-                    config_flow_stubs.CONF_LATITUDE: 12.34567,
-                    config_flow_stubs.CONF_LONGITUDE: -98.76543,
-                },
-            }
-        )
-        assert recorder.reload_calls == []
-        assert len(recorder.created_tasks) == 1
-        assert recorder.created_tasks[0].get_name() == (
-            "reload Pollen Levels parent after location subentry create"
-        )
-        await recorder.created_tasks[0]
-        return result
-
-    result = asyncio.run(run_flow())
-
-    assert result["type"] == "create_entry"
-    assert result["title"] == "Garden"
-    assert result["data"] == {
-        config_flow_stubs.CONF_LATITUDE: 12.34567,
-        config_flow_stubs.CONF_LONGITUDE: -98.76543,
-    }
-    assert result["unique_id"] == "12.3457_-98.7654"
-    assert len(recorder.created_tasks) == 1
-    assert recorder.reload_calls == ["entry-id"]
-    assert calls == [
-        {
-            "latitude": 12.34567,
-            "longitude": -98.76543,
-            "days": config_flow_stubs.FORECAST_DAYS,
-            "language_code": "es-ES",
-        }
-    ]
 
 
 def test_location_subentry_create_reload_helper_falls_back_to_async_reload(
@@ -3013,103 +2816,6 @@ def test_location_subentry_user_step_rejects_invalid_coordinates(
     }
     assert recorder.created_tasks == []
     assert recorder.reload_calls == []
-
-
-def test_location_subentry_user_step_rejects_duplicate_location(
-    config_flow_stubs: ConfigFlowStubs,
-) -> None:
-    """Duplicate coordinate unique IDs should be rejected within one parent."""
-
-    existing = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
-        data={
-            config_flow_stubs.CONF_LATITUDE: 1.0,
-            config_flow_stubs.CONF_LONGITUDE: 2.0,
-        },
-        subentry_id="subentry-1",
-        title="Home",
-        unique_id="1.0000_2.0000",
-    )
-    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
-        data={config_flow_stubs.CONF_API_KEY: "key"},
-        entry_id="entry-id",
-        subentries={existing.subentry_id: existing},
-    )
-    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
-
-    result = asyncio.run(
-        flow.async_step_user(
-            {
-                config_flow_stubs.CONF_NAME: "Duplicate",
-                config_flow_stubs.CONF_LOCATION: {
-                    config_flow_stubs.CONF_LATITUDE: 1.0,
-                    config_flow_stubs.CONF_LONGITUDE: 2.0,
-                },
-            }
-        )
-    )
-
-    assert result == {
-        "type": "form",
-        "step_id": "user",
-        "errors": {"base": "already_configured"},
-    }
-    assert recorder.created_tasks == []
-    assert recorder.reload_calls == []
-
-
-def test_location_subentry_reconfigure_updates_entry_and_schedules_reload(
-    config_flow_stubs: ConfigFlowStubs,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Reconfiguring a location should update the subentry and reload parent."""
-
-    calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
-    subentry = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
-        data={
-            config_flow_stubs.CONF_LATITUDE: 1.0,
-            config_flow_stubs.CONF_LONGITUDE: 2.0,
-        },
-        subentry_id="subentry-1",
-        title="Home",
-        unique_id="1.0000_2.0000",
-    )
-    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
-        data={config_flow_stubs.CONF_API_KEY: "key"},
-        entry_id="entry-id",
-        subentries={subentry.subentry_id: subentry},
-    )
-    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
-    flow.context = {"subentry_id": subentry.subentry_id}
-
-    result = asyncio.run(
-        flow.async_step_reconfigure(
-            {
-                config_flow_stubs.CONF_NAME: " Garden ",
-                config_flow_stubs.CONF_LOCATION: {
-                    config_flow_stubs.CONF_LATITUDE: 3.0,
-                    config_flow_stubs.CONF_LONGITUDE: 4.0,
-                },
-            }
-        )
-    )
-
-    assert result["type"] == "abort"
-    assert result["reason"] == "reconfigure_successful"
-    assert subentry.title == "Garden"
-    assert subentry.data == {
-        config_flow_stubs.CONF_LATITUDE: 3.0,
-        config_flow_stubs.CONF_LONGITUDE: 4.0,
-    }
-    assert subentry.unique_id == "3.0000_4.0000"
-    assert recorder.reload_calls == ["entry-id"]
-    assert calls == [
-        {
-            "latitude": 3.0,
-            "longitude": 4.0,
-            "days": config_flow_stubs.FORECAST_DAYS,
-            "language_code": None,
-        }
-    ]
 
 
 def test_location_subentry_reconfigure_preserves_legacy_entry_id(

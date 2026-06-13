@@ -1,0 +1,850 @@
+{
+  "dailyInfo": [
+    {
+      "date": {
+        "day": 13,
+        "month": 6,
+        "year": 2026
+      },
+      "plantInfo": [
+        {
+          "code": "HAZEL",
+          "displayName": "Avellano"
+        },
+        {
+          "code": "ASH",
+          "displayName": "Fresno"
+        },
+        {
+          "code": "COTTONWOOD",
+          "displayName": "Chopo"
+        },
+        {
+          "code": "OAK",
+          "displayName": "Roble"
+        },
+        {
+          "code": "PINE",
+          "displayName": "Pino",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de p\u00edcea, falso abeto y abeto.",
+            "family": "Pin\u00e1ceas (familia del pino)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/pine_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/pine_closeup.jpg",
+            "season": "Primavera",
+            "specialColors": "Corteza de color marr\u00f3n rojizo o gris.",
+            "specialShapes": "Las hojas tienen forma de aguja y son de color verde.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "BIRCH",
+          "displayName": "Abedul",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de aliso, avellano, carpe, haya, sauce y roble. Adem\u00e1s, puede haber un mayor riesgo de alergias alimentarias a las avellanas, las almendras, los cacahuetes, las peras, las manzanas, las cerezas y las zanahorias.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/birch_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/birch_closeup.jpg",
+            "season": "Finales de invierno, primavera",
+            "specialColors": "La corteza suele ser de color gris blanquecino, plateado o, en ocasiones, rojizo.",
+            "specialShapes": "Las hojas de abedul suelen ser triangulares y dentadas. La corteza de la mayor\u00eda de los abedules presenta rayas horizontales oscuras que parecen cortes. La corteza de abedul tambi\u00e9n es conocida por su textura similar al papel, que puede pelarse f\u00e1cilmente.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "OLIVE",
+          "displayName": "Olivo",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de fresno y alhe\u00f1a.",
+            "family": "Ole\u00e1ceas (familia del olivo)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/olive_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/olive_closeup.jpg",
+            "season": "Final de la primavera, principio del verano",
+            "specialColors": "Las hojas son de color verde oscuro en el haz y plateadas en el env\u00e9s.",
+            "specialShapes": "Las hojas est\u00e1n dispuestas de forma inversa y lineal, con m\u00e1rgenes lisos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "GRAMINALES",
+          "displayName": "Gram\u00edneas",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de pl\u00e1tano (Plantago). Adem\u00e1s, puede haber un mayor riesgo de alergia alimentaria a los melones, a las naranjas, a los tomates, a los cacahuetes, a la soja, a la patata y a otras legumbres.",
+            "family": "Po\u00e1ceas",
+            "picture": "https://storage.googleapis.com/pollen-pictures/graminales_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/graminales_closeup.jpg",
+            "season": "Finales de la primavera, verano",
+            "specialColors": "Ninguno",
+            "specialShapes": "Las hojas son alternativas, largas y estrechas, y el borde es liso.",
+            "type": "GRASS"
+          }
+        },
+        {
+          "code": "RAGWEED",
+          "displayName": "Ambros\u00eda"
+        },
+        {
+          "code": "ALDER",
+          "displayName": "Aliso",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de abedul, avellano, carpe, haya, sauce y roble.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/alder_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/alder_closeup.jpg",
+            "season": "Finales de invierno, principios de primavera",
+            "specialColors": "En oto\u00f1o, las hojas tienden a volverse de color marr\u00f3n.",
+            "specialShapes": "Los \u00e1rboles producen amentos, que son grupos de flores sin p\u00e9talos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "MUGWORT",
+          "displayName": "Artemisia"
+        }
+      ],
+      "pollenTypeInfo": [
+        {
+          "code": "GRASS",
+          "displayName": "Gram\u00edneas",
+          "healthRecommendations": [
+            "Es importante ducharse y lavarse el pelo despu\u00e9s de pasar mucho tiempo al aire libre.",
+            "Cuando est\u00e9s en el exterior, ponte gafas de sol y gorra para mantener el polen alejado de la cara y los ojos.",
+            "Lava la ropa que hayas llevado en el exterior para eliminar los restos de polen.",
+            "Si es posible, usa gafas en vez de lentillas.",
+            "\u00bfHas tendido la ropa fuera? Ahora es un buen momento para tenderla dentro de casa o usar una secadora, si es posible."
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          }
+        },
+        {
+          "code": "TREE",
+          "displayName": "\u00c1rbol",
+          "healthRecommendations": [
+            "Los niveles de polen actuales son muy bajos. \u00a1Es un d\u00eda fant\u00e1stico para disfrutar al aire libre!"
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          }
+        },
+        {
+          "code": "WEED",
+          "displayName": "Maleza"
+        }
+      ]
+    },
+    {
+      "date": {
+        "day": 14,
+        "month": 6,
+        "year": 2026
+      },
+      "plantInfo": [
+        {
+          "code": "HAZEL",
+          "displayName": "Avellano"
+        },
+        {
+          "code": "ASH",
+          "displayName": "Fresno"
+        },
+        {
+          "code": "COTTONWOOD",
+          "displayName": "Chopo"
+        },
+        {
+          "code": "OAK",
+          "displayName": "Roble"
+        },
+        {
+          "code": "PINE",
+          "displayName": "Pino"
+        },
+        {
+          "code": "BIRCH",
+          "displayName": "Abedul",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de aliso, avellano, carpe, haya, sauce y roble. Adem\u00e1s, puede haber un mayor riesgo de alergias alimentarias a las avellanas, las almendras, los cacahuetes, las peras, las manzanas, las cerezas y las zanahorias.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/birch_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/birch_closeup.jpg",
+            "season": "Finales de invierno, primavera",
+            "specialColors": "La corteza suele ser de color gris blanquecino, plateado o, en ocasiones, rojizo.",
+            "specialShapes": "Las hojas de abedul suelen ser triangulares y dentadas. La corteza de la mayor\u00eda de los abedules presenta rayas horizontales oscuras que parecen cortes. La corteza de abedul tambi\u00e9n es conocida por su textura similar al papel, que puede pelarse f\u00e1cilmente.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "OLIVE",
+          "displayName": "Olivo",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de fresno y alhe\u00f1a.",
+            "family": "Ole\u00e1ceas (familia del olivo)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/olive_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/olive_closeup.jpg",
+            "season": "Final de la primavera, principio del verano",
+            "specialColors": "Las hojas son de color verde oscuro en el haz y plateadas en el env\u00e9s.",
+            "specialShapes": "Las hojas est\u00e1n dispuestas de forma inversa y lineal, con m\u00e1rgenes lisos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "GRAMINALES",
+          "displayName": "Gram\u00edneas",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de pl\u00e1tano (Plantago). Adem\u00e1s, puede haber un mayor riesgo de alergia alimentaria a los melones, a las naranjas, a los tomates, a los cacahuetes, a la soja, a la patata y a otras legumbres.",
+            "family": "Po\u00e1ceas",
+            "picture": "https://storage.googleapis.com/pollen-pictures/graminales_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/graminales_closeup.jpg",
+            "season": "Finales de la primavera, verano",
+            "specialColors": "Ninguno",
+            "specialShapes": "Las hojas son alternativas, largas y estrechas, y el borde es liso.",
+            "type": "GRASS"
+          }
+        },
+        {
+          "code": "RAGWEED",
+          "displayName": "Ambros\u00eda"
+        },
+        {
+          "code": "ALDER",
+          "displayName": "Aliso",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de abedul, avellano, carpe, haya, sauce y roble.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/alder_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/alder_closeup.jpg",
+            "season": "Finales de invierno, principios de primavera",
+            "specialColors": "En oto\u00f1o, las hojas tienden a volverse de color marr\u00f3n.",
+            "specialShapes": "Los \u00e1rboles producen amentos, que son grupos de flores sin p\u00e9talos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "MUGWORT",
+          "displayName": "Artemisia"
+        }
+      ],
+      "pollenTypeInfo": [
+        {
+          "code": "GRASS",
+          "displayName": "Gram\u00edneas",
+          "healthRecommendations": [
+            "Es importante ducharse y lavarse el pelo despu\u00e9s de pasar mucho tiempo al aire libre.",
+            "Cuando est\u00e9s en el exterior, ponte gafas de sol y gorra para mantener el polen alejado de la cara y los ojos.",
+            "Lava la ropa que hayas llevado en el exterior para eliminar los restos de polen.",
+            "Si es posible, usa gafas en vez de lentillas.",
+            "\u00bfHas tendido la ropa fuera? Ahora es un buen momento para tenderla dentro de casa o usar una secadora, si es posible."
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          }
+        },
+        {
+          "code": "TREE",
+          "displayName": "\u00c1rbol",
+          "healthRecommendations": [
+            "Los niveles de polen actuales son muy bajos. \u00a1Es un d\u00eda fant\u00e1stico para disfrutar al aire libre!"
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          }
+        },
+        {
+          "code": "WEED",
+          "displayName": "Maleza"
+        }
+      ]
+    },
+    {
+      "date": {
+        "day": 15,
+        "month": 6,
+        "year": 2026
+      },
+      "plantInfo": [
+        {
+          "code": "HAZEL",
+          "displayName": "Avellano"
+        },
+        {
+          "code": "ASH",
+          "displayName": "Fresno"
+        },
+        {
+          "code": "COTTONWOOD",
+          "displayName": "Chopo"
+        },
+        {
+          "code": "OAK",
+          "displayName": "Roble"
+        },
+        {
+          "code": "PINE",
+          "displayName": "Pino"
+        },
+        {
+          "code": "BIRCH",
+          "displayName": "Abedul",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de aliso, avellano, carpe, haya, sauce y roble. Adem\u00e1s, puede haber un mayor riesgo de alergias alimentarias a las avellanas, las almendras, los cacahuetes, las peras, las manzanas, las cerezas y las zanahorias.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/birch_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/birch_closeup.jpg",
+            "season": "Finales de invierno, primavera",
+            "specialColors": "La corteza suele ser de color gris blanquecino, plateado o, en ocasiones, rojizo.",
+            "specialShapes": "Las hojas de abedul suelen ser triangulares y dentadas. La corteza de la mayor\u00eda de los abedules presenta rayas horizontales oscuras que parecen cortes. La corteza de abedul tambi\u00e9n es conocida por su textura similar al papel, que puede pelarse f\u00e1cilmente.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "OLIVE",
+          "displayName": "Olivo",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de fresno y alhe\u00f1a.",
+            "family": "Ole\u00e1ceas (familia del olivo)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/olive_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/olive_closeup.jpg",
+            "season": "Final de la primavera, principio del verano",
+            "specialColors": "Las hojas son de color verde oscuro en el haz y plateadas en el env\u00e9s.",
+            "specialShapes": "Las hojas est\u00e1n dispuestas de forma inversa y lineal, con m\u00e1rgenes lisos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "GRAMINALES",
+          "displayName": "Gram\u00edneas",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de pl\u00e1tano (Plantago). Adem\u00e1s, puede haber un mayor riesgo de alergia alimentaria a los melones, a las naranjas, a los tomates, a los cacahuetes, a la soja, a la patata y a otras legumbres.",
+            "family": "Po\u00e1ceas",
+            "picture": "https://storage.googleapis.com/pollen-pictures/graminales_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/graminales_closeup.jpg",
+            "season": "Finales de la primavera, verano",
+            "specialColors": "Ninguno",
+            "specialShapes": "Las hojas son alternativas, largas y estrechas, y el borde es liso.",
+            "type": "GRASS"
+          }
+        },
+        {
+          "code": "RAGWEED",
+          "displayName": "Ambros\u00eda"
+        },
+        {
+          "code": "ALDER",
+          "displayName": "Aliso",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de abedul, avellano, carpe, haya, sauce y roble.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/alder_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/alder_closeup.jpg",
+            "season": "Finales de invierno, principios de primavera",
+            "specialColors": "En oto\u00f1o, las hojas tienden a volverse de color marr\u00f3n.",
+            "specialShapes": "Los \u00e1rboles producen amentos, que son grupos de flores sin p\u00e9talos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "MUGWORT",
+          "displayName": "Artemisia"
+        }
+      ],
+      "pollenTypeInfo": [
+        {
+          "code": "GRASS",
+          "displayName": "Gram\u00edneas",
+          "healthRecommendations": [
+            "Es importante ducharse y lavarse el pelo despu\u00e9s de pasar mucho tiempo al aire libre.",
+            "Cuando est\u00e9s en el exterior, ponte gafas de sol y gorra para mantener el polen alejado de la cara y los ojos.",
+            "Lava la ropa que hayas llevado en el exterior para eliminar los restos de polen.",
+            "Si es posible, usa gafas en vez de lentillas.",
+            "\u00bfHas tendido la ropa fuera? Ahora es un buen momento para tenderla dentro de casa o usar una secadora, si es posible."
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          }
+        },
+        {
+          "code": "TREE",
+          "displayName": "\u00c1rbol",
+          "healthRecommendations": [
+            "Los niveles de polen actuales son muy bajos. \u00a1Es un d\u00eda fant\u00e1stico para disfrutar al aire libre!"
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          }
+        },
+        {
+          "code": "WEED",
+          "displayName": "Maleza"
+        }
+      ]
+    },
+    {
+      "date": {
+        "day": 16,
+        "month": 6,
+        "year": 2026
+      },
+      "plantInfo": [
+        {
+          "code": "HAZEL",
+          "displayName": "Avellano"
+        },
+        {
+          "code": "ASH",
+          "displayName": "Fresno"
+        },
+        {
+          "code": "COTTONWOOD",
+          "displayName": "Chopo"
+        },
+        {
+          "code": "OAK",
+          "displayName": "Roble"
+        },
+        {
+          "code": "PINE",
+          "displayName": "Pino"
+        },
+        {
+          "code": "BIRCH",
+          "displayName": "Abedul",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de aliso, avellano, carpe, haya, sauce y roble. Adem\u00e1s, puede haber un mayor riesgo de alergias alimentarias a las avellanas, las almendras, los cacahuetes, las peras, las manzanas, las cerezas y las zanahorias.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/birch_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/birch_closeup.jpg",
+            "season": "Finales de invierno, primavera",
+            "specialColors": "La corteza suele ser de color gris blanquecino, plateado o, en ocasiones, rojizo.",
+            "specialShapes": "Las hojas de abedul suelen ser triangulares y dentadas. La corteza de la mayor\u00eda de los abedules presenta rayas horizontales oscuras que parecen cortes. La corteza de abedul tambi\u00e9n es conocida por su textura similar al papel, que puede pelarse f\u00e1cilmente.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "OLIVE",
+          "displayName": "Olivo",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de fresno y alhe\u00f1a.",
+            "family": "Ole\u00e1ceas (familia del olivo)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/olive_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/olive_closeup.jpg",
+            "season": "Final de la primavera, principio del verano",
+            "specialColors": "Las hojas son de color verde oscuro en el haz y plateadas en el env\u00e9s.",
+            "specialShapes": "Las hojas est\u00e1n dispuestas de forma inversa y lineal, con m\u00e1rgenes lisos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "GRAMINALES",
+          "displayName": "Gram\u00edneas",
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de pl\u00e1tano (Plantago). Adem\u00e1s, puede haber un mayor riesgo de alergia alimentaria a los melones, a las naranjas, a los tomates, a los cacahuetes, a la soja, a la patata y a otras legumbres.",
+            "family": "Po\u00e1ceas",
+            "picture": "https://storage.googleapis.com/pollen-pictures/graminales_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/graminales_closeup.jpg",
+            "season": "Finales de la primavera, verano",
+            "specialColors": "Ninguno",
+            "specialShapes": "Las hojas son alternativas, largas y estrechas, y el borde es liso.",
+            "type": "GRASS"
+          }
+        },
+        {
+          "code": "RAGWEED",
+          "displayName": "Ambros\u00eda"
+        },
+        {
+          "code": "ALDER",
+          "displayName": "Aliso",
+          "inSeason": false,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          },
+          "plantDescription": {
+            "crossReaction": "Polen de abedul, avellano, carpe, haya, sauce y roble.",
+            "family": "Betul\u00e1ceas (familia del abedul)",
+            "picture": "https://storage.googleapis.com/pollen-pictures/alder_full.jpg",
+            "pictureCloseup": "https://storage.googleapis.com/pollen-pictures/alder_closeup.jpg",
+            "season": "Finales de invierno, principios de primavera",
+            "specialColors": "En oto\u00f1o, las hojas tienden a volverse de color marr\u00f3n.",
+            "specialShapes": "Los \u00e1rboles producen amentos, que son grupos de flores sin p\u00e9talos.",
+            "type": "TREE"
+          }
+        },
+        {
+          "code": "MUGWORT",
+          "displayName": "Artemisia"
+        }
+      ],
+      "pollenTypeInfo": [
+        {
+          "code": "GRASS",
+          "displayName": "Gram\u00edneas",
+          "healthRecommendations": [
+            "Es importante ducharse y lavarse el pelo despu\u00e9s de pasar mucho tiempo al aire libre.",
+            "Cuando est\u00e9s en el exterior, ponte gafas de sol y gorra para mantener el polen alejado de la cara y los ojos.",
+            "Lava la ropa que hayas llevado en el exterior para eliminar los restos de polen.",
+            "Si es posible, usa gafas en vez de lentillas.",
+            "\u00bfHas tendido la ropa fuera? Ahora es un buen momento para tenderla dentro de casa o usar una secadora, si es posible."
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Moderado",
+            "code": "UPI",
+            "color": {
+              "green": 1,
+              "red": 1
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia al polen experimenten s\u00edntomas",
+            "value": 3
+          }
+        },
+        {
+          "code": "TREE",
+          "displayName": "\u00c1rbol",
+          "healthRecommendations": [
+            "Los niveles de polen actuales son muy bajos. \u00a1Es un d\u00eda fant\u00e1stico para disfrutar al aire libre!"
+          ],
+          "inSeason": true,
+          "indexInfo": {
+            "category": "Muy bajo",
+            "code": "UPI",
+            "color": {
+              "blue": 0.22745098,
+              "green": 0.61960787
+            },
+            "displayName": "Universal Pollen Index",
+            "indexDescription": "Es probable que las personas con alergia muy alta al polen experimenten s\u00edntomas",
+            "value": 1
+          }
+        },
+        {
+          "code": "WEED",
+          "displayName": "Maleza"
+        }
+      ]
+    },
+    {
+      "date": {
+        "day": 17,
+        "month": 6,
+        "year": 2026
+      },
+      "plantInfo": [
+        {
+          "code": "HAZEL",
+          "displayName": "Avellano"
+        },
+        {
+          "code": "ASH",
+          "displayName": "Fresno"
+        },
+        {
+          "code": "COTTONWOOD",
+          "displayName": "Chopo"
+        },
+        {
+          "code": "OAK",
+          "displayName": "Roble"
+        },
+        {
+          "code": "PINE",
+          "displayName": "Pino"
+        },
+        {
+          "code": "BIRCH",
+          "displayName": "Abedul"
+        },
+        {
+          "code": "OLIVE",
+          "displayName": "Olivo"
+        },
+        {
+          "code": "GRAMINALES",
+          "displayName": "Gram\u00edneas"
+        },
+        {
+          "code": "RAGWEED",
+          "displayName": "Ambros\u00eda"
+        },
+        {
+          "code": "ALDER",
+          "displayName": "Aliso"
+        },
+        {
+          "code": "MUGWORT",
+          "displayName": "Artemisia"
+        }
+      ],
+      "pollenTypeInfo": [
+        {
+          "code": "GRASS",
+          "displayName": "Gram\u00edneas"
+        },
+        {
+          "code": "TREE",
+          "displayName": "\u00c1rbol"
+        },
+        {
+          "code": "WEED",
+          "displayName": "Maleza"
+        }
+      ]
+    }
+  ],
+  "regionCode": "ES"
+}

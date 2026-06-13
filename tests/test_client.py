@@ -145,7 +145,7 @@ async def _fetch_with_response(
     await client.async_fetch_pollen_data(
         latitude=latitude,
         longitude=longitude,
-        days=1,
+        days=5,
         language_code=None,
     )
 
@@ -222,7 +222,7 @@ async def test_client_redacts_sensitive_values_from_url_like_http_error(
     url = (
         "https://pollen.googleapis.com/v1/forecast:lookup?"
         f"key={api_key}&location.latitude={latitude}&"
-        f"location.longitude={longitude}&days=1"
+        f"location.longitude={longitude}&days=5"
     )
     response = FakeResponse(
         status=400,
@@ -261,7 +261,7 @@ async def test_client_redacts_sensitive_values_from_client_error(
         "request failed: "
         "https://pollen.googleapis.com/v1/forecast:lookup?"
         f"key={api_key}&location.latitude={latitude}&"
-        f"location.longitude={longitude}&days=1"
+        f"location.longitude={longitude}&days=5"
     )
     client = client_module.GooglePollenApiClient(RaisingSession(error), api_key)
 
@@ -269,7 +269,7 @@ async def test_client_redacts_sensitive_values_from_client_error(
         await client.async_fetch_pollen_data(
             latitude=latitude,
             longitude=longitude,
-            days=1,
+            days=5,
             language_code=None,
         )
 

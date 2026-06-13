@@ -22,6 +22,7 @@ from .forecast import attach_forecast_attributes
 from .util import redact_api_key, redact_sensitive_values, safe_parse_int
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
 
@@ -152,17 +153,35 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         entry_title: str = DEFAULT_ENTRY_TITLE,
         subentry_id: str | None = None,
         legacy_entry_id: str | None = None,
+        config_entry: ConfigEntry | None = None,
     ) -> None:
         """Initialize coordinator with configuration and interval."""
         explicit_subentry = subentry_id is not None
         subentry_id = subentry_id or entry_id
         update_interval = timedelta(hours=hours)
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=f"{DOMAIN}_{entry_id}_{subentry_id}",
-            update_interval=update_interval,
-        )
+        coordinator_kwargs: dict[str, Any] = {
+            "name": f"{DOMAIN}_{entry_id}_{subentry_id}",
+            "update_interval": update_interval,
+        }
+        if config_entry is not None:
+            coordinator_kwargs["config_entry"] = config_entry
+        try:
+            super().__init__(
+                hass,
+                _LOGGER,
+                **coordinator_kwargs,
+            )
+        except TypeError as err:
+            if "config_entry" not in coordinator_kwargs or "config_entry" not in str(
+                err
+            ):
+                raise
+            coordinator_kwargs.pop("config_entry")
+            super().__init__(
+                hass,
+                _LOGGER,
+                **coordinator_kwargs,
+            )
         self.api_key = api_key
         self.lat = lat
         self.lon = lon

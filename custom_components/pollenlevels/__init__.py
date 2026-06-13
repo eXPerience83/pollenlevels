@@ -518,6 +518,7 @@ async def async_setup_entry(
             subentry_id=subentry_id,
             entry_title=title,
             legacy_entry_id=legacy_entry_id,
+            config_entry=entry,
             client=client,
         )
 
