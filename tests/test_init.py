@@ -71,6 +71,67 @@ class _StubServiceCall:  # pragma: no cover - structure only
     pass
 
 
+def test_safe_setup_failure_text_uses_fallback_for_none(
+    integration_modules: _InitModules,
+) -> None:
+    """None setup failure text should use the caller fallback."""
+    integration = integration_modules.integration
+
+    assert (
+        integration._safe_setup_failure_text(
+            None,
+            api_key="secret-key",
+            latitude=1.234567,
+            longitude=2.345678,
+            fallback="Location setup failed",
+        )
+        == "Location setup failed"
+    )
+
+
+def test_safe_setup_failure_text_stringifies_custom_objects(
+    integration_modules: _InitModules,
+) -> None:
+    """Custom object setup failure text should not break redaction/truncation."""
+    integration = integration_modules.integration
+
+    class _CustomFailure:
+        def __str__(self) -> str:
+            return "custom failure"
+
+    assert (
+        integration._safe_setup_failure_text(
+            _CustomFailure(),
+            api_key=None,
+            fallback="Location setup failed",
+        )
+        == "custom failure"
+    )
+
+
+def test_safe_setup_failure_text_redacts_secrets_and_coordinates(
+    integration_modules: _InitModules,
+) -> None:
+    """Setup failure text should not expose API keys or exact coordinates."""
+    integration = integration_modules.integration
+    reason = RuntimeError(
+        "boom secret-key at location.latitude=1.234567 " "location.longitude=2.345678"
+    )
+
+    redacted = integration._safe_setup_failure_text(
+        reason,
+        api_key="secret-key",
+        latitude=1.234567,
+        longitude=2.345678,
+        fallback="Location setup failed",
+    )
+
+    assert "secret-key" not in redacted
+    assert "1.234567" not in redacted
+    assert "2.345678" not in redacted
+    assert "***" in redacted
+
+
 class _StubSensorEntity:  # pragma: no cover - structure only
     def __init__(self, *args, **kwargs):
         self._attr_unique_id = None
@@ -932,6 +993,12 @@ def test_setup_entry_raises_not_ready_when_all_subentries_fail(
     assert exc_info.value.__cause__ is None
     assert entry.runtime_data is None
     assert hass.config_entries.forward_calls == []
+    assert not any(
+        issue_id.startswith("location_setup_failed_")
+        for issue_id in sys.modules[
+            "homeassistant.helpers.issue_registry"
+        ].registry.issues
+    )
 
 
 def test_setup_entry_auth_failure_still_fails_parent(

@@ -1,3 +1,36 @@
+## [3.0.0b5] - 2026-06-13
+
+### Added
+
+- Added conservative partial setup for v3 location subentries. When one
+  location has a local non-auth setup failure, healthy locations under the same
+  parent API key can continue loading.
+- Added per-location setup failure runtime metadata exposed through diagnostics
+  under `failed_locations`.
+- Added a Home Assistant Repair warning for isolated location setup failures,
+  with privacy-safe details and guidance to reload the parent entry after fixing
+  the affected location.
+
+### Changed
+
+- Sensors, `Update now` buttons, and the global `pollenlevels.force_update`
+  action now operate only on successfully loaded runtime locations.
+- Runtime diagnostics now distinguish loaded, failed, and stale locations
+  through separate summary fields.
+
+### Fixed
+
+- Prevented one invalid or temporarily unavailable location subentry from
+  blocking other healthy locations under the same parent entry.
+- Cleared location setup failure Repair warnings automatically when the affected
+  location loads successfully after a reload.
+- Kept failed-location registry entries untouched so existing entities and
+  recorder history are not removed because of a local setup failure.
+- Localized the new setup failure Repair warning across all supported locales.
+- Removed legacy single-location duplicate fields from diagnostics. In v3,
+  per-location diagnostics are now exposed only under `locations`, avoiding
+  misleading top-level data copied from the first location.
+
 ## [3.0.0b4] - 2026-06-11
 
 ### Changed

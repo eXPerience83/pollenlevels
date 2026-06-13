@@ -156,6 +156,8 @@ def _safe_setup_failure_text(
     fallback: str,
 ) -> str:
     """Redact sensitive setup failure text before storing or surfacing it."""
+    if value is None:
+        return fallback
     redacted = redact_sensitive_values(
         value,
         api_key=api_key,
