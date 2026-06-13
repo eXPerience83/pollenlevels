@@ -8,6 +8,13 @@
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.
 - Tests run with pytest>=9 on Python 3.14.
+- Home Assistant integration-surface tests should use
+  `pytest-homeassistant-custom-component` when practical, especially for config
+  flows, subentry flows, setup/unload, platform entity registration, services,
+  diagnostics, Repairs, registries, and migration behavior. Keep lightweight
+  unit/stub tests for pure parsing, API client behavior, redaction helpers,
+  malformed payload edge cases, and failure injection that is hard to express
+  through the real Home Assistant harness.
 
 ## Release & API boundaries
 - Do not change the integration version or changelog entries unless explicitly requested.
@@ -58,4 +65,4 @@
 - Before submitting changes, run the following checks:
   - `ruff check --fix --select I && ruff check` — lint and import ordering.
   - `black .` — code formatting.
-  - `pytest tests/` — unit tests.
+  - `pytest tests/` — unit and Home Assistant harness tests.
