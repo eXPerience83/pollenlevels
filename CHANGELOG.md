@@ -7,9 +7,9 @@
   parent API key can continue loading.
 - Added per-location setup failure runtime metadata exposed through diagnostics
   under `failed_locations`.
-- Added a Home Assistant Repair warning for isolated location setup failures,
-  with privacy-safe details and guidance to reload the parent entry after fixing
-  the affected location.
+- Added a Home Assistant Repair warning for repeated isolated location setup
+  failures, with privacy-safe details and guidance to reload the parent entry
+  after fixing the affected location.
 
 ### Changed
 
@@ -17,6 +17,8 @@
   action now operate only on successfully loaded runtime locations.
 - Runtime diagnostics now distinguish loaded, failed, and stale locations
   through separate summary fields.
+- Retryable partial setup failures now schedule a conservative automatic parent
+  reload before surfacing the per-location Repair warning.
 
 ### Fixed
 
@@ -24,6 +26,10 @@
   blocking other healthy locations under the same parent entry.
 - Cleared location setup failure Repair warnings automatically when the affected
   location loads successfully after a reload.
+- Cleared stale per-location Repair warnings automatically when the affected
+  location subentry has been removed.
+- Corrected failed-location diagnostics so invalid stored locations are not
+  marked as reload-retryable.
 - Kept failed-location registry entries untouched so existing entities and
   recorder history are not removed because of a local setup failure.
 - Localized the new setup failure Repair warning across all supported locales.

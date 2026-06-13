@@ -42,6 +42,7 @@ from .issue_helpers import (
     delete_entry_invalid_stored_location_issue,
     delete_invalid_stored_location_issue,
     delete_location_setup_failed_issue,
+    delete_stale_location_subentry_issues,
     invalid_stored_location_issue_id as invalid_stored_location_issue_id,
 )
 from .migration import (
@@ -56,6 +57,7 @@ from .runtime import (
     PollenLocationSetupFailure,
 )
 from .util import (
+    active_location_subentry_ids,
     api_key_unique_id as api_key_unique_id,
     has_legacy_per_day_option,
     redact_sensitive_values,
@@ -72,6 +74,8 @@ _LOGGER = logging.getLogger(__name__)
 TARGET_ENTRY_VERSION = 6
 _FORCE_UPDATE_CONCURRENCY_LIMIT = 1
 _SETUP_FAILURE_REASON_MAX_LENGTH = 240
+_SETUP_RETRY_FAILURES_DATA_KEY = "setup_retry_failures"
+_NON_RETRYABLE_SETUP_FAILURE_TYPES = frozenset({"InvalidStoredLocation"})
 PLATFORMS = ["sensor", "button"]
 
 
@@ -210,6 +214,81 @@ def _location_setup_failure(
         reason=safe_reason,
         error_type=error_type or "UnknownError",
     )
+
+
+def _entry_setup_retry_failures(hass: HomeAssistant, entry_id: str) -> set[str]:
+    """Return setup failures that already received an automatic retry."""
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    retry_failures = domain_data.setdefault(_SETUP_RETRY_FAILURES_DATA_KEY, {})
+    return retry_failures.setdefault(entry_id, set())
+
+
+def _mark_setup_retry_failure(
+    hass: HomeAssistant, entry_id: str, subentry_id: str
+) -> None:
+    """Remember that a setup failure already received an automatic retry."""
+    _entry_setup_retry_failures(hass, entry_id).add(subentry_id)
+
+
+def _setup_retry_failure_seen(
+    hass: HomeAssistant, entry_id: str, subentry_id: str
+) -> bool:
+    """Return whether this setup failure already received an automatic retry."""
+    return subentry_id in _entry_setup_retry_failures(hass, entry_id)
+
+
+def _clear_setup_retry_failure(
+    hass: HomeAssistant, entry_id: str, subentry_id: str
+) -> None:
+    """Clear retry bookkeeping for a location that no longer needs it."""
+    domain_data = hass.data.get(DOMAIN, {})
+    retry_failures = domain_data.get(_SETUP_RETRY_FAILURES_DATA_KEY, {})
+    entry_failures = retry_failures.get(entry_id)
+    if not entry_failures:
+        return
+    entry_failures.discard(subentry_id)
+    if not entry_failures:
+        retry_failures.pop(entry_id, None)
+
+
+def _prune_setup_retry_failures(
+    hass: HomeAssistant, entry_id: str, active_subentry_ids: set[str]
+) -> None:
+    """Drop retry bookkeeping for locations that are no longer configured."""
+    domain_data = hass.data.get(DOMAIN, {})
+    retry_failures = domain_data.get(_SETUP_RETRY_FAILURES_DATA_KEY, {})
+    entry_failures = retry_failures.get(entry_id)
+    if not entry_failures:
+        return
+    entry_failures.intersection_update(active_subentry_ids)
+    if not entry_failures:
+        retry_failures.pop(entry_id, None)
+
+
+def _setup_failure_is_retryable(failure: PollenLocationSetupFailure) -> bool:
+    """Return whether a local setup failure can be retried by reloading."""
+    return failure.error_type not in _NON_RETRYABLE_SETUP_FAILURE_TYPES
+
+
+def _schedule_parent_reload(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Schedule a parent config entry reload when supported by the runtime."""
+    schedule_reload = getattr(hass.config_entries, "async_schedule_reload", None)
+    if callable(schedule_reload):
+        schedule_reload(entry.entry_id)
+        return True
+
+    async_reload = getattr(hass.config_entries, "async_reload", None)
+    if not callable(async_reload):
+        return False
+
+    result = async_reload(entry.entry_id)
+    if asyncio.iscoroutine(result):
+        create_task = getattr(hass, "async_create_task", None)
+        if not callable(create_task):
+            result.close()
+            return False
+        create_task(result, name=f"pollenlevels setup retry {entry.entry_id}")
+    return True
 
 
 # ---- Service -------------------------------------------------------------
@@ -373,6 +452,13 @@ async def async_setup_entry(
     client = GooglePollenApiClient(session, api_key)
 
     location_configs = _iter_location_subentries(entry)
+    active_subentry_ids = active_location_subentry_ids(entry)
+    delete_stale_location_subentry_issues(
+        hass,
+        entry_id=entry.entry_id,
+        active_subentry_ids=active_subentry_ids,
+    )
+    _prune_setup_retry_failures(hass, entry.entry_id, active_subentry_ids)
 
     locations: dict[str, PollenLocationRuntime] = {}
     failed_locations: dict[str, PollenLocationSetupFailure] = {}
@@ -397,6 +483,7 @@ async def async_setup_entry(
                 entry_id=entry.entry_id,
                 subentry_id=subentry_id,
             )
+            _clear_setup_retry_failure(hass, entry.entry_id, subentry_id)
             failed_locations[subentry_id] = _location_setup_failure(
                 subentry_id=subentry_id,
                 title=title,
@@ -510,6 +597,7 @@ async def async_setup_entry(
             entry_id=entry.entry_id,
             subentry_id=subentry_id,
         )
+        _clear_setup_retry_failure(hass, entry.entry_id, subentry_id)
 
     if not has_legacy_invalid_location_issue:
         delete_entry_invalid_stored_location_issue(hass, entry)
@@ -535,8 +623,15 @@ async def async_setup_entry(
         _LOGGER.exception("Error forwarding entry setups: %s", err)
         raise ConfigEntryNotReady from err
 
+    retry_reload_needed = False
+    first_retry_failures: list[PollenLocationSetupFailure] = []
     for failure in failed_locations.values():
-        if failure.error_type == "InvalidStoredLocation":
+        if not _setup_failure_is_retryable(failure):
+            continue
+        if not _setup_retry_failure_seen(hass, entry.entry_id, failure.subentry_id):
+            _mark_setup_retry_failure(hass, entry.entry_id, failure.subentry_id)
+            first_retry_failures.append(failure)
+            retry_reload_needed = True
             continue
         create_location_setup_failed_issue(
             hass,
@@ -547,6 +642,18 @@ async def async_setup_entry(
             error_type=failure.error_type,
             reason=failure.reason,
         )
+
+    if retry_reload_needed and not _schedule_parent_reload(hass, entry):
+        for failure in first_retry_failures:
+            create_location_setup_failed_issue(
+                hass,
+                entry_id=entry.entry_id,
+                entry_title=entry.title,
+                location_title=failure.title,
+                subentry_id=failure.subentry_id,
+                error_type=failure.error_type,
+                reason=failure.reason,
+            )
 
     _LOGGER.info("PollenLevels integration loaded successfully")
     return True

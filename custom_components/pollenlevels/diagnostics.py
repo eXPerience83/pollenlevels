@@ -171,20 +171,21 @@ def _failed_location_diagnostics(
     coordinate_pairs: list[tuple[Any, Any]],
 ) -> dict[str, Any]:
     """Return redacted diagnostics for one failed setup location."""
+    error_type = getattr(failure, "error_type", "UnknownError")
     return {
         "title": _redact_diagnostics_text(
             getattr(failure, "title", DEFAULT_ENTRY_TITLE),
             api_key,
             coordinate_pairs,
         ),
-        "error_type": getattr(failure, "error_type", "UnknownError"),
+        "error_type": error_type,
         "reason": _redact_diagnostics_text(
             getattr(failure, "reason", "Location setup failed"),
             api_key,
             coordinate_pairs,
         ),
         "is_auth_error": bool(getattr(failure, "is_auth_error", False)),
-        "will_retry_on_reload": True,
+        "will_retry_on_reload": error_type != "InvalidStoredLocation",
     }
 
 

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection, Iterator
+from typing import Any
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
@@ -10,6 +13,40 @@ from .const import DEFAULT_ENTRY_TITLE, DOMAIN
 
 PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID = "per_day_forecast_sensors_removed"
 LOCATION_SETUP_FAILED_TRANSLATION_KEY = "location_setup_failed"
+
+
+def _issue_id_from_registry_item(key: Any, value: Any) -> str | None:
+    """Return this domain's issue id from HA or test registry storage."""
+    if isinstance(key, tuple) and len(key) == 2:
+        domain, issue_id = key
+        if domain != DOMAIN or not isinstance(issue_id, str):
+            return None
+        return issue_id
+
+    if not isinstance(key, str):
+        return None
+
+    domain = (
+        value.get("domain")
+        if isinstance(value, dict)
+        else getattr(value, "domain", None)
+    )
+    if domain != DOMAIN:
+        return None
+    return key
+
+
+def _iter_domain_issue_ids(hass: HomeAssistant) -> Iterator[str]:
+    """Yield current issue ids for this integration."""
+    registry_getter = getattr(ir, "async_get", None)
+    if not callable(registry_getter):
+        return
+
+    registry = registry_getter(hass)
+    issues = getattr(registry, "issues", {})
+    for key, value in list(issues.items()):
+        if issue_id := _issue_id_from_registry_item(key, value):
+            yield issue_id
 
 
 def invalid_stored_location_issue_id(
@@ -64,6 +101,32 @@ def create_per_day_forecast_sensors_removed_issue(hass: HomeAssistant) -> None:
 def location_setup_failed_issue_id(entry_id: str, subentry_id: str) -> str:
     """Return a deterministic issue ID for a local location setup failure."""
     return f"location_setup_failed_{entry_id}_{subentry_id}"
+
+
+def delete_stale_location_subentry_issues(
+    hass: HomeAssistant,
+    *,
+    entry_id: str,
+    active_subentry_ids: Collection[str],
+) -> None:
+    """Delete location Repair issues for subentries no longer configured."""
+    active_ids = set(active_subentry_ids)
+    legacy_invalid_issue_id = invalid_stored_location_issue_id(entry_id)
+    prefixes = (
+        f"invalid_stored_location_{entry_id}_",
+        f"location_setup_failed_{entry_id}_",
+    )
+
+    for issue_id in _iter_domain_issue_ids(hass):
+        if issue_id == legacy_invalid_issue_id:
+            continue
+        for prefix in prefixes:
+            if (
+                issue_id.startswith(prefix)
+                and issue_id.removeprefix(prefix) not in active_ids
+            ):
+                ir.async_delete_issue(hass, DOMAIN, issue_id)
+                break
 
 
 def create_location_setup_failed_issue(

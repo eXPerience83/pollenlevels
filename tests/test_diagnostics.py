@@ -715,6 +715,42 @@ async def test_diagnostics_reports_failed_locations_separately_from_stale(
 
 
 @pytest.mark.asyncio
+async def test_diagnostics_marks_invalid_stored_location_as_not_reload_retryable(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Invalid stored location diagnostics should not claim reload retry is enough."""
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
+    }
+    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    entry.subentries = {
+        "invalid": SimpleNamespace(subentry_id="invalid", subentry_type="location")
+    }
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={},
+        failed_locations={
+            "invalid": diagnostics_modules.PollenLocationSetupFailure(
+                subentry_id="invalid",
+                title="Invalid",
+                error_type="InvalidStoredLocation",
+                reason="Pollen Levels location has invalid stored coordinates",
+            )
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    failed_payload = diagnostics["failed_locations"]["invalid"]
+    assert failed_payload["error_type"] == "InvalidStoredLocation"
+    assert failed_payload["will_retry_on_reload"] is False
+
+
+@pytest.mark.asyncio
 async def test_diagnostics_request_days_are_fixed(
     diagnostics_modules: DiagnosticsModules,
 ) -> None:

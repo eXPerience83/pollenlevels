@@ -311,6 +311,9 @@ class StubIssueRegistry:
         self.deleted.append((hass, domain, issue_id))
         self.issues.pop(issue_id, None)
 
+    def async_get(self, _hass):
+        return self
+
 
 class StubIssueSeverity:
     ERROR = "error"
@@ -324,6 +327,7 @@ def stub_issue_registry_module(
     module = ModuleType("homeassistant.helpers.issue_registry")
     registry = StubIssueRegistry()
     module.registry = registry
+    module.async_get = registry.async_get
     module.async_create_issue = registry.async_create_issue
     module.async_delete_issue = registry.async_delete_issue
     module.IssueSeverity = StubIssueSeverity
