@@ -24,6 +24,7 @@ class DiagnosticsModules(NamedTuple):
     diag: ModuleType
     PollenLevelsRuntimeData: type[object]
     PollenLocationRuntime: type[object]
+    PollenLocationSetupFailure: type[object]
     CONF_API_KEY: str
     CONF_LANGUAGE_CODE: str
     CONF_LATITUDE: str
@@ -103,12 +104,14 @@ def diagnostics_modules(monkeypatch: pytest.MonkeyPatch) -> DiagnosticsModules:
     from custom_components.pollenlevels.runtime import (
         PollenLevelsRuntimeData as ImportedRuntimeData,
         PollenLocationRuntime as ImportedLocationRuntime,
+        PollenLocationSetupFailure as ImportedLocationSetupFailure,
     )
 
     modules = DiagnosticsModules(
         diag=imported_diag,
         PollenLevelsRuntimeData=ImportedRuntimeData,
         PollenLocationRuntime=ImportedLocationRuntime,
+        PollenLocationSetupFailure=ImportedLocationSetupFailure,
         CONF_API_KEY=imported_conf_api_key,
         CONF_LANGUAGE_CODE=imported_conf_language_code,
         CONF_LATITUDE=imported_conf_latitude,
@@ -237,6 +240,7 @@ async def test_diagnostics_includes_all_locations_without_top_level_duplicates(
     assert set(diagnostics["locations"]) == {"subentry-1", "subentry-2"}
     assert set(diagnostics) == {
         "entry",
+        "failed_locations",
         "locations",
         "runtime_summary",
         "registry_summary",
@@ -246,6 +250,8 @@ async def test_diagnostics_includes_all_locations_without_top_level_duplicates(
     assert diagnostics["runtime_summary"] == {
         "stale_location_count": 0,
         "stale_location_ids": [],
+        "failed_location_count": 0,
+        "failed_location_ids": [],
     }
     assert "registry_summary" in diagnostics
     assert first_payload["request_params_example"]["key"] == "***"
@@ -543,6 +549,8 @@ async def test_diagnostics_summarizes_runtime_locations_when_parent_has_no_locat
     assert diagnostics["runtime_summary"] == {
         "stale_location_count": 1,
         "stale_location_ids": ["deleted-location"],
+        "failed_location_count": 0,
+        "failed_location_ids": [],
     }
     serialized = json.dumps(diagnostics, sort_keys=True)
     assert "secret-token" not in serialized
@@ -604,11 +612,104 @@ async def test_diagnostics_summarizes_stale_runtime_locations(
     assert diagnostics["runtime_summary"] == {
         "stale_location_count": 1,
         "stale_location_ids": ["trabajo"],
+        "failed_location_count": 0,
+        "failed_location_ids": [],
     }
     serialized = json.dumps(diagnostics, sort_keys=True)
     assert "secret-token" not in serialized
     assert "12.345678" not in serialized
     assert "-98.765432" not in serialized
+    assert "23.456789" not in serialized
+    assert "-87.654321" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_reports_failed_locations_separately_from_stale(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Diagnostics should keep failed setup locations separate from stale runtime."""
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "secret-token",
+        diagnostics_modules.CONF_LANGUAGE_CODE: "en",
+    }
+    entry = _ConfigEntry(data=data, options={}, entry_id="entry", title="Home")
+    entry.subentries = {
+        "loaded": SimpleNamespace(subentry_id="loaded", subentry_type="location"),
+        "failed": SimpleNamespace(
+            subentry_id="failed",
+            subentry_type="location",
+            data={
+                diagnostics_modules.CONF_LATITUDE: 12.345678,
+                diagnostics_modules.CONF_LONGITUDE: -98.765432,
+            },
+        ),
+    }
+
+    loaded_coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="loaded",
+        language="en",
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=40.4168,
+        lon=-3.7038,
+        entry_title="Loaded",
+        data={},
+    )
+    stale_coordinator = SimpleNamespace(
+        entry_id="entry",
+        subentry_id="deleted",
+        language="en",
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        lat=23.456789,
+        lon=-87.654321,
+        entry_title="Deleted",
+        data={},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "loaded": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="loaded",
+                coordinator=loaded_coordinator,
+            ),
+            "deleted": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="deleted",
+                coordinator=stale_coordinator,
+            ),
+        },
+        failed_locations={
+            "failed": diagnostics_modules.PollenLocationSetupFailure(
+                subentry_id="failed",
+                title="Failed secret-token 12.345678",
+                error_type="UpdateFailed",
+                reason=(
+                    "API response missing data for key=secret-token "
+                    "location.latitude=12.345678"
+                ),
+            )
+        },
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    assert set(diagnostics["locations"]) == {"loaded"}
+    assert set(diagnostics["failed_locations"]) == {"failed"}
+    assert diagnostics["runtime_summary"] == {
+        "stale_location_count": 1,
+        "stale_location_ids": ["deleted"],
+        "failed_location_count": 1,
+        "failed_location_ids": ["failed"],
+    }
+    failed_payload = diagnostics["failed_locations"]["failed"]
+    assert failed_payload["error_type"] == "UpdateFailed"
+    assert failed_payload["will_retry_on_reload"] is True
+    assert failed_payload["is_auth_error"] is False
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert "secret-token" not in serialized
+    assert "12.345678" not in serialized
     assert "23.456789" not in serialized
     assert "-87.654321" not in serialized
 

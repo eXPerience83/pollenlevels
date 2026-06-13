@@ -157,6 +157,10 @@
       "title": "Ugyldig gemt Pollen Levels-placering",
       "description": "Pollen Levels fandt ugyldige gemte placeringsdata for {entry_title}: {location_title}. Slet og opret den berørte placering igen, eller gendan en Home Assistant-sikkerhedskopi før den ugyldige placering blev oprettet."
     },
+    "location_setup_failed": {
+      "title": "Pollen Levels location could not be loaded",
+      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "Prognosesensorer pr. dag blev fjernet",
       "description": "Pollen Levels opretter ikke længere separate prognoseenheder, der slutter på _d1 eller _d2. Prognosedata er stadig tilgængelige på de grundlæggende pollensensorer via attributterne forecast, tomorrow_* og d2_*. Opdater dashboards, automatiseringer, skabeloner og brugerdefinerede kort, der stadig henviser til de gamle enheder."

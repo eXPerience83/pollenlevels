@@ -322,3 +322,54 @@ async def test_setup_entry_skips_stale_runtime_locations(
     )
 
     assert added == []
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_ignores_failed_locations(
+    button_platform: SimpleNamespace,
+) -> None:
+    """Button setup should create buttons only for loaded runtime locations."""
+
+    coordinator = _FakeCoordinator()
+    entry = types.SimpleNamespace(
+        data={},
+        subentries={
+            "loaded-location": types.SimpleNamespace(
+                subentry_id="loaded-location",
+                subentry_type="location",
+            ),
+            "failed-location": types.SimpleNamespace(
+                subentry_id="failed-location",
+                subentry_type="location",
+            ),
+        },
+        runtime_data=types.SimpleNamespace(
+            locations={
+                "loaded-location": types.SimpleNamespace(
+                    subentry_id="loaded-location",
+                    coordinator=coordinator,
+                )
+            },
+            failed_locations={
+                "failed-location": types.SimpleNamespace(
+                    subentry_id="failed-location",
+                    title="Failed",
+                    error_type="UpdateFailed",
+                    reason="No data",
+                )
+            },
+        ),
+    )
+    added = []
+    subentry_ids = []
+
+    def _add_entities(entities, **kwargs):
+        added.extend(entities)
+        subentry_ids.append(kwargs.get("config_subentry_id"))
+
+    await button_platform.module.async_setup_entry(
+        button_platform.hass_class(), entry, _add_entities
+    )
+
+    assert len(added) == 1
+    assert subentry_ids == ["loaded-location"]

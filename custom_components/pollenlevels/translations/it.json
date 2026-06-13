@@ -157,6 +157,10 @@
       "title": "Posizione memorizzata non valida in Pollen Levels",
       "description": "Pollen Levels ha trovato dati di posizione memorizzati non validi per {entry_title}: {location_title}. Elimina e ricrea la posizione interessata o ripristina un backup di Home Assistant precedente alla creazione della posizione non valida."
     },
+    "location_setup_failed": {
+      "title": "Pollen Levels location could not be loaded",
+      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "I sensori di previsione per giorno sono stati rimossi",
       "description": "Pollen Levels non crea più entità di previsione separate che terminano con _d1 o _d2. I dati di previsione restano disponibili sui sensori polline di base tramite gli attributi forecast, tomorrow_* e d2_*. Aggiorna dashboard, automazioni, modelli e schede personalizzate che fanno ancora riferimento alle vecchie entità."

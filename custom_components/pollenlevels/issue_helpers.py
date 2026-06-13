@@ -9,6 +9,7 @@ from homeassistant.helpers import issue_registry as ir
 from .const import DEFAULT_ENTRY_TITLE, DOMAIN
 
 PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID = "per_day_forecast_sensors_removed"
+LOCATION_SETUP_FAILED_TRANSLATION_KEY = "location_setup_failed"
 
 
 def invalid_stored_location_issue_id(
@@ -60,6 +61,44 @@ def create_per_day_forecast_sensors_removed_issue(hass: HomeAssistant) -> None:
     )
 
 
+def location_setup_failed_issue_id(entry_id: str, subentry_id: str) -> str:
+    """Return a deterministic issue ID for a local location setup failure."""
+    return f"location_setup_failed_{entry_id}_{subentry_id}"
+
+
+def create_location_setup_failed_issue(
+    hass: HomeAssistant,
+    *,
+    entry_id: str,
+    entry_title: str | None,
+    location_title: str | None,
+    subentry_id: str,
+    error_type: str,
+    reason: str,
+) -> None:
+    """Create a Repair issue for an isolated location setup failure."""
+    issue_id = location_setup_failed_issue_id(entry_id, subentry_id)
+    entry_title = (entry_title or "").strip() or DEFAULT_ENTRY_TITLE
+    location_title = (location_title or "").strip() or entry_title
+    error_type = (error_type or "").strip() or "UnknownError"
+    reason = (reason or "").strip() or "Location setup failed"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        is_persistent=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=LOCATION_SETUP_FAILED_TRANSLATION_KEY,
+        translation_placeholders={
+            "entry_title": entry_title,
+            "location_title": location_title,
+            "error_type": error_type,
+            "reason": reason,
+        },
+    )
+
+
 def create_entry_invalid_stored_location_issue(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -95,3 +134,14 @@ def delete_entry_invalid_stored_location_issue(
         entry_id=entry.entry_id,
         subentry_id=None,
     )
+
+
+def delete_location_setup_failed_issue(
+    hass: HomeAssistant,
+    *,
+    entry_id: str,
+    subentry_id: str,
+) -> None:
+    """Delete a Repair issue for an isolated location setup failure if present."""
+    issue_id = location_setup_failed_issue_id(entry_id, subentry_id)
+    ir.async_delete_issue(hass, DOMAIN, issue_id)

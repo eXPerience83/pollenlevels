@@ -157,6 +157,10 @@
       "title": "Ungültiger gespeicherter Pollen Levels-Standort",
       "description": "Pollen Levels hat ungültige gespeicherte Standortdaten für {entry_title}: {location_title} gefunden. Löschen und erstellen Sie den betroffenen Standort neu oder stellen Sie ein Home Assistant-Backup von vor der Erstellung des ungültigen Standorts wieder her."
     },
+    "location_setup_failed": {
+      "title": "Pollen Levels location could not be loaded",
+      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "Vorhersagesensoren pro Tag wurden entfernt",
       "description": "Pollen Levels erstellt keine separaten Vorhersage-Entitäten mit der Endung _d1 oder _d2 mehr. Vorhersagedaten bleiben über die Attribute forecast, tomorrow_* und d2_* auf den Basis-Pollensensoren verfügbar. Aktualisiere Dashboards, Automationen, Vorlagen und benutzerdefinierte Karten, die noch auf die alten Entitäten verweisen."

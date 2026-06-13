@@ -19,22 +19,36 @@ class PollenLocationRuntime:
     legacy_entry_id: str | None = None
 
 
+@dataclass(slots=True)
+class PollenLocationSetupFailure:
+    """Runtime metadata for one location that could not finish setup."""
+
+    subentry_id: str
+    title: str
+    reason: str
+    error_type: str
+    is_auth_error: bool = False
+
+
 @dataclass(slots=True, init=False)
 class PollenLevelsRuntimeData:
     """Runtime container for a Pollen Levels parent config entry."""
 
     client: GooglePollenApiClient
     locations: dict[str, PollenLocationRuntime]
+    failed_locations: dict[str, PollenLocationSetupFailure]
 
     def __init__(
         self,
         *,
         client: GooglePollenApiClient,
         locations: dict[str, PollenLocationRuntime] | None = None,
+        failed_locations: dict[str, PollenLocationSetupFailure] | None = None,
         coordinator: PollenDataUpdateCoordinator | None = None,
     ) -> None:
         """Initialize runtime data with v3 locations or a legacy coordinator."""
         self.client = client
+        self.failed_locations = failed_locations or {}
         if locations is not None:
             self.locations = locations
             return

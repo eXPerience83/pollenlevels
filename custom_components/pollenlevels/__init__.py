@@ -37,8 +37,11 @@ from .const import (
 from .coordinator import PollenDataUpdateCoordinator
 from .issue_helpers import (
     create_invalid_stored_location_issue,
+    create_location_setup_failed_issue,
     create_per_day_forecast_sensors_removed_issue,
     delete_entry_invalid_stored_location_issue,
+    delete_invalid_stored_location_issue,
+    delete_location_setup_failed_issue,
     invalid_stored_location_issue_id as invalid_stored_location_issue_id,
 )
 from .migration import (
@@ -50,6 +53,7 @@ from .runtime import (
     PollenLevelsConfigEntry,
     PollenLevelsRuntimeData,
     PollenLocationRuntime,
+    PollenLocationSetupFailure,
 )
 from .util import (
     api_key_unique_id as api_key_unique_id,
@@ -67,6 +71,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 _LOGGER = logging.getLogger(__name__)
 TARGET_ENTRY_VERSION = 6
 _FORCE_UPDATE_CONCURRENCY_LIMIT = 1
+_SETUP_FAILURE_REASON_MAX_LENGTH = 240
 PLATFORMS = ["sensor", "button"]
 
 
@@ -126,6 +131,83 @@ def _iter_location_subentries(
             )
         )
     return locations
+
+
+def _location_issue_subentry_id(entry: ConfigEntry, subentry_id: str) -> str | None:
+    """Return the Repair subentry id for a setup location."""
+    subentries = getattr(entry, "subentries", {}) or {}
+    return subentry_id if subentry_id in subentries else None
+
+
+def _truncate_setup_failure_reason(reason: str) -> str:
+    """Return a single-line setup failure reason bounded for Repairs."""
+    cleaned = " ".join(reason.split()).strip()
+    if len(cleaned) <= _SETUP_FAILURE_REASON_MAX_LENGTH:
+        return cleaned
+    return f"{cleaned[: _SETUP_FAILURE_REASON_MAX_LENGTH - 3]}..."
+
+
+def _safe_setup_failure_text(
+    value: Any,
+    *,
+    api_key: str | None,
+    latitude: Any = None,
+    longitude: Any = None,
+    fallback: str,
+) -> str:
+    """Redact sensitive setup failure text before storing or surfacing it."""
+    redacted = redact_sensitive_values(
+        value,
+        api_key=api_key,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    redacted = _truncate_setup_failure_reason(redacted)
+    return redacted or fallback
+
+
+def _coordinator_has_usable_initial_data(coordinator: Any) -> bool:
+    """Return whether a first refresh produced enough data to build sensors."""
+    data = getattr(coordinator, "data", None) or {}
+    if not isinstance(data, dict):
+        return False
+    return ("date" in data) or any(
+        isinstance(key, str) and key.startswith(("type_", "plant_", "plants_"))
+        for key in data
+    )
+
+
+def _location_setup_failure(
+    *,
+    subentry_id: str,
+    title: str,
+    error_type: str,
+    reason: str,
+    api_key: str | None,
+    latitude: Any = None,
+    longitude: Any = None,
+) -> PollenLocationSetupFailure:
+    """Build redacted runtime metadata for an isolated setup failure."""
+    safe_title = _safe_setup_failure_text(
+        title,
+        api_key=api_key,
+        latitude=latitude,
+        longitude=longitude,
+        fallback=DEFAULT_ENTRY_TITLE,
+    )
+    safe_reason = _safe_setup_failure_text(
+        reason,
+        api_key=api_key,
+        latitude=latitude,
+        longitude=longitude,
+        fallback="Location setup failed",
+    )
+    return PollenLocationSetupFailure(
+        subentry_id=subentry_id,
+        title=safe_title,
+        reason=safe_reason,
+        error_type=error_type or "UnknownError",
+    )
 
 
 # ---- Service -------------------------------------------------------------
@@ -290,45 +372,52 @@ async def async_setup_entry(
 
     location_configs = _iter_location_subentries(entry)
 
-    validated_location_configs: list[
-        tuple[str, str, dict[str, Any], str | None, float, float]
-    ] = []
+    locations: dict[str, PollenLocationRuntime] = {}
+    failed_locations: dict[str, PollenLocationSetupFailure] = {}
+    has_legacy_invalid_location_issue = False
     for subentry_id, title, data, legacy_entry_id in location_configs:
         raw_lat = data.get(CONF_LATITUDE)
         raw_lon = data.get(CONF_LONGITUDE)
         latlon = validate_location_pair(raw_lat, raw_lon)
+        issue_subentry_id = _location_issue_subentry_id(entry, subentry_id)
         if latlon is None:
             create_invalid_stored_location_issue(
                 hass,
                 entry_id=entry.entry_id,
                 entry_title=entry.title,
                 location_title=title,
-                subentry_id=None,
+                subentry_id=issue_subentry_id,
+            )
+            if issue_subentry_id is None:
+                has_legacy_invalid_location_issue = True
+            delete_location_setup_failed_issue(
+                hass,
+                entry_id=entry.entry_id,
+                subentry_id=subentry_id,
+            )
+            failed_locations[subentry_id] = _location_setup_failure(
+                subentry_id=subentry_id,
+                title=title,
+                error_type="InvalidStoredLocation",
+                reason="Pollen Levels location has invalid stored coordinates",
+                api_key=api_key,
+                latitude=raw_lat,
+                longitude=raw_lon,
             )
             _LOGGER.warning(
                 "Invalid coordinates for Pollen Levels entry %s subentry %s; "
-                "setup will be retried after the stored location is fixed",
+                "skipping this location until the stored location is fixed",
                 entry.entry_id,
                 subentry_id,
             )
-            raise ConfigEntryNotReady(
-                "Pollen Levels location has invalid stored coordinates"
-            ) from None
-        lat, lon = latlon
-        validated_location_configs.append(
-            (subentry_id, title, data, legacy_entry_id, lat, lon)
-        )
+            continue
 
-    delete_entry_invalid_stored_location_issue(hass, entry)
-    locations: dict[str, PollenLocationRuntime] = {}
-    for (
-        subentry_id,
-        title,
-        _data,
-        legacy_entry_id,
-        lat,
-        lon,
-    ) in validated_location_configs:
+        delete_invalid_stored_location_issue(
+            hass,
+            entry_id=entry.entry_id,
+            subentry_id=issue_subentry_id,
+        )
+        lat, lon = latlon
         coordinator = PollenDataUpdateCoordinator(
             hass=hass,
             api_key=api_key,
@@ -358,9 +447,16 @@ async def async_setup_entry(
                 type(err).__name__,
                 safe_message or "no error details",
             )
-            raise ConfigEntryNotReady(
-                safe_message or "Pollen Levels location is not ready"
-            ) from None
+            failed_locations[subentry_id] = _location_setup_failure(
+                subentry_id=subentry_id,
+                title=title,
+                error_type=type(err).__name__,
+                reason=safe_message or "Pollen Levels location is not ready",
+                api_key=api_key,
+                latitude=lat,
+                longitude=lon,
+            )
+            continue
         except Exception as err:
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
@@ -372,17 +468,60 @@ async def async_setup_entry(
                 type(err).__name__,
                 safe_message or "no error details",
             )
-            raise ConfigEntryNotReady(
-                safe_message or "Pollen Levels location setup failed"
-            ) from None
+            failed_locations[subentry_id] = _location_setup_failure(
+                subentry_id=subentry_id,
+                title=title,
+                error_type=type(err).__name__,
+                reason=safe_message or "Pollen Levels location setup failed",
+                api_key=api_key,
+                latitude=lat,
+                longitude=lon,
+            )
+            continue
+
+        if not _coordinator_has_usable_initial_data(coordinator):
+            reason = "API response missing usable pollen data"
+            _LOGGER.warning(
+                "Initial data refresh for entry %s subentry %s produced no usable "
+                "pollen data; skipping this location",
+                entry.entry_id,
+                subentry_id,
+            )
+            failed_locations[subentry_id] = _location_setup_failure(
+                subentry_id=subentry_id,
+                title=title,
+                error_type="UpdateFailed",
+                reason=reason,
+                api_key=api_key,
+                latitude=lat,
+                longitude=lon,
+            )
+            continue
 
         locations[subentry_id] = PollenLocationRuntime(
             subentry_id=subentry_id,
             coordinator=coordinator,
             legacy_entry_id=legacy_entry_id,
         )
+        delete_location_setup_failed_issue(
+            hass,
+            entry_id=entry.entry_id,
+            subentry_id=subentry_id,
+        )
 
-    entry.runtime_data = PollenLevelsRuntimeData(client=client, locations=locations)
+    if not has_legacy_invalid_location_issue:
+        delete_entry_invalid_stored_location_issue(hass, entry)
+
+    if location_configs and not locations:
+        raise ConfigEntryNotReady(
+            "No Pollen Levels locations could be loaded"
+        ) from None
+
+    entry.runtime_data = PollenLevelsRuntimeData(
+        client=client,
+        locations=locations,
+        failed_locations=failed_locations,
+    )
 
     try:
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -393,6 +532,19 @@ async def async_setup_entry(
         entry.runtime_data = None
         _LOGGER.exception("Error forwarding entry setups: %s", err)
         raise ConfigEntryNotReady from err
+
+    for failure in failed_locations.values():
+        if failure.error_type == "InvalidStoredLocation":
+            continue
+        create_location_setup_failed_issue(
+            hass,
+            entry_id=entry.entry_id,
+            entry_title=entry.title,
+            location_title=failure.title,
+            subentry_id=failure.subentry_id,
+            error_type=failure.error_type,
+            reason=failure.reason,
+        )
 
     _LOGGER.info("PollenLevels integration loaded successfully")
     return True

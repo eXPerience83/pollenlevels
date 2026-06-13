@@ -157,6 +157,10 @@
       "title": "Ubicació emmagatzemada no vàlida a Pollen Levels",
       "description": "Pollen Levels ha trobat dades d'ubicació emmagatzemades no vàlides per a {entry_title}: {location_title}. Elimina i torna a crear la ubicació afectada, o restaura una còpia de seguretat de Home Assistant anterior a la creació de la ubicació no vàlida."
     },
+    "location_setup_failed": {
+      "title": "Pollen Levels location could not be loaded",
+      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "S'han eliminat els sensors de previsió per dia",
       "description": "Pollen Levels ja no crea entitats de previsió separades acabades en _d1 o _d2. Les dades de previsió continuen disponibles als sensors base de pol·len mitjançant els atributs forecast, tomorrow_* i d2_*. Actualitza els taulers, automatitzacions, plantilles i targetes personalitzades que encara facin referència a les entitats antigues."

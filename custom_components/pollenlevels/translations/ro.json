@@ -157,6 +157,10 @@
       "title": "Locație stocată invalidă în Pollen Levels",
       "description": "Pollen Levels a găsit date de locație stocate invalide pentru {entry_title}: {location_title}. Ștergeți și recreați locația afectată sau restaurați o copie de rezervă Home Assistant dinaintea creării locației invalide."
     },
+    "location_setup_failed": {
+      "title": "Pollen Levels location could not be loaded",
+      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+    },
     "per_day_forecast_sensors_removed": {
       "title": "Senzorii de prognoză pe zi au fost eliminați",
       "description": "Pollen Levels nu mai creează entități de prognoză separate care se termină în _d1 sau _d2. Datele de prognoză rămân disponibile pe senzorii de polen de bază prin atributele forecast, tomorrow_* și d2_*. Actualizează tablourile de bord, automatizările, șabloanele și cardurile personalizate care încă fac referire la entitățile vechi."
