@@ -28,6 +28,8 @@
   location loads successfully after a reload.
 - Cleared stale per-location Repair warnings automatically when the affected
   location subentry has been removed.
+- Avoided relying on Home Assistant issue registry internals when cleaning stale
+  per-location Repair warnings.
 - Corrected failed-location diagnostics so invalid stored locations are not
   marked as reload-retryable.
 - Kept failed-location registry entries untouched so existing entities and

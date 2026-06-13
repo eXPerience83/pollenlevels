@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterator
-from typing import Any
+from collections.abc import Collection
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -13,40 +12,55 @@ from .const import DEFAULT_ENTRY_TITLE, DOMAIN
 
 PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID = "per_day_forecast_sensors_removed"
 LOCATION_SETUP_FAILED_TRANSLATION_KEY = "location_setup_failed"
+_LOCATION_REPAIR_ISSUES_DATA_KEY = "location_repair_issue_ids"
 
 
-def _issue_id_from_registry_item(key: Any, value: Any) -> str | None:
-    """Return this domain's issue id from HA or test registry storage."""
-    if isinstance(key, tuple) and len(key) == 2:
-        domain, issue_id = key
-        if domain != DOMAIN or not isinstance(issue_id, str):
-            return None
-        return issue_id
-
-    if not isinstance(key, str):
-        return None
-
-    domain = (
-        value.get("domain")
-        if isinstance(value, dict)
-        else getattr(value, "domain", None)
-    )
-    if domain != DOMAIN:
-        return None
-    return key
+def _entry_location_issue_ids(hass: HomeAssistant, entry_id: str) -> set[str]:
+    """Return location Repair issue ids owned by this runtime entry."""
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    issue_ids = domain_data.setdefault(_LOCATION_REPAIR_ISSUES_DATA_KEY, {})
+    return issue_ids.setdefault(entry_id, set())
 
 
-def _iter_domain_issue_ids(hass: HomeAssistant) -> Iterator[str]:
-    """Yield current issue ids for this integration."""
-    registry_getter = getattr(ir, "async_get", None)
-    if not callable(registry_getter):
+def _known_entry_location_issue_ids(
+    hass: HomeAssistant, entry_id: str
+) -> set[str] | None:
+    """Return known location Repair issue ids without creating bookkeeping."""
+    domain_data = hass.data.get(DOMAIN, {})
+    issue_ids = domain_data.get(_LOCATION_REPAIR_ISSUES_DATA_KEY, {})
+    return issue_ids.get(entry_id)
+
+
+def _remember_location_issue(hass: HomeAssistant, entry_id: str, issue_id: str) -> None:
+    """Remember a location Repair issue created by this integration runtime."""
+    _entry_location_issue_ids(hass, entry_id).add(issue_id)
+
+
+def _forget_location_issue(hass: HomeAssistant, entry_id: str, issue_id: str) -> None:
+    """Forget a location Repair issue after it has been cleared."""
+    domain_data = hass.data.get(DOMAIN, {})
+    issue_ids = domain_data.get(_LOCATION_REPAIR_ISSUES_DATA_KEY, {})
+    entry_issue_ids = issue_ids.get(entry_id)
+    if not entry_issue_ids:
         return
+    entry_issue_ids.discard(issue_id)
+    if entry_issue_ids:
+        return
+    issue_ids.pop(entry_id, None)
+    if not issue_ids:
+        domain_data.pop(_LOCATION_REPAIR_ISSUES_DATA_KEY, None)
 
-    registry = registry_getter(hass)
-    issues = getattr(registry, "issues", {})
-    for key, value in list(issues.items()):
-        if issue_id := _issue_id_from_registry_item(key, value):
-            yield issue_id
+
+def _subentry_id_from_location_issue_id(entry_id: str, issue_id: str) -> str | None:
+    """Return the subentry id encoded in a known location Repair issue id."""
+    prefixes = (
+        f"invalid_stored_location_{entry_id}_",
+        f"location_setup_failed_{entry_id}_",
+    )
+    for prefix in prefixes:
+        if issue_id.startswith(prefix):
+            return issue_id.removeprefix(prefix) or None
+    return None
 
 
 def invalid_stored_location_issue_id(
@@ -83,6 +97,8 @@ def create_invalid_stored_location_issue(
             "location_title": location_title,
         },
     )
+    if subentry_id:
+        _remember_location_issue(hass, entry_id, issue_id)
 
 
 def create_per_day_forecast_sensors_removed_issue(hass: HomeAssistant) -> None:
@@ -111,22 +127,16 @@ def delete_stale_location_subentry_issues(
 ) -> None:
     """Delete location Repair issues for subentries no longer configured."""
     active_ids = set(active_subentry_ids)
-    legacy_invalid_issue_id = invalid_stored_location_issue_id(entry_id)
-    prefixes = (
-        f"invalid_stored_location_{entry_id}_",
-        f"location_setup_failed_{entry_id}_",
-    )
+    entry_issue_ids = _known_entry_location_issue_ids(hass, entry_id)
+    if not entry_issue_ids:
+        return
 
-    for issue_id in _iter_domain_issue_ids(hass):
-        if issue_id == legacy_invalid_issue_id:
+    for issue_id in tuple(entry_issue_ids):
+        subentry_id = _subentry_id_from_location_issue_id(entry_id, issue_id)
+        if subentry_id is None or subentry_id in active_ids:
             continue
-        for prefix in prefixes:
-            if (
-                issue_id.startswith(prefix)
-                and issue_id.removeprefix(prefix) not in active_ids
-            ):
-                ir.async_delete_issue(hass, DOMAIN, issue_id)
-                break
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        _forget_location_issue(hass, entry_id, issue_id)
 
 
 def create_location_setup_failed_issue(
@@ -160,6 +170,7 @@ def create_location_setup_failed_issue(
             "reason": reason,
         },
     )
+    _remember_location_issue(hass, entry_id, issue_id)
 
 
 def create_entry_invalid_stored_location_issue(
@@ -185,6 +196,8 @@ def delete_invalid_stored_location_issue(
     """Delete a Repair issue for an invalid stored location if it exists."""
     issue_id = invalid_stored_location_issue_id(entry_id, subentry_id)
     ir.async_delete_issue(hass, DOMAIN, issue_id)
+    if subentry_id:
+        _forget_location_issue(hass, entry_id, issue_id)
 
 
 def delete_entry_invalid_stored_location_issue(
@@ -208,3 +221,4 @@ def delete_location_setup_failed_issue(
     """Delete a Repair issue for an isolated location setup failure if present."""
     issue_id = location_setup_failed_issue_id(entry_id, subentry_id)
     ir.async_delete_issue(hass, DOMAIN, issue_id)
+    _forget_location_issue(hass, entry_id, issue_id)

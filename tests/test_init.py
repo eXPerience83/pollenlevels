@@ -4641,33 +4641,21 @@ def test_setup_entry_clears_location_repairs_for_deleted_subentries(
     stale_setup_issue_id = integration.issue_helpers.location_setup_failed_issue_id(
         entry.entry_id, "deleted-location"
     )
-    registry.async_create_issue(
-        None,
-        integration.DOMAIN,
-        stale_invalid_issue_id,
-        is_fixable=False,
-        is_persistent=False,
-        severity="error",
-        translation_key="invalid_stored_location",
-        translation_placeholders={
-            "entry_title": "Stale Home",
-            "location_title": "Deleted",
-        },
+    integration.issue_helpers.create_invalid_stored_location_issue(
+        hass,
+        entry_id=entry.entry_id,
+        entry_title="Stale Home",
+        location_title="Deleted",
+        subentry_id="deleted-location",
     )
-    registry.async_create_issue(
-        None,
-        integration.DOMAIN,
-        stale_setup_issue_id,
-        is_fixable=False,
-        is_persistent=False,
-        severity="warning",
-        translation_key="location_setup_failed",
-        translation_placeholders={
-            "entry_title": "Stale Home",
-            "location_title": "Deleted",
-            "error_type": "UpdateFailed",
-            "reason": "old failure",
-        },
+    integration.issue_helpers.create_location_setup_failed_issue(
+        hass,
+        entry_id=entry.entry_id,
+        entry_title="Stale Home",
+        location_title="Deleted",
+        subentry_id="deleted-location",
+        error_type="UpdateFailed",
+        reason="old failure",
     )
 
     class _StubCoordinator:
