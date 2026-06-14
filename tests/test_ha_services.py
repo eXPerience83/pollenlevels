@@ -200,6 +200,7 @@ async def test_ha_force_update_parent_without_locations_is_noop(
 
     await async_setup_config_entry(hass, entry)
     assert entry.runtime_data.locations == {}
+    assert entry.runtime_data.coordinator is None
 
     await hass.services.async_call(DOMAIN, "force_update", {}, blocking=True)
     await hass.async_block_till_done()
