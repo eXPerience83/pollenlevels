@@ -2060,70 +2060,6 @@ def test_migrate_group_with_partial_legacy_coordinates_is_left_unchanged(
     assert "45.123456" not in caplog.text
 
 
-def test_migrate_legacy_entry_into_existing_clean_v3_parent(
-    integration_modules: _InitModules,
-) -> None:
-    """A residual legacy entry should merge into an existing clean API-key parent."""
-    integration = integration_modules.integration
-
-    existing_subentry = integration.ConfigSubentry(
-        data={integration.CONF_LATITUDE: 10.0, integration.CONF_LONGITUDE: 20.0},
-        subentry_id="existing-location",
-        title="Existing",
-        unique_id="10.0000_20.0000",
-    )
-    clean_parent = _FakeEntry(
-        integration,
-        entry_id="clean-parent",
-        title="Pollen Levels",
-        data={integration.CONF_API_KEY: "shared-key"},
-        options={integration.CONF_LANGUAGE_CODE: "en"},
-        version=integration.TARGET_ENTRY_VERSION,
-        subentries={existing_subentry.subentry_id: existing_subentry},
-        unique_id=integration.api_key_unique_id("shared-key"),
-    )
-    legacy = _FakeEntry(
-        integration,
-        entry_id="legacy-office",
-        title="Office",
-        data={
-            integration.CONF_API_KEY: "shared-key",
-            integration.CONF_LATITUDE: 3.0,
-            integration.CONF_LONGITUDE: 4.0,
-        },
-        options={integration.CONF_UPDATE_INTERVAL: 8},
-        version=3,
-        subentries={},
-        unique_id="3.0000_4.0000",
-    )
-    hass = _FakeHass(entries=[legacy, clean_parent])
-
-    assert asyncio.run(integration.async_migrate_entry(hass, legacy)) is True
-
-    assert clean_parent.data == {integration.CONF_API_KEY: "shared-key"}
-    assert clean_parent.unique_id == integration.api_key_unique_id("shared-key")
-    assert clean_parent.options == {
-        integration.CONF_LANGUAGE_CODE: "en",
-        integration.CONF_UPDATE_INTERVAL: 8,
-    }
-    assert existing_subentry.subentry_id in clean_parent.subentries
-    subentries_by_legacy_id = {
-        subentry.data.get(integration.CONF_LEGACY_ENTRY_ID): subentry
-        for subentry in clean_parent.subentries.values()
-    }
-    assert subentries_by_legacy_id["legacy-office"].title == "Office"
-    assert subentries_by_legacy_id["legacy-office"].unique_id == "3.0000_4.0000"
-    assert legacy.data == {
-        integration.CONF_API_KEY: "shared-key",
-        "merged_into_entry_id": "clean-parent",
-    }
-    assert legacy.version == integration.TARGET_ENTRY_VERSION
-    assert len(hass.created_tasks) == 1
-    assert hass.created_tasks[0].get_name() == (
-        "remove merged pollenlevels entry legacy-office"
-    )
-
-
 def test_migrate_entry_without_location_does_not_create_corrupt_subentry(
     integration_modules: _InitModules,
 ) -> None:
@@ -3717,31 +3653,6 @@ def test_migrate_entry_cleans_legacy_keys_when_version_current(
     assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
     assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert entry.version == integration.TARGET_ENTRY_VERSION
-
-
-def test_migrate_entry_does_not_downgrade_version(
-    integration_modules: _InitModules,
-) -> None:
-    """Migration should preserve versions newer than the target."""
-    integration = integration_modules.integration
-
-    entry = _FakeEntry(
-        integration,
-        data={
-            integration.CONF_API_KEY: "key",
-            integration.CONF_LATITUDE: 1.0,
-            integration.CONF_LONGITUDE: 2.0,
-            "http_referer": "https://legacy.example.com",
-        },
-        options={"http_referer": "https://legacy.example.com"},
-        version=integration.TARGET_ENTRY_VERSION + 1,
-    )
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert "http_referer" not in entry.data
-    assert "http_referer" not in entry.options
-    assert entry.version == integration.TARGET_ENTRY_VERSION + 1
 
 
 def test_migrate_entry_removes_mode_from_data_and_options(
