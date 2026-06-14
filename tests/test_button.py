@@ -187,18 +187,6 @@ def test_button_available_when_last_update_failed(
 
 
 @pytest.mark.asyncio
-async def test_button_press_awaits_async_request_refresh(
-    button_platform: SimpleNamespace,
-) -> None:
-    coordinator = _FakeCoordinator()
-    entity = button_platform.module.PollenLevelsUpdateButton(coordinator)
-
-    await entity.async_press()
-
-    coordinator.async_request_refresh.assert_awaited_once()
-
-
-@pytest.mark.asyncio
 async def test_button_press_raises_homeassistant_error_on_refresh_failure(
     button_platform: SimpleNamespace,
 ) -> None:

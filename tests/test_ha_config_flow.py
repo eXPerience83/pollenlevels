@@ -148,10 +148,19 @@ async def test_ha_options_flow_saves_supported_options_only(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     ha_config_entry,
+    monkeypatch,
 ) -> None:
-    """Options flow should persist supported options and drop legacy keys."""
+    """Options flow should persist supported options and schedule a reload."""
     clear_integration_modules()
     ha_config_entry.add_to_hass(hass)
+    scheduled_reloads: list[str] = []
+
+    def _capture_schedule_reload(entry_id: str) -> None:
+        scheduled_reloads.append(entry_id)
+
+    monkeypatch.setattr(
+        hass.config_entries, "async_schedule_reload", _capture_schedule_reload
+    )
     hass.config_entries.async_update_entry(
         ha_config_entry,
         options={
@@ -179,6 +188,7 @@ async def test_ha_options_flow_saves_supported_options_only(
         CONF_LANGUAGE_CODE: "en",
         CONF_UPDATE_INTERVAL: 12,
     }
+    assert scheduled_reloads == [ha_config_entry.entry_id]
 
 
 @pytest.mark.parametrize(
