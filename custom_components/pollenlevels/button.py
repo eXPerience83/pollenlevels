@@ -13,6 +13,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
+from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
 from .runtime import PollenLevelsConfigEntry
 from .util import (
     coordinator_device_id,
@@ -24,21 +25,8 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
     from .coordinator import PollenDataUpdateCoordinator
-    from .runtime import PollenLocationRuntime
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _add_button_for_location(
-    async_add_entities: AddEntitiesCallback,
-    location: PollenLocationRuntime,
-) -> None:
-    """Add a location button with subentry association when supported."""
-    entities = [PollenLevelsUpdateButton(location.coordinator)]
-    try:
-        async_add_entities(entities, config_subentry_id=location.subentry_id)
-    except TypeError:
-        async_add_entities(entities)
 
 
 async def async_setup_entry(
@@ -69,7 +57,11 @@ async def async_setup_entry(
                 location.subentry_id,
             )
             continue
-        _add_button_for_location(async_add_entities, location)
+        add_entities_for_subentry(
+            async_add_entities,
+            [PollenLevelsUpdateButton(location.coordinator)],
+            location.subentry_id,
+        )
 
 
 class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
@@ -89,11 +81,7 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": "info",
-            "translation_placeholders": {
-                "title": coordinator.entry_title,
-                "latitude": f"{coordinator.lat:.2f}",
-                "longitude": f"{coordinator.lon:.2f}",
-            },
+            "translation_placeholders": device_translation_placeholders(coordinator),
         }
 
     @property
