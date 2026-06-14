@@ -27,15 +27,23 @@ from custom_components.pollenlevels.issue_helpers import (
 )
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
-from tests.ha_helpers import async_migrate_config_entry, legacy_config_entry
+from tests.ha_helpers import (
+    async_migrate_config_entry,
+    legacy_config_entry,
+    location_subentry_data,
+)
 
 
 def _subentries_by_legacy_entry(entry) -> dict[str, Any]:
     """Return migrated location subentries keyed by legacy entry id."""
     return {
-        subentry.data[CONF_LEGACY_ENTRY_ID]: subentry
+        legacy_entry_id: subentry
         for subentry in entry.subentries.values()
         if subentry.subentry_type == SUBENTRY_TYPE_LOCATION
+        if isinstance(
+            legacy_entry_id := subentry.data.get(CONF_LEGACY_ENTRY_ID),
+            str,
+        )
     }
 
 
@@ -154,6 +162,67 @@ async def test_ha_migration_same_api_key_entries_group_under_one_parent(
     )
 
 
+async def test_ha_migration_legacy_entry_merges_into_existing_clean_v3_parent(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+) -> None:
+    """A residual legacy entry should merge into an existing clean parent."""
+    clear_integration_modules()
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.pollenlevels import TARGET_ENTRY_VERSION
+
+    clean_parent = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="clean-parent",
+        title="Pollen Levels",
+        data={CONF_API_KEY: "shared-key"},
+        options={CONF_LANGUAGE_CODE: "en"},
+        version=TARGET_ENTRY_VERSION,
+        unique_id=api_key_unique_id("shared-key"),
+        subentries_data=[
+            location_subentry_data(
+                subentry_id="existing-location",
+                title="Existing",
+                latitude=10.0,
+                longitude=20.0,
+            )
+        ],
+    )
+    legacy = legacy_config_entry(
+        entry_id="legacy-office",
+        title="Office",
+        api_key="shared-key",
+        latitude=3.0,
+        longitude=4.0,
+        options={CONF_UPDATE_INTERVAL: 8},
+        unique_id="3.0000_4.0000",
+    )
+    legacy.add_to_hass(hass)
+    clean_parent.add_to_hass(hass)
+
+    assert await async_migrate_config_entry(hass, legacy)
+
+    assert clean_parent.version == TARGET_ENTRY_VERSION
+    assert clean_parent.data == {CONF_API_KEY: "shared-key"}
+    assert clean_parent.unique_id == api_key_unique_id("shared-key")
+    assert clean_parent.options == {
+        CONF_LANGUAGE_CODE: "en",
+        CONF_UPDATE_INTERVAL: 8,
+    }
+    assert "existing-location" in clean_parent.subentries
+    assert clean_parent.subentries["existing-location"].unique_id == "10.0000_20.0000"
+    subentries = _subentries_by_legacy_entry(clean_parent)
+    _assert_location_subentry(
+        subentries["legacy-office"],
+        title="Office",
+        latitude=3.0,
+        longitude=4.0,
+        legacy_entry_id="legacy-office",
+    )
+    assert hass.config_entries.async_get_entry("legacy-office") is None
+
+
 async def test_ha_migration_different_api_keys_stay_separate(
     hass: HomeAssistant,
     enable_custom_integrations: None,
@@ -189,6 +258,35 @@ async def test_ha_migration_different_api_keys_stay_separate(
     assert second.unique_id == api_key_unique_id("key-two")
     assert set(_subentries_by_legacy_entry(first)) == {"legacy-home"}
     assert set(_subentries_by_legacy_entry(second)) == {"legacy-office"}
+
+
+async def test_ha_migration_preserves_version_newer_than_target(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+) -> None:
+    """Migration should clean legacy storage without downgrading newer entries."""
+    clear_integration_modules()
+    from custom_components.pollenlevels import TARGET_ENTRY_VERSION
+
+    entry = legacy_config_entry(
+        entry_id="newer-entry",
+        title="Newer Entry",
+        api_key="newer-key",
+        latitude=1.0,
+        longitude=2.0,
+        data={"http_referer": "https://legacy.example.com"},
+        options={"http_referer": "https://legacy.example.com"},
+        version=TARGET_ENTRY_VERSION + 1,
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_config_entry(hass, entry)
+
+    assert "http_referer" not in entry.data
+    assert "http_referer" not in entry.options
+    assert entry.version == TARGET_ENTRY_VERSION + 1
+    assert entry.data == {CONF_API_KEY: "newer-key"}
+    assert set(_subentries_by_legacy_entry(entry)) == {"newer-entry"}
 
 
 async def test_ha_migration_attaches_entity_and_device_registries_to_subentry(
