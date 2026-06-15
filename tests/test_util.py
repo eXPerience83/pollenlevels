@@ -3,7 +3,7 @@
 import importlib
 import sys
 from collections.abc import Iterator
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -399,3 +399,86 @@ def test_validate_location_pair_rejects_invalid_pair(util_module, latitude, long
     """validate_location_pair rejects pairs with any invalid coordinate."""
 
     assert util_module.validate_location_pair(latitude, longitude) is None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, {None}),
+        ("", {None}),
+        ("abc", {"abc"}),
+        (["abc", None, ""], {"abc", None}),
+        ({"abc", None}, {"abc", None}),
+        (("abc", "def"), {"abc", "def"}),
+    ],
+)
+def test_normalize_subentry_ids(util_module, value, expected):
+    """Subentry ID containers should normalize to stable string/None sets."""
+
+    assert util_module.normalize_subentry_ids(value) == expected
+
+
+def test_normalize_subentry_ids_handles_non_iterable_values(util_module):
+    """Non-iterable subentry containers should fall back to legacy None."""
+
+    assert util_module.normalize_subentry_ids(123) == {None}
+
+
+def test_device_subentry_ids_returns_none_without_supported_attributes(util_module):
+    """Devices without subentry attributes should report unavailable metadata."""
+
+    assert util_module.device_subentry_ids(SimpleNamespace(), "entry") is None
+
+
+@pytest.mark.parametrize(
+    ("attr", "value", "expected"),
+    [
+        ("config_entries_subentries", {"entry": {"abc", None}}, {"abc", None}),
+        ("config_entry_subentries", {"entry": {"abc", None}}, {"abc", None}),
+        ("config_subentry_ids", {"abc", None}, {"abc", None}),
+        ("config_subentries", {"abc", None}, {"abc", None}),
+        ("config_subentry_id", "abc", {"abc"}),
+    ],
+)
+def test_device_subentry_ids_reads_supported_home_assistant_attributes(
+    util_module, attr, value, expected
+):
+    """Supported Home Assistant device attributes should use one normalization path."""
+
+    device = SimpleNamespace(**{attr: value})
+
+    assert util_module.device_subentry_ids(device, "entry") == expected
+
+
+def test_device_subentry_ids_mapping_for_other_entry_returns_legacy_none(util_module):
+    """Entry-scoped mappings should preserve legacy None when entry is missing."""
+
+    device = SimpleNamespace(config_entries_subentries={"other": {"abc"}})
+
+    assert util_module.device_subentry_ids(device, "entry") == {None}
+
+
+def test_device_subentry_ids_mapping_for_matching_entry(util_module):
+    """Entry-scoped mappings should return IDs for the requested entry."""
+
+    device = SimpleNamespace(config_entries_subentries={"entry": {"abc"}})
+
+    assert util_module.device_subentry_ids(device, "entry") == {"abc"}
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("es", "es"),
+        (" es ", "es"),
+        ("es-ES", "es-ES"),
+        ("zh-Hans", "zh-Hans"),
+        ("", None),
+        (None, None),
+        ("bad code", None),
+    ],
+)
+def test_normalize_language_code(util_module, value, expected):
+    """Language codes should share one validation path for flow and runtime use."""
+
+    assert util_module.normalize_language_code(value) == expected

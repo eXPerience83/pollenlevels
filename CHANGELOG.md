@@ -44,6 +44,8 @@
   misleading top-level data copied from the first location.
 - Passed the config entry into the data update coordinator when supported by
   Home Assistant, preserving compatibility with newer coordinator contracts.
+- Ignored invalid stored API language codes instead of sending malformed
+  `languageCode` values to Google.
 
 ## [3.0.0b4] - 2026-06-11
 

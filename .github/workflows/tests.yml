@@ -39,7 +39,7 @@ jobs:
 
       - name: Compile Python sources
         run: |
-          python -m compileall -q custom_components tests
+          python -m compileall -q sitecustomize.py custom_components tests
 
       - name: Run tests
         run: |

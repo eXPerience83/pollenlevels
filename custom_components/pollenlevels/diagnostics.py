@@ -13,7 +13,6 @@ No network I/O is performed.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
 from typing import Any, cast
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -34,6 +33,7 @@ from .runtime import PollenLevelsRuntimeData, PollenLocationSetupFailure
 from .summary import daily_summary as _daily_summary
 from .util import (
     active_location_subentry_ids,
+    device_subentry_ids,
     has_legacy_location_data,
     redact_api_key,
     redact_sensitive_values,
@@ -200,37 +200,6 @@ def _coordinate_from_coordinator_or_data(
     return data.get(key)
 
 
-def _normalized_subentry_ids(value: Any) -> set[str | None]:
-    """Return normalized subentry ids for registry diagnostics."""
-    if value is None:
-        return {None}
-    if isinstance(value, str):
-        return {value} if value else {None}
-    try:
-        ids = {item if isinstance(item, str) and item else None for item in value}
-    except TypeError:
-        return {None}
-    return ids or {None}
-
-
-def _device_subentry_ids_for_entry(device: Any, entry_id: str) -> set[str | None]:
-    """Return device subentry ids for one config entry."""
-    for attr in ("config_entries_subentries", "config_entry_subentries"):
-        mapping = getattr(device, attr, None)
-        if isinstance(mapping, Mapping):
-            return _normalized_subentry_ids(mapping.get(entry_id))
-
-    for attr in ("config_subentry_ids", "config_subentries"):
-        value = getattr(device, attr, None)
-        if value is not None:
-            return _normalized_subentry_ids(value)
-
-    direct_subentry_id = getattr(device, "config_subentry_id", None)
-    if direct_subentry_id is not None:
-        return _normalized_subentry_ids(direct_subentry_id)
-    return {None}
-
-
 def _empty_registry_summary() -> dict[str, Any]:
     """Return an empty registry summary payload."""
     return {
@@ -281,7 +250,7 @@ def _registry_summary(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]
 
     for device in devices:
         summary["devices"]["total"] += 1
-        subentry_ids = _device_subentry_ids_for_entry(device, entry.entry_id)
+        subentry_ids = device_subentry_ids(device, entry.entry_id) or {None}
         if None in subentry_ids:
             summary["devices"]["without_subentry"] += 1
             summary["devices"]["with_legacy_none_association"] += 1
