@@ -47,6 +47,7 @@ from .const import (
     FORECAST_DAYS,
 )
 from .coordinator import PollenDataUpdateCoordinator
+from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
 from .issue_helpers import create_per_day_forecast_sensors_removed_issue
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
@@ -154,18 +155,6 @@ async def _remove_legacy_per_day_entities(
     return found, removed
 
 
-def _add_entities_for_location(
-    async_add_entities: AddEntitiesCallback,
-    entities: list[CoordinatorEntity],
-    subentry_id: str,
-) -> None:
-    """Add entities with subentry association when supported by HA/test harness."""
-    try:
-        async_add_entities(entities, config_subentry_id=subentry_id)
-    except TypeError:
-        async_add_entities(entities)
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: PollenLevelsConfigEntry,
@@ -260,7 +249,7 @@ async def async_setup_entry(
                 preview,
                 suffix,
             )
-        _add_entities_for_location(async_add_entities, sensors, location.subentry_id)
+        add_entities_for_subentry(async_add_entities, sensors, location.subentry_id)
 
 
 class PollenSensor(CoordinatorEntity, SensorEntity):
@@ -416,7 +405,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": translation_key,
-            "translation_placeholders": _device_translation_placeholders(
+            "translation_placeholders": device_translation_placeholders(
                 self.coordinator
             ),
         }
@@ -439,7 +428,7 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": translation_keys[group],
-            "translation_placeholders": _device_translation_placeholders(
+            "translation_placeholders": device_translation_placeholders(
                 self.coordinator
             ),
         }
@@ -464,17 +453,6 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
 def _summary_attrs(payload: dict[str, Any]) -> dict[str, Any]:
     """Return summary attributes without the sensor state field."""
     return {key: value for key, value in payload.items() if key != "state"}
-
-
-def _device_translation_placeholders(
-    coordinator: PollenDataUpdateCoordinator,
-) -> dict[str, str]:
-    """Return privacy-preserving placeholders for translated device names."""
-    return {
-        "title": coordinator.entry_title,
-        "latitude": f"{coordinator.lat:.2f}",
-        "longitude": f"{coordinator.lon:.2f}",
-    }
 
 
 class PlantsInSeasonTodaySensor(_BaseSummarySensor):
@@ -575,7 +553,7 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": "info",
-            "translation_placeholders": _device_translation_placeholders(
+            "translation_placeholders": device_translation_placeholders(
                 self.coordinator
             ),
         }
