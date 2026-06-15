@@ -38,7 +38,9 @@ jobs:
           python -m pip install .
 
       - name: Compile Python sources
+        shell: bash
         run: |
+          set -euo pipefail
           python -m compileall -q sitecustomize.py custom_components tests
 
       - name: Run tests

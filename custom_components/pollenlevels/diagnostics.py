@@ -35,6 +35,7 @@ from .util import (
     active_location_subentry_ids,
     device_subentry_ids,
     has_legacy_location_data,
+    normalize_language_code,
     redact_api_key,
     redact_sensitive_values,
 )
@@ -273,7 +274,8 @@ async def async_get_config_entry_diagnostics(
     options: dict[str, Any] = dict(entry.options or {})
     data: dict[str, Any] = dict(entry.data or {})
     runtime = cast(PollenLevelsRuntimeData | None, getattr(entry, "runtime_data", None))
-    lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
+    raw_lang = options.get(CONF_LANGUAGE_CODE, data.get(CONF_LANGUAGE_CODE))
+    lang = normalize_language_code(raw_lang)
     locations: dict[str, Any] = {}
     stale_location_ids: list[str] = []
     failed_locations: dict[str, Any] = {}

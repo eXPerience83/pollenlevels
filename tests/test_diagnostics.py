@@ -786,6 +786,52 @@ async def test_diagnostics_request_days_are_fixed(
     )
 
 
+@pytest.mark.parametrize(
+    ("stored_language", "expected_language"),
+    [
+        (" es ", "es"),
+        ("es-ES", "es-ES"),
+        ("bad code", None),
+    ],
+)
+@pytest.mark.asyncio
+async def test_diagnostics_normalizes_request_example_language_code(
+    diagnostics_modules: DiagnosticsModules,
+    stored_language: str,
+    expected_language: str | None,
+) -> None:
+    """Diagnostics request params should match runtime language normalization."""
+
+    data = {
+        diagnostics_modules.CONF_API_KEY: "test-api-key",
+        diagnostics_modules.CONF_LATITUDE: 12.3,
+        diagnostics_modules.CONF_LONGITUDE: 45.6,
+    }
+    options = {diagnostics_modules.CONF_LANGUAGE_CODE: stored_language}
+
+    entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
+
+    coordinator = SimpleNamespace(
+        entry_id="entry",
+        language=expected_language,
+        last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        data={"type_grass": {"source": "type"}},
+    )
+    entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
+        coordinator=coordinator, client=object()
+    )
+
+    diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
+        None, entry
+    )
+
+    request_params = diagnostics["locations"]["entry"]["request_params_example"]
+    if expected_language is None:
+        assert "languageCode" not in request_params
+    else:
+        assert request_params["languageCode"] == expected_language
+
+
 @pytest.mark.asyncio
 async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
     diagnostics_modules: DiagnosticsModules,
