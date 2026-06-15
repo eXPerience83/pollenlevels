@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
@@ -32,6 +31,7 @@ from .issue_helpers import (
 from .util import (
     LEGACY_FORECAST_OPTION_KEYS,
     api_key_unique_id,
+    device_subentry_ids,
     entry_api_key,
     has_legacy_per_day_option,
     strip_legacy_forecast_options,
@@ -490,42 +490,11 @@ def _parent_legacy_location_target(
     )
 
 
-def _normalize_subentry_ids(value: Any) -> set[str | None]:
-    """Return a normalized subentry-id set while preserving legacy None links."""
-    if value is None:
-        return {None}
-    if isinstance(value, str):
-        return {value} if value else {None}
-    try:
-        ids: set[str | None] = set()
-        for item in value:
-            if item is None:
-                ids.add(None)
-            elif isinstance(item, str) and item:
-                ids.add(item)
-        return ids or {None}
-    except TypeError:
-        return {None}
-
-
 def _device_source_subentry_ids(
     device: Any, source_entry_id: str
 ) -> set[str | None] | None:
     """Return known source subentry IDs for a device, or None if unavailable."""
-    for attr in ("config_entries_subentries", "config_entry_subentries"):
-        mapping = getattr(device, attr, None)
-        if isinstance(mapping, Mapping):
-            return _normalize_subentry_ids(mapping.get(source_entry_id))
-
-    for attr in ("config_subentry_ids", "config_subentries"):
-        value = getattr(device, attr, None)
-        if value is not None:
-            return _normalize_subentry_ids(value)
-
-    direct_subentry_id = getattr(device, "config_subentry_id", None)
-    if direct_subentry_id is not None:
-        return _normalize_subentry_ids(direct_subentry_id)
-    return None
+    return device_subentry_ids(device, source_entry_id)
 
 
 def _migrate_entity_registry_for_merged_entry(

@@ -55,6 +55,7 @@ from .util import (
     api_key_unique_id,
     entry_api_key,
     format_location_unique_id,
+    normalize_language_code,
     redact_api_key,
     redact_sensitive_values,
     safe_parse_int,
@@ -66,15 +67,6 @@ from .util import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# BCP-47-ish regex (common patterns, not full grammar).
-LANGUAGE_CODE_REGEX = re.compile(
-    r"^[A-Za-z]{2,3}"
-    r"(?:-[A-Za-z]{4})?"  # optional script
-    r"(?:-(?:[A-Za-z]{2}|\d{3}))?"  # optional region
-    r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",  # optional single variant
-    re.IGNORECASE,
-)
-
 
 def is_valid_language_code(value: str) -> str:
     """Validate language code format; return normalized (trimmed) value."""
@@ -83,10 +75,11 @@ def is_valid_language_code(value: str) -> str:
     norm = value.strip()
     if not norm:
         raise vol.Invalid("empty")
-    if not LANGUAGE_CODE_REGEX.match(norm):
+    normalized = normalize_language_code(norm)
+    if normalized is None:
         _LOGGER.warning("Invalid language code format (BCP-47-like)")
         raise vol.Invalid("invalid_language")
-    return norm
+    return normalized
 
 
 def _language_error_to_form_key(error: vol.Invalid) -> str:
@@ -420,10 +413,7 @@ def _entry_language_code(entry: config_entries.ConfigEntry) -> str | None:
     raw_language = (entry.options or {}).get(
         CONF_LANGUAGE_CODE, (entry.data or {}).get(CONF_LANGUAGE_CODE)
     )
-    if not isinstance(raw_language, str):
-        return None
-    language = raw_language.strip()
-    return language or None
+    return normalize_language_code(raw_language)
 
 
 def _first_location_data(entry: config_entries.ConfigEntry) -> dict[str, Any]:

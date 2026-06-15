@@ -32,6 +32,13 @@ LEGACY_FORECAST_OPTION_KEYS = frozenset(
     }
 )
 LEGACY_ACTIVE_PER_DAY_SENSOR_MODES = frozenset({"D+1", "D+1+2"})
+_LANGUAGE_CODE_RE = re.compile(
+    r"^[A-Za-z]{2,3}"
+    r"(?:-[A-Za-z]{4})?"
+    r"(?:-(?:[A-Za-z]{2}|\d{3}))?"
+    r"(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))?$",
+    re.IGNORECASE,
+)
 
 
 def strip_legacy_forecast_options(
@@ -116,6 +123,52 @@ def stale_runtime_location_filter(entry: Any) -> tuple[set[str], bool]:
         entry
     )
     return active_subentry_ids, filter_stale_locations
+
+
+def normalize_subentry_ids(value: Any) -> set[str | None]:
+    """Return normalized subentry IDs while preserving legacy None links."""
+    if value is None:
+        return {None}
+    if isinstance(value, str):
+        return {value} if value else {None}
+    try:
+        ids: set[str | None] = set()
+        for item in value:
+            if item is None:
+                ids.add(None)
+            elif isinstance(item, str) and item:
+                ids.add(item)
+        return ids or {None}
+    except TypeError:
+        return {None}
+
+
+def device_subentry_ids(device: Any, entry_id: str) -> set[str | None] | None:
+    """Return normalized device subentry IDs for one config entry."""
+    for attr in ("config_entries_subentries", "config_entry_subentries"):
+        mapping = getattr(device, attr, None)
+        if isinstance(mapping, Mapping):
+            return normalize_subentry_ids(mapping.get(entry_id))
+
+    for attr in ("config_subentry_ids", "config_subentries"):
+        value = getattr(device, attr, None)
+        if value is not None:
+            return normalize_subentry_ids(value)
+
+    direct_subentry_id = getattr(device, "config_subentry_id", None)
+    if direct_subentry_id is not None:
+        return normalize_subentry_ids(direct_subentry_id)
+    return None
+
+
+def normalize_language_code(value: object) -> str | None:
+    """Return a normalized BCP-47-like language code, or None when invalid."""
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or not _LANGUAGE_CODE_RE.match(normalized):
+        return None
+    return normalized
 
 
 async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
@@ -341,11 +394,14 @@ __all__ = [
     "api_key_unique_id",
     "coordinator_device_id",
     "coordinator_identity_id",
+    "device_subentry_ids",
     "entry_api_key",
     "extract_error_message",
     "format_location_unique_id",
     "has_legacy_per_day_option",
     "LEGACY_FORECAST_OPTION_KEYS",
+    "normalize_language_code",
+    "normalize_subentry_ids",
     "parse_finite_float",
     "redact_api_key",
     "redact_sensitive_values",

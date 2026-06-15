@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m compileall -q custom_components tests
+          python -m compileall -q sitecustomize.py custom_components tests
 
       - name: Ruff validation
         shell: bash

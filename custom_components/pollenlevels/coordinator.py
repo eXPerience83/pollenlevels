@@ -19,7 +19,12 @@ from .const import (
     FORECAST_DAYS,
 )
 from .forecast import attach_forecast_attributes
-from .util import redact_api_key, redact_sensitive_values, safe_parse_int
+from .util import (
+    normalize_language_code,
+    redact_api_key,
+    redact_sensitive_values,
+    safe_parse_int,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -186,12 +191,14 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.lat = lat
         self.lon = lon
 
-        # Normalize language once at runtime:
-        # - Trim whitespace
-        # - Use None if empty after normalization (skip sending languageCode)
-        if isinstance(language, str):
-            language = language.strip()
-        self.language = language if language else None
+        normalized_language = normalize_language_code(language)
+        if (
+            normalized_language is None
+            and isinstance(language, str)
+            and language.strip()
+        ):
+            _LOGGER.warning("Ignoring invalid stored API language code")
+        self.language = normalized_language
 
         self.entry_id = entry_id
         self.subentry_id = subentry_id

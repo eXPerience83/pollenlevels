@@ -1047,6 +1047,43 @@ def test_coordinator_preserves_last_data_when_dailyinfo_missing(
     assert second_data == coordinator.data
 
 
+def test_coordinator_handles_real_partial_google_pollen_fixture(
+    sensor_modules: SensorModules, google_pollen_5_day_payload: dict[str, Any]
+) -> None:
+    """Real 5-day payloads with partial entries should remain parseable."""
+
+    fake_session = FakeSession(google_pollen_5_day_payload)
+    client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert "plants_hazel" in data
+    assert data["plants_hazel"]["displayName"] == "Avellano"
+    assert data["plants_hazel"]["value"] is None
+    assert data["plants_hazel"]["tomorrow_has_index"] is False
+    assert data["plants_hazel"]["d2_has_index"] is False
+    assert all(
+        forecast_item["has_index"] is False
+        for forecast_item in data["plants_hazel"]["forecast"]
+    )
+
+    assert "type_weed" in data
+    assert data["type_weed"]["displayName"] == "Maleza"
+    assert data["type_weed"]["value"] is None
+    assert any(
+        forecast_item["has_index"] is False
+        for forecast_item in data["type_weed"]["forecast"]
+    )
+
+    assert not any(key.endswith(("_d1", "_d2")) for key in data)
+
+
 def test_coordinator_uses_fixed_forecast_days(sensor_modules: SensorModules) -> None:
     """Coordinator always uses the fixed Google Pollen maximum forecast horizon."""
 
@@ -1069,6 +1106,46 @@ def test_coordinator_uses_fixed_forecast_days(sensor_modules: SensorModules) -> 
         loop.close()
 
     assert coordinator.forecast_days == sensor_modules.const.FORECAST_DAYS
+
+
+def test_coordinator_normalizes_and_ignores_invalid_runtime_language(
+    sensor_modules: SensorModules, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Runtime language from storage should be validated before API requests."""
+
+    loop = asyncio.new_event_loop()
+    hass = DummyHass(loop)
+    client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "test")
+
+    try:
+        valid = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+            hass=hass,
+            api_key="test",
+            lat=1.0,
+            lon=2.0,
+            hours=12,
+            language=" es ",
+            entry_id="entry",
+            client=client,
+        )
+        with caplog.at_level("WARNING", logger=sensor_modules.coordinator_mod.__name__):
+            invalid = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+                hass=hass,
+                api_key="test",
+                lat=1.0,
+                lon=2.0,
+                hours=12,
+                language="bad code",
+                entry_id="entry",
+                client=client,
+            )
+    finally:
+        loop.close()
+
+    assert valid.language == "es"
+    assert invalid.language is None
+    assert "Ignoring invalid stored API language code" in caplog.text
+    assert "bad code" not in caplog.text
 
 
 def test_coordinator_first_refresh_missing_dailyinfo_raises(
