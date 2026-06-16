@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-### Documentation
+### Changed
 
 - Clarified that Google `plantInfo.code` values are stable across tested API
   languages and are used for plant sensor identity, while localized
