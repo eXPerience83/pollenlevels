@@ -1,3 +1,11 @@
+## [Unreleased]
+
+### Changed
+
+- Clarified that Google `plantInfo.code` values are stable across tested API
+  languages and are used for plant sensor identity, while localized
+  `displayName` values only affect visible names and attributes.
+
 ## [3.0.0b5] - 2026-06-14
 
 ### Added

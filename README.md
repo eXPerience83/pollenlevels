@@ -354,9 +354,16 @@ color: '[[[
 
 ## ⚠️ Known caveats
 
-* **Localized plant codes**: Google may localize `plantInfo.code` in some locales (e.g., `GRAMINALES` in ES) while others remain English (`OLIVE`, `MUGWORT`).
-  Changing `languageCode` may recreate plant sensors with a different suffix.
-  **Recommendation**: keep API language stable or rename entities in UI after changing it.
+* **Plant codes and localized names**: Pollen Levels uses Google
+  `plantInfo.code` values to keep plant sensor identities stable. In tests
+  across `es`, `en`, `fr`, `de`, `it`, and `pt`, Google returned the same plant
+  codes while localizing `displayName`, descriptions, categories, and
+  recommendations. For example, `GRAMINALES` is the Google plant code for grass
+  pollen plants, while the visible name may appear as `Gramíneas`, `Grasses`,
+  `Graminées`, `Gräser`, or another localized value depending on the selected
+  API language. Pollen Levels does not use localized `displayName` values to
+  build entity identity. If Google changes plant codes in the future, treat that
+  as an upstream API behavior change and include diagnostics when reporting it.
 
 ---
 
