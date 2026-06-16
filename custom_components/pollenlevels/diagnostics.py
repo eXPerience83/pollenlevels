@@ -185,7 +185,6 @@ def _failed_location_diagnostics(
             api_key,
             coordinate_pairs,
         ),
-        "is_auth_error": bool(getattr(failure, "is_auth_error", False)),
         "will_retry_on_reload": error_type != "InvalidStoredLocation",
     }
 

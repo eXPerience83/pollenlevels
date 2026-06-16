@@ -58,6 +58,9 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - Diagnostics include redacted daily, registry, and runtime summaries to help
   troubleshoot the integration without exposing API keys or exact coordinates.
   Approximate coordinates are rounded to 1 decimal for support purposes.
+  Diagnostics may also include Home Assistant internal config entry and location
+  subentry identifiers (`entry_id`, `subentry_id`). These are not credentials, but
+  you should still review diagnostics before posting them publicly.
 - Avoid sharing full debug logs publicly; review them for sensitive information before posting.
 - Never share real Google API keys publicly, and do not paste full Google Pollen
   API URLs containing `key=...` into public issues. If a key was exposed,
@@ -163,11 +166,12 @@ When reauthenticating or reconfiguring the parent API key, the integration tries
 the configured locations until one returns usable pollen data. Authentication
 and quota errors are treated as key-level failures.
 
-During startup, the v3 beta avoids partial parent setup. If any configured
-location fails its initial non-auth refresh, Home Assistant will retry setup
-until the underlying issue is fixed or the affected location is removed or
-reconfigured. This keeps all location entities, devices, and diagnostics in a
-consistent state during the beta migration.
+During startup, the v3 beta keeps the parent entry available when at least one
+configured location loads successfully. Locations that fail their initial
+non-auth refresh are isolated in diagnostics and retried on parent reload; after
+a repeated retryable failure, the integration creates a Repair warning for the
+affected location. If no configured location can load successfully, the parent
+entry is marked not ready so Home Assistant can retry setup.
 
 Create a Home Assistant backup before installing the v3 pre-release.
 Downgrading to Pollen Levels 2.x after the subentry migration is not supported.

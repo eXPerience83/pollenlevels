@@ -27,7 +27,6 @@ class PollenLocationSetupFailure:
     title: str
     reason: str
     error_type: str
-    is_auth_error: bool = False
 
 
 @dataclass(slots=True, init=False)
