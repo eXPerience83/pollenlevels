@@ -6,8 +6,8 @@
   languages and are used for plant sensor identity, while localized
   `displayName` values only affect visible names and attributes.
 - Removed the unused `is_auth_error` field from failed location diagnostics.
-  Authentication failures are handled at the parent/API-key level, so this
-  per-location diagnostics field was always false and could be misleading.
+  Authentication failures are handled at the parent/API-key level, so failed
+  location diagnostics no longer expose this per-location authentication flag.
 - Clarified the v3 beta documentation for partial location setup during startup
   and documented that diagnostics may include Home Assistant internal `entry_id`
   and `subentry_id` values.
