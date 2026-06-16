@@ -5,6 +5,12 @@
 - Clarified that Google `plantInfo.code` values are stable across tested API
   languages and are used for plant sensor identity, while localized
   `displayName` values only affect visible names and attributes.
+- Removed the unused `is_auth_error` field from failed location diagnostics.
+  Authentication failures are handled at the parent/API-key level, so failed
+  location diagnostics no longer expose this per-location authentication flag.
+- Clarified the v3 beta documentation for partial location setup during startup
+  and documented that diagnostics may include Home Assistant internal `entry_id`
+  and `subentry_id` values.
 
 ## [3.0.0b5] - 2026-06-14
 
