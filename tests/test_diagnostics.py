@@ -706,7 +706,7 @@ async def test_diagnostics_reports_failed_locations_separately_from_stale(
     failed_payload = diagnostics["failed_locations"]["failed"]
     assert failed_payload["error_type"] == "UpdateFailed"
     assert failed_payload["will_retry_on_reload"] is True
-    assert failed_payload["is_auth_error"] is False
+    assert "is_auth_error" not in failed_payload
     serialized = json.dumps(diagnostics, sort_keys=True)
     assert "secret-token" not in serialized
     assert "12.345678" not in serialized

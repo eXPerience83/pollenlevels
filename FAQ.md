@@ -173,14 +173,22 @@ If `runtime_summary.stale_location_count` is greater than `0` immediately after
 deleting a location subentry, reload the Pollen Levels parent entry from Home
 Assistant. This clears the stale runtime coordinator from memory.
 
+Diagnostics redact the API key and only include approximate coordinates rounded
+to 1 decimal for support purposes. They may also include Home Assistant internal
+`entry_id` and `subentry_id` values so support can match runtime, registry, and
+subentry state. These IDs are not credentials, but review diagnostics before
+sharing them publicly.
+
 During parent API-key reauthentication or reconfiguration, the integration tries
 configured locations until one validates successfully. Authentication and quota
 errors are treated as API-key-level failures.
 
-During startup, if any configured location cannot complete its initial refresh,
-the parent entry is marked not ready and Home Assistant will retry setup. Fix
-the underlying location or API issue, then reload or retry the Pollen Levels
-entry.
+During startup, if at least one configured location loads successfully, the
+parent entry remains available and failed locations are reported separately in
+diagnostics. Retryable location setup failures are retried on parent reload and
+can create a Repair warning after they repeat. If no configured location can
+load successfully, the parent entry is marked not ready so Home Assistant can
+retry setup.
 
 Create a Home Assistant backup before upgrading. Downgrading to Pollen Levels
 2.x after this migration is not supported.
