@@ -66,8 +66,20 @@ Docs: https://developers.google.com/maps/documentation/pollen/overview
 
 ## 6. Can I request pollen data in my language?
 
-Yes. Set a **language code** in the integration options (e.g., `en`, `es`, `fr`, `de`, `uk`).  
-This controls localized fields returned by the API.
+Yes. Set a **language code** in the integration options (e.g., `en`, `es`,
+`fr`, `de`, `uk`). This controls localized fields returned by the API, such as
+display names, categories, descriptions, and health recommendations.
+
+Pollen Levels uses Google `plantInfo.code` values, not localized
+`displayName` values, to build plant sensor identity. In tests across `es`,
+`en`, `fr`, `de`, `it`, and `pt`, Google returned the same plant codes while
+localizing the visible names. For example, `GRAMINALES` remained the plant code
+for grass pollen plants, while the display name changed by language.
+
+This means changing the API language should update localized attributes without
+recreating plant sensors, as long as Google keeps returning the same
+`plantInfo.code` values. If Google changes plant codes in the future, treat it
+as an upstream API behavior change and include diagnostics when reporting it.
 
 ---
 
