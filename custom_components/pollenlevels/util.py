@@ -323,8 +323,14 @@ def redact_api_key(text: object, api_key: str | None) -> str:
 
 
 def api_key_unique_id(api_key: str) -> str:
-    """Return a stable, non-secret unique ID for one shared API key."""
-    return f"api_key_{sha256(api_key.encode()).hexdigest()[:16]}"
+    """Return the v3-compatible parent config-entry unique ID for an API key.
+
+    This deterministic value identifies a Home Assistant parent config entry; it
+    is not password storage, authentication, or a security boundary. Its output
+    must remain unchanged because v3 beta installations already persist it.
+    """
+    digest = sha256(api_key.encode(), usedforsecurity=False).hexdigest()
+    return f"api_key_{digest[:16]}"
 
 
 def parse_finite_float(value: Any) -> float | None:

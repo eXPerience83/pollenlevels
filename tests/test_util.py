@@ -49,6 +49,12 @@ def test_redact_api_key_returns_empty_string_for_none(util_module):
     assert util_module.redact_api_key(None, "anything") == ""
 
 
+def test_api_key_unique_id_keeps_v3_beta_compatibility(util_module):
+    """Parent unique IDs must stay stable for existing v3 beta users."""
+
+    assert util_module.api_key_unique_id("test-api-key") == "api_key_4c806362b613f749"
+
+
 def test_redact_sensitive_values_returns_empty_string_for_none(util_module):
     """None inputs should yield an empty string."""
 

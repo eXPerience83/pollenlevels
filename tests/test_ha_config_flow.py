@@ -11,6 +11,7 @@ from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_RECONFIGURE, SOUR
 from homeassistant.const import CONF_LOCATION, CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
@@ -18,6 +19,7 @@ from custom_components.pollenlevels.const import (
     CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
+    CONF_LEGACY_ENTRY_ID,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
@@ -26,7 +28,11 @@ from custom_components.pollenlevels.const import (
 )
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
-from tests.ha_helpers import assert_fixed_forecast_days, mock_pollen_api
+from tests.ha_helpers import (
+    assert_fixed_forecast_days,
+    async_setup_config_entry,
+    mock_pollen_api,
+)
 
 
 def _location_input(
@@ -52,6 +58,24 @@ async def _start_parent_api_key_flow(entry, hass: HomeAssistant, source: str):
     if source == SOURCE_RECONFIGURE:
         return await entry.start_reconfigure_flow(hass)
     raise AssertionError(f"Unsupported source: {source}")
+
+
+def _parent_entry_snapshot(entry) -> dict[str, Any]:
+    """Return persisted parent state relevant to API-key flow compatibility."""
+    return {
+        "entry_id": entry.entry_id,
+        "data": dict(entry.data),
+        "unique_id": entry.unique_id,
+        "options": dict(entry.options),
+        "subentries": {
+            subentry_id: {
+                "title": subentry.title,
+                "unique_id": subentry.unique_id,
+                "data": dict(subentry.data),
+            }
+            for subentry_id, subentry in entry.subentries.items()
+        },
+    }
 
 
 async def test_ha_user_flow_creates_parent_entry_with_location_subentry(
@@ -198,6 +222,13 @@ async def test_ha_options_flow_saves_supported_options_only(
         (SOURCE_RECONFIGURE, "reconfigure", "reconfigure_successful"),
     ],
 )
+@pytest.mark.parametrize(
+    "legacy_entry_id",
+    [
+        pytest.param(None, id="clean-v3"),
+        pytest.param("legacy-location-entry", id="migrated-v2"),
+    ],
+)
 async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     hass: HomeAssistant,
     enable_custom_integrations: None,
@@ -208,11 +239,23 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     source: str,
     step_id: str,
     reason: str,
+    legacy_entry_id: str | None,
 ) -> None:
-    """Parent reauth/reconfigure should update credentials and reload."""
+    """Parent API-key changes must preserve location registry identities."""
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     clear_integration_modules()
+    location_subentry_data = {
+        **sample_location_subentry_data,
+        "data": {
+            **sample_location_subentry_data["data"],
+            **(
+                {CONF_LEGACY_ENTRY_ID: legacy_entry_id}
+                if legacy_entry_id is not None
+                else {}
+            ),
+        },
+    }
     entry = MockConfigEntry(
         domain=DOMAIN,
         entry_id=f"parent-{source}",
@@ -225,10 +268,70 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
             CONF_CREATE_FORECAST_SENSORS: "D+1",
         },
         unique_id=api_key_unique_id("old-key"),
-        subentries_data=[sample_location_subentry_data],
+        subentries_data=[location_subentry_data],
         version=6,
     )
     entry.add_to_hass(hass)
+
+    with aioresponses() as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    entry_id_before = entry.entry_id
+    options_before = dict(entry.options)
+    subentry_before = next(iter(entry.subentries.values()))
+    subentry_id_before = subentry_before.subentry_id
+    subentry_data_before = dict(subentry_before.data)
+
+    def _registry_identity_snapshot() -> dict[str, Any]:
+        entity_entries = [
+            entity
+            for entity in er.async_entries_for_config_entry(
+                er.async_get(hass), entry.entry_id
+            )
+            if entity.platform == DOMAIN
+        ]
+        device_entries = dr.async_entries_for_config_entry(
+            dr.async_get(hass), entry.entry_id
+        )
+        return {
+            "sensor_entities": {
+                (
+                    entity.entity_id,
+                    entity.unique_id,
+                    getattr(entity, "config_subentry_id", None),
+                )
+                for entity in entity_entries
+                if entity.domain == "sensor"
+            },
+            "button_entities": {
+                (
+                    entity.entity_id,
+                    entity.unique_id,
+                    getattr(entity, "config_subentry_id", None),
+                )
+                for entity in entity_entries
+                if entity.domain == "button"
+            },
+            "device_identifiers": {
+                device.id: frozenset(device.identifiers) for device in device_entries
+            },
+            "device_subentries": {
+                device.id: {
+                    config_entry_id: frozenset(subentry_ids)
+                    for config_entry_id, subentry_ids in getattr(
+                        device, "config_entries_subentries", {}
+                    ).items()
+                }
+                for device in device_entries
+            },
+        }
+
+    identities_before = _registry_identity_snapshot()
+    assert identities_before["sensor_entities"]
+    assert len(identities_before["button_entities"]) == 1
+    assert identities_before["device_identifiers"]
+
     scheduled_reloads: list[str] = []
 
     def _capture_schedule_reload(entry_id: str) -> None:
@@ -254,13 +357,19 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     assert result["reason"] == reason
     assert entry.data == {CONF_API_KEY: new_api_key}
     assert entry.unique_id == api_key_unique_id(new_api_key)
-    assert dict(entry.options) == {
-        CONF_LANGUAGE_CODE: "es",
-        CONF_UPDATE_INTERVAL: 8,
-        CONF_FORECAST_DAYS: 1,
-        CONF_CREATE_FORECAST_SENSORS: "D+1",
-    }
+    assert entry.entry_id == entry_id_before
+    subentry_after_update = entry.subentries[subentry_id_before]
+    assert subentry_after_update.subentry_id == subentry_id_before
+    assert dict(subentry_after_update.data) == subentry_data_before
+    assert dict(entry.options) == options_before
     assert scheduled_reloads == [entry.entry_id]
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    with aioresponses() as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    assert _registry_identity_snapshot() == identities_before
 
 
 @pytest.mark.parametrize(
@@ -301,6 +410,8 @@ async def test_ha_parent_api_key_flow_rejects_duplicate_parent_unique_id(
     )
     duplicate.add_to_hass(hass)
     entry.add_to_hass(hass)
+    duplicate_before = _parent_entry_snapshot(duplicate)
+    entry_before = _parent_entry_snapshot(entry)
 
     result = await _start_parent_api_key_flow(entry, hass, source)
     assert result["type"] is FlowResultType.FORM
@@ -316,8 +427,8 @@ async def test_ha_parent_api_key_flow_rejects_duplicate_parent_unique_id(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == step_id
     assert result["errors"] == {"base": "api_key_already_configured"}
-    assert entry.data == {CONF_API_KEY: "old-key"}
-    assert entry.unique_id == api_key_unique_id("old-key")
+    assert _parent_entry_snapshot(entry) == entry_before
+    assert _parent_entry_snapshot(duplicate) == duplicate_before
 
 
 async def test_ha_location_subentry_flow_creates_subentry(
