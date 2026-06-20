@@ -1,4 +1,4 @@
-"""Button platform for per-entry manual updates."""
+"""Button platform for per-location manual updates."""
 
 from __future__ import annotations
 
@@ -13,7 +13,13 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
+from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
 from .runtime import PollenLevelsConfigEntry
+from .util import (
+    coordinator_device_id,
+    coordinator_identity_id,
+    stale_runtime_location_filter,
+)
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -28,12 +34,34 @@ async def async_setup_entry(
     config_entry: PollenLevelsConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Pollen Levels update button for one config entry."""
-    runtime = config_entry.runtime_data
+    """Set up Pollen Levels update buttons for all configured locations."""
+    runtime = getattr(config_entry, "runtime_data", None)
     if runtime is None:
         raise ConfigEntryNotReady("Runtime data not ready")
+    locations = getattr(runtime, "locations", None) or {}
+    if not locations:
+        coordinator = getattr(runtime, "coordinator", None)
+        if coordinator is not None:
+            async_add_entities([PollenLevelsUpdateButton(coordinator)])
+            return
+        _LOGGER.debug("No location subentries configured; no update buttons to add")
+        return
 
-    async_add_entities([PollenLevelsUpdateButton(runtime.coordinator)])
+    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
+        config_entry
+    )
+    for location in locations.values():
+        if filter_stale_locations and location.subentry_id not in active_subentry_ids:
+            _LOGGER.debug(
+                "Skipping stale Pollen Levels button runtime location %s",
+                location.subentry_id,
+            )
+            continue
+        add_entities_for_subentry(
+            async_add_entities,
+            [PollenLevelsUpdateButton(location.coordinator)],
+            location.subentry_id,
+        )
 
 
 class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
@@ -46,17 +74,14 @@ class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize update button entity."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.entry_id}_update_now"
+        identity_id = coordinator_identity_id(coordinator)
+        self._attr_unique_id = f"{identity_id}_update_now"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{coordinator.entry_id}_meta")},
+            "identifiers": {(DOMAIN, coordinator_device_id(coordinator, "meta"))},
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": "info",
-            "translation_placeholders": {
-                "title": coordinator.entry_title,
-                "latitude": f"{coordinator.lat:.2f}",
-                "longitude": f"{coordinator.lon:.2f}",
-            },
+            "translation_placeholders": device_translation_placeholders(coordinator),
         }
 
     @property

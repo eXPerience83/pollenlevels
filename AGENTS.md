@@ -2,10 +2,19 @@
 
 ## Tooling
 - Tooling (CI, lint, format) runs on **Python 3.14**. The `pyproject.toml` targets packaging/tooling and also pins `requires-python = ">=3.14"`. All code under `custom_components/pollenlevels/` targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
-- Format code with Black (line length 88, target-version `py314`) pinned at `black==25.*`.
-- Lint and sort imports with Ruff targeting `py314`, pinned at `ruff==0.14.*`, matching the configuration in `pyproject.toml`.
+- Format code with Black (line length 88, target-version `py314`) with minimum `black>=26` (enforced via CI; version pin not stored in `pyproject.toml`).
+- Black 26+ may format multi-exception handlers as `except A, B:` for Python 3.14; keep the formatter output unless CI changes.
+- Lint and sort imports with Ruff targeting `py314`, with minimum `ruff>=0.15` (enforced via CI), matching the configuration in `pyproject.toml`.
 - Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
 - Run `black .` (or the narrowest possible path) to ensure formatting.
+- Tests run with pytest>=9 on Python 3.14.
+- Home Assistant integration-surface tests should use
+  `pytest-homeassistant-custom-component` when practical, especially for config
+  flows, subentry flows, setup/unload, platform entity registration, services,
+  diagnostics, Repairs, registries, and migration behavior. Keep lightweight
+  unit/stub tests for pure parsing, API client behavior, redaction helpers,
+  malformed payload edge cases, and failure injection that is hard to express
+  through the real Home Assistant harness.
 
 ## Release & API boundaries
 - Do not change the integration version or changelog entries unless explicitly requested.
@@ -53,3 +62,7 @@
 
 ## Verification
 - Ensure the integration still loads within Home Assistant with the existing config flows and maintains parity with the current logic paths for entity updates and notifications.
+- Before submitting changes, run the following checks:
+  - `ruff check --fix --select I && ruff check` — lint and import ordering.
+  - `black .` — code formatting.
+  - `pytest tests/` — unit and Home Assistant harness tests.

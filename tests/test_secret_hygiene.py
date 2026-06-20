@@ -6,9 +6,21 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TEXT_SUFFIXES = {".json", ".md", ".py", ".toml", ".txt", ".yaml", ".yml"}
+TEXT_SUFFIXES = {
+    ".json",
+    ".md",
+    ".py",
+    ".toml",
+    ".txt",
+    ".yaml",
+    ".yml",
+    ".http",
+    ".curl",
+    ".har",
+}
 IGNORED_DIRS = {
     ".git",
+    ".local",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",

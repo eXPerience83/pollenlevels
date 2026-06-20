@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Siitepölytason asetukset",
-        "description": "Syötä Google API -avaimesi ([hanki se täältä]({api_key_url})) ja tutustu parhaisiin käytäntöihin ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi. Voit myös määrittää ennustepäivät ja päiväsensorien laajuuden (TYYPIT).",
+        "description": "Anna Google API Key ([hanki se täältä]({api_key_url})) ja tarkista parhaat käytännöt ([parhaat käytännöt]({restricting_api_keys_url})). Valitse sijainti kartalta, päivitysväli (tunteina) ja API-vastauksen kielikoodi. Pollen Levels pyytää aina enimmäismäärän eli 5 päivän ennustehorisontin.",
         "data": {
           "api_key": "API-avain",
           "name": "Nimi",
           "location": "Sijainti",
           "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi",
-          "forecast_days": "Ennustepäivät (1–5)",
-          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
+          "language_code": "API-vastauksen kielikoodi"
         }
       },
       "reauth_confirm": {
@@ -35,14 +33,15 @@
       "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}",
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
       "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "invalid_coordinates": "Valitse kartalta kelvollinen sijainti.",
       "unknown": "Tuntematon virhe",
       "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
-      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5."
+      "already_configured": "Tämä sijainti on jo määritetty.",
+      "api_key_already_configured": "Tämä API-avain on jo määritetty."
     },
     "abort": {
       "already_configured": "Tämä sijainti on jo määritetty.",
+      "api_key_already_configured": "Tämä API-avain on jo määritetty.",
       "reauth_successful": "Uudelleentodennus onnistui.",
       "reauth_failed": "Uudelleentodennus epäonnistui. Yritä uudelleen.",
       "reconfigure_successful": "Uudelleenmääritys onnistui.",
@@ -53,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Asetukset",
-        "description": "Muuta päivitysväliä, API-kieltä, ennustepäiviä ja päiväsensoreita TYYPEILLE kohteelle {title}.\nPäiväsensorien vaihtoehdot (TYYPIT): Vain tänään (none), Huomiseen asti (D+1), Ylihuomiseen asti (D+2; luo sekä D+1- että D+2-sensorit).",
+        "description": "Muuta kohteen {title} päivitysväliä ja API-kieltä. Pollen Levels pyytää aina enimmäismäärän eli 5 päivän ennustehorisontin.",
         "data": {
           "update_interval": "Päivitysväli (tunnit)",
-          "language_code": "API-vastauksen kielikoodi",
-          "forecast_days": "Ennustepäivät (1–5)",
-          "create_forecast_sensors": "Päiväsensorien laajuus (TYYPIT)"
+          "language_code": "API-vastauksen kielikoodi"
         }
       }
     },
     "error": {
       "invalid_language_format": "Käytä kanonista BCP-47-koodia, esimerkiksi \"en\" tai \"es-ES\".",
-      "empty": "Tämä kenttä ei voi olla tyhjä",
-      "invalid_option_combo": "Lisää \"Ennustepäiviä\", jotta valitut päiväsensorit katetaan.",
       "unknown": "Tuntematon virhe",
-      "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia.",
-      "invalid_forecast_days": "Ennustepäivien on oltava välillä 1–5."
+      "invalid_update_interval": "Päivitysvälin on oltava 1–24 tuntia."
     }
   },
   "device": {
@@ -118,6 +112,58 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Siitepölytietoja ei voitu päivittää"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Sijainti",
+      "entry_type": "Sijainti",
+      "initiate_flow": {
+        "user": "Lisää sijainti"
+      },
+      "step": {
+        "user": {
+          "title": "Lisää Pollen Levels -sijainti",
+          "description": "Lisää sijainti, joka käyttää tämän Pollen Levels -merkinnän API-avainta.",
+          "data": {
+            "name": "Nimi",
+            "location": "Sijainti"
+          }
+        },
+        "reconfigure": {
+          "title": "Määritä Pollen Levels -sijainti uudelleen",
+          "description": "Päivitä tämän sijainnin nimi ja karttakoordinaatit.",
+          "data": {
+            "name": "Nimi",
+            "location": "Sijainti"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "Tämä sijainti on jo määritetty.",
+        "invalid_coordinates": "Valitse kelvollinen sijainti kartalta.",
+        "unknown": "Tuntematon virhe",
+        "invalid_auth": "Virheellinen API-avain\n\n{error_message}",
+        "cannot_connect": "Palveluun ei saada yhteyttä\n\n{error_message}",
+        "quota_exceeded": "Kiintiö ylitetty\n\n{error_message}"
+      },
+      "abort": {
+        "reconfigure_successful": "Sijainnin uudelleenmääritys onnistui."
+      }
+    }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Virheellinen tallennettu Pollen Levels -sijainti",
+      "description": "Pollen Levels löysi virheellisiä tallennettuja sijaintitietoja kohteelle {entry_title}: {location_title}. Poista ja luo kyseinen sijainti uudelleen tai palauta Home Assistant -varmuuskopio ajalta ennen virheellisen sijainnin luomista."
+    },
+    "location_setup_failed": {
+      "title": "Pollen Levels -sijaintia ei voitu ladata",
+      "description": "Pollen Levels ei voinut ladata sijaintia {location_title} kohteelle {entry_title} määrityksen aikana ({error_type}). Muut kunnossa olevat sijainnit voivat jatkaa toimintaansa. Syy: {reason}. Korjaa ilmoitettu ongelma ja lataa integraatiomerkintä uudelleen, jotta tätä sijaintia yritetään uudestaan. Olemassa olevia entiteettejä ja historiaa ei poisteta tämän paikallisen määritysvirheen vuoksi."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Päiväkohtaiset ennustesensorit poistettiin",
+      "description": "Pollen Levels ei enää luo erillisiä ennuste-entiteettejä, joiden loppu on _d1 tai _d2. Ennustetiedot ovat edelleen saatavilla perussiitepölysensoreissa attribuuttien forecast, tomorrow_* ja d2_* kautta. Päivitä koontinäytöt, automaatiot, mallit ja mukautetut kortit, jotka viittaavat vielä vanhoihin entiteetteihin."
     }
   }
 }

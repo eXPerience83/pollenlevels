@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Configuração dos Níveis de Pólen",
-        "description": "Insira sua chave de API do Google ([obtenha aqui]({api_key_url})) e consulte as melhores práticas ([melhores práticas]({restricting_api_keys_url})). Selecione sua localização no mapa, o intervalo de atualização (horas) e o código de idioma da resposta da API. Você também pode definir os dias de previsão e o escopo dos sensores por dia (TIPOS).",
+        "description": "Insira sua Google API Key ([obtenha aqui]({api_key_url})) e revise as práticas recomendadas ([práticas recomendadas]({restricting_api_keys_url})). Selecione sua localização no mapa, o intervalo de atualização (horas) e o código de idioma da resposta da API. Pollen Levels sempre solicita o horizonte máximo de previsão de 5 dias.",
         "data": {
           "api_key": "Chave da API",
           "name": "Nome",
           "location": "Localização",
           "update_interval": "Intervalo de atualização (horas)",
-          "language_code": "Código de idioma da resposta da API",
-          "forecast_days": "Dias de previsão (1–5)",
-          "create_forecast_sensors": "Escopo dos sensores por dia (TIPOS)"
+          "language_code": "Código de idioma da resposta da API"
         }
       },
       "reauth_confirm": {
@@ -35,14 +33,15 @@
       "quota_exceeded": "Cota excedida\n\n{error_message}",
       "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
       "empty": "Este campo não pode ficar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "invalid_coordinates": "Selecione um local válido no mapa.",
       "unknown": "Erro desconhecido",
       "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
-      "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5."
+      "already_configured": "Este local já está configurado.",
+      "api_key_already_configured": "Esta chave de API já está configurada."
     },
     "abort": {
       "already_configured": "Este local já está configurado.",
+      "api_key_already_configured": "Esta chave de API já está configurada.",
       "reauth_successful": "Reautenticação concluída com sucesso.",
       "reauth_failed": "A reautenticação falhou. Tente novamente.",
       "reconfigure_successful": "A reconfiguração foi concluída com sucesso.",
@@ -53,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opções",
-        "description": "Altere o intervalo de atualização, o idioma da API, os dias de previsão e os sensores por dia para {title}.\nOpções de sensores por dia (TIPOS): Apenas hoje (none), Até amanhã (D+1), Até depois de amanhã (D+2; cria sensores D+1 e D+2).",
+        "description": "Altere o intervalo de atualização e o idioma da API para {title}. Pollen Levels sempre solicita o horizonte máximo de previsão de 5 dias.",
         "data": {
           "update_interval": "Intervalo de atualização (horas)",
-          "language_code": "Código de idioma da resposta da API",
-          "forecast_days": "Dias de previsão (1–5)",
-          "create_forecast_sensors": "Escopo dos sensores por dia (TIPOS)"
+          "language_code": "Código de idioma da resposta da API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Use um código BCP-47 canônico, como \"en\" ou \"es-ES\".",
-      "empty": "Este campo não pode ficar vazio",
-      "invalid_option_combo": "Aumente \"Dias de previsão\" para cobrir os sensores por dia selecionados.",
       "unknown": "Erro desconhecido",
-      "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas.",
-      "invalid_forecast_days": "Os dias de previsão devem estar entre 1 e 5."
+      "invalid_update_interval": "O intervalo de atualização deve estar entre 1 e 24 horas."
     }
   },
   "device": {
@@ -118,6 +112,58 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Não foi possível atualizar os dados de pólen"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Local",
+      "entry_type": "Local",
+      "initiate_flow": {
+        "user": "Adicionar local"
+      },
+      "step": {
+        "user": {
+          "title": "Adicionar local do Pollen Levels",
+          "description": "Adicione um local que usará a chave de API desta entrada do Pollen Levels.",
+          "data": {
+            "name": "Nome",
+            "location": "Local"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigurar local do Pollen Levels",
+          "description": "Atualize o nome deste local e as coordenadas no mapa.",
+          "data": {
+            "name": "Nome",
+            "location": "Local"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "Este local já está configurado.",
+        "invalid_coordinates": "Selecione um local válido no mapa.",
+        "unknown": "Erro desconhecido",
+        "invalid_auth": "Chave de API inválida\n\n{error_message}",
+        "cannot_connect": "Não foi possível conectar ao serviço\n\n{error_message}",
+        "quota_exceeded": "Cota excedida\n\n{error_message}"
+      },
+      "abort": {
+        "reconfigure_successful": "A reconfiguração do local foi concluída com sucesso."
+      }
+    }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Localização armazenada inválida no Pollen Levels",
+      "description": "Pollen Levels encontrou dados de localização armazenados inválidos para {entry_title}: {location_title}. Exclua e recrie a localização afetada ou restaure um backup do Home Assistant anterior à criação da localização inválida."
+    },
+    "location_setup_failed": {
+      "title": "Não foi possível carregar a localização do Pollen Levels",
+      "description": "O Pollen Levels não conseguiu carregar {location_title} para {entry_title} durante a configuração ({error_type}). Outras localizações saudáveis podem continuar funcionando. Motivo: {reason}. Corrija o problema informado e recarregue a entrada da integração para tentar esta localização novamente. As entidades existentes e o histórico não são removidos por causa desta falha local de configuração."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Os sensores de previsão por dia foram removidos",
+      "description": "Pollen Levels não cria mais entidades de previsão separadas terminadas em _d1 ou _d2. Os dados de previsão continuam disponíveis nos sensores base de pólen por meio dos atributos forecast, tomorrow_* e d2_*. Atualize painéis, automações, modelos e cartões personalizados que ainda referenciam as entidades antigas."
     }
   }
 }

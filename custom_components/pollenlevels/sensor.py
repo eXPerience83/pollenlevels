@@ -1,7 +1,7 @@
 """Pollen Levels sensors with multi-day forecast (types & plants).
 
 Key points:
-- Cleans up stale per-day sensors (D+1/D+2) in Entity Registry on reload.
+- Cleans up legacy per-day sensors (D+1/D+2) in Entity Registry on reload.
 - Normalizes language (trim/omit when empty) before calling the API.
 - Redacts API keys in debug logs.
 - Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
@@ -12,10 +12,10 @@ Key points:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 from collections.abc import Awaitable
 from datetime import date, datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
 # Modern sensor base + enums
@@ -39,20 +39,23 @@ if TYPE_CHECKING:
 from .const import (
     ATTRIBUTION,
     CONF_API_KEY,
-    CONF_FORECAST_DAYS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_UPDATE_INTERVAL,
-    DEFAULT_FORECAST_DAYS,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    MAX_FORECAST_DAYS,
-    MIN_FORECAST_DAYS,
+    FORECAST_DAYS,
 )
 from .coordinator import PollenDataUpdateCoordinator
+from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
+from .issue_helpers import create_per_day_forecast_sensors_removed_issue
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
-from .util import safe_parse_int
+from .util import (
+    coordinator_device_id,
+    coordinator_identity_id,
+    stale_runtime_location_filter,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,7 +64,6 @@ __all__ = [
     "CONF_LATITUDE",
     "CONF_LONGITUDE",
     "CONF_UPDATE_INTERVAL",
-    "DEFAULT_FORECAST_DAYS",
     "DEFAULT_UPDATE_INTERVAL",
 ]
 
@@ -77,70 +79,80 @@ PLANT_TYPE_ICONS = TYPE_ICONS
 DEFAULT_ICON = "mdi:flower-pollen"
 
 
-class ForecastSensorMode(StrEnum):
-    """Options for forecast sensor creation."""
-
-    NONE = "none"
-    D1 = "D+1"
-    D1_D2 = "D+1+2"
-
-
-async def _cleanup_per_day_entities(
-    hass: HomeAssistant, entry_id: str, allow_d1: bool, allow_d2: bool
-) -> int:
-    """Remove stale per-day entities (D+1/D+2) from the Entity Registry.
-
-    HA keeps entity registry entries across reloads. If options disable per-day
-    sensors (or forecast_days is insufficient), we proactively remove registry
-    entries to avoid "Unavailable" ghosts in the UI.
-    """
+async def _remove_legacy_per_day_entities(
+    hass: HomeAssistant,
+    entry_id: str,
+    identity_id: str,
+) -> tuple[int, int]:
+    """Remove legacy per-day type forecast entities from the Entity Registry."""
     registry = er.async_get(hass)
     entries = er.async_entries_for_config_entry(registry, entry_id)
+    found = 0
     removed = 0
 
-    def _matches(uid: str, suffix: str) -> bool:
-        """Check if a unique_id belongs to this entry and ends with suffix."""
-        if not uid.startswith(f"{entry_id}_"):
+    def _matches(uid: Any) -> bool:
+        """Check if a unique_id belongs to this identity and is legacy per-day."""
+        if not isinstance(uid, str):
             return False
-        return uid.endswith(suffix)
+        if not uid.startswith(f"{identity_id}_"):
+            return False
+        return uid.endswith(("_d1", "_d2"))
 
-    removals: list[Awaitable[Any]] = []
+    removals: list[tuple[str, str, Awaitable[Any]]] = []
+
+    def _queue_removal(entity_id: str, unique_id: str) -> None:
+        """Remove an entity immediately or queue an awaitable registry removal."""
+        nonlocal removed
+        try:
+            removal = registry.async_remove(entity_id)
+        except Exception:
+            _LOGGER.exception(
+                "Failed to remove legacy per-day entity from registry: %s",
+                entity_id,
+            )
+            return
+
+        if inspect.isawaitable(removal):
+            removals.append((entity_id, unique_id, removal))
+        else:
+            removed += 1
 
     for ent in entries:
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
-        if not allow_d1 and _matches(ent.unique_id, "_d1"):
+        if _matches(ent.unique_id):
+            found += 1
             _LOGGER.debug(
-                "Removing stale D+1 entity from registry: %s (%s)",
+                "Removing legacy per-day entity from registry: %s",
                 ent.entity_id,
-                ent.unique_id,
             )
-            removal = registry.async_remove(ent.entity_id)
-            if asyncio.iscoroutine(removal):
-                removals.append(removal)
-            removed += 1
-            continue
-        if not allow_d2 and _matches(ent.unique_id, "_d2"):
-            _LOGGER.debug(
-                "Removing stale D+2 entity from registry: %s (%s)",
-                ent.entity_id,
-                ent.unique_id,
-            )
-            removal = registry.async_remove(ent.entity_id)
-            if asyncio.iscoroutine(removal):
-                removals.append(removal)
-            removed += 1
+            _queue_removal(ent.entity_id, ent.unique_id)
 
     if removals:
-        await asyncio.gather(*removals)
+        results = await asyncio.gather(
+            *(removal for _, _, removal in removals), return_exceptions=True
+        )
+        for (entity_id, _unique_id, _removal), result in zip(
+            removals, results, strict=True
+        ):
+            if isinstance(result, asyncio.CancelledError):
+                raise result
+            if isinstance(result, Exception):
+                _LOGGER.error(
+                    "Failed to remove legacy per-day entity from registry: %s",
+                    entity_id,
+                    exc_info=(type(result), result, result.__traceback__),
+                )
+                continue
+            removed += 1
 
     if removed:
         _LOGGER.info(
-            "Entity Registry cleanup: removed %d per-day sensors for entry %s",
+            "Entity Registry cleanup: removed %d legacy per-day sensors for entry %s",
             removed,
             entry_id,
         )
-    return removed
+    return found, removed
 
 
 async def async_setup_entry(
@@ -154,82 +166,94 @@ async def async_setup_entry(
     )
     if runtime is None:
         raise ConfigEntryNotReady("Runtime data not ready")
-    coordinator = runtime.coordinator
-
-    opts = config_entry.options or {}
-    raw_days = opts.get(CONF_FORECAST_DAYS, coordinator.forecast_days)
-    parsed = safe_parse_int(raw_days)
-    if parsed is None:
-        _LOGGER.warning(
-            "Invalid forecast_days '%s' for entry %s; defaulting to %s",
-            raw_days,
-            config_entry.entry_id,
-            coordinator.forecast_days,
-        )
-    forecast_days = parsed if parsed is not None else coordinator.forecast_days
-    forecast_days = max(MIN_FORECAST_DAYS, min(MAX_FORECAST_DAYS, forecast_days))
-    create_d1 = coordinator.create_d1
-    create_d2 = coordinator.create_d2
-
-    allow_d1 = create_d1 and forecast_days >= 2
-    allow_d2 = create_d2 and forecast_days >= 3
-
-    data = coordinator.data or {}
-    has_daily = ("date" in data) or any(
-        key.startswith(("type_", "plants_")) for key in data
-    )
-    if not has_daily:
-        message = "No pollen data found during initial setup"
-        _LOGGER.warning(message)
-        raise ConfigEntryNotReady(message)
-
-    # Proactively remove stale D+ entities from the Entity Registry
-    await _cleanup_per_day_entities(
-        hass, config_entry.entry_id, allow_d1=allow_d1, allow_d2=allow_d2
-    )
-
-    sensors: list[CoordinatorEntity] = []
-    for code in data:
-        if code in ("region", "date"):
-            continue
-        if code.endswith("_d1") and not allow_d1:
-            continue
-        if code.endswith("_d2") and not allow_d2:
-            continue
-        sensors.append(PollenSensor(coordinator, code))
-
-    sensors.extend(
-        [
-            PlantsInSeasonTodaySensor(coordinator),
-            OverallPollenRiskTodaySensor(coordinator),
-            TopPollenTypesTodaySensor(coordinator),
-        ]
-    )
-
-    sensors.extend(
-        [
-            RegionSensor(coordinator),
-            DateSensor(coordinator),
-            LastUpdatedSensor(coordinator),
-        ]
-    )
-
-    if _LOGGER.isEnabledFor(logging.DEBUG):
-        ids = [getattr(s, "unique_id", None) for s in sensors]
-        preview = ids[:10]
-        extra = max(0, len(ids) - len(preview))
-        suffix = f", +{extra} more" if extra else ""
+    if not runtime.locations:
         _LOGGER.debug(
-            "Creating %d sensors (preview=%s%s)",
-            len(ids),
-            preview,
-            suffix,
+            "No location subentries configured for entry %s; no sensors to add",
+            config_entry.entry_id,
         )
-    async_add_entities(sensors)
+        return
+
+    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
+        config_entry
+    )
+    legacy_entities_found = False
+    for location in runtime.locations.values():
+        identity_id = coordinator_identity_id(location.coordinator)
+        found_legacy_entities, _removed_legacy_entities = (
+            await _remove_legacy_per_day_entities(
+                hass,
+                config_entry.entry_id,
+                identity_id,
+            )
+        )
+        legacy_entities_found = legacy_entities_found or found_legacy_entities
+
+    if legacy_entities_found:
+        create_per_day_forecast_sensors_removed_issue(hass)
+
+    for location in runtime.locations.values():
+        if filter_stale_locations and location.subentry_id not in active_subentry_ids:
+            _LOGGER.debug(
+                "Skipping stale Pollen Levels sensor runtime location %s for entry %s",
+                location.subentry_id,
+                config_entry.entry_id,
+            )
+            continue
+
+        coordinator = location.coordinator
+        data = coordinator.data or {}
+        has_daily = ("date" in data) or any(
+            key.startswith(("type_", "plant_", "plants_")) for key in data
+        )
+        if not has_daily:
+            message = (
+                "No pollen data found during initial setup for "
+                f"subentry {location.subentry_id}"
+            )
+            _LOGGER.warning(message)
+            raise ConfigEntryNotReady(message)
+
+        sensors: list[CoordinatorEntity] = []
+        for code in data:
+            if code in ("region", "date"):
+                continue
+            if code.endswith(("_d1", "_d2")):
+                continue
+            sensors.append(PollenSensor(coordinator, code))
+
+        sensors.extend(
+            [
+                PlantsInSeasonTodaySensor(coordinator),
+                OverallPollenRiskTodaySensor(coordinator),
+                TopPollenTypesTodaySensor(coordinator),
+            ]
+        )
+
+        sensors.extend(
+            [
+                RegionSensor(coordinator),
+                DateSensor(coordinator),
+                LastUpdatedSensor(coordinator),
+            ]
+        )
+
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            labels = [getattr(s, "code", type(s).__name__) for s in sensors]
+            preview = labels[:10]
+            extra = max(0, len(labels) - len(preview))
+            suffix = f", +{extra} more" if extra else ""
+            _LOGGER.debug(
+                "Creating %d sensors for subentry %s (preview=%s%s)",
+                len(labels),
+                location.subentry_id,
+                preview,
+                suffix,
+            )
+        add_entities_for_subentry(async_add_entities, sensors, location.subentry_id)
 
 
 class PollenSensor(CoordinatorEntity, SensorEntity):
-    """Represent a pollen sensor for a type, plant, or per-day type."""
+    """Represent a pollen sensor for a type or plant."""
 
     # Enable long-term statistics for numeric pollen index values
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -244,7 +268,9 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         self.coordinator = coordinator
         self.code = code
         # Pre-compute a stable unique_id; this never changes for the entity.
-        self._attr_unique_id = f"{self.coordinator.entry_id}_{self.code}"
+        self._attr_unique_id = (
+            f"{coordinator_identity_id(self.coordinator)}_{self.code}"
+        )
 
     @property
     def name(self) -> str:
@@ -266,7 +292,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         """
         info = self.coordinator.data.get(self.code, {})
         if info.get("source") == "type":
-            base_key = self.code.split("_", 1)[1].split("_d", 1)[0].upper()
+            base_key = self.code.split("_", 1)[1].upper()
             return TYPE_ICONS.get(base_key, DEFAULT_ICON)
         # Normalize plant 'type' to uppercase to map icons reliably
         ptype = (info.get("type") or "").upper()
@@ -294,13 +320,13 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
-        # Only include forecast-related attributes if more than 1 day was requested.
-        include_forecast = getattr(self.coordinator, "forecast_days", 1) > 1
+        # Forecast attributes are fixed by the integration-wide Google API horizon.
+        include_forecast = FORECAST_DAYS > 1
 
         # Forecast-related attributes:
-        # - For TYPE sensors: include on main sensors only (not per-day _d1/_d2)
+        # - For TYPE sensors: include on base sensors
         # - For PLANT sensors: include as attributes (no per-day plant sensors)
-        if info.get("source") == "type" and not self.code.endswith(("_d1", "_d2")):
+        if info.get("source") == "type":
             if include_forecast:
                 # Add forecast attributes only when forecast is enabled.
                 for k in (
@@ -371,7 +397,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             else:
                 group = "meta"
 
-        device_id = f"{self.coordinator.entry_id}_{group}"
+        device_id = coordinator_device_id(self.coordinator, group)
         translation_keys = {"type": "types", "plant": "plants", "meta": "info"}
         translation_key = translation_keys.get(group, "info")
         return {
@@ -379,7 +405,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": translation_key,
-            "translation_placeholders": _device_translation_placeholders(
+            "translation_placeholders": device_translation_placeholders(
                 self.coordinator
             ),
         }
@@ -395,14 +421,14 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-        device_id = f"{self.coordinator.entry_id}_{group}"
+        device_id = coordinator_device_id(self.coordinator, group)
         translation_keys = {"type": "types", "plant": "plants"}
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": translation_keys[group],
-            "translation_placeholders": _device_translation_placeholders(
+            "translation_placeholders": device_translation_placeholders(
                 self.coordinator
             ),
         }
@@ -429,17 +455,6 @@ def _summary_attrs(payload: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if key != "state"}
 
 
-def _device_translation_placeholders(
-    coordinator: PollenDataUpdateCoordinator,
-) -> dict[str, str]:
-    """Return privacy-preserving placeholders for translated device names."""
-    return {
-        "title": coordinator.entry_title,
-        "latitude": f"{coordinator.lat:.2f}",
-        "longitude": f"{coordinator.lon:.2f}",
-    }
-
-
 class PlantsInSeasonTodaySensor(_BaseSummarySensor):
     """Represent a count of plants explicitly marked in season today."""
 
@@ -449,7 +464,9 @@ class PlantsInSeasonTodaySensor(_BaseSummarySensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize the plants in season summary sensor."""
         super().__init__(coordinator, "plant")
-        self._attr_unique_id = f"{self.coordinator.entry_id}_plants_in_season_today"
+        self._attr_unique_id = (
+            f"{coordinator_identity_id(self.coordinator)}_plants_in_season_today"
+        )
 
     @property
     def native_value(self) -> int | None:
@@ -475,7 +492,9 @@ class OverallPollenRiskTodaySensor(_BaseSummarySensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize the overall pollen risk summary sensor."""
         super().__init__(coordinator, "type")
-        self._attr_unique_id = f"{self.coordinator.entry_id}_overall_pollen_risk_today"
+        self._attr_unique_id = (
+            f"{coordinator_identity_id(self.coordinator)}_overall_pollen_risk_today"
+        )
 
     @property
     def native_value(self) -> float | int | None:
@@ -499,7 +518,9 @@ class TopPollenTypesTodaySensor(_BaseSummarySensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize the top pollen types summary sensor."""
         super().__init__(coordinator, "type")
-        self._attr_unique_id = f"{self.coordinator.entry_id}_top_pollen_types_today"
+        self._attr_unique_id = (
+            f"{coordinator_identity_id(self.coordinator)}_top_pollen_types_today"
+        )
 
     @property
     def native_value(self) -> str | None:
@@ -525,14 +546,14 @@ class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-        device_id = f"{self.coordinator.entry_id}_meta"
+        device_id = coordinator_device_id(self.coordinator, "meta")
         # Precompute device_info; location and identifiers are stable for the entry.
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
             "manufacturer": "Google",
             "model": "Pollen API",
             "translation_key": "info",
-            "translation_placeholders": _device_translation_placeholders(
+            "translation_placeholders": device_translation_placeholders(
                 self.coordinator
             ),
         }
@@ -558,7 +579,7 @@ class RegionSensor(_BaseMetaSensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize region sensor with static attributes."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self.coordinator.entry_id}_region"
+        self._attr_unique_id = f"{coordinator_identity_id(self.coordinator)}_region"
         self._attr_icon = "mdi:earth"
 
     @property
@@ -580,7 +601,7 @@ class DateSensor(_BaseMetaSensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize date sensor with static attributes."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self.coordinator.entry_id}_date"
+        self._attr_unique_id = f"{coordinator_identity_id(self.coordinator)}_date"
         self._attr_icon = "mdi:calendar"
 
     @property
@@ -612,7 +633,9 @@ class LastUpdatedSensor(_BaseMetaSensor):
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
         """Initialize last updated sensor with static attributes."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self.coordinator.entry_id}_last_updated"
+        self._attr_unique_id = (
+            f"{coordinator_identity_id(self.coordinator)}_last_updated"
+        )
         self._attr_icon = "mdi:clock-check"
 
     @property

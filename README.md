@@ -30,22 +30,22 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - **Multi-language support** — UI in 21 languages (**EN, ES, CA, DE, FR, IT, PL, RU, UK, NL, ZH-Hans, SV, CS, PT-BR, DA, NB, PT-PT, RO, FI, HU, ZH-Hant**) + API responses in any language.
 - **Dynamic sensors** — Auto-creates sensors for all pollen types found in your location.  
 - **Daily summary sensors** — Adds plants in season today, overall pollen risk today, and top pollen types today.
-- **Multi-day forecast for TYPES & PLANTS** —
+- **Five-day forecast for TYPES, PLANTS, and summary sensors** —
+  Pollen Levels always requests the maximum 5-day forecast horizon supported by
+  the Google Maps Pollen API.
   - `forecast` list with `{offset, date, has_index, value, category, description, color_*}`
   - Convenience: `tomorrow_*` and `d2_*`
   - Derived: `trend` and `expected_peak`
-  - **Per-day sensors:** remain **TYPES-only** with selector options `none`, `D+1`,
-    or `D+1+2` (creates both `(D+1)` and `(D+2)` sensors).
-    **PLANTS** expose forecast **as attributes only** (no extra entities).
+  - **PLANTS** expose forecast as attributes only (no extra entities).
 - **Smart grouping** — Organizes sensors into:
   - **Pollen Types** (Grass / Tree / Weed)
   - **Plants** (Oak, Pine, Birch, etc.)
   - **Pollen Info** (Region / Date metadata)  
-- **Configurable updates** — Change update interval, language, forecast days, and per-day sensors without reinstalling.  
+- **Configurable updates** — Change update interval and API response language without reinstalling.
 - **Manual refresh** — Use the per-location **Update now** button entity to refresh a single configured location, or call the global `pollenlevels.force_update` service to refresh all configured locations.
 - **Last Updated sensor** — Shows timestamp of last successful update.
-- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`,
-  `color_hex`, `color_rgb`, and plant details.
+- **Rich attributes** — Includes `inSeason`, index `description`, health `advice`
+  for pollen types, `color_hex`, `color_rgb`, and plant details.
 - **Resilient startup** — Retries setup automatically when the first API response lacks daily pollen info (`dailyInfo` types/plants), ensuring entities appear once data is ready.
 
 ---
@@ -55,8 +55,12 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 - Your **API key** is stored by Home Assistant’s secure config entries.  
 - **We never log your API key.** As a safety net, if it ever appears in an error message, it is **redacted** as `***`.  
 - **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
-- Diagnostics include a redacted `daily_summary` snapshot to help troubleshoot
-  the daily summary sensors without exposing API keys or exact coordinates.
+- Diagnostics include redacted daily, registry, and runtime summaries to help
+  troubleshoot the integration without exposing API keys or exact coordinates.
+  Approximate coordinates are rounded to 1 decimal for support purposes.
+  Diagnostics may also include Home Assistant internal config entry and location
+  subentry identifiers (`entry_id`, `subentry_id`). These are not credentials, but
+  you should still review diagnostics before posting them publicly.
 - Avoid sharing full debug logs publicly; review them for sensitive information before posting.
 - Never share real Google API keys publicly, and do not paste full Google Pollen
   API URLs containing `key=...` into public issues. If a key was exposed,
@@ -71,23 +75,135 @@ You can change:
 
 - **Update interval (hours)** (1–24)
 - **API response language code**
-- **Forecast days** (`1–5`) for pollen TYPES
-- **Per-day TYPE sensors** via `create_forecast_sensors`:
-  - `none` → no extra sensors
-  - `D+1` → sensors for each TYPE with suffix `(D+1)`
-  - `D+1+2` → sensors for `(D+1)` and `(D+2)`
-
-> **Validation rules:**
-> - `D+1` requires `forecast_days ≥ 2`
-> - `D+1+2` requires `forecast_days ≥ 3`
 
 The config and options flows use modern Home Assistant selectors and include
 links to Google’s API key setup and security best practices so you can follow
 the recommended restrictions.
 
-> **After saving Options:** if per-day sensors are disabled or `forecast_days` becomes insufficient, the integration **removes** any stale D+1/D+2 entities from the **Entity Registry** automatically. No manual cleanup needed.
+Forecast days are no longer configurable. Pollen Levels always requests 5 days
+of forecast data so existing sensors can expose the maximum available forecast
+attributes.
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
+
+---
+
+## Migrating from per-day forecast sensors
+
+Pollen Levels no longer creates separate per-day pollen type forecast sensors
+such as:
+
+```text
+sensor.example_grass_d1
+sensor.example_grass_d2
+```
+
+Forecast data is now exposed on the base pollen type sensor through attributes.
+Existing legacy `_d1` and `_d2` entity registry entries owned by Pollen Levels
+are removed automatically during setup/reload. Recorder history is not purged.
+This beta brings that cleanup forward so the migration can be tested with the
+fixed 5-day forecast model before the release candidate.
+
+Before:
+
+```jinja
+{{ states("sensor.example_grass_d1") }}
+{{ states("sensor.example_grass_d2") }}
+```
+
+After:
+
+```jinja
+{{ state_attr("sensor.example_grass", "tomorrow_value") }}
+{{ state_attr("sensor.example_grass", "d2_value") }}
+```
+
+For advanced templates, use the `forecast` attribute and select the desired
+offset:
+
+```jinja
+{% set forecast = state_attr("sensor.example_grass", "forecast") or [] %}
+{% set tomorrow = forecast | selectattr("offset", "eq", 1) | first %}
+{{ tomorrow.value if tomorrow else none }}
+```
+
+With the fixed 5-day horizon, the base sensor can expose future forecast items
+with offsets `1` to `4`, depending on the data returned by the API.
+
+---
+
+## Multiple locations and upgrades
+
+The v3 pre-release line migrates Pollen Levels to Home Assistant config
+subentries. Configuration is stored as one parent API-key entry with one or more
+location subentries. Existing 2.x entries are consolidated by API key during
+migration:
+
+- Legacy entries with the same Google API key are grouped under one parent
+  entry, so the API key is stored once on the parent instead of duplicated.
+- Each migrated legacy location becomes a location subentry under that parent.
+- Duplicate legacy entries are marked as merged and removed after their
+  locations, entities, and devices are moved to the parent. If Home Assistant
+  cannot move the entity or device registry links safely, the legacy entry is
+  kept so the migration can be retried.
+- Migrated location subentries keep the legacy entry ID internally so existing
+  entity unique IDs, devices, dashboards, history, and automations continue to
+  match.
+
+If legacy entries sharing a key used different update interval or language
+options, the parent entry keeps the first entry's options and fills missing
+values from the remaining entries. You can adjust the shared options after
+upgrading from **Settings -> Devices & Services -> Pollen Levels -> Configure**.
+
+To add another location after upgrading, go to **Settings -> Devices & Services
+-> Pollen Levels**, open the parent entry, and add a new location subentry.
+Reconfigure a location from that same entry when only its name or map
+coordinates need to change. Each location has its own sensors and **Update now**
+button; shared options such as update interval and language stay on the parent
+**Configure** flow.
+
+When reauthenticating or reconfiguring the parent API key, the integration tries
+the configured locations until one returns usable pollen data. Authentication
+and quota errors are treated as key-level failures.
+
+During startup, the v3 beta keeps the parent entry available when at least one
+configured location loads successfully. Locations that fail their initial
+non-auth refresh are isolated in diagnostics and retried on parent reload; after
+a repeated retryable failure, the integration creates a Repair warning for the
+affected location. If no configured location can load successfully, the parent
+entry is marked not ready so Home Assistant can retry setup.
+
+Create a Home Assistant backup before installing the v3 pre-release.
+Downgrading to Pollen Levels 2.x after the subentry migration is not supported.
+
+### Diagnostics after the v3 migration
+
+Diagnostics include two support summaries for the v3 migration:
+
+- `registry_summary` shows how many entities and devices are associated with
+  each location subentry.
+- `registry_summary.entities.without_subentry` should normally be `0`.
+- `registry_summary.devices.without_subentry` should normally be `0`.
+- `registry_summary.devices.with_legacy_none_association` should normally be
+  `0`.
+- `runtime_summary` reports temporary runtime-only locations that can remain in
+  memory after deleting a location subentry before the parent entry is reloaded.
+- `runtime_summary.stale_location_count` should normally be `0` after reloading
+  the parent entry.
+- If `runtime_summary.stale_location_count > 0` immediately after deleting a
+  location, reload the Pollen Levels parent entry from Home Assistant.
+
+Diagnostics redact the API key and only include approximate coordinates rounded
+to 1 decimal for support purposes.
+
+---
+
+## Health recommendations
+
+Google Pollen API currently provides health recommendations at pollen type level
+(`GRASS`, `TREE`, `WEED`). Plant sensors expose plant-specific index and
+description data when available, but health advice is usually not provided for
+individual plants.
 
 ---
 
@@ -134,7 +250,7 @@ You need a valid Google Cloud API key with access to the **Maps Pollen API**.
 The setup form also links directly to the Google documentation for obtaining
 an API key and best-practice restrictions.
 
-👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to avoid exhausting your free tier.
+👉 See the **[FAQ](FAQ.md)** for **quota tips**, rate-limit behavior, and best practices to monitor and control Google Cloud billing.
 
 HTTP referrer (website) restrictions are intended for browser-based apps and
 are not supported by this integration.
@@ -195,6 +311,8 @@ severity:
 
 If you want a dedicated pollen Lovelace card with forecast visualizations and a visual editor UI,
 **pollenprognos-card** supports this integration since **v2.9.0**.
+The base sensor `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`
+attributes keep their existing format for card compatibility.
 
 - Repo: [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
 - Install: HACS → Frontend
@@ -236,9 +354,16 @@ color: '[[[
 
 ## ⚠️ Known caveats
 
-* **Localized plant codes**: Google may localize `plantInfo.code` in some locales (e.g., `GRAMINALES` in ES) while others remain English (`OLIVE`, `MUGWORT`).
-  Changing `languageCode` may recreate plant sensors with a different suffix.
-  **Recommendation**: keep API language stable or rename entities in UI after changing it.
+* **Plant codes and localized names**: Pollen Levels uses Google
+  `plantInfo.code` values to keep plant sensor identities stable. In tests
+  across `es`, `en`, `fr`, `de`, `it`, and `pt`, Google returned the same plant
+  codes while localizing `displayName`, descriptions, categories, and
+  recommendations. For example, `GRAMINALES` is the Google plant code for grass
+  pollen plants, while the visible name may appear as `Gramíneas`, `Grasses`,
+  `Graminées`, `Gräser`, or another localized value depending on the selected
+  API language. Pollen Levels does not use localized `displayName` values to
+  build entity identity. If Google changes plant codes in the future, treat that
+  as an upstream API behavior change and include diagnostics when reporting it.
 
 ---
 
@@ -270,7 +395,7 @@ color: '[[[
 ## 🌐 Example API request
 
 ```bash
-curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&location.latitude=48.8566&location.longitude=2.3522&days=2&languageCode=es"
+curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&location.latitude=48.8566&location.longitude=2.3522&days=5&languageCode=es"
 ```
 
 > **Note:** Replace `YOUR_KEY` locally and never share full API URLs containing `key=...` publicly.

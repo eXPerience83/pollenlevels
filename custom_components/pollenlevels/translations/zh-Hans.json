@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "花粉水平配置",
-        "description": "输入你的 Google API 密钥（[在此获取]({api_key_url})）并查看最佳实践（[最佳实践]({restricting_api_keys_url})）。在地图上选择位置、更新间隔（小时）以及 API 响应的语言代码。你还可以设置预测天数以及逐日类型传感器的范围。",
+        "description": "输入你的 Google API Key（[在此获取]({api_key_url})），并查看最佳实践（[最佳实践]({restricting_api_keys_url})）。在地图上选择位置、更新间隔（小时）以及 API 响应语言代码。Pollen Levels 始终请求最长 5 天的预报范围。",
         "data": {
           "api_key": "API 密钥",
           "name": "名称",
           "location": "位置",
           "update_interval": "更新间隔（小时）",
-          "language_code": "API 响应语言代码",
-          "forecast_days": "预测天数（1–5）",
-          "create_forecast_sensors": "逐日类型传感器范围"
+          "language_code": "API 响应语言代码"
         }
       },
       "reauth_confirm": {
@@ -35,14 +33,15 @@
       "quota_exceeded": "配额已用尽\n\n{error_message}",
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
       "empty": "此字段不能为空",
-      "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
       "invalid_coordinates": "请在地图上选择有效的位置。",
       "unknown": "未知错误",
       "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
-      "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
+      "already_configured": "此位置已配置。",
+      "api_key_already_configured": "此 API 密钥已配置。"
     },
     "abort": {
       "already_configured": "该位置已配置。",
+      "api_key_already_configured": "此 API 密钥已配置。",
       "reauth_successful": "重新验证已成功完成。",
       "reauth_failed": "重新验证失败。请重试。",
       "reconfigure_successful": "重新配置已成功完成。",
@@ -53,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – 选项",
-        "description": "修改更新间隔、API 语言、预测天以及逐日类型传感器，适用于 {title}。\n逐日类型传感器选项：仅今日（none）、至明日（D+1）、至后日（D+2；会同时创建 D+1 和 D+2 传感器）。",
+        "description": "更改 {title} 的更新间隔和 API 语言。Pollen Levels 始终请求最长 5 天的预报范围。",
         "data": {
           "update_interval": "更新间隔（小时）",
-          "language_code": "API 响应语言代码",
-          "forecast_days": "预测天数（1–5）",
-          "create_forecast_sensors": "逐日类型传感器范围"
+          "language_code": "API 响应语言代码"
         }
       }
     },
     "error": {
       "invalid_language_format": "请使用规范的 BCP-47 代码，例如 \"en\" 或 \"es-ES\"。",
-      "empty": "此字段不能为空",
-      "invalid_option_combo": "请增加“预测天数”，以覆盖所选的逐日类型传感器。",
       "unknown": "未知错误",
-      "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。",
-      "invalid_forecast_days": "预测天数必须在 1 到 5 之间。"
+      "invalid_update_interval": "更新间隔必须在 1 到 24 小时之间。"
     }
   },
   "device": {
@@ -118,6 +112,58 @@
   "exceptions": {
     "refresh_failed": {
       "message": "无法更新花粉数据"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "位置",
+      "entry_type": "位置",
+      "initiate_flow": {
+        "user": "添加位置"
+      },
+      "step": {
+        "user": {
+          "title": "添加 Pollen Levels 位置",
+          "description": "添加一个使用此 Pollen Levels 条目的 API 密钥的位置。",
+          "data": {
+            "name": "名称",
+            "location": "位置"
+          }
+        },
+        "reconfigure": {
+          "title": "重新配置 Pollen Levels 位置",
+          "description": "更新此位置名称和地图坐标。",
+          "data": {
+            "name": "名称",
+            "location": "位置"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "此位置已配置。",
+        "invalid_coordinates": "请在地图上选择有效位置。",
+        "unknown": "未知错误",
+        "invalid_auth": "无效的 API 密钥\n\n{error_message}",
+        "cannot_connect": "无法连接到服务\n\n{error_message}",
+        "quota_exceeded": "配额已用尽\n\n{error_message}"
+      },
+      "abort": {
+        "reconfigure_successful": "位置重新配置已成功完成。"
+      }
+    }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Pollen Levels 中无效的存储位置",
+      "description": "Pollen Levels 发现 {entry_title}：{location_title} 的存储位置数据无效。请删除并重新创建受影响的设置，或恢复在创建无效位置之前的 Home Assistant 备份。"
+    },
+    "location_setup_failed": {
+      "title": "无法加载 Pollen Levels 位置",
+      "description": "Pollen Levels 在设置期间无法为 {entry_title} 加载 {location_title}（{error_type}）。其他正常的位置仍可继续工作。原因：{reason}。请修复报告的问题并重新加载该集成条目，以重试此位置。现有实体和历史记录不会因为这个本地设置失败而被删除。"
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "已移除按天预报传感器",
+      "description": "Pollen Levels 不再创建以 _d1 或 _d2 结尾的独立预报实体。预报数据仍可通过基础花粉传感器上的 forecast、tomorrow_* 和 d2_* 属性获得。请更新仍引用旧实体的仪表板、自动化、模板和自定义卡片。"
     }
   }
 }

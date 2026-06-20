@@ -9,21 +9,19 @@ CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_LANGUAGE_CODE = "language_code"
+CONF_LEGACY_ENTRY_ID = "legacy_entry_id"
 
-# Forecast-related options (Phase 1.1: types only)
+# Legacy option keys kept only to ignore/remove stored options from releases
+# where forecast days and per-day type forecast sensors were configurable.
 CONF_FORECAST_DAYS = "forecast_days"
-CONF_CREATE_FORECAST_SENSORS = (
-    "create_forecast_sensors"  # values: "none" | "D+1" | "D+1+2"
-)
+CONF_CREATE_FORECAST_SENSORS = "create_forecast_sensors"
+FORECAST_DAYS = 5
 
 # Defaults
 DEFAULT_UPDATE_INTERVAL = 6
 MIN_UPDATE_INTERVAL_HOURS = 1
 MAX_UPDATE_INTERVAL_HOURS = 24
-DEFAULT_FORECAST_DAYS = 2  # today + 1 (tomorrow)
 DEFAULT_ENTRY_TITLE = "Pollen Levels"
-MAX_FORECAST_DAYS = 5
-MIN_FORECAST_DAYS = 1
 POLLEN_API_TIMEOUT = 10
 MAX_RETRIES = 1
 POLLEN_API_KEY_URL = (
@@ -33,9 +31,8 @@ RESTRICTING_API_KEYS_URL = (
     "https://developers.google.com/maps/api-security-best-practices"
 )
 
-# Allowed values for create_forecast_sensors selector
-FORECAST_SENSORS_CHOICES: list[str] = ["none", "D+1", "D+1+2"]
 ATTRIBUTION = "Data provided by Google Maps Pollen API"
+SUBENTRY_TYPE_LOCATION = "location"
 
 
 def is_invalid_api_key_message(message: str | None) -> bool:

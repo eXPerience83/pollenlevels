@@ -3,7 +3,7 @@
 import importlib
 import sys
 from collections.abc import Iterator
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -49,10 +49,68 @@ def test_redact_api_key_returns_empty_string_for_none(util_module):
     assert util_module.redact_api_key(None, "anything") == ""
 
 
+def test_api_key_unique_id_keeps_v3_beta_compatibility(util_module):
+    """Parent unique IDs must stay stable for existing v3 beta users."""
+
+    assert util_module.api_key_unique_id("test-api-key") == "api_key_4c806362b613f749"
+
+
 def test_redact_sensitive_values_returns_empty_string_for_none(util_module):
     """None inputs should yield an empty string."""
 
     assert util_module.redact_sensitive_values(None, api_key="SECRET") == ""
+
+
+@pytest.mark.parametrize(
+    "mapping",
+    [
+        {},
+        {"create_forecast_sensors": None},
+        {"create_forecast_sensors": "none"},
+        {"create_forecast_sensors": " none "},
+        {"create_forecast_sensors": ""},
+        {"create_forecast_sensors": " "},
+        {"create_forecast_sensors": "bad"},
+    ],
+)
+def test_has_legacy_per_day_option_ignores_inactive_values(util_module, mapping):
+    """Inactive or invalid legacy modes should not create Repair warnings."""
+
+    assert util_module.has_legacy_per_day_option(mapping) is False
+
+
+@pytest.mark.parametrize("mode", ["D+1", "D+1+2"])
+def test_has_legacy_per_day_option_detects_active_modes(util_module, mode):
+    """Active legacy per-day modes should create Repair warnings."""
+
+    assert (
+        util_module.has_legacy_per_day_option(
+            {"create_forecast_sensors": "none"},
+            {"create_forecast_sensors": mode},
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize("mode", [" D+1 ", " D+1+2 "])
+def test_has_legacy_per_day_option_normalizes_active_strings(util_module, mode):
+    """Whitespace around active legacy modes should not hide Repair warnings."""
+
+    assert (
+        util_module.has_legacy_per_day_option({"create_forecast_sensors": mode}) is True
+    )
+
+
+def test_has_legacy_per_day_option_accepts_enum_like_values(util_module):
+    """Enum-like legacy option values should be read through their value."""
+
+    class _Mode:
+        value = "D+1"
+
+    assert (
+        util_module.has_legacy_per_day_option({"create_forecast_sensors": _Mode()})
+        is True
+    )
 
 
 def test_redact_sensitive_values_redacts_exact_api_key(util_module):
@@ -347,3 +405,86 @@ def test_validate_location_pair_rejects_invalid_pair(util_module, latitude, long
     """validate_location_pair rejects pairs with any invalid coordinate."""
 
     assert util_module.validate_location_pair(latitude, longitude) is None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, {None}),
+        ("", {None}),
+        ("abc", {"abc"}),
+        (["abc", None, ""], {"abc", None}),
+        ({"abc", None}, {"abc", None}),
+        (("abc", "def"), {"abc", "def"}),
+    ],
+)
+def test_normalize_subentry_ids(util_module, value, expected):
+    """Subentry ID containers should normalize to stable string/None sets."""
+
+    assert util_module.normalize_subentry_ids(value) == expected
+
+
+def test_normalize_subentry_ids_handles_non_iterable_values(util_module):
+    """Non-iterable subentry containers should fall back to legacy None."""
+
+    assert util_module.normalize_subentry_ids(123) == {None}
+
+
+def test_device_subentry_ids_returns_none_without_supported_attributes(util_module):
+    """Devices without subentry attributes should report unavailable metadata."""
+
+    assert util_module.device_subentry_ids(SimpleNamespace(), "entry") is None
+
+
+@pytest.mark.parametrize(
+    ("attr", "value", "expected"),
+    [
+        ("config_entries_subentries", {"entry": {"abc", None}}, {"abc", None}),
+        ("config_entry_subentries", {"entry": {"abc", None}}, {"abc", None}),
+        ("config_subentry_ids", {"abc", None}, {"abc", None}),
+        ("config_subentries", {"abc", None}, {"abc", None}),
+        ("config_subentry_id", "abc", {"abc"}),
+    ],
+)
+def test_device_subentry_ids_reads_supported_home_assistant_attributes(
+    util_module, attr, value, expected
+):
+    """Supported Home Assistant device attributes should use one normalization path."""
+
+    device = SimpleNamespace(**{attr: value})
+
+    assert util_module.device_subentry_ids(device, "entry") == expected
+
+
+def test_device_subentry_ids_mapping_for_other_entry_returns_legacy_none(util_module):
+    """Entry-scoped mappings should preserve legacy None when entry is missing."""
+
+    device = SimpleNamespace(config_entries_subentries={"other": {"abc"}})
+
+    assert util_module.device_subentry_ids(device, "entry") == {None}
+
+
+def test_device_subentry_ids_mapping_for_matching_entry(util_module):
+    """Entry-scoped mappings should return IDs for the requested entry."""
+
+    device = SimpleNamespace(config_entries_subentries={"entry": {"abc"}})
+
+    assert util_module.device_subentry_ids(device, "entry") == {"abc"}
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("es", "es"),
+        (" es ", "es"),
+        ("es-ES", "es-ES"),
+        ("zh-Hans", "zh-Hans"),
+        ("", None),
+        (None, None),
+        ("bad code", None),
+    ],
+)
+def test_normalize_language_code(util_module, value, expected):
+    """Language codes should share one validation path for flow and runtime use."""
+
+    assert util_module.normalize_language_code(value) == expected

@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Konfiguration av pollennivåer",
-        "description": "Ange din Google API-nyckel ([hämta den här]({api_key_url})) och läs bästa praxis ([bästa praxis]({restricting_api_keys_url})). Välj din plats på kartan, uppdateringsintervallet (timmar) och språkkoden för API-svaret. Du kan också ange prognosdagar och omfånget för sensorer per dag (TYPER).",
+        "description": "Ange din Google API Key ([hämta den här]({api_key_url})) och läs igenom bästa praxis ([bästa praxis]({restricting_api_keys_url})). Välj din plats på kartan, uppdateringsintervall (timmar) och språkkod för API-svaret. Pollen Levels begär alltid den maximala prognoshorisonten på 5 dagar.",
         "data": {
           "api_key": "API-nyckel",
           "name": "Namn",
           "location": "Plats",
           "update_interval": "Uppdateringsintervall (timmar)",
-          "language_code": "Språkkod för API-svar",
-          "forecast_days": "Prognosdagar (1–5)",
-          "create_forecast_sensors": "Omfång för sensorer per dag (TYPER)"
+          "language_code": "Språkkod för API-svar"
         }
       },
       "reauth_confirm": {
@@ -35,14 +33,15 @@
       "quota_exceeded": "Kvoten har överskridits\n\n{error_message}",
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
       "empty": "Detta fält får inte vara tomt",
-      "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "invalid_coordinates": "Välj en giltig plats på kartan.",
       "unknown": "Okänt fel",
       "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
-      "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5."
+      "already_configured": "Den här platsen är redan konfigurerad.",
+      "api_key_already_configured": "Den här API-nyckeln är redan konfigurerad."
     },
     "abort": {
       "already_configured": "Den här platsen är redan konfigurerad.",
+      "api_key_already_configured": "Den här API-nyckeln är redan konfigurerad.",
       "reauth_successful": "Återautentiseringen lyckades.",
       "reauth_failed": "Återautentiseringen misslyckades. Försök igen.",
       "reconfigure_successful": "Omkonfigureringen slutfördes.",
@@ -53,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Alternativ",
-        "description": "Ändra uppdateringsintervall, API-språk, prognosdagar och sensorer per dag för {title}.\nAlternativ för sensorer per dag (TYPER): Endast idag (none), Till och med i morgon (D+1), Till och med i övermorgon (D+2; skapar både D+1- och D+2-sensorer).",
+        "description": "Ändra uppdateringsintervallet och API-språket för {title}. Pollen Levels begär alltid den maximala prognoshorisonten på 5 dagar.",
         "data": {
           "update_interval": "Uppdateringsintervall (timmar)",
-          "language_code": "Språkkod för API-svar",
-          "forecast_days": "Prognosdagar (1–5)",
-          "create_forecast_sensors": "Omfång för sensorer per dag (TYPER)"
+          "language_code": "Språkkod för API-svar"
         }
       }
     },
     "error": {
       "invalid_language_format": "Använd en kanonisk BCP-47-kod som \"en\" eller \"es-ES\".",
-      "empty": "Detta fält får inte vara tomt",
-      "invalid_option_combo": "Öka \"Prognosdagar\" för att täcka valda sensorer per dag.",
       "unknown": "Okänt fel",
-      "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar.",
-      "invalid_forecast_days": "Prognosdagar måste vara mellan 1 och 5."
+      "invalid_update_interval": "Uppdateringsintervallet måste vara mellan 1 och 24 timmar."
     }
   },
   "device": {
@@ -118,6 +112,58 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Kunde inte uppdatera pollendata"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Plats",
+      "entry_type": "Plats",
+      "initiate_flow": {
+        "user": "Lägg till plats"
+      },
+      "step": {
+        "user": {
+          "title": "Lägg till Pollen Levels-plats",
+          "description": "Lägg till en plats som använder API-nyckeln från den här Pollen Levels-posten.",
+          "data": {
+            "name": "Namn",
+            "location": "Plats"
+          }
+        },
+        "reconfigure": {
+          "title": "Konfigurera om Pollen Levels-plats",
+          "description": "Uppdatera namnet på den här platsen och kartkoordinaterna.",
+          "data": {
+            "name": "Namn",
+            "location": "Plats"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "Den här platsen är redan konfigurerad.",
+        "invalid_coordinates": "Välj en giltig plats på kartan.",
+        "unknown": "Okänt fel",
+        "invalid_auth": "Ogiltig API-nyckel\n\n{error_message}",
+        "cannot_connect": "Kan inte ansluta till tjänsten\n\n{error_message}",
+        "quota_exceeded": "Kvoten har överskridits\n\n{error_message}"
+      },
+      "abort": {
+        "reconfigure_successful": "Platsen har konfigurerats om."
+      }
+    }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Ogiltig lagrad Pollen Levels-plats",
+      "description": "Pollen Levels hittade ogiltiga lagrade platsdata för {entry_title}: {location_title}. Ta bort och återskapa den berörda platsen eller återställ en Home Assistant-säkerhetskopia från före den ogiltiga platsen skapades."
+    },
+    "location_setup_failed": {
+      "title": "Pollen Levels-platsen kunde inte läsas in",
+      "description": "Pollen Levels kunde inte läsa in {location_title} för {entry_title} under konfigureringen ({error_type}). Andra fungerande platser kan fortsätta att fungera. Orsak: {reason}. Åtgärda det rapporterade problemet och läs in integrationsposten på nytt för att försöka med den här platsen igen. Befintliga entiteter och historik tas inte bort på grund av detta lokala konfigurationsfel."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Prognossensorer per dag har tagits bort",
+      "description": "Pollen Levels skapar inte längre separata prognosenheter som slutar på _d1 eller _d2. Prognosdata är fortfarande tillgängliga på de grundläggande pollensensorerna via attributen forecast, tomorrow_* och d2_*. Uppdatera instrumentpaneler, automatiseringar, mallar och anpassade kort som fortfarande refererar till de gamla enheterna."
     }
   }
 }

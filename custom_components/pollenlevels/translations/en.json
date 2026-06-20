@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Pollen Levels Configuration",
-        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. You can also set forecast days and per-day TYPE sensor range.",
+        "description": "Enter your Google API Key ([get it here]({api_key_url})) and review best practices ([best practices]({restricting_api_keys_url})). Select your location on the map, update interval (hours) and API response language code. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "api_key": "API Key",
           "name": "Name",
           "location": "Location",
           "update_interval": "Update interval (hours)",
-          "language_code": "API response language code",
-          "forecast_days": "Forecast days (1–5)",
-          "create_forecast_sensors": "Per-day TYPE sensors range"
+          "language_code": "API response language code"
         }
       },
       "reauth_confirm": {
@@ -31,44 +29,78 @@
     },
     "error": {
       "invalid_auth": "Invalid API key\n\n{error_message}",
+      "already_configured": "This location is already configured.",
+      "api_key_already_configured": "This API key is already configured.",
       "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
       "quota_exceeded": "Quota exceeded\n\n{error_message}",
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
       "empty": "This field cannot be empty",
-      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "invalid_coordinates": "Please select a valid location on the map.",
       "unknown": "Unknown error",
-      "invalid_update_interval": "Update interval must be between 1 and 24 hours.",
-      "invalid_forecast_days": "Forecast days must be between 1 and 5."
+      "invalid_update_interval": "Update interval must be between 1 and 24 hours."
     },
     "abort": {
       "already_configured": "This location is already configured.",
+      "api_key_already_configured": "This API key is already configured.",
       "reauth_successful": "Re-authentication completed successfully.",
       "reauth_failed": "Re-authentication failed. Please try again.",
       "reconfigure_successful": "Reconfiguration completed successfully.",
       "reconfigure_failed": "Reconfiguration failed. Please try again."
     }
   },
+  "config_subentries": {
+    "location": {
+      "title": "Location",
+      "entry_type": "Location",
+      "initiate_flow": {
+        "user": "Add location"
+      },
+      "step": {
+        "user": {
+          "title": "Add Pollen Levels location",
+          "description": "Add a location that will use the API key from this Pollen Levels entry.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure Pollen Levels location",
+          "description": "Update this location name and map coordinates.",
+          "data": {
+            "name": "Name",
+            "location": "Location"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This location is already configured.",
+        "invalid_coordinates": "Please select a valid location on the map.",
+        "unknown": "Unknown error",
+        "invalid_auth": "Invalid API key\n\n{error_message}",
+        "cannot_connect": "Unable to connect to the pollen service.\n\n{error_message}",
+        "quota_exceeded": "Quota exceeded\n\n{error_message}"
+      },
+      "abort": {
+        "reconfigure_successful": "Location reconfiguration completed successfully."
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {
         "title": "Pollen Levels – Options",
-        "description": "Change the update interval, API language, forecast days and per-day TYPE sensors for {title}.\nOptions for per-day TYPE sensors: Only today (none), Through tomorrow (D+1), Through day after tomorrow (D+2; creates both D+1 and D+2 sensors).",
+        "description": "Change the update interval and API language for {title}. Pollen Levels always requests the maximum 5-day forecast horizon.",
         "data": {
           "update_interval": "Update interval (hours)",
-          "language_code": "API response language code",
-          "forecast_days": "Forecast days (1–5)",
-          "create_forecast_sensors": "Per-day TYPE sensors range"
+          "language_code": "API response language code"
         }
       }
     },
     "error": {
       "invalid_language_format": "Use a canonical BCP-47 code such as \"en\" or \"es-ES\".",
-      "empty": "This field cannot be empty",
-      "invalid_option_combo": "Increase 'Forecast days' to cover selected per-day sensors.",
       "unknown": "Unknown error",
-      "invalid_update_interval": "Update interval must be between 1 and 24 hours.",
-      "invalid_forecast_days": "Forecast days must be between 1 and 5."
+      "invalid_update_interval": "Update interval must be between 1 and 24 hours."
     }
   },
   "device": {
@@ -118,6 +150,20 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Failed to refresh pollen data"
+    }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Invalid stored Pollen Levels location",
+      "description": "Pollen Levels found invalid stored location data for {entry_title}: {location_title}. Delete and recreate the affected location, or restore a Home Assistant backup from before the invalid location was created."
+    },
+    "location_setup_failed": {
+      "title": "Pollen Levels location could not be loaded",
+      "description": "Pollen Levels could not load {location_title} for {entry_title} during setup ({error_type}). Other healthy locations may continue to work. Reason: {reason}. Fix the reported issue and reload the integration entry to retry this location. Existing entities and history are not removed because of this local setup failure."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Per-day forecast sensors were removed",
+      "description": "Pollen Levels no longer creates separate forecast entities ending in _d1 or _d2. Forecast data is still available on the base pollen sensors through the forecast, tomorrow_* and d2_* attributes. Update dashboards, automations, templates and custom cards that still reference the old entities."
     }
   }
 }

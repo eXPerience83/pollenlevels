@@ -297,6 +297,41 @@ def stub_update_coordinator_module(
     return module
 
 
+class StubIssueRegistry:
+    """Minimal issue registry stub for inspecting Repair calls."""
+
+    def __init__(self):
+        self.issues: dict[str, dict] = {}
+        self.deleted: list[tuple[object, str, str]] = []
+
+    def async_create_issue(self, hass, domain, issue_id, **kwargs):
+        self.issues[issue_id] = {"hass": hass, "domain": domain, **kwargs}
+
+    def async_delete_issue(self, hass, domain, issue_id):
+        self.deleted.append((hass, domain, issue_id))
+        self.issues.pop(issue_id, None)
+
+
+class StubIssueSeverity:
+    ERROR = "error"
+    WARNING = "warning"
+
+
+def stub_issue_registry_module(
+    *, monkeypatch: pytest.MonkeyPatch | None = None
+) -> ModuleType:
+    """Install a lightweight homeassistant.helpers.issue_registry stub."""
+    module = ModuleType("homeassistant.helpers.issue_registry")
+    registry = StubIssueRegistry()
+    module.registry = registry
+    module.async_create_issue = registry.async_create_issue
+    module.async_delete_issue = registry.async_delete_issue
+    module.IssueSeverity = StubIssueSeverity
+    return _set_module(
+        "homeassistant.helpers.issue_registry", module, monkeypatch=monkeypatch
+    )
+
+
 def clear_integration_modules(
     package_name: str = "custom_components.pollenlevels",
     *,

@@ -33,6 +33,7 @@ CONST_PATH = COMPONENT_DIR / "const.py"
 SENSOR_PATH = COMPONENT_DIR / "sensor.py"
 BUTTON_PATH = COMPONENT_DIR / "button.py"
 SERVICES_YAML_PATH = COMPONENT_DIR / "services.yaml"
+ALLOWED_SHARED_LOCALIZED_STRINGS: set[str] = set()
 
 
 def _fail_unexpected_ast(context: str) -> None:
@@ -55,6 +56,17 @@ def _flatten_keys(data: dict[str, Any], prefix: str = "") -> set[str]:
         else:
             keys.add(path)
     return keys
+
+
+def _value_at_path(data: dict[str, Any], path: str) -> Any:
+    """Return a nested translation value for a dotted path."""
+
+    current: Any = data
+    for part in path.split("."):
+        if not isinstance(current, dict):
+            return None
+        current = current.get(part)
+    return current
 
 
 def _load_translation(path: Path) -> dict[str, Any]:
@@ -316,6 +328,95 @@ def test_translations_match_english_keyset() -> None:
     assert not problems, "Translation keys mismatch: " + "; ".join(problems)
 
 
+def test_config_subentries_location_schema_shape() -> None:
+    """Validate hassfest-required location subentry translation shape."""
+
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        data = _load_translation(translation_path)
+        location = data.get("config_subentries", {}).get("location", {})
+
+        entry_type = location.get("entry_type")
+        if not isinstance(entry_type, str) or not entry_type.strip():
+            problems.append(
+                f"{translation_path.name}: config_subentries.location.entry_type "
+                "must be a non-empty string"
+            )
+
+        initiate_flow = location.get("initiate_flow")
+        if isinstance(initiate_flow, str):
+            problems.append(
+                f"{translation_path.name}: config_subentries.location.initiate_flow "
+                "must be an object, not a string"
+            )
+            continue
+        if not isinstance(initiate_flow, dict):
+            problems.append(
+                f"{translation_path.name}: config_subentries.location.initiate_flow "
+                "must be an object"
+            )
+            continue
+
+        initiate_user = initiate_flow.get("user")
+        if not isinstance(initiate_user, str) or not initiate_user.strip():
+            problems.append(
+                f"{translation_path.name}: "
+                "config_subentries.location.initiate_flow.user must be a "
+                "non-empty string"
+            )
+
+    assert not problems, "Invalid location subentry translation shape: " + "; ".join(
+        problems
+    )
+
+
+def test_v3_subentry_translation_strings_are_localized() -> None:
+    """Ensure new v3 location-subentry strings are not copied from English."""
+
+    english = _load_translation(TRANSLATIONS_DIR / "en.json")
+    localized_paths = {
+        "config.step.user.description",
+        "options.step.init.description",
+        "config.error.already_configured",
+        "config_subentries.location.title",
+        "config_subentries.location.entry_type",
+        "config_subentries.location.initiate_flow.user",
+        "config_subentries.location.step.user.title",
+        "config_subentries.location.step.user.description",
+        "config_subentries.location.step.reconfigure.title",
+        "config_subentries.location.step.reconfigure.description",
+        "config_subentries.location.error.already_configured",
+        "config_subentries.location.error.invalid_coordinates",
+        "config_subentries.location.error.invalid_auth",
+        "config_subentries.location.error.cannot_connect",
+        "config_subentries.location.error.quota_exceeded",
+        "config_subentries.location.error.unknown",
+        "config_subentries.location.abort.reconfigure_successful",
+        "issues.location_setup_failed.title",
+        "issues.location_setup_failed.description",
+        "issues.per_day_forecast_sensors_removed.title",
+        "issues.per_day_forecast_sensors_removed.description",
+    }
+
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        if translation_path.name == "en.json":
+            continue
+        locale = _load_translation(translation_path)
+        copied = [
+            key
+            for key in sorted(localized_paths)
+            if key not in ALLOWED_SHARED_LOCALIZED_STRINGS
+            and _value_at_path(locale, key) == _value_at_path(english, key)
+        ]
+        if copied:
+            problems.append(f"{translation_path.name}: {copied}")
+
+    assert not problems, "Locale strings still copied from English: " + "; ".join(
+        problems
+    )
+
+
 def test_config_flow_translation_keys_present() -> None:
     """Ensure config/options flow keys referenced in code exist in English JSON."""
 
@@ -331,8 +432,10 @@ def test_config_flow_extractor_includes_helper_error_keys() -> None:
     keys = _extract_config_flow_keys()
     assert "config.error.invalid_update_interval" in keys
     assert "options.error.invalid_update_interval" in keys
-    assert "config.error.invalid_forecast_days" in keys
-    assert "options.error.invalid_forecast_days" in keys
+    assert "config.error.invalid_language_format" in keys
+    assert "options.error.invalid_language_format" in keys
+    assert "config.error.invalid_forecast_days" not in keys
+    assert "options.error.invalid_forecast_days" not in keys
 
 
 def test_button_translation_keys_present() -> None:
@@ -432,6 +535,69 @@ def test_services_yaml_labels_match_translations() -> None:
             assert (
                 value == expected
             ), f"Service {service_name} {key} mismatch: {value!r} != {expected!r}"
+
+
+def test_issues_invalid_stored_location_keys_present() -> None:
+    """Ensure all locales have issues.invalid_stored_location with correct placeholders."""
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        data = _load_translation(translation_path)
+        issues = data.get("issues", {})
+        invalid_location = issues.get("invalid_stored_location", {})
+        title = invalid_location.get("title")
+        description = invalid_location.get("description")
+        if not isinstance(title, str) or not title.strip():
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.title "
+                "is missing or empty"
+            )
+        if not isinstance(description, str) or not description.strip():
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.description "
+                "is missing or empty"
+            )
+        if "{entry_title}" not in (description or ""):
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.description "
+                "missing {{entry_title}} placeholder"
+            )
+        if "{location_title}" not in (description or ""):
+            problems.append(
+                f"{translation_path.name}: issues.invalid_stored_location.description "
+                "missing {{location_title}} placeholder"
+            )
+    assert not problems, "Issues translation validation failed: " + "; ".join(problems)
+
+
+def test_issues_per_day_forecast_sensors_removed_keys_present() -> None:
+    """Ensure all locales have the per-day sensor removal Repair issue strings."""
+    problems: list[str] = []
+    for translation_path in TRANSLATIONS_DIR.glob("*.json"):
+        data = _load_translation(translation_path)
+        issues = data.get("issues", {})
+        issue = issues.get("per_day_forecast_sensors_removed", {})
+        title = issue.get("title")
+        description = issue.get("description")
+        if not isinstance(title, str) or not title.strip():
+            problems.append(
+                f"{translation_path.name}: "
+                "issues.per_day_forecast_sensors_removed.title is missing or empty"
+            )
+        if not isinstance(description, str) or not description.strip():
+            problems.append(
+                f"{translation_path.name}: "
+                "issues.per_day_forecast_sensors_removed.description "
+                "is missing or empty"
+            )
+        if "{" in (description or "") or "}" in (description or ""):
+            problems.append(
+                f"{translation_path.name}: "
+                "issues.per_day_forecast_sensors_removed.description "
+                "must not contain placeholders"
+            )
+    assert not problems, "Per-day issue translation validation failed: " + "; ".join(
+        problems
+    )
 
 
 def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:

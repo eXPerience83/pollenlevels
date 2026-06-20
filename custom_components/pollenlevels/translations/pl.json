@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Konfiguracja poziomów pyłku",
-        "description": "Wprowadź swój klucz Google API ([uzyskaj go tutaj]({api_key_url})) i zapoznaj się z dobrymi praktykami ([dobre praktyki]({restricting_api_keys_url})). Wybierz lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API. Możesz także ustawić dni prognozy oraz zakres czujników dziennych (TYPY).",
+        "description": "Wprowadź swój Google API Key ([pobierz tutaj]({api_key_url})) i zapoznaj się z dobrymi praktykami ([dobre praktyki]({restricting_api_keys_url})). Wybierz lokalizację na mapie, interwał aktualizacji (godziny) oraz kod języka odpowiedzi API. Pollen Levels zawsze pobiera maksymalny 5-dniowy horyzont prognozy.",
         "data": {
           "api_key": "Klucz API",
           "name": "Nazwa",
           "location": "Lokalizacja",
           "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API",
-          "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
+          "language_code": "Kod języka odpowiedzi API"
         }
       },
       "reauth_confirm": {
@@ -35,14 +33,15 @@
       "quota_exceeded": "Przekroczono limit\n\n{error_message}",
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
       "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
       "unknown": "Nieznany błąd",
       "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
-      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
+      "already_configured": "Ta lokalizacja jest już skonfigurowana.",
+      "api_key_already_configured": "Ten klucz API jest już skonfigurowany."
     },
     "abort": {
       "already_configured": "Ta lokalizacja jest już skonfigurowana.",
+      "api_key_already_configured": "Ten klucz API jest już skonfigurowany.",
       "reauth_successful": "Ponowne uwierzytelnienie zakończone pomyślnie.",
       "reauth_failed": "Ponowne uwierzytelnienie nie powiodło się. Spróbuj ponownie.",
       "reconfigure_successful": "Ponowna konfiguracja została zakończona pomyślnie.",
@@ -53,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opcje",
-        "description": "Zmień interwał aktualizacji, język odpowiedzi API, liczbę dni prognozy oraz czujniki dzienne dla TYPÓW dla {title}.\nOpcje czujników dziennych (TYPY): Tylko dziś (none), Do jutra (D+1), Do pojutrza (D+2; tworzy czujniki D+1 i D+2).",
+        "description": "Zmień interwał aktualizacji i język API dla {title}. Pollen Levels zawsze pobiera maksymalny 5-dniowy horyzont prognozy.",
         "data": {
           "update_interval": "Interwał aktualizacji (godziny)",
-          "language_code": "Kod języka odpowiedzi API",
-          "forecast_days": "Dni prognozy (1–5)",
-          "create_forecast_sensors": "Zakres czujników dziennych (TYPY)"
+          "language_code": "Kod języka odpowiedzi API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Użyj kanonicznego kodu BCP-47, np. \"en\" lub \"es-ES\".",
-      "empty": "To pole nie może być puste",
-      "invalid_option_combo": "Zwiększ 'Dni prognozy', aby objąć wybrane czujniki dzienne.",
       "unknown": "Nieznany błąd",
-      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin.",
-      "invalid_forecast_days": "Dni prognozy muszą mieścić się w zakresie 1–5."
+      "invalid_update_interval": "Interwał aktualizacji musi wynosić od 1 do 24 godzin."
     }
   },
   "device": {
@@ -118,6 +112,58 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Nie udało się zaktualizować danych o pyłkach"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Lokalizacja",
+      "entry_type": "Lokalizacja",
+      "initiate_flow": {
+        "user": "Dodaj lokalizację"
+      },
+      "step": {
+        "user": {
+          "title": "Dodaj lokalizację Pollen Levels",
+          "description": "Dodaj lokalizację, która będzie używać klucza API z tego wpisu Pollen Levels.",
+          "data": {
+            "name": "Nazwa",
+            "location": "Lokalizacja"
+          }
+        },
+        "reconfigure": {
+          "title": "Skonfiguruj ponownie lokalizację Pollen Levels",
+          "description": "Zaktualizuj nazwę tej lokalizacji i współrzędne na mapie.",
+          "data": {
+            "name": "Nazwa",
+            "location": "Lokalizacja"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "Ta lokalizacja jest już skonfigurowana.",
+        "invalid_coordinates": "Wybierz prawidłową lokalizację na mapie.",
+        "unknown": "Nieznany błąd",
+        "invalid_auth": "Nieprawidłowy klucz API\n\n{error_message}",
+        "cannot_connect": "Brak połączenia z usługą\n\n{error_message}",
+        "quota_exceeded": "Przekroczono limit\n\n{error_message}"
+      },
+      "abort": {
+        "reconfigure_successful": "Ponowna konfiguracja lokalizacji zakończona pomyślnie."
+      }
+    }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Nieprawidłowa zapisana lokalizacja Pollen Levels",
+      "description": "Pollen Levels znalazł nieprawidłowe zapisane dane lokalizacji dla {entry_title}: {location_title}. Usuń i utwórz ponownie dotkniętą lokalizację lub przywróć kopię zapasową Home Assistant sprzed utworzenia nieprawidłowej lokalizacji."
+    },
+    "location_setup_failed": {
+      "title": "Nie udało się wczytać lokalizacji Pollen Levels",
+      "description": "Pollen Levels nie mógł wczytać {location_title} dla {entry_title} podczas konfiguracji ({error_type}). Inne działające lokalizacje mogą nadal pracować. Powód: {reason}. Napraw zgłoszony problem i przeładuj wpis integracji, aby ponowić próbę dla tej lokalizacji. Istniejące encje i historia nie są usuwane z powodu tej lokalnej awarii konfiguracji."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Usunięto dzienne sensory prognozy",
+      "description": "Pollen Levels nie tworzy już oddzielnych encji prognozy kończących się na _d1 lub _d2. Dane prognozy nadal są dostępne w podstawowych sensorach pyłków przez atrybuty forecast, tomorrow_* i d2_*. Zaktualizuj pulpity, automatyzacje, szablony i niestandardowe karty, które nadal odwołują się do starych encji."
     }
   }
 }

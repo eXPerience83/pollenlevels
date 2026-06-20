@@ -1,3 +1,222 @@
+## [3.0.0rc1] - 2026-06-20
+
+### Changed
+
+- Clarified that Google `plantInfo.code` values are stable across tested API
+  languages and are used for plant sensor identity, while localized
+  `displayName` values only affect visible names and attributes.
+- Removed the unused `is_auth_error` field from failed location diagnostics.
+  Authentication failures are handled at the parent/API-key level, so failed
+  location diagnostics no longer expose this per-location authentication flag.
+- Clarified the v3 beta documentation for partial location setup during startup
+  and documented that diagnostics may include Home Assistant internal `entry_id`
+  and `subentry_id` values.
+
+## [3.0.0b5] - 2026-06-14
+
+### Added
+
+- Added conservative partial setup for v3 location subentries. When one
+  location has a local non-auth setup failure, healthy locations under the same
+  parent API key can continue loading.
+- Added per-location setup failure runtime metadata exposed through diagnostics
+  under `failed_locations`.
+- Added a Home Assistant Repair warning for repeated isolated location setup
+  failures, with privacy-safe details and guidance to reload the parent entry
+  after fixing the affected location.
+- Added Home Assistant harness coverage for setup, subentry flows, services,
+  diagnostics, platform entity registration, and the fixed 5-day API request.
+
+### Changed
+
+- Sensors, `Update now` buttons, and the global `pollenlevels.force_update`
+  action now operate only on successfully loaded runtime locations.
+- Runtime diagnostics now distinguish loaded, failed, and stale locations
+  through separate summary fields.
+- Retryable partial setup failures now schedule a conservative automatic parent
+  reload before surfacing the per-location Repair warning.
+- Replaced duplicated lightweight stub tests with Home Assistant harness tests
+  where the real runtime path now provides equivalent coverage.
+
+### Fixed
+
+- Prevented one invalid or temporarily unavailable location subentry from
+  blocking other healthy locations under the same parent entry.
+- Cleared location setup failure Repair warnings automatically when the affected
+  location loads successfully after a reload.
+- Cleared stale per-location Repair warnings automatically when the affected
+  location subentry has been removed.
+- Avoided relying on Home Assistant issue registry internals when cleaning stale
+  per-location Repair warnings.
+- Corrected failed-location diagnostics so invalid stored locations are not
+  marked as reload-retryable.
+- Kept failed-location registry entries untouched so existing entities and
+  recorder history are not removed because of a local setup failure.
+- Localized the new setup failure Repair warning across all supported locales.
+- Removed legacy single-location duplicate fields from diagnostics. In v3,
+  per-location diagnostics are now exposed only under `locations`, avoiding
+  misleading top-level data copied from the first location.
+- Passed the config entry into the data update coordinator when supported by
+  Home Assistant, preserving compatibility with newer coordinator contracts.
+- Ignored invalid stored API language codes instead of sending malformed
+  `languageCode` values to Google.
+
+## [3.0.0b4] - 2026-06-11
+
+### Changed
+
+- Forecast days are now fixed at 5 for all entries and locations, so all users
+  get the maximum forecast horizon supported by the Google Maps Pollen API.
+- Removed the configuration options for forecast days and separate per-day TYPE
+  forecast sensors from setup and options flows.
+- **Breaking change:** Removed optional per-day pollen TYPE forecast sensors
+  ending in `_d1` and `_d2`. Forecast data remains available through attributes
+  on the base pollen type, plant, and summary sensors, including `forecast`,
+  `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`.
+- This beta intentionally brings the `_d1` and `_d2` cleanup forward so the
+  fixed 5-day forecast model, legacy entity cleanup, and Repair warning can be
+  tested together before the release candidate.
+- Existing entries with stored `forecast_days` or `create_forecast_sensors`
+  options are upgraded automatically. Legacy `_d1` and `_d2` entity registry
+  entries owned by Pollen Levels are removed during setup/reload.
+
+### Fixed
+
+- Added a Home Assistant Repair issue when stored Pollen Levels location
+  data is invalid, so users get visible guidance to delete/recreate the
+  affected location or restore a backup.
+- Added a Home Assistant Repair warning when legacy per-day forecast sensors or
+  options are detected, so users know to update dashboards, automations,
+  templates, and custom cards that still reference `_d1` or `_d2` entities.
+
+## [3.0.0b3] - 2026-06-09
+
+### Added
+
+- Exposed plant-style forecast attributes on the overall pollen risk summary
+  sensor so compatible Lovelace cards can render upcoming-day general pollen
+  risk values.
+
+### Changed
+
+- Extracted duplicated coordinator identity, device identifier, API key, and
+  location unique ID helpers into shared utilities without changing entity IDs,
+  device IDs, diagnostics, or migration behavior.
+
+### Fixed
+
+- Propagated `asyncio.CancelledError` from the global `pollenlevels.force_update`
+  action so Home Assistant shutdown, reload, and task cancellation are not
+  swallowed.
+- Accepted current-day `plant_` pollen payload keys during sensor setup so
+  valid plant-only data is not treated as missing pollen data.
+
+## [3.0.0b2] - 2026-06-07
+
+### Changed
+
+- Reiterated that this is still a beta pre-release for the v3 config subentry
+  migration.
+- Reminded users to create a Home Assistant backup before upgrading from `2.x`.
+- Clarified that downgrading from `3.x` to `2.x` is not supported without
+  restoring a backup.
+
+### Fixed
+
+- Prevent deleted location subentries from temporarily recreating sensors or
+  update buttons from stale runtime data before the parent entry is reloaded.
+- Keep stale runtime location filtering consistent across sensor setup, update
+  button setup, and the `pollenlevels.force_update` service.
+
+## [3.0.0b1] - 2026-06-05
+
+### Changed
+- Promoted the v3 config subentries migration from alpha to beta for wider
+  real-world validation.
+- Documented the beta upgrade path and clarified that downgrading to Pollen
+  Levels 2.x after the v3 subentry migration is not supported.
+- Aligned release metadata for the beta package.
+
+### Fixed
+- Hardened v3 migration against invalid legacy location subentries before setup
+  can reuse them.
+- Redacted API keys and exact coordinates from user-controlled diagnostics
+  titles across legacy, subentry, and runtime locations.
+- Clarified duplicate API-key errors during setup, reauthentication, and
+  reconfiguration.
+- Updated migration retry logs so partial migration preparation is not described
+  as fully unchanged.
+- Avoided logging user-controlled setup/config-flow text that may accidentally
+  contain secrets.
+- Corrected README wording about multi-location startup behavior during beta
+  validation.
+- Hardened v3 beta setup against duplicate API-key fallback detection, partial
+  legacy coordinates, missing button runtime data, and expected abort flow
+  handling.
+
+## [3.0.0a4] - 2026-06-05
+### Fixed
+- Hardened Google Pollen `dailyInfo` validation during config flow.
+- Prevented invalid or partial legacy coordinates from being migrated into v3
+  location subentries.
+- Aborted API-key group migration safely when any grouped legacy entry has
+  invalid coordinates.
+- Prevented partial parent setup when one configured location fails initial
+  refresh.
+- Kept parent entries without location subentries supported with an empty
+  runtime.
+
+## [3.0.0a3] - 2026-06-02
+### Fixed
+- Skipped stale runtime location coordinators after a location subentry is
+  removed, preventing manual refreshes before the parent entry reloads.
+- Reported stale runtime locations in diagnostics while excluding them from the
+  normal active location diagnostics block.
+
+## [3.0.0a2] - 2026-06-02
+### Fixed
+- Repaired v3 migration of surviving legacy parent entity and device registry
+  links so migrated entities remain associated with their location subentry and
+  preserve history.
+- Removed residual legacy non-subentry device associations after attaching the
+  surviving parent device to its migrated location subentry.
+- Added registry migration diagnostics and migration summary logging to verify
+  entity/device subentry associations after migration.
+
+## [3.0.0a1] - 2026-06-01
+### Changed
+- First v3 alpha release for validating the Home Assistant config subentry
+  migration before later pre-releases.
+- **Breaking change:** Migrated configuration storage to Home Assistant config
+  subentries. After upgrading to 3.0.0a1, downgrading to Pollen Levels 2.x is not
+  supported and may require removing and recreating the integration. Create a
+  Home Assistant backup before upgrading.
+- Converted each Pollen Levels entry into a parent API-key entry with location
+  subentries and one coordinator per location.
+- Consolidated legacy entries that share the same Google API key into one
+  parent entry with multiple location subentries, moving each location under
+  that parent and removing duplicate API-key entries after they are marked as
+  merged.
+- Updated setup, sensors, button entities, diagnostics, and the
+  `pollenlevels.force_update` service to handle multiple location subentries
+  under one parent entry.
+- Limited the global `pollenlevels.force_update` service to refresh location
+  coordinators sequentially to avoid request bursts.
+- Preserved migrated entity unique IDs by storing the legacy entry ID on the
+  migrated location subentry.
+- Moved entity and device registry links from merged legacy entries to the
+  parent location subentry when possible.
+- Validated parent API-key reauth and reconfigure flows against configured
+  locations until one location returns usable pollen data.
+
+### Fixed
+- Validated added and reconfigured location subentries against the Google Pollen
+  API before saving them.
+- Kept a parent entry available when one non-auth location refresh fails during
+  setup, as long as at least one configured location loads successfully.
+- Attached entity and device registry links for surviving legacy parent entries
+  to their migrated location subentries.
+
 ## [2.3.0] - 2026-05-31
 ### Added
 - Added the per-location "Update now" button entity to the stable release,

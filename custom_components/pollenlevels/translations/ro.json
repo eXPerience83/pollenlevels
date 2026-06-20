@@ -3,15 +3,13 @@
     "step": {
       "user": {
         "title": "Configurare Niveluri de Polen",
-        "description": "Introdu cheia ta API Google ([obține-o aici]({api_key_url})) și consultă cele mai bune practici ([cele mai bune practici]({restricting_api_keys_url})). Selectează locația pe hartă, intervalul de actualizare (ore) și codul de limbă al răspunsului API. Poți seta și zilele de prognoză și domeniul senzorilor pe zile (TIPURI).",
+        "description": "Introdu Google API Key ([obține-o aici]({api_key_url})) și consultă bunele practici ([bune practici]({restricting_api_keys_url})). Selectează locația pe hartă, intervalul de actualizare (ore) și codul de limbă al răspunsului API. Pollen Levels solicită întotdeauna orizontul maxim de prognoză de 5 zile.",
         "data": {
           "api_key": "Cheie API",
           "name": "Nume",
           "location": "Locație",
           "update_interval": "Interval de actualizare (ore)",
-          "language_code": "Codul limbii pentru răspunsul API",
-          "forecast_days": "Zile de prognoză (1–5)",
-          "create_forecast_sensors": "Domeniul senzorilor pe zile (TIPURI)"
+          "language_code": "Codul limbii pentru răspunsul API"
         }
       },
       "reauth_confirm": {
@@ -35,14 +33,15 @@
       "quota_exceeded": "Cota depășită\n\n{error_message}",
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
       "empty": "Acest câmp nu poate fi gol",
-      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "invalid_coordinates": "Selectează o locație validă pe hartă.",
       "unknown": "Eroare necunoscută",
       "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore.",
-      "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5."
+      "already_configured": "Această locație este deja configurată.",
+      "api_key_already_configured": "Această cheie API este deja configurată."
     },
     "abort": {
       "already_configured": "Această locație este deja configurată.",
+      "api_key_already_configured": "Această cheie API este deja configurată.",
       "reauth_successful": "Reautentificarea s-a încheiat cu succes.",
       "reauth_failed": "Reautentificarea a eșuat. Încercați din nou.",
       "reconfigure_successful": "Reconfigurarea s-a finalizat cu succes.",
@@ -53,22 +52,17 @@
     "step": {
       "init": {
         "title": "Pollen Levels – Opțiuni",
-        "description": "Modificați intervalul de actualizare, limba API, zilele de prognoză și senzorii pe zile pentru {title}.\nOpțiuni pentru senzorii pe zile (TIPURI): Doar azi (none), Până mâine (D+1), Până poimâine (D+2; creează atât senzori D+1, cât și D+2).",
+        "description": "Schimbă intervalul de actualizare și limba API pentru {title}. Pollen Levels solicită întotdeauna orizontul maxim de prognoză de 5 zile.",
         "data": {
           "update_interval": "Interval de actualizare (ore)",
-          "language_code": "Codul limbii pentru răspunsul API",
-          "forecast_days": "Zile de prognoză (1–5)",
-          "create_forecast_sensors": "Domeniul senzorilor pe zile (TIPURI)"
+          "language_code": "Codul limbii pentru răspunsul API"
         }
       }
     },
     "error": {
       "invalid_language_format": "Folosiți un cod BCP-47 canonic, de exemplu \"en\" sau \"es-ES\".",
-      "empty": "Acest câmp nu poate fi gol",
-      "invalid_option_combo": "Măriți \"Zilele de prognoză\" pentru a acoperi senzorii selectați pe zile.",
       "unknown": "Eroare necunoscută",
-      "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore.",
-      "invalid_forecast_days": "Zilele de prognoză trebuie să fie între 1 și 5."
+      "invalid_update_interval": "Intervalul de actualizare trebuie să fie între 1 și 24 de ore."
     }
   },
   "device": {
@@ -118,6 +112,58 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Nu s-au putut actualiza datele despre polen"
+    }
+  },
+  "config_subentries": {
+    "location": {
+      "title": "Locație",
+      "entry_type": "Locație",
+      "initiate_flow": {
+        "user": "Adaugă locație"
+      },
+      "step": {
+        "user": {
+          "title": "Adaugă o locație Pollen Levels",
+          "description": "Adaugă o locație care va folosi cheia API din această intrare Pollen Levels.",
+          "data": {
+            "name": "Nume",
+            "location": "Locație"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigurează locația Pollen Levels",
+          "description": "Actualizează numele acestei locații și coordonatele de pe hartă.",
+          "data": {
+            "name": "Nume",
+            "location": "Locație"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "Această locație este deja configurată.",
+        "invalid_coordinates": "Selectează o locație validă pe hartă.",
+        "unknown": "Eroare necunoscută",
+        "invalid_auth": "Cheie API nevalidă\n\n{error_message}",
+        "cannot_connect": "Nu se poate conecta la serviciu\n\n{error_message}",
+        "quota_exceeded": "Cota depășită\n\n{error_message}"
+      },
+      "abort": {
+        "reconfigure_successful": "Reconfigurarea locației s-a finalizat cu succes."
+      }
+    }
+  },
+  "issues": {
+    "invalid_stored_location": {
+      "title": "Locație stocată invalidă în Pollen Levels",
+      "description": "Pollen Levels a găsit date de locație stocate invalide pentru {entry_title}: {location_title}. Ștergeți și recreați locația afectată sau restaurați o copie de rezervă Home Assistant dinaintea creării locației invalide."
+    },
+    "location_setup_failed": {
+      "title": "Locația Pollen Levels nu a putut fi încărcată",
+      "description": "Pollen Levels nu a putut încărca {location_title} pentru {entry_title} în timpul configurării ({error_type}). Alte locații funcționale pot continua să meargă. Motiv: {reason}. Remediază problema raportată și reîncarcă intrarea integrării pentru a reîncerca această locație. Entitățile existente și istoricul nu sunt eliminate din cauza acestei erori locale de configurare."
+    },
+    "per_day_forecast_sensors_removed": {
+      "title": "Senzorii de prognoză pe zi au fost eliminați",
+      "description": "Pollen Levels nu mai creează entități de prognoză separate care se termină în _d1 sau _d2. Datele de prognoză rămân disponibile pe senzorii de polen de bază prin atributele forecast, tomorrow_* și d2_*. Actualizează tablourile de bord, automatizările, șabloanele și cardurile personalizate care încă fac referire la entitățile vechi."
     }
   }
 }
