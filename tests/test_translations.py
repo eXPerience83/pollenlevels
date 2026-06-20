@@ -33,6 +33,7 @@ CONST_PATH = COMPONENT_DIR / "const.py"
 SENSOR_PATH = COMPONENT_DIR / "sensor.py"
 BUTTON_PATH = COMPONENT_DIR / "button.py"
 SERVICES_YAML_PATH = COMPONENT_DIR / "services.yaml"
+ALLOWED_SHARED_LOCALIZED_STRINGS: set[str] = set()
 
 
 def _fail_unexpected_ast(context: str) -> None:
@@ -405,7 +406,8 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
         copied = [
             key
             for key in sorted(localized_paths)
-            if _value_at_path(locale, key) == _value_at_path(english, key)
+            if key not in ALLOWED_SHARED_LOCALIZED_STRINGS
+            and _value_at_path(locale, key) == _value_at_path(english, key)
         ]
         if copied:
             problems.append(f"{translation_path.name}: {copied}")

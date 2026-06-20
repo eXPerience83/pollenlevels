@@ -742,9 +742,28 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         if user_input:
-            location_candidates = _location_data_for_validation(entry) or [
-                dict(entry.data or {})
-            ]
+            location_candidates = _location_data_for_validation(entry)
+            if not location_candidates:
+                updated_api_key = str(user_input.get(CONF_API_KEY, "")).strip()
+                if not updated_api_key:
+                    errors[CONF_API_KEY] = "empty"
+                else:
+                    updated_unique_id = _api_key_unique_id(updated_api_key)
+                    existing_entry = _entry_for_parent_unique_id(
+                        self.hass, updated_unique_id
+                    )
+                    if existing_entry is not None and getattr(
+                        existing_entry, "entry_id", None
+                    ) != getattr(entry, "entry_id", None):
+                        errors = {"base": "api_key_already_configured"}
+                    else:
+                        return self.async_update_reload_and_abort(
+                            entry,
+                            data_updates={CONF_API_KEY: updated_api_key},
+                            unique_id=updated_unique_id,
+                            reason=success_reason,
+                        )
+
             display_errors: dict[str, str] | None = None
             display_placeholders: dict[str, Any] | None = None
 

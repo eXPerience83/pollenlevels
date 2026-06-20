@@ -2006,6 +2006,120 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     assert combined_input[config_flow_stubs.CONF_LONGITUDE] == -0.123456
 
 
+@pytest.mark.parametrize(
+    ("step_method_name", "entry_getter", "step_id", "success_reason"),
+    [
+        (
+            "async_step_reauth_confirm",
+            "_get_reauth_entry",
+            "reauth_confirm",
+            "reauth_successful",
+        ),
+        (
+            "async_step_reconfigure",
+            "_get_reconfigure_entry",
+            "reconfigure",
+            "reconfigure_successful",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ("submitted_key", "duplicate_key", "expected_error"),
+    [
+        pytest.param(" new-key ", None, None, id="updates-key"),
+        pytest.param("   ", None, {"api_key": "empty"}, id="rejects-empty"),
+        pytest.param(
+            " taken-key ",
+            "taken-key",
+            {"base": "api_key_already_configured"},
+            id="rejects-duplicate",
+        ),
+    ],
+)
+def test_api_key_confirm_without_locations(
+    config_flow_stubs: ConfigFlowStubs,
+    step_method_name: str,
+    entry_getter: str,
+    step_id: str,
+    success_reason: str,
+    submitted_key: str,
+    duplicate_key: str | None,
+    expected_error: dict[str, str] | None,
+) -> None:
+    """API-key-only parents should not require location validation."""
+
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "old-key"},
+        entry_id="entry-id",
+        unique_id=config_flow_stubs.config_flow._api_key_unique_id("old-key"),
+        subentries={},
+    )
+    duplicate = (
+        config_flow_stubs.config_flow.config_entries.ConfigEntry(
+            data={config_flow_stubs.CONF_API_KEY: duplicate_key},
+            entry_id="duplicate-entry-id",
+            unique_id=config_flow_stubs.config_flow._api_key_unique_id(duplicate_key),
+        )
+        if duplicate_key is not None
+        else None
+    )
+
+    class _Recorder:
+        def __init__(self) -> None:
+            self.updated = None
+            self.reloaded = None
+
+        def async_entry_for_domain_unique_id(self, domain, unique_id):
+            assert domain == "pollenlevels"
+            if duplicate is not None and duplicate.unique_id == unique_id:
+                return duplicate
+            return None
+
+        def async_update_entry(self, entry_to_update, *, data):
+            self.updated = (entry_to_update, data)
+            entry_to_update.data = data
+
+        def async_reload(self, entry_id):
+            self.reloaded = entry_id
+
+    recorder = _Recorder()
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config_entries=recorder)
+    setattr(flow, entry_getter, lambda: entry)
+    flow.async_show_form = (  # type: ignore[method-assign]
+        lambda *args, **kwargs: {
+            "step_id": kwargs.get("step_id") or (args[0] if args else None),
+            "errors": kwargs.get("errors") or {},
+        }
+    )
+
+    async def unexpected_validate(*args, **kwargs):
+        raise AssertionError("Location validation must not run without locations")
+
+    flow._async_validate_input = unexpected_validate  # type: ignore[assignment]
+
+    result = asyncio.run(
+        getattr(flow, step_method_name)({config_flow_stubs.CONF_API_KEY: submitted_key})
+    )
+
+    if expected_error is not None:
+        assert result == {"step_id": step_id, "errors": expected_error}
+        assert entry.data == {config_flow_stubs.CONF_API_KEY: "old-key"}
+        assert entry.unique_id == config_flow_stubs.config_flow._api_key_unique_id(
+            "old-key"
+        )
+        assert recorder.updated is None
+        assert recorder.reloaded is None
+    else:
+        assert result == {"type": "abort", "reason": success_reason}
+        assert entry.data == {config_flow_stubs.CONF_API_KEY: "new-key"}
+        assert entry.unique_id == config_flow_stubs.config_flow._api_key_unique_id(
+            "new-key"
+        )
+        assert recorder.updated == (entry, entry.data)
+        assert recorder.reloaded == entry.entry_id
+
+
 def test_reconfigure_api_key_validation_accepts_later_working_location(
     config_flow_stubs: ConfigFlowStubs,
 ) -> None:

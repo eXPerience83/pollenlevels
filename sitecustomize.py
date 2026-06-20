@@ -14,19 +14,24 @@ if sys.platform == "win32":
     import socket as _socket
 
     _original_socket = _socket.socket
+    _original_socketpair = _socket.socketpair
 
     def _loopback_socketpair(
-        family: int = _socket.AF_INET,
+        family: int | None = None,
         type: int = _socket.SOCK_STREAM,  # noqa: A002
         proto: int = 0,
     ) -> tuple[_socket.socket, _socket.socket]:
         """Create a local socket pair without pytest-socket's guarded socket."""
-        host = "::1" if family == _socket.AF_INET6 else "127.0.0.1"
-        listener = _original_socket(family, type, proto)
+        if family not in (None, _socket.AF_INET, _socket.AF_INET6):
+            return _original_socketpair(family, type, proto)
+
+        socket_family = _socket.AF_INET if family is None else family
+        host = "::1" if socket_family == _socket.AF_INET6 else "127.0.0.1"
+        listener = _original_socket(socket_family, type, proto)
         try:
             listener.bind((host, 0))
             listener.listen(1)
-            client = _original_socket(family, type, proto)
+            client = _original_socket(socket_family, type, proto)
             try:
                 client.connect(listener.getsockname())
                 guarded_socket = _socket.socket
