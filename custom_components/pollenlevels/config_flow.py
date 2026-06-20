@@ -750,6 +750,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             for candidate in location_candidates:
                 candidate_placeholders = dict(placeholders)
+                candidate_placeholders["latitude"] = _format_visible_coordinate(
+                    candidate.get(CONF_LATITUDE), lat=True
+                )
+                candidate_placeholders["longitude"] = _format_visible_coordinate(
+                    candidate.get(CONF_LONGITUDE), lat=False
+                )
                 combined: dict[str, Any] = {
                     **entry.options,
                     **entry.data,

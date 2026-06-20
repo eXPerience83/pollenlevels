@@ -721,7 +721,7 @@ def _patch_client_fetch(
         calls.append(kwargs)
         if error is not None:
             raise error
-        return result or _valid_daily_info_payload()
+        return _valid_daily_info_payload() if result is None else result
 
     monkeypatch.setattr(
         config_flow_stubs.config_flow.GooglePollenApiClient,
@@ -2087,6 +2087,72 @@ def test_reconfigure_api_key_validation_accepts_later_working_location(
     assert recorder.reloaded == "entry-id"
 
 
+def test_reconfigure_api_key_error_uses_failing_location_placeholders(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """A later validation failure should display that location's coordinates."""
+
+    first = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.23456,
+            config_flow_stubs.CONF_LONGITUDE: 2.34567,
+        },
+        subentry_id="subentry-1",
+        title="First",
+    )
+    second = config_flow_stubs.config_flow.config_entries.ConfigSubentry(
+        data={
+            config_flow_stubs.CONF_LATITUDE: 3.45678,
+            config_flow_stubs.CONF_LONGITUDE: 4.56789,
+        },
+        subentry_id="subentry-2",
+        title="Second",
+    )
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "old-key"},
+        entry_id="entry-id",
+        subentries={first.subentry_id: first, second.subentry_id: second},
+    )
+
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_get_entry=lambda entry_id: (
+                entry if entry_id == entry.entry_id else None
+            )
+        )
+    )
+    flow.context = {"entry_id": entry.entry_id}
+    flow.async_show_form = (  # type: ignore[method-assign]
+        lambda *args, **kwargs: {
+            "step_id": kwargs.get("step_id") or (args[0] if args else None),
+            "errors": kwargs.get("errors") or {},
+            "description_placeholders": kwargs.get("description_placeholders") or {},
+        }
+    )
+    attempts = 0
+
+    async def fake_validate(
+        user_input, *, check_unique_id, description_placeholders=None
+    ):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return {"base": "cannot_connect"}, None
+        return {"base": "invalid_auth"}, None
+
+    flow._async_validate_input = fake_validate  # type: ignore[assignment]
+
+    result = asyncio.run(
+        flow.async_step_reconfigure({config_flow_stubs.CONF_API_KEY: "bad-key"})
+    )
+
+    assert result["errors"] == {"base": "invalid_auth"}
+    assert result["description_placeholders"]["latitude"] == "3.46"
+    assert result["description_placeholders"]["longitude"] == "4.57"
+    assert attempts == 2
+
+
 def test_reconfigure_api_key_validation_stops_on_invalid_auth(
     config_flow_stubs: ConfigFlowStubs,
 ) -> None:
@@ -2488,9 +2554,7 @@ def test_location_subentry_user_step_rejects_invalid_api_payload(
 ) -> None:
     """Adding a location should reject invalid dailyInfo before persistence."""
 
-    calls = _patch_client_fetch(
-        config_flow_stubs, monkeypatch, result={"dailyInfo": []}
-    )
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch, result={})
     entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={config_flow_stubs.CONF_API_KEY: "key"},
         entry_id="entry-id",
