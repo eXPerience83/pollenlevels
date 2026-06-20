@@ -1,0 +1,252 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "en-US"
+early_access: false
+enable_free_tier: true
+
+tone_instructions: >
+  Be concise and evidence-based. Focus on correctness, HA compatibility,
+  async behavior, migration safety, privacy, registry stability, and
+  maintainability. Flag plausible bugs, API misuse, lifecycle issues,
+  and privacy leaks.
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  in_progress_fortune: false
+  enable_prompt_for_ai_agents: false
+  abort_on_close: true
+  disable_cache: false
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    base_branches:
+      - ".*"
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "[skip review]"
+      - "skip review"
+    labels:
+      - "!do-not-review"
+      - "!skip-review"
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "renovate[bot]"
+      - "github-actions[bot]"
+
+  path_filters:
+    - "!**/*.zip"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.jpeg"
+    - "!**/*.gif"
+    - "!**/*.ico"
+    - "!**/*.pdf"
+    - "!**/.pytest_cache/**"
+    - "!**/.ruff_cache/**"
+    - "!**/__pycache__/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/*.egg-info/**"
+
+  path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        This repository targets Python 3.14+ and CI formats with Black using
+        target-version py314. Black 26+ may format multi-exception handlers as
+        `except A, B:`. Treat that syntax as valid for this repository; do not
+        flag it as a SyntaxError or request `except (A, B):` unless CI fails.
+
+    - path: "custom_components/pollenlevels/**/*.py"
+      instructions: |
+        Review as a Home Assistant custom integration.
+        Focus on:
+        - Correct async Home Assistant patterns.
+        - No blocking I/O in the event loop.
+        - Proper use of DataUpdateCoordinator and ConfigEntry lifecycle.
+        - Stable unique_id, device_info, entity naming, and registry behavior.
+        - Safe setup/unload/reload behavior.
+        - ConfigEntryNotReady usage for startup API failures.
+        - No logging of API keys, full coordinates, URLs with secrets, or raw payloads containing secrets.
+        - Minimal public API churn and no unnecessary renames.
+
+    - path: "custom_components/pollenlevels/coordinator.py"
+      instructions: |
+        Pay special attention to:
+        - aiohttp timeout handling.
+        - 429/5xx retry and backoff behavior.
+        - Coordinator availability semantics.
+        - Avoiding stale data bugs.
+        - Avoiding request storms or quota regressions.
+
+    - path: "custom_components/pollenlevels/config_flow.py"
+      instructions: |
+        Pay special attention to:
+        - Friendly validation errors.
+        - API key handling and redaction.
+        - Coordinate validation.
+        - Reauth/reconfigure behavior.
+        - Duplicate detection and stable unique IDs.
+        - Avoiding secrets in form defaults, placeholders, logs, or exceptions.
+
+    - path: "custom_components/pollenlevels/diagnostics.py"
+      instructions: |
+        Treat diagnostics as privacy-sensitive.
+        Flag any exposure of:
+        - API keys.
+        - Full precision coordinates.
+        - Raw URLs containing query parameters.
+        - Raw API payloads that may contain sensitive user data.
+        Prefer redacted, rounded, or summarized diagnostics.
+
+    - path: "custom_components/pollenlevels/__init__.py"
+      instructions: |
+        Review Home Assistant setup and unload lifecycle carefully.
+        Focus on:
+        - Public Home Assistant APIs only.
+        - Correct ConfigEntry and ConfigSubentry lifecycle behavior.
+        - Correct setup, unload, reload, and cleanup behavior.
+        - Avoiding stale runtime data after subentry removal.
+        - Avoiding refreshes of deleted or stale locations.
+        - Correct error handling with ConfigEntryNotReady.
+        - No logging of API keys, precise coordinates, raw URLs, or raw API payloads.
+        - No changes that could break entity IDs, unique IDs, devices, dashboards, automations, or history.
+
+    - path: "custom_components/pollenlevels/migration.py"
+      instructions: |
+        Treat migration code as high risk.
+        Review carefully for:
+        - Preservation of entity_id, unique_id, devices, dashboards, automations, and history.
+        - Correct consolidation of legacy entries by API key.
+        - No merging of locations that use different API keys.
+        - Safe handling of invalid legacy coordinates and corrupt stored data.
+        - Safe retry behavior when registry migration cannot be completed.
+        - No changes to legacy IDs, device identifiers, or registry logic unless covered by explicit tests.
+        - No exposure of API keys, precise coordinates, raw URLs, or raw API payloads in logs, issues, diagnostics, or exceptions.
+        - Correct behavior for one legacy location, multiple locations with the same key, multiple keys, mixed keys, parent entries without locations, and alpha/beta upgrades.
+
+    - path: "custom_components/pollenlevels/issue_helpers.py"
+      instructions: |
+        Review Home Assistant Repairs issue handling carefully.
+        Focus on:
+        - Use of public Home Assistant repair issue APIs only.
+        - Stable and deterministic issue IDs.
+        - Correct create/delete lifecycle.
+        - Issues are created only for persistent stored-data problems, not temporary API or network failures.
+        - Issues are removed when the stored data becomes valid or migration succeeds.
+        - Translation placeholders match translation files.
+        - No API keys, precise coordinates, raw URLs, or raw API payloads appear in issue titles, descriptions, placeholders, logs, or exceptions.
+
+    - path: "custom_components/pollenlevels/translations/**/*.json"
+      instructions: |
+        Check that translation keys stay consistent across locales.
+        Do not suggest changing stable public keys unless required.
+        For Repairs/issues translations, verify all locales define the same keys
+        and preserve required placeholders such as {entry_title} and {location_title}.
+        English technical strings are acceptable when intentionally shared
+        across locales during development.
+
+    - path: ".github/workflows/**/*.yml"
+      instructions: |
+        Review GitHub Actions carefully.
+        Check:
+        - Minimal permissions.
+        - concurrency is present where appropriate.
+        - actions are pinned to versioned major tags.
+        - setup-python uses python-version "3.14" unless intentionally changed.
+        - shell: bash is present when using set -euo pipefail.
+        - ruff check and black --check fail the job on issues.
+        - YAML syntax is valid.
+        - No placeholders, TODOs, or empty keys.
+
+    - path: "tests/**/*.py"
+      instructions: |
+        Focus on behavioral coverage, not cosmetic test rewrites.
+        Check:
+        - Async test correctness.
+        - Stable Home Assistant stubs/fixtures.
+        - Regression coverage for config flow, coordinator, diagnostics,
+          migration, entity registry, and services/actions.
+        - No tests depending on real network calls or real API keys.
+
+    - path: "tests/_ha_stubs.py"
+      instructions: |
+        Review Home Assistant test stubs carefully.
+        Focus on:
+        - Stubs should model the Home Assistant behavior needed by the tests.
+        - Stubs must not hide real lifecycle, registry, repairs, or migration bugs.
+        - Keep stubs minimal and deterministic.
+        - Avoid broad fake behavior that makes tests pass without validating the production contract.
+
+    - path: "tests/test_migration.py"
+      instructions: |
+        Review migration tests as regression protection.
+        Check that tests cover:
+        - One legacy location.
+        - Multiple legacy locations sharing one API key.
+        - Multiple API keys.
+        - Mixed same-key and different-key scenarios.
+        - Invalid coordinates.
+        - Corrupt or unmigratable subentries.
+        - Parent without locations where applicable.
+        - Entity registry and device registry preservation.
+        - No leaked API keys or precise coordinates in logs, diagnostics, issues, or exceptions.
+
+    - path: "README.md"
+      instructions: |
+        Review for user-facing accuracy and upgrade safety.
+        For Home Assistant/HACS documentation, check installation, migration,
+        backup, diagnostics, troubleshooting, and release notes consistency.
+
+    - path: "CHANGELOG.md"
+      instructions: |
+        Check that changelog entries are accurate, concise, and SemVer-aware.
+        Flag missing breaking-change notes, migration warnings, or prerelease
+        labels when applicable.
+
+  tools:
+    ruff:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    github-checks:
+      enabled: true
+      timeout_ms: 900000
+
+chat:
+  auto_reply: true
+
+knowledge_base: {}
+
+code_generation:
+  docstrings:
+    language: "en-US"
+  unit_tests: {}
+
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+  planning:
+    enabled: false
+  labeling: {}
