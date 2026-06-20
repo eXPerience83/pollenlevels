@@ -21,7 +21,6 @@ from .const import (
 from .forecast import attach_forecast_attributes
 from .util import (
     normalize_language_code,
-    redact_api_key,
     redact_sensitive_values,
     safe_parse_int,
 )
@@ -249,9 +248,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         except asyncio.CancelledError:
             raise
         except Exception as err:  # Keep previous behavior for unexpected errors
-            msg = redact_api_key(err, self.api_key)
             msg = redact_sensitive_values(
-                msg,
+                err,
+                api_key=self.api_key,
                 latitude=self.lat,
                 longitude=self.lon,
             )
