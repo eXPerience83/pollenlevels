@@ -160,7 +160,7 @@ def create_location_setup_failed_issue(
         DOMAIN,
         issue_id,
         is_fixable=False,
-        is_persistent=False,
+        is_persistent=True,
         severity=ir.IssueSeverity.WARNING,
         translation_key=LOCATION_SETUP_FAILED_TRANSLATION_KEY,
         translation_placeholders={
