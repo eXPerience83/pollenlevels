@@ -1,6 +1,10 @@
 name: Package Test
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -53,7 +57,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pytest -q
+          python -m pytest -q
         env:
           PYTHONPATH: .
 

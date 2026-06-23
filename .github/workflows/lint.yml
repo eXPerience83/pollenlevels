@@ -2,8 +2,9 @@ name: Lint
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       ref:

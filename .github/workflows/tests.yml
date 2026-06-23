@@ -2,8 +2,9 @@ name: tests
 
 on:
   push:
-    branches: [main, master, "prototype/**"]
+    branches: [main]
   pull_request:
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -45,6 +46,6 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -q
+          python -m pytest -q
         env:
           PYTHONPATH: .
