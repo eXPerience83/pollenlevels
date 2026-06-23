@@ -1,3 +1,16 @@
+## [3.0.0rc2] - 2026-06-24
+
+### Changed
+
+- Hardened repeated per-location setup failure Repairs so they persist across
+  restarts until the affected location loads successfully or is removed.
+- Added README badges for Python 3.14, lint validation, and CodeQL enabled
+  status.
+- Confirmed this RC2 hardening does not change migration behavior, entity IDs,
+  device identifiers, unique IDs, services, or public attributes.
+- Added focused tests for the persistent Repair issue and stale removed-subentry
+  `pollenlevels.force_update` behavior.
+
 ## [3.0.0rc1] - 2026-06-20
 
 ### Changed
