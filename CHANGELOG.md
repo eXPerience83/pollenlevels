@@ -11,7 +11,8 @@
 - Added focused tests for the persistent Repair issue and stale removed-subentry
   `pollenlevels.force_update` behavior.
 - Hardened CI validation by running package checks on pull requests, using
-  `python -m pytest`, and cleaning legacy branch triggers.
+  `python -m pytest`, cleaning legacy branch triggers, and removing the
+  auto-format workflow.
 
 ## [3.0.0rc1] - 2026-06-20
 
