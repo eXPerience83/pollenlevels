@@ -1012,6 +1012,41 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     assert hass.config_entries.reload_calls == []
 
 
+def test_create_location_setup_failed_repair_is_persistent(
+    integration_modules: _InitModules,
+) -> None:
+    """Location setup failure Repairs should persist across restarts."""
+    integration = integration_modules.integration
+    registry = sys.modules["homeassistant.helpers.issue_registry"].registry
+    hass = _FakeHass()
+
+    integration.issue_helpers.create_location_setup_failed_issue(
+        hass,
+        entry_id="entry-1",
+        entry_title="Home",
+        location_title="Garden",
+        subentry_id="location-garden",
+        error_type="UpdateFailed",
+        reason="API response missing usable pollen data",
+    )
+
+    issue_id = integration.issue_helpers.location_setup_failed_issue_id(
+        "entry-1", "location-garden"
+    )
+    assert issue_id in registry.issues
+    issue = registry.issues[issue_id]
+    assert issue["translation_key"] == "location_setup_failed"
+    assert issue["is_fixable"] is False
+    assert issue["is_persistent"] is True
+    assert issue["severity"] == integration.issue_helpers.ir.IssueSeverity.WARNING
+    assert issue["translation_placeholders"] == {
+        "entry_title": "Home",
+        "location_title": "Garden",
+        "error_type": "UpdateFailed",
+        "reason": "API response missing usable pollen data",
+    }
+
+
 def test_setup_entry_raises_not_ready_when_all_subentries_fail(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,

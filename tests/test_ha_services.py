@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -56,6 +56,81 @@ async def test_ha_force_update_refreshes_active_locations_and_skips_stale(
 
     active_refresh.assert_awaited_once()
     stale_refresh.assert_not_awaited()
+
+
+async def test_ha_force_update_skips_removed_subentry_without_reload(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    fake_api_key: str,
+    sample_location_subentry_data: dict[str, Any],
+    google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch,
+) -> None:
+    """force_update should skip a removed subentry before runtime reloads."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    clear_integration_modules()
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="pollenlevels-entry",
+        title="Pollen Levels",
+        data={CONF_API_KEY: fake_api_key},
+        options={
+            CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
+            CONF_LANGUAGE_CODE: "es",
+        },
+        unique_id=api_key_unique_id(fake_api_key),
+        subentries_data=[
+            sample_location_subentry_data,
+            location_subentry_data(
+                subentry_id="location-barcelona",
+                title="Barcelona",
+                latitude=41.3874,
+                longitude=2.1686,
+            ),
+        ],
+        version=6,
+    )
+    entry.add_to_hass(hass)
+
+    with aioresponses() as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+        assert set(entry.subentries) == {"location-madrid", "location-barcelona"}
+        assert set(entry.runtime_data.locations) == {
+            "location-madrid",
+            "location-barcelona",
+        }
+
+        active_refresh = AsyncMock()
+        removed_refresh = AsyncMock()
+        monkeypatch.setattr(
+            entry.runtime_data.locations["location-madrid"].coordinator,
+            "async_request_refresh",
+            active_refresh,
+        )
+        monkeypatch.setattr(
+            entry.runtime_data.locations["location-barcelona"].coordinator,
+            "async_request_refresh",
+            removed_refresh,
+        )
+
+        entry.subentries = MappingProxyType(
+            {
+                subentry_id: subentry
+                for subentry_id, subentry in entry.subentries.items()
+                if subentry_id != "location-barcelona"
+            }
+        )
+        assert "location-barcelona" in entry.runtime_data.locations
+        assert "location-barcelona" not in entry.subentries
+
+        await hass.services.async_call(DOMAIN, "force_update", {}, blocking=True)
+        await hass.async_block_till_done()
+
+    active_refresh.assert_awaited_once()
+    removed_refresh.assert_not_awaited()
 
 
 async def test_ha_force_update_refreshes_multiple_location_subentries(
