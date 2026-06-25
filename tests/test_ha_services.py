@@ -6,7 +6,7 @@ from types import MappingProxyType, SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
-from aioresponses import aioresponses
+from aiointercept import aiointercept
 from homeassistant.core import HomeAssistant
 
 from custom_components.pollenlevels.const import (
@@ -36,7 +36,7 @@ async def test_ha_force_update_refreshes_active_locations_and_skips_stale(
     clear_integration_modules()
     ha_config_entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
 
         await async_setup_config_entry(hass, ha_config_entry)
@@ -93,7 +93,7 @@ async def test_ha_force_update_skips_removed_subentry_without_reload(
     )
     entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, entry)
 
@@ -168,7 +168,7 @@ async def test_ha_force_update_refreshes_multiple_location_subentries(
     )
     entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, entry)
 
@@ -225,7 +225,7 @@ async def test_ha_force_update_continues_after_one_location_failure(
     )
     entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, entry)
 
