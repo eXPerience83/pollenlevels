@@ -6,7 +6,7 @@ import re
 from typing import Any
 from urllib.parse import parse_qsl
 
-from aioresponses import CallbackResult, aioresponses
+from aiointercept import CallbackResult, aiointercept
 from homeassistant.core import HomeAssistant
 
 from custom_components.pollenlevels.const import (
@@ -23,14 +23,14 @@ POLLEN_API_URL_RE = re.compile(
 
 
 def mock_pollen_api(
-    mocked: aioresponses,
+    mocked: aiointercept,
     payload: dict[str, Any],
     captured_params: list[dict[str, Any]] | None = None,
 ) -> None:
     """Mock Google Pollen API responses and capture request parameters."""
 
-    def _callback(url, **kwargs):
-        params = dict(kwargs.get("params") or parse_qsl(url.query_string))
+    def _callback(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
         if captured_params is not None:
             captured_params.append(params)
         return CallbackResult(status=200, payload=payload)

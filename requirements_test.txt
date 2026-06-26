@@ -1,4 +1,4 @@
 pytest>=9
 pytest-asyncio>=1.3.0
-pytest-homeassistant-custom-component>=0.13.339
-aioresponses>=0.7.8
+pytest-homeassistant-custom-component>=0.13.341
+aiointercept>=0.1.7

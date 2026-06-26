@@ -6,7 +6,7 @@ from types import MappingProxyType
 from typing import Any
 
 import pytest
-from aioresponses import aioresponses
+from aiointercept import aiointercept
 from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_RECONFIGURE, SOURCE_USER
 from homeassistant.const import CONF_LOCATION, CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -81,6 +81,7 @@ def _parent_entry_snapshot(entry) -> dict[str, Any]:
 async def test_ha_user_flow_creates_parent_entry_with_location_subentry(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
@@ -94,7 +95,7 @@ async def test_ha_user_flow_creates_parent_entry_with_location_subentry(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload, captured_params)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -133,6 +134,7 @@ async def test_ha_user_flow_creates_parent_entry_with_location_subentry(
 async def test_ha_user_flow_rejects_duplicate_parent_api_key(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
@@ -152,7 +154,7 @@ async def test_ha_user_flow_rejects_duplicate_parent_api_key(
         DOMAIN, context={"source": SOURCE_USER}
     )
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -232,6 +234,7 @@ async def test_ha_options_flow_saves_supported_options_only(
 async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     sample_location_subentry_data: dict[str, Any],
     google_pollen_5_day_payload: dict[str, Any],
@@ -273,7 +276,7 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     )
     entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, entry)
 
@@ -346,7 +349,7 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     assert result["step_id"] == step_id
 
     new_api_key = f"{fake_api_key}-{source}"
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -365,7 +368,7 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     assert scheduled_reloads == [entry.entry_id]
 
     assert await hass.config_entries.async_unload(entry.entry_id)
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, entry)
 
@@ -382,6 +385,7 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
 async def test_ha_parent_api_key_flow_rejects_duplicate_parent_unique_id(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     sample_location_subentry_data: dict[str, Any],
     google_pollen_5_day_payload: dict[str, Any],
     source: str,
@@ -417,7 +421,7 @@ async def test_ha_parent_api_key_flow_rejects_duplicate_parent_unique_id(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == step_id
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -434,6 +438,7 @@ async def test_ha_parent_api_key_flow_rejects_duplicate_parent_unique_id(
 async def test_ha_location_subentry_flow_creates_subentry(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     google_pollen_5_day_payload: dict[str, Any],
     monkeypatch,
@@ -471,7 +476,7 @@ async def test_ha_location_subentry_flow_creates_subentry(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload, captured_params)
         result = await hass.config_entries.subentries.async_configure(
             result["flow_id"],
@@ -522,6 +527,7 @@ async def test_ha_location_subentry_flow_rejects_duplicate_location(
 async def test_ha_location_subentry_reconfigure_updates_entry_and_schedules_reload(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     ha_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
     monkeypatch,
@@ -552,7 +558,7 @@ async def test_ha_location_subentry_reconfigure_updates_entry_and_schedules_relo
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "reconfigure"
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload, captured_params)
         result = await hass.config_entries.subentries.async_configure(
             result["flow_id"],

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 from urllib.parse import parse_qsl
 
-from aioresponses import CallbackResult, aioresponses
+from aiointercept import CallbackResult, aiointercept
 from homeassistant.core import HomeAssistant
 
 from custom_components.pollenlevels.const import (
@@ -31,6 +31,7 @@ from tests.ha_helpers import (
 async def test_ha_diagnostics_redacts_secrets_and_summarizes_runtime(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     ha_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
@@ -39,7 +40,7 @@ async def test_ha_diagnostics_redacts_secrets_and_summarizes_runtime(
     clear_integration_modules()
     ha_config_entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
 
         await async_setup_config_entry(hass, ha_config_entry)
@@ -79,9 +80,11 @@ async def test_ha_diagnostics_redacts_secrets_and_summarizes_runtime(
 async def test_ha_diagnostics_summarizes_stale_and_failed_locations(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     sample_location_subentry_data: dict[str, Any],
     google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch,
 ) -> None:
     """Diagnostics should summarize stale and failed locations from real runtime."""
     from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -109,14 +112,17 @@ async def test_ha_diagnostics_summarizes_stale_and_failed_locations(
         version=6,
     )
     entry.add_to_hass(hass)
+    monkeypatch.setattr(
+        hass.config_entries, "async_schedule_reload", lambda _entry_id: None
+    )
 
-    def _callback(url, **kwargs):
-        params = dict(kwargs.get("params") or parse_qsl(url.query_string))
+    def _callback(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
         if float(params["location.latitude"]) == 41.3874:
             return CallbackResult(status=200, payload={"dailyInfo": []})
         return CallbackResult(status=200, payload=google_pollen_5_day_payload)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mocked.get(POLLEN_API_URL_RE, callback=_callback, repeat=True)
         await async_setup_config_entry(hass, entry)
 
@@ -166,6 +172,7 @@ async def test_ha_diagnostics_summarizes_stale_and_failed_locations(
 async def test_ha_diagnostics_registry_summary_uses_real_registries(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     sample_location_subentry_data: dict[str, Any],
     google_pollen_5_day_payload: dict[str, Any],
@@ -197,7 +204,7 @@ async def test_ha_diagnostics_registry_summary_uses_real_registries(
     )
     entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, entry)
 

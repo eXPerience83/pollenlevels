@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import AsyncMock
 
-from aioresponses import aioresponses
+from aiointercept import aiointercept
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
@@ -32,6 +32,7 @@ from tests.ha_helpers import (
 async def test_ha_platforms_create_entities_for_each_location_subentry(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     fake_api_key: str,
     sample_location_subentry_data: dict[str, Any],
     google_pollen_5_day_payload: dict[str, Any],
@@ -63,7 +64,7 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
     )
     entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, entry)
 
@@ -92,6 +93,7 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
 async def test_ha_button_press_refreshes_location_coordinator(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     ha_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
     monkeypatch,
@@ -100,7 +102,7 @@ async def test_ha_button_press_refreshes_location_coordinator(
     clear_integration_modules()
     ha_config_entry.add_to_hass(hass)
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, ha_config_entry)
 
@@ -134,6 +136,7 @@ async def test_ha_button_press_refreshes_location_coordinator(
 async def test_ha_platforms_clean_legacy_per_day_entities_and_create_repair(
     hass: HomeAssistant,
     enable_custom_integrations: None,
+    socket_enabled: None,
     ha_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
@@ -157,7 +160,7 @@ async def test_ha_platforms_clean_legacy_per_day_entities_and_create_repair(
             config_subentry_id="location-madrid",
         )
 
-    with aioresponses() as mocked:
+    async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         await async_setup_config_entry(hass, ha_config_entry)
 
