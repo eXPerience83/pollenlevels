@@ -1,4 +1,4 @@
-## [3.0.0rc2] - 2026-06-24
+## [3.0.0rc2] - 2026-06-27
 
 ### Changed
 
@@ -13,6 +13,9 @@
 - Hardened CI validation by running package checks on pull requests, using
   `python -m pytest`, cleaning legacy branch triggers, and removing the
   auto-format workflow.
+- Migrated Home Assistant harness HTTP mocks from `aioresponses` to `aiointercept`
+  so tests remain compatible with `pytest-homeassistant-custom-component>=0.13.341`
+  and `aiohttp` 3.14+.
 
 ## [3.0.0rc1] - 2026-06-20
 
