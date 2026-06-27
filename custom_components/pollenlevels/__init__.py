@@ -40,6 +40,7 @@ from .issue_helpers import (
     create_location_setup_failed_issue,
     create_per_day_forecast_sensors_removed_issue,
     delete_entry_invalid_stored_location_issue,
+    delete_entry_location_issues,
     delete_invalid_stored_location_issue,
     delete_location_setup_failed_issue,
     delete_stale_location_subentry_issues,
@@ -669,3 +670,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         entry.runtime_data = None
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Delete entry-owned location Repairs and retry bookkeeping."""
+    delete_entry_location_issues(hass, entry_id=entry.entry_id)
+    _prune_setup_retry_failures(hass, entry.entry_id, set())

@@ -15,6 +15,14 @@ LOCATION_SETUP_FAILED_TRANSLATION_KEY = "location_setup_failed"
 _LOCATION_REPAIR_ISSUES_DATA_KEY = "location_repair_issue_ids"
 
 
+def _location_issue_prefixes(entry_id: str) -> tuple[str, str]:
+    """Return deterministic location Repair issue prefixes for an entry."""
+    return (
+        f"invalid_stored_location_{entry_id}_",
+        f"location_setup_failed_{entry_id}_",
+    )
+
+
 def _entry_location_issue_ids(hass: HomeAssistant, entry_id: str) -> set[str]:
     """Return location Repair issue ids owned by this runtime entry."""
     domain_data = hass.data.setdefault(DOMAIN, {})
@@ -29,6 +37,17 @@ def _known_entry_location_issue_ids(
     domain_data = hass.data.get(DOMAIN, {})
     issue_ids = domain_data.get(_LOCATION_REPAIR_ISSUES_DATA_KEY, {})
     return issue_ids.get(entry_id)
+
+
+def _registry_location_issue_ids(hass: HomeAssistant, entry_id: str) -> set[str]:
+    """Return location Repair issue ids persisted for an entry."""
+    prefixes = _location_issue_prefixes(entry_id)
+    registry = ir.async_get(hass)
+    return {
+        issue.issue_id
+        for issue in registry.issues.values()
+        if issue.domain == DOMAIN and issue.issue_id.startswith(prefixes)
+    }
 
 
 def _remember_location_issue(hass: HomeAssistant, entry_id: str, issue_id: str) -> None:
@@ -53,11 +72,7 @@ def _forget_location_issue(hass: HomeAssistant, entry_id: str, issue_id: str) ->
 
 def _subentry_id_from_location_issue_id(entry_id: str, issue_id: str) -> str | None:
     """Return the subentry id encoded in a known location Repair issue id."""
-    prefixes = (
-        f"invalid_stored_location_{entry_id}_",
-        f"location_setup_failed_{entry_id}_",
-    )
-    for prefix in prefixes:
+    for prefix in _location_issue_prefixes(entry_id):
         if issue_id.startswith(prefix):
             return issue_id.removeprefix(prefix) or None
     return None
@@ -124,19 +139,34 @@ def delete_stale_location_subentry_issues(
     *,
     entry_id: str,
     active_subentry_ids: Collection[str],
+    include_legacy: bool = False,
 ) -> None:
     """Delete location Repair issues for subentries no longer configured."""
     active_ids = set(active_subentry_ids)
-    entry_issue_ids = _known_entry_location_issue_ids(hass, entry_id)
+    legacy_issue_id = invalid_stored_location_issue_id(entry_id)
+    entry_issue_ids = set(_known_entry_location_issue_ids(hass, entry_id) or ())
+    entry_issue_ids.update(_registry_location_issue_ids(hass, entry_id))
     if not entry_issue_ids:
         return
 
     for issue_id in tuple(entry_issue_ids):
+        if not include_legacy and issue_id == legacy_issue_id:
+            continue
         subentry_id = _subentry_id_from_location_issue_id(entry_id, issue_id)
         if subentry_id is None or subentry_id in active_ids:
             continue
         ir.async_delete_issue(hass, DOMAIN, issue_id)
         _forget_location_issue(hass, entry_id, issue_id)
+
+
+def delete_entry_location_issues(hass: HomeAssistant, *, entry_id: str) -> None:
+    """Delete all location Repair issues owned by a config entry."""
+    delete_stale_location_subentry_issues(
+        hass,
+        entry_id=entry_id,
+        active_subentry_ids=(),
+        include_legacy=True,
+    )
 
 
 def create_location_setup_failed_issue(

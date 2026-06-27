@@ -297,15 +297,29 @@ def stub_update_coordinator_module(
     return module
 
 
+class StubIssueEntry(dict):
+    """Dictionary-compatible issue entry with Home Assistant attributes."""
+
+    def __init__(self, hass, domain, issue_id, **kwargs):
+        super().__init__(hass=hass, domain=domain, **kwargs)
+        self.domain = domain
+        self.issue_id = issue_id
+
+
 class StubIssueRegistry:
     """Minimal issue registry stub for inspecting Repair calls."""
 
     def __init__(self):
-        self.issues: dict[str, dict] = {}
+        self.issues: dict[str, StubIssueEntry] = {}
         self.deleted: list[tuple[object, str, str]] = []
 
     def async_create_issue(self, hass, domain, issue_id, **kwargs):
-        self.issues[issue_id] = {"hass": hass, "domain": domain, **kwargs}
+        self.issues[issue_id] = StubIssueEntry(
+            hass,
+            domain,
+            issue_id,
+            **kwargs,
+        )
 
     def async_delete_issue(self, hass, domain, issue_id):
         self.deleted.append((hass, domain, issue_id))
@@ -324,6 +338,7 @@ def stub_issue_registry_module(
     module = ModuleType("homeassistant.helpers.issue_registry")
     registry = StubIssueRegistry()
     module.registry = registry
+    module.async_get = lambda _hass: registry
     module.async_create_issue = registry.async_create_issue
     module.async_delete_issue = registry.async_delete_issue
     module.IssueSeverity = StubIssueSeverity
