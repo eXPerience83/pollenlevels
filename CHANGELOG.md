@@ -17,6 +17,14 @@
   so tests remain compatible with `pytest-homeassistant-custom-component>=0.13.341`
   and `aiohttp` 3.14+.
 
+### Fixed
+
+- Fixed stale persistent location setup Repair issues that could remain after
+  deleting a location or removing the integration after a Home Assistant restart.
+- Location Repair cleanup now checks Home Assistant's persistent issue registry
+  in addition to runtime bookkeeping, and config entry removal clears entry-owned
+  location Repairs and setup retry state.
+
 ## [3.0.0rc1] - 2026-06-20
 
 ### Changed
