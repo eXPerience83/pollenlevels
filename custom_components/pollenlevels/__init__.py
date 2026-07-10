@@ -295,6 +295,53 @@ def _schedule_parent_reload(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 # ---- Service -------------------------------------------------------------
 
 
+def _log_force_update_failure(
+    entry: ConfigEntry,
+    subentry_id: str,
+    coordinator: Any,
+    result: BaseException | None,
+) -> None:
+    """Log one redacted force_update location failure."""
+    api_key = (entry.data or {}).get(CONF_API_KEY)
+    latitude = getattr(
+        coordinator,
+        "lat",
+        (entry.data or {}).get(CONF_LATITUDE),
+    )
+    longitude = getattr(
+        coordinator,
+        "lon",
+        (entry.data or {}).get(CONF_LONGITUDE),
+    )
+    if result is not None:
+        safe_message = redact_sensitive_values(
+            result,
+            api_key=api_key,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        error_type = type(result).__name__
+    else:
+        safe_message = "coordinator reported an unsuccessful update"
+        error_type = "UpdateFailed"
+    safe_text = safe_message or "no error details"
+    if subentry_id == entry.entry_id:
+        _LOGGER.warning(
+            "Manual refresh failed for entry %s (%s): %s",
+            entry.entry_id,
+            error_type,
+            safe_text,
+        )
+    else:
+        _LOGGER.warning(
+            "Manual refresh failed for entry %s subentry %s (%s): %s",
+            entry.entry_id,
+            subentry_id,
+            error_type,
+            safe_text,
+        )
+
+
 async def _refresh_force_update_target(
     entry: ConfigEntry, subentry_id: str, coordinator: Any
 ) -> None:
@@ -309,36 +356,15 @@ async def _refresh_force_update_target(
         )
         raise
     except Exception as result:  # noqa: BLE001
-        api_key = (entry.data or {}).get(CONF_API_KEY)
-        safe_message = redact_sensitive_values(
-            result,
-            api_key=api_key,
-            latitude=getattr(
-                coordinator,
-                "lat",
-                (entry.data or {}).get(CONF_LATITUDE),
-            ),
-            longitude=getattr(
-                coordinator,
-                "lon",
-                (entry.data or {}).get(CONF_LONGITUDE),
-            ),
-        )
-        if subentry_id == entry.entry_id:
-            _LOGGER.warning(
-                "Manual refresh failed for entry %s (%s): %s",
-                entry.entry_id,
-                type(result).__name__,
-                safe_message or "no error details",
-            )
-        else:
-            _LOGGER.warning(
-                "Manual refresh failed for entry %s subentry %s (%s): %s",
-                entry.entry_id,
-                subentry_id,
-                type(result).__name__,
-                safe_message or "no error details",
-            )
+        _log_force_update_failure(entry, subentry_id, coordinator, result)
+        return
+
+    if getattr(coordinator, "last_update_success", True) is not False:
+        return
+    last_exception = getattr(coordinator, "last_exception", None)
+    if not isinstance(last_exception, BaseException):
+        last_exception = None
+    _log_force_update_failure(entry, subentry_id, coordinator, last_exception)
 
 
 async def _refresh_force_update_targets(
