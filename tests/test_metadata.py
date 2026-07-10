@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 MANIFEST_PATH = ROOT / "custom_components" / "pollenlevels" / "manifest.json"
 README_PATH = ROOT / "README.md"
+FAQ_PATH = ROOT / "FAQ.md"
 TERMS_PATH = ROOT / "TERMS.md"
 PRIVACY_PATH = ROOT / "PRIVACY.md"
 
@@ -88,3 +89,14 @@ def test_google_maps_retention_limits_are_documented() -> None:
         "today's forecast values must not be retained for more than "
         "365 consecutive calendar days"
     ) in terms
+
+
+def test_faq_documents_privacy_and_retention_guidance() -> None:
+    """Ensure FAQ keeps its privacy and retention guidance."""
+    faq = " ".join(_read_text(FAQ_PATH).split())
+
+    assert "[PRIVACY.md](PRIVACY.md)" in faq
+    assert (
+        "today's forecast values may be cached for up to 365 consecutive calendar days"
+    ) in faq
+    assert "future forecast values may be cached for no more than 24 hours" in faq

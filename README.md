@@ -16,8 +16,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 [![License](https://img.shields.io/github/license/eXPerience83/pollenlevels?logo=github)](https://github.com/eXPerience83/pollenlevels/blob/main/LICENSE)
 [![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/integration)
 [![FAQ](https://img.shields.io/badge/FAQ-Read%20Here-blue?logo=readthedocs&logoColor=white)](https://github.com/eXPerience83/pollenlevels/blob/main/FAQ.md)
-[![Terms](https://img.shields.io/badge/Terms-Read-blue)](https://github.com/eXPerience83/pollenlevels/blob/main/TERMS.md)
-[![Privacy](https://img.shields.io/badge/Privacy-Read-blue)](https://github.com/eXPerience83/pollenlevels/blob/main/PRIVACY.md)
+[![Terms](https://img.shields.io/badge/Terms-Read-blue)](TERMS.md)
+[![Privacy](https://img.shields.io/badge/Privacy-Read-blue)](PRIVACY.md)
 [![Ko-fi](https://img.shields.io/badge/Ko%E2%80%91fi-Support%20this%20project-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/experience83)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-blue?logo=paypal)](https://paypal.me/eXPerience83)
 
