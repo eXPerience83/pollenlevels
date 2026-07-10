@@ -490,9 +490,9 @@ def test_sensor_translation_keys_present() -> None:
         if tkey not in english:
             missing.append(tkey)
 
-    assert (
-        not missing
-    ), "Missing sensor/device translation keys in en.json: " + ", ".join(missing)
+    assert not missing, (
+        "Missing sensor/device translation keys in en.json: " + ", ".join(missing)
+    )
 
 
 def test_services_translation_keys_present() -> None:
@@ -532,9 +532,9 @@ def test_services_yaml_labels_match_translations() -> None:
             if value is None:
                 continue
             expected = translations.get(key)
-            assert (
-                value == expected
-            ), f"Service {service_name} {key} mismatch: {value!r} != {expected!r}"
+            assert value == expected, (
+                f"Service {service_name} {key} mismatch: {value!r} != {expected!r}"
+            )
 
 
 def test_issues_invalid_stored_location_keys_present() -> None:

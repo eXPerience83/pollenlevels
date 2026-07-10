@@ -2,11 +2,9 @@
 
 ## Tooling
 - Tooling (CI, lint, format) runs on **Python 3.14**. The `pyproject.toml` targets packaging/tooling and also pins `requires-python = ">=3.14"`. All code under `custom_components/pollenlevels/` targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
-- Format code with Black (line length 88, target-version `py314`) with minimum `black>=26` (enforced via CI; version pin not stored in `pyproject.toml`).
-- Black 26+ may format multi-exception handlers as `except A, B:` for Python 3.14; keep the formatter output unless CI changes.
-- Lint and sort imports with Ruff targeting `py314`, with minimum `ruff>=0.15` (enforced via CI), matching the configuration in `pyproject.toml`.
-- Every change must pass `ruff check --fix --select I` (for import order) and `ruff check` before submission.
-- Run `black .` (or the narrowest possible path) to ensure formatting.
+- Ruff is the single tool for linting, import sorting, and formatting. CI uses the rolling minimum `ruff>=0.15`, and `pyproject.toml` uses Ruff's `required-version` to reject older versions without pinning an exact release.
+- Ruff targets `py314`, line length 88, and stable formatting with preview disabled. Python 3.14 syntax must not be reported as invalid merely because it is unsupported by older Python versions.
+- Future stable Ruff versions may require mechanical formatting updates; this is intentional under the rolling tooling policy.
 - Tests run with pytest>=9 on Python 3.14.
 - Home Assistant integration-surface tests should use
   `pytest-homeassistant-custom-component` when practical, especially for config
@@ -63,6 +61,9 @@
 ## Verification
 - Ensure the integration still loads within Home Assistant with the existing config flows and maintains parity with the current logic paths for entity updates and notifications.
 - Before submitting changes, run the following checks:
-  - `ruff check --fix --select I && ruff check` — lint and import ordering.
-  - `black .` — code formatting.
-  - `pytest tests/` — unit and Home Assistant harness tests.
+  - `python -m pip install --upgrade "ruff>=0.15"`
+  - `ruff check --fix --select I .`
+  - `ruff check .`
+  - `ruff format .`
+  - `ruff format --check .`
+  - `python -m pytest -q`

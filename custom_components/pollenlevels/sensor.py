@@ -197,12 +197,13 @@ async def async_setup_entry(
     legacy_entities_found = False
     for location in runtime.locations.values():
         identity_id = coordinator_identity_id(location.coordinator)
-        found_legacy_entities, _removed_legacy_entities = (
-            await _remove_legacy_per_day_entities(
-                hass,
-                config_entry.entry_id,
-                identity_id,
-            )
+        (
+            found_legacy_entities,
+            _removed_legacy_entities,
+        ) = await _remove_legacy_per_day_entities(
+            hass,
+            config_entry.entry_id,
+            identity_id,
         )
         legacy_entities_found = legacy_entities_found or found_legacy_entities
 

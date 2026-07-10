@@ -33,8 +33,9 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install --upgrade "black>=26" "ruff>=0.15" "pytest>=9"
+          python -m pip install --upgrade "ruff>=0.15" "pytest>=9"
           python -m pip install -r requirements_test.txt
+          ruff --version
 
       - name: Compile Python sources
         shell: bash
@@ -48,11 +49,11 @@ jobs:
           set -euo pipefail
           ruff check .
 
-      - name: Black validation
+      - name: Ruff format validation
         shell: bash
         run: |
           set -euo pipefail
-          black --check .
+          ruff format --check .
 
       - name: Run tests
         shell: bash
