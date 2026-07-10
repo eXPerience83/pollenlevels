@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 MANIFEST_PATH = ROOT / "custom_components" / "pollenlevels" / "manifest.json"
 README_PATH = ROOT / "README.md"
-FAQ_PATH = ROOT / "FAQ.md"
 TERMS_PATH = ROOT / "TERMS.md"
 PRIVACY_PATH = ROOT / "PRIVACY.md"
 
@@ -67,8 +66,8 @@ def test_google_maps_legal_documents_are_publicly_linked() -> None:
     terms = _read_text(TERMS_PATH)
     privacy = _read_text(PRIVACY_PATH)
 
-    assert "TERMS.md" in readme
-    assert "PRIVACY.md" in readme
+    assert "[TERMS.md](TERMS.md)" in readme
+    assert "[PRIVACY.md](PRIVACY.md)" in readme
     assert "https://maps.google.com/help/terms_maps/" in terms
     assert "https://policies.google.com/privacy" in terms
     assert "https://developers.google.com/maps/documentation/pollen/policies" in terms
@@ -80,9 +79,12 @@ def test_google_maps_legal_documents_are_publicly_linked() -> None:
 
 def test_google_maps_retention_limits_are_documented() -> None:
     """Ensure Google Maps Pollen retention limits remain documented."""
-    docs = "\n".join(
-        _read_text(path) for path in (README_PATH, TERMS_PATH, PRIVACY_PATH, FAQ_PATH)
-    )
+    terms = " ".join(_read_text(TERMS_PATH).split())
 
-    assert "24 hours" in docs
-    assert "365" in docs
+    assert (
+        "future Pollen API forecast values must not be retained for more than 24 hours"
+    ) in terms
+    assert (
+        "today's forecast values must not be retained for more than "
+        "365 consecutive calendar days"
+    ) in terms
