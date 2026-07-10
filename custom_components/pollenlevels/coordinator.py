@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 
 _LOGGER = logging.getLogger(__name__)
-STALE_DATA_MIN_TTL = timedelta(hours=24)
+STALE_DATA_TTL = timedelta(hours=24)
 
 
 def _normalize_channel(v: Any) -> int | None:
@@ -220,11 +220,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         return dt_util.utcnow()
 
     def _stale_data_ttl(self) -> timedelta:
-        """Return how long successful data may be reused after malformed payloads."""
-        update_interval = self.update_interval
-        if update_interval is None:
-            return STALE_DATA_MIN_TTL
-        return max(STALE_DATA_MIN_TTL, update_interval * 2)
+        """Return the fixed maximum stale-data retention, currently 24 hours."""
+        return STALE_DATA_TTL
 
     def _has_fresh_cached_data(self) -> bool:
         """Return whether cached data is still within the stale-data tolerance."""

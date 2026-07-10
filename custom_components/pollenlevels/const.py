@@ -31,7 +31,7 @@ RESTRICTING_API_KEYS_URL = (
     "https://developers.google.com/maps/api-security-best-practices"
 )
 
-ATTRIBUTION = "Data provided by Google Maps Pollen API"
+ATTRIBUTION = "Google Maps — Source: Includes pollen data from Google"
 SUBENTRY_TYPE_LOCATION = "location"
 
 
