@@ -519,6 +519,59 @@ def test_sensor_unique_ids_survive_subentry_title_and_coordinate_changes(
     )
 
 
+def test_pollen_sensor_unrecorded_forecast_attributes(
+    sensor_modules: SensorModules,
+) -> None:
+    """PollenSensor marks forecast-derived attributes as unrecorded."""
+
+    coordinator = _summary_coordinator({"type_grass": {"source": "type"}})
+    entity = sensor_modules.sensor.PollenSensor(coordinator, "type_grass")
+
+    expected = sensor_modules.sensor._FORECAST_UNRECORDED_ATTRIBUTES
+    assert entity._unrecorded_attributes == expected
+
+    current_day_attrs = {
+        "category",
+        "description",
+        "inSeason",
+        "advice",
+        "color_hex",
+        "color_rgb",
+        "family",
+        "season",
+        "cross_reaction",
+        "Attribution",
+    }
+    assert current_day_attrs.isdisjoint(expected)
+
+
+def test_overall_risk_sensor_unrecorded_forecast_attributes(
+    sensor_modules: SensorModules,
+) -> None:
+    """OverallPollenRiskTodaySensor marks forecast-derived attributes as unrecorded."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {"source": "type", "displayName": "Grass", "value": 3},
+        }
+    )
+    entity = sensor_modules.sensor.OverallPollenRiskTodaySensor(coordinator)
+
+    expected = sensor_modules.sensor._FORECAST_UNRECORDED_ATTRIBUTES
+    assert entity._unrecorded_attributes == expected
+
+    current_day_attrs = {
+        "category",
+        "description",
+        "top_pollen_codes",
+        "top_pollen_names",
+        "top_pollen_categories",
+        "tie_count",
+        "Attribution",
+    }
+    assert current_day_attrs.isdisjoint(expected)
+
+
 def test_pollen_sensor_forecast_attributes_do_not_require_coordinator_field(
     sensor_modules: SensorModules,
 ) -> None:
@@ -871,10 +924,43 @@ def test_summary_sensors_expose_attribution(sensor_modules: SensorModules) -> No
         sensor_modules.sensor.TopPollenTypesTodaySensor(coordinator),
     ]
 
-    assert all(
+    for entity in entities:
+        assert (
+            entity.extra_state_attributes["Attribution"]
+            == sensor_modules.sensor.ATTRIBUTION
+        )
+
+
+@pytest.mark.parametrize(
+    "entity_factory",
+    [
+        lambda sensor_modules, coordinator: sensor_modules.sensor.PollenSensor(
+            coordinator, "type_grass"
+        ),
+        lambda sensor_modules, coordinator: sensor_modules.sensor.OverallPollenRiskTodaySensor(
+            coordinator
+        ),
+        lambda sensor_modules, coordinator: sensor_modules.sensor.RegionSensor(
+            coordinator
+        ),
+    ],
+)
+def test_attribution_exact_value(
+    sensor_modules: SensorModules,
+    entity_factory: Any,
+) -> None:
+    """Attribution contains the exact required Google Maps pollen attribution text."""
+
+    coordinator = _summary_coordinator(
+        {
+            "type_grass": {"source": "type", "displayName": "Grass", "value": 3},
+        }
+    )
+    entity = entity_factory(sensor_modules, coordinator)
+
+    assert (
         entity.extra_state_attributes["Attribution"]
-        == sensor_modules.sensor.ATTRIBUTION
-        for entity in entities
+        == "Google Maps \u2014 Source: Includes pollen data from Google"
     )
 
 
@@ -1315,10 +1401,40 @@ def test_coordinator_stale_cached_data_raises_after_ttl(
     assert coordinator.data == first_data
 
 
-def test_coordinator_stale_data_ttl_accounts_for_update_interval(
+def test_coordinator_stale_cached_data_accepted_at_exactly_24_hours(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cached data at exactly the 24-hour TTL boundary is still accepted."""
+
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=_minimal_valid_payload()),
+            ResponseSpec(status=200, payload={}),
+        ]
+    )
+    client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client, hours=6)
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        now = start + datetime.timedelta(hours=24)
+        second_data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert second_data == first_data
+
+
+def test_coordinator_stale_data_ttl_is_fixed_24_hours(
     sensor_modules: SensorModules,
 ) -> None:
-    """Effective stale-data TTL uses the larger of 24h and twice the interval."""
+    """Effective stale-data TTL is a fixed 24 hours regardless of update interval."""
 
     loop = asyncio.new_event_loop()
     hass = DummyHass(loop)
@@ -1349,7 +1465,7 @@ def test_coordinator_stale_data_ttl_accounts_for_update_interval(
         loop.close()
 
     assert six_hour._stale_data_ttl() == datetime.timedelta(hours=24)
-    assert twenty_four_hour._stale_data_ttl() == datetime.timedelta(hours=48)
+    assert twenty_four_hour._stale_data_ttl() == datetime.timedelta(hours=24)
 
 
 def test_coordinator_success_after_malformed_response_updates_last_updated(

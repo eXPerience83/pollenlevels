@@ -59,6 +59,24 @@ from .util import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_FORECAST_UNRECORDED_ATTRIBUTES = frozenset(
+    {
+        "forecast",
+        "tomorrow_has_index",
+        "tomorrow_value",
+        "tomorrow_category",
+        "tomorrow_description",
+        "tomorrow_color_hex",
+        "d2_has_index",
+        "d2_value",
+        "d2_category",
+        "d2_description",
+        "d2_color_hex",
+        "trend",
+        "expected_peak",
+    }
+)
+
 __all__ = [
     "CONF_API_KEY",
     "CONF_LATITUDE",
@@ -255,6 +273,8 @@ async def async_setup_entry(
 class PollenSensor(CoordinatorEntity, SensorEntity):
     """Represent a pollen sensor for a type or plant."""
 
+    # Keep forecast attributes available in live state but exclude from Recorder.
+    _unrecorded_attributes = _FORECAST_UNRECORDED_ATTRIBUTES
     # Enable long-term statistics for numeric pollen index values
     _attr_state_class = SensorStateClass.MEASUREMENT
     # Hint the UI to show integers (does not affect recorder/statistics)
@@ -484,6 +504,9 @@ class PlantsInSeasonTodaySensor(_BaseSummarySensor):
 class OverallPollenRiskTodaySensor(_BaseSummarySensor):
     """Represent the highest current-day pollen type value."""
 
+    # Keep aggregated forecast attributes available in live state but exclude
+    # from Recorder persistence.
+    _unrecorded_attributes = _FORECAST_UNRECORDED_ATTRIBUTES
     _attr_translation_key = "overall_pollen_risk_today"
     _attr_icon = DEFAULT_ICON
     _attr_state_class = SensorStateClass.MEASUREMENT
