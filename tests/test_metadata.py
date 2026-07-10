@@ -73,10 +73,9 @@ def test_google_maps_legal_documents_are_publicly_linked() -> None:
     assert "https://policies.google.com/privacy" in terms
     assert "https://developers.google.com/maps/documentation/pollen/policies" in terms
     assert "https://policies.google.com/privacy" in privacy
-    assert (
-        "Google Maps — Source: Includes pollen data from Google" in readme
-        or "Google Maps — Source: Includes pollen data from Google" in terms
-    )
+    attribution = "Google Maps — Source: Includes pollen data from Google"
+    assert attribution in readme
+    assert attribution in terms
 
 
 def test_google_maps_retention_limits_are_documented() -> None:
