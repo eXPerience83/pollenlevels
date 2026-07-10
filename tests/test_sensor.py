@@ -948,8 +948,8 @@ def test_summary_sensors_expose_attribution(sensor_modules: SensorModules) -> No
         lambda sensor_modules, coordinator: sensor_modules.sensor.PollenSensor(
             coordinator, "type_grass"
         ),
-        lambda sensor_modules, coordinator: sensor_modules.sensor.OverallPollenRiskTodaySensor(
-            coordinator
+        lambda sensor_modules, coordinator: (
+            sensor_modules.sensor.OverallPollenRiskTodaySensor(coordinator)
         ),
         lambda sensor_modules, coordinator: sensor_modules.sensor.RegionSensor(
             coordinator

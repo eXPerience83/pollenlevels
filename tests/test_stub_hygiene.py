@@ -185,8 +185,7 @@ def test_tests_do_not_install_shared_stubs_at_import_time() -> None:
         for line_number, reason in visitor.violations:
             offending_source = source_lines[line_number - 1].strip()
             violations.append(
-                f"{path.relative_to(ROOT)}:{line_number}: {reason}: "
-                f"{offending_source}"
+                f"{path.relative_to(ROOT)}:{line_number}: {reason}: {offending_source}"
             )
 
     assert not violations, "\n".join(

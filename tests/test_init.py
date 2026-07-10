@@ -115,7 +115,7 @@ def test_safe_setup_failure_text_redacts_secrets_and_coordinates(
     """Setup failure text should not expose API keys or exact coordinates."""
     integration = integration_modules.integration
     reason = RuntimeError(
-        "boom secret-key at location.latitude=1.234567 " "location.longitude=2.345678"
+        "boom secret-key at location.latitude=1.234567 location.longitude=2.345678"
     )
 
     redacted = integration._safe_setup_failure_text(
@@ -764,8 +764,7 @@ def test_setup_entry_loads_healthy_subentries_when_one_subentry_fails(
         async def async_config_entry_first_refresh(self):
             if self.subentry_id == "bad-location":
                 raise RuntimeError(
-                    "boom secret-key at 3.123456,-4.654321 "
-                    "location.latitude=3.123456"
+                    "boom secret-key at 3.123456,-4.654321 location.latitude=3.123456"
                 )
             return None
 
