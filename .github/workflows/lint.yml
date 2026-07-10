@@ -40,12 +40,20 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install Ruff
+        shell: bash
         run: |
+          set -euo pipefail
           python -m pip install --upgrade "ruff>=0.15"
           ruff --version
 
       - name: Ruff lint
-        run: ruff check .
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruff check .
 
       - name: Ruff format
-        run: ruff format --check .
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruff format --check .
