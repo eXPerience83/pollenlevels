@@ -407,9 +407,7 @@ async def test_ha_force_update_failure_log_redacts_secrets(
     secret_lat = 12.345678
     secret_lon = -98.765432
 
-    hass.config_entries.async_update_entry(
-        entry, data={CONF_API_KEY: secret_key}
-    )
+    hass.config_entries.async_update_entry(entry, data={CONF_API_KEY: secret_key})
     await hass.async_block_till_done()
 
     orig_lat = coord.lat
