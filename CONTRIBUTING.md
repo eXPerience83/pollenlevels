@@ -2,8 +2,8 @@
 
 - The integration targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
   Use Python 3.14 for local development and CI parity.
-- Format code with Black (line length 88, target-version `py314`) and sort/lint imports with Ruff (`ruff check --fix --select I` followed
-  by `ruff check`).
+- Ruff handles linting, import ordering, and formatting. Upgrade Ruff before validating to match CI's rolling minimum policy: `python -m pip install --upgrade "ruff>=0.15"`.
+- Tooling targets Python 3.14 with line length 88, and Ruff preview formatting is disabled.
 - The translation source of truth is `custom_components/pollenlevels/translations/en.json`. Keep every other locale file in
   sync with it.
 - Do not add or rely on a `strings.json` file; translation updates should flow from `en.json` to the other language files.
@@ -16,6 +16,8 @@
   parsing, API client behavior, redaction helpers, malformed payloads, and
   targeted failure injection.
 - Before submitting changes, run:
-  - `ruff check --fix --select I && ruff check` — lint and import ordering.
-  - `black .` — code formatting.
-  - `pytest tests/` — unit and Home Assistant harness tests.
+  - `ruff check --fix --select I .`
+  - `ruff check .`
+  - `ruff format .`
+  - `ruff format --check .`
+  - `python -m pytest -q`

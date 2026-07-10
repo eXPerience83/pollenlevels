@@ -1,10 +1,6 @@
 # Tooling aligned to the Home Assistant Python floor (>=3.14.0).
-# NOTE: We purposely DO NOT set [tool.black].required-version; CI installs
-# Black/Ruff from minimum supported versions to keep tooling forward-compatible.
-# Minimums: black>=26, ruff>=0.15 (set in CI workflows).
-# If you ever need an exact lock, set both:
-#   - pyproject: required-version = "<desired black version>"
-#   - CI: pip install "black==<desired black version>" "ruff==<desired ruff version>"
+# CI installs Ruff from the rolling minimum version, while required-version
+# rejects older local versions and allows future compatible stable releases.
 
 [project]
 name = "pollenlevels"
@@ -12,24 +8,28 @@ version = "3.0.0rc2"
 # Enforce the runtime floor aligned with Home Assistant Python 3.14 images.
 requires-python = ">=3.14"
 
-[tool.black]
-line-length = 88
-# Black supports py314; keep a single target since the project requires 3.14+.
-target-version = ["py314"]
-# Do NOT set required-version here to stay compatible with CI's rolling installs.
-
 [tool.ruff]
+required-version = ">=0.15"
 line-length = 88
 # Match runtime: Python 3.14
 target-version = "py314"
+preview = false
 # Do not set a default global 'fix' here; workflows control fixing with CLI flags.
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+preview = false
 
 [tool.ruff.lint]
 # Core rule sets: pycodestyle/pyflakes/isort/pyupgrade/bugbear
 select = ["E", "F", "W", "I", "UP", "B"]
 ignore = [
-  "E203", # Whitespace before ':' (conflicts with Black on slicing)
-  "E501", # Line length (Black handles wrapping)
+  "E203", # Whitespace before ':' in slicing
+  "E501", # Line length (Ruff formatter handles wrapping)
 ]
 
 [tool.ruff.lint.isort]

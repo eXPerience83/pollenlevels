@@ -253,7 +253,7 @@ class GooglePollenApiClient:
                         attempt=attempt,
                         max_retries=max_retries,
                         message=(
-                            "Pollen API timeout — retrying in %.2fs " "(attempt %d/%d)"
+                            "Pollen API timeout — retrying in %.2fs (attempt %d/%d)"
                         ),
                     )
                     continue

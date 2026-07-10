@@ -39,12 +39,21 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install linters
+      - name: Install Ruff
+        shell: bash
         run: |
-          python -m pip install --upgrade "black>=26" "ruff>=0.15"
+          set -euo pipefail
+          python -m pip install --upgrade "ruff>=0.15"
+          ruff --version
 
-      - name: Ruff (check only)
-        run: ruff check .
+      - name: Ruff lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruff check .
 
-      - name: Black (check only)
-        run: black --check .
+      - name: Ruff format
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruff format --check .

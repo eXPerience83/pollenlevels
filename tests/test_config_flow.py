@@ -1815,8 +1815,7 @@ def test_validate_input_unexpected_exception_sets_unknown(
 
     def _raise_session(hass):
         raise RuntimeError(
-            "boom test-key at location.latitude=48.8566123 "
-            "location.longitude=2.3522456"
+            "boom test-key at location.latitude=48.8566123 location.longitude=2.3522456"
         )
 
     monkeypatch.setattr(
