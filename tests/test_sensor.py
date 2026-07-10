@@ -540,9 +540,20 @@ def test_pollen_sensor_unrecorded_forecast_attributes(
         "family",
         "season",
         "cross_reaction",
-        "Attribution",
+        sensor_modules.sensor.ATTR_ATTRIBUTION,
     }
     assert current_day_attrs.isdisjoint(expected)
+
+
+def test_forecast_attribute_names_derive_unrecorded_set(
+    sensor_modules: SensorModules,
+) -> None:
+    """The unrecorded set is derived from the ordered attribute name tuple."""
+
+    assert (
+        frozenset(sensor_modules.sensor._FORECAST_ATTRIBUTE_NAMES)
+        == sensor_modules.sensor._FORECAST_UNRECORDED_ATTRIBUTES
+    )
 
 
 def test_overall_risk_sensor_unrecorded_forecast_attributes(
@@ -567,7 +578,7 @@ def test_overall_risk_sensor_unrecorded_forecast_attributes(
         "top_pollen_names",
         "top_pollen_categories",
         "tie_count",
-        "Attribution",
+        sensor_modules.sensor.ATTR_ATTRIBUTION,
     }
     assert current_day_attrs.isdisjoint(expected)
 
@@ -926,7 +937,7 @@ def test_summary_sensors_expose_attribution(sensor_modules: SensorModules) -> No
 
     for entity in entities:
         assert (
-            entity.extra_state_attributes["Attribution"]
+            entity.extra_state_attributes[sensor_modules.sensor.ATTR_ATTRIBUTION]
             == sensor_modules.sensor.ATTRIBUTION
         )
 
@@ -959,7 +970,7 @@ def test_attribution_exact_value(
     entity = entity_factory(sensor_modules, coordinator)
 
     assert (
-        entity.extra_state_attributes["Attribution"]
+        entity.extra_state_attributes[sensor_modules.sensor.ATTR_ATTRIBUTION]
         == "Google Maps \u2014 Source: Includes pollen data from Google"
     )
 
