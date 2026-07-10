@@ -71,10 +71,10 @@ reviews:
   path_instructions:
     - path: "**/*.py"
       instructions: |
-        This repository targets Python 3.14+ and CI formats with Black using
-        target-version py314. Black 26+ may format multi-exception handlers as
-        `except A, B:`. Treat that syntax as valid for this repository; do not
-        flag it as a SyntaxError or request `except (A, B):` unless CI fails.
+        This repository targets Python 3.14+. Ruff is the formatter, targets
+        py314, and has preview formatting disabled. Python 3.14 unparenthesized
+        multi-exception handler syntax such as `except A, B:` must not be
+        flagged solely because older Python versions reject it.
 
     - path: "custom_components/pollenlevels/**/*.py"
       instructions: |
@@ -174,7 +174,7 @@ reviews:
         - actions are pinned to versioned major tags.
         - setup-python uses python-version "3.14" unless intentionally changed.
         - shell: bash is present when using set -euo pipefail.
-        - ruff check and black --check fail the job on issues.
+        - ruff check and ruff format --check fail the job on issues.
         - YAML syntax is valid.
         - No placeholders, TODOs, or empty keys.
 

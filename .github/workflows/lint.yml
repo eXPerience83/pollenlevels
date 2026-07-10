@@ -39,12 +39,13 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install linters
+      - name: Install Ruff
         run: |
-          python -m pip install --upgrade "black>=26" "ruff>=0.15"
+          python -m pip install --upgrade "ruff>=0.15"
+          ruff --version
 
-      - name: Ruff (check only)
+      - name: Ruff lint
         run: ruff check .
 
-      - name: Black (check only)
-        run: black --check .
+      - name: Ruff format
+        run: ruff format --check .

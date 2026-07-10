@@ -56,7 +56,7 @@ def _rgb_from_api(color: dict[str, Any] | None) -> tuple[int, int, int] | None:
     Rules:
     - If color is not a dict, or an empty dict, return None
       (meaning "no color provided by API").
-    - If only some channels are present, missing ones are treated as 0 (black baseline)
+    - If only some channels are present, missing ones are treated as 0 (zero baseline)
       but ONLY when at least one channel exists. This preserves partial colors like
       {green, blue} without inventing a color for {}.
     """
