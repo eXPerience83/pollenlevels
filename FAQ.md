@@ -1,6 +1,6 @@
 # ❓ Frequently Asked Questions (FAQ)
 
-*Last verified: 2026-06-12 (UTC). Pricing and quota limits may change; always confirm the current values in the official Google Maps Platform pages linked below.*
+*Last verified: 2026-07-10 (UTC). Pricing and quota limits may change; always confirm the current values in the official Google Maps Platform pages linked below.*
 
 ## 1. How many requests can I make to the Google Maps Pollen API?
 
@@ -100,7 +100,10 @@ No. The integration requires internet access to reach the Google Maps Pollen API
 
 ## 9. Does the integration store my API key?
 
-The API key is stored securely by Home Assistant and is **never shared** with third parties.
+The API key is stored by Home Assistant in the parent Pollen Levels config entry
+and is sent directly from your Home Assistant instance to the Google Maps Pollen
+API when requesting pollen data. It is not sent to the Pollen Levels project
+maintainer.
 
 ---
 
@@ -235,12 +238,49 @@ entities such as `sensor.example_grass_d1` or `sensor.example_grass_d2`.
 
 ---
 
+## 15. Does Home Assistant Recorder store pollen forecast data?
+
+Live forecast attributes remain available in Home Assistant for dashboards,
+templates, automations, and compatible custom cards. Future forecast-derived
+attributes such as `forecast`, `tomorrow_*`, `d2_*`, `trend`, and
+`expected_peak` are excluded from Recorder persistence by Pollen Levels.
+
+Current states and non-forecast attributes may still be recorded according to
+your Home Assistant Recorder configuration.
+
+Under the current Pollen API service-specific terms, today's forecast values may
+be cached for up to 365 consecutive calendar days, and future forecast values may
+be cached for no more than 24 hours. Users with Recorder retention above 365
+days should exclude Pollen Levels entities or otherwise ensure compliant
+retention.
+
+Pollen Levels does not automatically purge existing Recorder history.
+
+---
+
+## 16. What data is sent to Google?
+
+Your Home Assistant instance sends requests directly to the Google Maps Pollen
+API. Requests include your API key, coordinates, requested forecast days, an
+optional language code, and normal network metadata such as the source IP
+address.
+
+See [PRIVACY.md](PRIVACY.md) and Google's
+[Privacy Policy](https://policies.google.com/privacy) for more detail.
+
+---
+
 ## References (official)
 
 - **Core services pricing list (Environment → Pollen Usage)** — last updated shown on page: https://developers.google.com/maps/billing-and-pricing/pricing  
 - **Pollen API usage & billing (quota editing steps)**: https://developers.google.com/maps/documentation/pollen/usage-and-billing  
 - **Pollen API — Forecast endpoint**: https://developers.google.com/maps/documentation/pollen/forecast  
 - **Pollen API — Heatmap tiles**: https://developers.google.com/maps/documentation/pollen/heatmap-tiles  
+- **Pollen API policies and attribution**: https://developers.google.com/maps/documentation/pollen/policies
+- **Google Maps End User Additional Terms**: https://maps.google.com/help/terms_maps/
+- **Google Privacy Policy**: https://policies.google.com/privacy
+- **Google Maps Platform Service Specific Terms**: https://cloud.google.com/maps-platform/terms/maps-service-terms
+- **Google Maps Platform EEA Service Specific Terms**: https://cloud.google.com/terms/maps-platform/eea/maps-service-terms
 - **Cap API usage (daily/minute/per-user caps)**: https://cloud.google.com/apis/docs/capping-api-usage  
 - **View/manage quotas in Console**: https://cloud.google.com/docs/quotas/view-manage  
 - **Pollen API FAQ (6,000 QPM)**: https://developers.google.com/maps/documentation/pollen/faq

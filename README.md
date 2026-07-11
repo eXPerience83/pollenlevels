@@ -16,6 +16,8 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 [![License](https://img.shields.io/github/license/eXPerience83/pollenlevels?logo=github)](https://github.com/eXPerience83/pollenlevels/blob/main/LICENSE)
 [![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/integration)
 [![FAQ](https://img.shields.io/badge/FAQ-Read%20Here-blue?logo=readthedocs&logoColor=white)](https://github.com/eXPerience83/pollenlevels/blob/main/FAQ.md)
+[![Terms](https://img.shields.io/badge/Terms-Read-blue)](TERMS.md)
+[![Privacy](https://img.shields.io/badge/Privacy-Read-blue)](PRIVACY.md)
 [![Ko-fi](https://img.shields.io/badge/Ko%E2%80%91fi-Support%20this%20project-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/experience83)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-blue?logo=paypal)](https://paypal.me/eXPerience83)
 
@@ -69,6 +71,17 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
   API URLs containing `key=...` into public issues. If a key was exposed,
   rotate it in Google Cloud Console and restrict it to the required API and
   allowed referrers/IPs where possible.
+
+Requests go directly from your Home Assistant instance to the Google Maps Pollen
+API. The project maintainer does not operate a data-collection backend; Google
+processes request data under its own privacy policy. See [PRIVACY.md](PRIVACY.md)
+for details.
+
+Live forecast attributes remain available to dashboards, templates, automations,
+and compatible custom cards. Pollen Levels excludes `forecast`, `tomorrow_*`,
+`d2_*`, `trend`, and `expected_peak` from Home Assistant Recorder persistence,
+while current states and non-excluded attributes remain subject to your Recorder
+configuration.
 
 ---
 
@@ -417,4 +430,15 @@ If this integration helps you, consider supporting development:
 ## 📜 License
 
 MIT © 2025 [eXPerience83](LICENSE)
-**Data Source:** [Google Maps Pollen API](https://developers.google.com/maps/documentation/pollen)
+
+---
+
+## Data source, attribution, and terms
+
+Google Maps — Source: Includes pollen data from Google
+
+Pollen Levels uses the [Google Maps Pollen API](https://developers.google.com/maps/documentation/pollen)
+and follows the [Pollen API policies and attribution](https://developers.google.com/maps/documentation/pollen/policies)
+guidance. Use of Google Maps features and content is subject to Google's
+applicable terms and privacy policy. See [TERMS.md](TERMS.md) and
+[PRIVACY.md](PRIVACY.md).

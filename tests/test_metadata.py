@@ -9,6 +9,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 MANIFEST_PATH = ROOT / "custom_components" / "pollenlevels" / "manifest.json"
+README_PATH = ROOT / "README.md"
+FAQ_PATH = ROOT / "FAQ.md"
+TERMS_PATH = ROOT / "TERMS.md"
+PRIVACY_PATH = ROOT / "PRIVACY.md"
+
+
+def _read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
 def _load_pyproject() -> dict:
@@ -48,3 +56,47 @@ def test_pyproject_requires_python_is_314_plus() -> None:
     assert isinstance(requires, str) and requires.startswith(">=3.14"), (
         "requires-python must stay aligned with the 3.14+ tooling story"
     )
+
+
+def test_google_maps_legal_documents_are_publicly_linked() -> None:
+    """Ensure public Google Maps legal notices stay linked and attributed."""
+    assert TERMS_PATH.exists()
+    assert PRIVACY_PATH.exists()
+
+    readme = _read_text(README_PATH)
+    terms = _read_text(TERMS_PATH)
+    privacy = _read_text(PRIVACY_PATH)
+
+    assert "[TERMS.md](TERMS.md)" in readme
+    assert "[PRIVACY.md](PRIVACY.md)" in readme
+    assert "https://maps.google.com/help/terms_maps/" in terms
+    assert "https://policies.google.com/privacy" in terms
+    assert "https://developers.google.com/maps/documentation/pollen/policies" in terms
+    assert "https://policies.google.com/privacy" in privacy
+    attribution = "Google Maps — Source: Includes pollen data from Google"
+    assert attribution in readme
+    assert attribution in terms
+
+
+def test_google_maps_retention_limits_are_documented() -> None:
+    """Ensure Google Maps Pollen retention limits remain documented."""
+    terms = " ".join(_read_text(TERMS_PATH).split())
+
+    assert (
+        "future Pollen API forecast values must not be retained for more than 24 hours"
+    ) in terms
+    assert (
+        "today's forecast values must not be retained for more than "
+        "365 consecutive calendar days"
+    ) in terms
+
+
+def test_faq_documents_privacy_and_retention_guidance() -> None:
+    """Ensure FAQ keeps its privacy and retention guidance."""
+    faq = " ".join(_read_text(FAQ_PATH).split())
+
+    assert "[PRIVACY.md](PRIVACY.md)" in faq
+    assert (
+        "today's forecast values may be cached for up to 365 consecutive calendar days"
+    ) in faq
+    assert "future forecast values may be cached for no more than 24 hours" in faq
