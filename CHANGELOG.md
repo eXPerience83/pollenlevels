@@ -1,3 +1,41 @@
+## [3.0.0rc3] - 2026-07-11
+
+### Added
+
+- Added public Terms of Use and a Privacy Policy covering the integration's
+  local Home Assistant storage, direct Google Maps Pollen API requests,
+  diagnostics, Recorder behavior, data retention, attribution, and user
+  responsibilities.
+- Added focused regression checks to keep the public legal links, Google Maps
+  attribution, and retention guidance present in README, Terms, Privacy, and
+  FAQ documentation.
+
+### Changed
+
+- Updated visible pollen data attribution to
+  `Google Maps — Source: Includes pollen data from Google`.
+- Kept `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`
+  available in live Home Assistant state while excluding those
+  future-forecast-derived attributes from Recorder persistence.
+- Limited stale Google Pollen forecast payload reuse to a maximum of 24 hours.
+- Expanded README and FAQ guidance for API-key handling, data sent directly to
+  Google, Home Assistant Recorder persistence, and the applicable 24-hour and
+  365-day retention limits.
+- Replaced Black with Ruff formatter so Ruff now handles linting, import
+  ordering, and formatting with a rolling minimum version of `ruff>=0.15`.
+- Confirmed RC3 does not change v3 migration behavior, entity IDs, unique IDs,
+  device identifiers, entity count, forecast offsets, service schemas,
+  translation keys, or the parent/subentry architecture.
+
+### Fixed
+
+- Fixed the global `pollenlevels.force_update` action so per-location refresh
+  failures handled internally by Home Assistant's `DataUpdateCoordinator` are
+  still reported.
+- Kept refreshing healthy locations when another location fails, while
+  preserving cancellation handling, stale-location filtering, sequential
+  refresh behavior, and privacy-safe failure messages.
+
 ## [3.0.0rc2] - 2026-06-27
 
 ### Changed
