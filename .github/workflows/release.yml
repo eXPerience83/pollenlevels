@@ -77,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os, sys, zipfile
+          import json, ntpath, os, zipfile
 
           zip_path = "pollenlevels.zip"
           REQUIRED = {
@@ -103,7 +103,7 @@ jobs:
                       raise SystemExit(
                           f"Unsafe member path (backslash): {name}"
                       )
-                  if os.path.isabs(name):
+                  if os.path.isabs(name) or ntpath.isabs(name):
                       raise SystemExit(
                           f"Unsafe member path (absolute): {name}"
                       )
@@ -140,21 +140,23 @@ jobs:
                       + ", ".join(generated)
                   )
 
-              file_names = [i.filename for i in zf.infolist() if not i.is_dir()]
+              file_names = {
+                  i.filename for i in zf.infolist() if not i.is_dir()
+              }
 
               seen = set()
               dupes = set()
-              for name in file_names:
+              for name in all_names:
                   if name in seen:
                       dupes.add(name)
                   seen.add(name)
               if dupes:
                   raise SystemExit(
-                      "ZIP contains duplicate file members: "
+                      "ZIP contains duplicate members: "
                       + ", ".join(sorted(dupes))
                   )
 
-              missing = sorted(REQUIRED - seen)
+              missing = sorted(REQUIRED - file_names)
               if missing:
                   raise SystemExit(
                       "ZIP missing required root files: "
