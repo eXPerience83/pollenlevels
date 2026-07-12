@@ -213,3 +213,235 @@ def test_plant_sensor_does_not_inherit_type_health_recommendations(
 
     assert data["type_weed"]["advice"] == ["Keep windows closed"]
     assert data["plants_ragweed"]["advice"] is None
+
+
+def test_plant_without_index_info(
+    sensor_modules: SensorModules,
+) -> None:
+    """Plant without indexInfo is present in coordinator output with null index fields."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "pollenTypeInfo": [
+                    {
+                        "code": "TREE",
+                        "displayName": "Tree",
+                        "healthRecommendations": ["Avoid outdoor activity"],
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                            "indexDescription": "Low",
+                        },
+                    }
+                ],
+                "plantInfo": [
+                    {
+                        "code": "hazel",
+                        "displayName": "Hazel",
+                    },
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {
+                            "value": 3,
+                            "category": "MODERATE",
+                            "indexDescription": "Moderate",
+                        },
+                    },
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert "plants_hazel" in data
+    hazel = data["plants_hazel"]
+
+    assert hazel["source"] == "plant"
+    assert hazel["code"] == "hazel"
+    assert hazel["displayName"] == "Hazel"
+    assert hazel["value"] is None
+    assert hazel["category"] is None
+    assert hazel["description"] is None
+    assert hazel["color_hex"] is None
+    assert hazel["color_rgb"] is None
+    assert hazel["advice"] is None
+
+    assert "plants_oak" in data
+    assert data["plants_oak"]["value"] == 3
+    assert "type_tree" in data
+    assert data["type_tree"]["value"] == 2
+    assert data["type_tree"]["advice"] == ["Avoid outdoor activity"]
+
+
+def test_plant_missing_optional_metadata(
+    sensor_modules: SensorModules,
+) -> None:
+    """Missing optional plant metadata fields fall back safely."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "plantInfo": [
+                    {
+                        "code": "alder",
+                    },
+                    {
+                        "code": "birch",
+                        "displayName": "Birch",
+                        "inSeason": True,
+                        "plantDescription": "not-a-dict",
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                        },
+                    },
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "inSeason": True,
+                        "plantDescription": {
+                            "type": "TREE",
+                            "family": "Fagaceae",
+                            "season": "Spring",
+                            "crossReaction": ["Birch"],
+                            "picture": "https://example.com/oak.jpg",
+                            "pictureCloseup": "https://example.com/oak-close.jpg",
+                        },
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "LOW",
+                        },
+                    },
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    alder = data["plants_alder"]
+    assert alder["displayName"] == "alder"
+    assert alder["inSeason"] is None
+    assert alder["type"] is None
+    assert alder["family"] is None
+    assert alder["season"] is None
+    assert alder["cross_reaction"] is None
+    assert alder["picture"] is None
+    assert alder["picture_closeup"] is None
+
+    birch = data["plants_birch"]
+    assert birch["displayName"] == "Birch"
+    assert birch["inSeason"] is True
+    assert birch["type"] is None
+    assert birch["family"] is None
+    assert birch["season"] is None
+    assert birch["cross_reaction"] is None
+    assert birch["picture"] is None
+    assert birch["picture_closeup"] is None
+
+    oak = data["plants_oak"]
+    assert oak["displayName"] == "Oak"
+    assert oak["inSeason"] is True
+    assert oak["type"] == "TREE"
+    assert oak["family"] == "Fagaceae"
+    assert oak["season"] == "Spring"
+    assert oak["cross_reaction"] == ["Birch"]
+    assert oak["picture"] == "https://example.com/oak.jpg"
+    assert oak["picture_closeup"] == "https://example.com/oak-close.jpg"
+
+
+def test_plant_missing_and_partial_colors(
+    sensor_modules: SensorModules,
+) -> None:
+    """Missing, empty, partial, and zero-valued color structures produce correct output."""
+
+    payload = {
+        "dailyInfo": [
+            {
+                "date": {"year": 2025, "month": 7, "day": 1},
+                "plantInfo": [
+                    {
+                        "code": "alder",
+                        "displayName": "Alder",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                        },
+                    },
+                    {
+                        "code": "birch",
+                        "displayName": "Birch",
+                        "indexInfo": {
+                            "value": 1,
+                            "category": "LOW",
+                            "color": {},
+                        },
+                    },
+                    {
+                        "code": "hazel",
+                        "displayName": "Hazel",
+                        "indexInfo": {
+                            "value": 2,
+                            "category": "MODERATE",
+                            "color": {"green": 128, "blue": 64},
+                        },
+                    },
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {
+                            "value": 3,
+                            "category": "HIGH",
+                            "color": {"red": 0, "green": 0, "blue": 0},
+                        },
+                    },
+                ],
+            }
+        ]
+    }
+
+    fake_session = FakeSession(payload)
+    client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
+
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert data["plants_alder"]["color_hex"] is None
+    assert data["plants_alder"]["color_rgb"] is None
+
+    assert data["plants_birch"]["color_hex"] is None
+    assert data["plants_birch"]["color_rgb"] is None
+
+    assert data["plants_hazel"]["color_rgb"] == [0, 128, 64]
+    assert data["plants_hazel"]["color_hex"] == "#008040"
+
+    assert data["plants_oak"]["color_rgb"] == [0, 0, 0]
+    assert data["plants_oak"]["color_hex"] == "#000000"
