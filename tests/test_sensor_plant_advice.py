@@ -228,6 +228,7 @@ def test_plant_without_index_info(
                     {
                         "code": "TREE",
                         "displayName": "Tree",
+                        "healthRecommendations": ["Avoid outdoor activity"],
                         "indexInfo": {
                             "value": 2,
                             "category": "LOW",
@@ -276,11 +277,13 @@ def test_plant_without_index_info(
     assert hazel["description"] is None
     assert hazel["color_hex"] is None
     assert hazel["color_rgb"] is None
+    assert hazel["advice"] is None
 
     assert "plants_oak" in data
     assert data["plants_oak"]["value"] == 3
     assert "type_tree" in data
     assert data["type_tree"]["value"] == 2
+    assert data["type_tree"]["advice"] == ["Avoid outdoor activity"]
 
 
 def test_plant_missing_optional_metadata(
