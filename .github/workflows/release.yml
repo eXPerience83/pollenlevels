@@ -74,10 +74,10 @@ jobs:
         shell: bash
         env:
           EXPECTED_RELEASE_TAG: ${{ github.event.release.tag_name }}
+          ZIP_PATH: ${{ github.workspace }}/pollenlevels.zip
         run: |
           set -euo pipefail
-          python scripts/validate_release_zip.py \
-            "${{ github.workspace }}/pollenlevels.zip"
+          python scripts/validate_release_zip.py "$ZIP_PATH"
 
       - name: Upload ZIP to release
         uses: softprops/action-gh-release@v3

@@ -121,7 +121,7 @@ def validate_zip(zip_path: Path, expected_release_tag: str | None) -> None:
             if expected_release_tag != expected:
                 raise SystemExit(
                     "Release tag mismatch: "
-                    f"tag={expected_release_tag!r} != v{version!r}"
+                    f"tag={expected_release_tag!r} != {expected!r}"
                 )
             print(f"Release tag validated: {expected_release_tag} == v{version}")
 

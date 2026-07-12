@@ -73,10 +73,11 @@ jobs:
 
       - name: Validate ZIP package
         shell: bash
+        env:
+          ZIP_PATH: ${{ github.workspace }}/pollenlevels.zip
         run: |
           set -euo pipefail
-          python scripts/validate_release_zip.py \
-            "${{ github.workspace }}/pollenlevels.zip"
+          python scripts/validate_release_zip.py "$ZIP_PATH"
 
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v7
