@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m compileall -q sitecustomize.py custom_components tests
+          python -m compileall -q sitecustomize.py custom_components scripts tests
 
       - name: Ruff validation
         shell: bash
@@ -71,47 +71,13 @@ jobs:
           rm -f "${{ github.workspace }}/pollenlevels.zip"
           git archive --format=zip --output="${{ github.workspace }}/pollenlevels.zip" HEAD:custom_components/pollenlevels
 
-      - name: Validate ZIP structure (zip_release-compatible)
+      - name: Validate ZIP package
         shell: bash
+        env:
+          ZIP_PATH: ${{ github.workspace }}/pollenlevels.zip
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import zipfile
-
-          zip_path = "pollenlevels.zip"
-          required = {"manifest.json", "__init__.py"}
-
-          with zipfile.ZipFile(zip_path) as zf:
-              names = [n for n in zf.namelist() if n and not n.endswith("/")]
-
-          if not names:
-              raise SystemExit("ZIP is empty")
-
-          bad_prefix = [n for n in names if n.startswith("custom_components/")]
-          if bad_prefix:
-              raise SystemExit(
-                  "ZIP contains 'custom_components/' prefix; "
-                  "zip must be integration-root only"
-              )
-
-          generated = [
-              n
-              for n in names
-              if "__pycache__/" in n
-              or n.endswith((".pyc", ".pyo"))
-              or n.startswith((".pytest_cache/", ".ruff_cache/"))
-          ]
-          if generated:
-              raise SystemExit(
-                  "ZIP contains generated/cache files: " + ", ".join(generated)
-              )
-
-          missing = sorted(required.difference(names))
-          if missing:
-              raise SystemExit("ZIP missing required root files: " + ", ".join(missing))
-
-          print("ZIP structure validated.")
-          PY
+          python scripts/validate_release_zip.py "$ZIP_PATH"
 
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v7
