@@ -205,7 +205,8 @@ can create a Repair warning after they repeat. If no configured location can
 load successfully, the parent entry is marked not ready so Home Assistant can
 retry setup.
 
-Create a Home Assistant backup before upgrading from Pollen Levels 2.x to v3.
+Create a full Home Assistant backup before upgrading from Pollen Levels 2.x to
+v3.
 Downgrading from v3 to Pollen Levels 2.x is not supported without restoring that
 backup.
 

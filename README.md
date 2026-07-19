@@ -182,14 +182,15 @@ When reauthenticating or reconfiguring the parent API key, the integration tries
 the configured locations until one returns usable pollen data. Authentication
 and quota errors are treated as key-level failures.
 
-During startup, the v3 beta keeps the parent entry available when at least one
-configured location loads successfully. Locations that fail their initial
+During startup, Pollen Levels v3 keeps the parent entry available when at least
+one configured location loads successfully. Locations that fail their initial
 non-auth refresh are isolated in diagnostics and retried on parent reload; after
 a repeated retryable failure, the integration creates a Repair warning for the
 affected location. If no configured location can load successfully, the parent
 entry is marked not ready so Home Assistant can retry setup.
 
-Create a Home Assistant backup before upgrading from Pollen Levels 2.x to v3.
+Create a full Home Assistant backup before upgrading from Pollen Levels 2.x to
+v3.
 Downgrading from v3 to Pollen Levels 2.x is not supported without restoring that
 backup.
 
