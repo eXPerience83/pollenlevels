@@ -154,13 +154,13 @@ FAQ: https://developers.google.com/maps/documentation/pollen/faq
 
 ---
 
-## 12. What happens to my entries when upgrading to the v3 pre-release?
+## 12. What happens to my entries when upgrading to Pollen Levels v3?
 
-The v3 pre-release migrates Pollen Levels to Home Assistant config subentries.
-Legacy 2.x entries that share the same Google API key are grouped under one
-parent API-key entry, and each migrated location becomes one location subentry.
-The API key is stored once on the parent instead of duplicated across legacy
-entries.
+Pollen Levels v3 introduces a breaking architectural migration to Home
+Assistant config subentries. Legacy 2.x entries that share the same Google API
+key are grouped under one parent API-key entry, and each migrated location
+becomes one location subentry. The API key is stored once on the parent instead
+of duplicated across legacy entries.
 
 Duplicate legacy entries are marked as merged and removed after their
 locations, entities, and devices are moved to the parent entry. If Home
@@ -205,8 +205,9 @@ can create a Repair warning after they repeat. If no configured location can
 load successfully, the parent entry is marked not ready so Home Assistant can
 retry setup.
 
-Create a Home Assistant backup before upgrading. Downgrading to Pollen Levels
-2.x after this migration is not supported.
+Create a Home Assistant backup before upgrading from Pollen Levels 2.x to v3.
+Downgrading from v3 to Pollen Levels 2.x is not supported without restoring that
+backup.
 
 ---
 
