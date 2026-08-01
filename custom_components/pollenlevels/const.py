@@ -48,5 +48,6 @@ def is_invalid_api_key_message(message: str | None) -> bool:
         "api_key_invalid",
         "apikeynotvalid",
         "api key is not valid",
+        "api key expired",
     )
     return any(signal in msg for signal in signals)
