@@ -333,6 +333,29 @@ async def test_client_treats_400_invalid_api_key_as_auth_failure(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "API key expired. Please renew the API key.",
+        "aPi KeY eXpIrEd. PlEaSe ReNeW tHe ApI kEy.",
+    ],
+)
+async def test_client_treats_400_expired_api_key_as_auth_failure(
+    client_module: ModuleType,
+    message: str,
+) -> None:
+    """Expired-key messages on HTTP 400 responses should trigger re-auth."""
+
+    response = FakeResponse(
+        status=400,
+        json_results=[{"error": {"message": message}}],
+    )
+
+    with pytest.raises(client_module.ConfigEntryAuthFailed, match="HTTP 400"):
+        await _fetch_with_response(client_module, response)
+
+
+@pytest.mark.asyncio
 async def test_client_treats_400_non_auth_error_as_update_failed(
     client_module: ModuleType,
 ) -> None:

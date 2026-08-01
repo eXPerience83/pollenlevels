@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiointercept import aiointercept
-from homeassistant.config_entries import ConfigEntryState
+from aiointercept import CallbackResult, aiointercept
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
 
+from custom_components.pollenlevels.const import CONF_API_KEY, DOMAIN
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
+    POLLEN_API_URL_RE,
     assert_fixed_forecast_days,
     async_setup_config_entry,
     mock_pollen_api,
@@ -73,6 +76,54 @@ async def test_ha_setup_unload_reload_smoke(
         assert await hass.config_entries.async_setup(ha_config_entry.entry_id)
         await hass.async_block_till_done()
         assert ha_config_entry.state is ConfigEntryState.LOADED
+
+
+async def test_ha_expired_api_key_setup_starts_reauth_and_recovers(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    ha_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+) -> None:
+    """An expired API key should start reauth and recover with a valid key."""
+    clear_integration_modules()
+    ha_config_entry.add_to_hass(hass)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(
+            POLLEN_API_URL_RE,
+            callback=lambda *_args, **_kwargs: CallbackResult(
+                status=400,
+                payload={
+                    "error": {"message": "API key expired. Please renew the API key."}
+                },
+            ),
+            repeat=True,
+        )
+        assert not await hass.config_entries.async_setup(ha_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert ha_config_entry.state is ConfigEntryState.SETUP_ERROR
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert len(flows) == 1
+    flow = flows[0]
+    assert flow["context"]["source"] == SOURCE_REAUTH
+    assert flow["context"]["entry_id"] == ha_config_entry.entry_id
+    assert flow["step_id"] == "reauth_confirm"
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        result = await hass.config_entries.flow.async_configure(
+            flow["flow_id"],
+            {CONF_API_KEY: "replacement-key"},
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert ha_config_entry.data[CONF_API_KEY] == "replacement-key"
+    assert ha_config_entry.state is ConfigEntryState.LOADED
+    assert set(ha_config_entry.runtime_data.locations) == {"location-madrid"}
 
 
 async def test_ha_stale_location_repairs_are_discovered_from_registry(
