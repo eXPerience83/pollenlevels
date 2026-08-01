@@ -2,9 +2,8 @@
 
 ### Fixed
 
-- Google HTTP 400 responses containing
-  `API key expired. Please renew the API key.` are now classified as
-  authentication failures.
+- Google HTTP 400 responses containing `API key expired. Please renew the API key.`
+  are now classified as authentication failures instead of generic update failures.
 - Home Assistant now starts the automatic reauthentication flow instead of
   leaving the parent entry in setup retry.
 - Recovery with a valid replacement API key reloads the parent and active
