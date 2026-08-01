@@ -8,7 +8,11 @@ from aiointercept import CallbackResult, aiointercept
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_registry as er,
+    issue_registry as ir,
+)
 
 from custom_components.pollenlevels.const import CONF_API_KEY, DOMAIN
 from tests._ha_stubs import clear_integration_modules
@@ -78,16 +82,65 @@ async def test_ha_setup_unload_reload_smoke(
         assert ha_config_entry.state is ConfigEntryState.LOADED
 
 
-async def test_ha_expired_api_key_setup_starts_reauth_and_recovers(
+async def test_ha_expired_api_key_reload_preserves_registry_identity(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
     ha_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
-    """An expired API key should start reauth and recover with a valid key."""
+    """A loaded entry should preserve registry identity through expired-key reauth."""
     clear_integration_modules()
     ha_config_entry.add_to_hass(hass)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, ha_config_entry)
+
+    assert ha_config_entry.state is ConfigEntryState.LOADED
+    assert set(ha_config_entry.runtime_data.locations) == {"location-madrid"}
+
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+
+    def _registry_identity_snapshot() -> dict[str, Any]:
+        entity_entries = [
+            entity
+            for entity in er.async_entries_for_config_entry(
+                entity_registry, ha_config_entry.entry_id
+            )
+            if entity.platform == DOMAIN
+        ]
+        device_entries = dr.async_entries_for_config_entry(
+            device_registry, ha_config_entry.entry_id
+        )
+        return {
+            "entities": {
+                (
+                    entity.entity_id,
+                    entity.unique_id,
+                    entity.device_id,
+                    getattr(entity, "config_subentry_id", None),
+                )
+                for entity in entity_entries
+            },
+            "devices": {
+                device.id: {
+                    "identifiers": frozenset(device.identifiers),
+                    "config_entries_subentries": {
+                        config_entry_id: frozenset(subentry_ids)
+                        for config_entry_id, subentry_ids in getattr(
+                            device, "config_entries_subentries", {}
+                        ).items()
+                    },
+                }
+                for device in device_entries
+            },
+        }
+
+    identities_before = _registry_identity_snapshot()
+    assert identities_before["entities"]
+    assert identities_before["devices"]
 
     async with aiointercept(mock_external_urls=True) as mocked:
         mocked.get(
@@ -100,7 +153,7 @@ async def test_ha_expired_api_key_setup_starts_reauth_and_recovers(
             ),
             repeat=True,
         )
-        assert not await hass.config_entries.async_setup(ha_config_entry.entry_id)
+        assert not await hass.config_entries.async_reload(ha_config_entry.entry_id)
         await hass.async_block_till_done()
 
     assert ha_config_entry.state is ConfigEntryState.SETUP_ERROR
@@ -124,6 +177,7 @@ async def test_ha_expired_api_key_setup_starts_reauth_and_recovers(
     assert ha_config_entry.data[CONF_API_KEY] == "replacement-key"
     assert ha_config_entry.state is ConfigEntryState.LOADED
     assert set(ha_config_entry.runtime_data.locations) == {"location-madrid"}
+    assert _registry_identity_snapshot() == identities_before
 
 
 async def test_ha_stale_location_repairs_are_discovered_from_registry(
