@@ -164,14 +164,16 @@ async def test_ha_expired_api_key_reload_preserves_registry_identity(
     assert flow["context"]["entry_id"] == ha_config_entry.entry_id
     assert flow["step_id"] == "reauth_confirm"
 
+    recovery_params: list[dict[str, Any]] = []
     async with aiointercept(mock_external_urls=True) as mocked:
-        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        mock_pollen_api(mocked, google_pollen_5_day_payload, recovery_params)
         result = await hass.config_entries.flow.async_configure(
             flow["flow_id"],
             {CONF_API_KEY: "replacement-key"},
         )
         await hass.async_block_till_done()
 
+    assert {params["key"] for params in recovery_params} == {"replacement-key"}
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
     assert ha_config_entry.data[CONF_API_KEY] == "replacement-key"
