@@ -29,13 +29,15 @@
       "description": "Group non-major workflow security tooling updates",
       "matchDepNames": [
         "rhysd/actionlint",
-        "zizmor"
+        "zizmor",
+        "astral-sh/uv"
       ],
       "matchUpdateTypes": [
         "patch",
         "minor"
       ],
-      "groupName": "Workflow security tooling"
+      "groupName": "Workflow security tooling",
+      "minimumReleaseAge": "3 days"
     },
     {
       "description": "Delay newly released Python tooling",
