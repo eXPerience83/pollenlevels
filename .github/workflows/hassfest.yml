@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "17 0 * * *"
   workflow_dispatch:
 
 # Least privilege for the default GITHUB_TOKEN
@@ -14,12 +14,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: hassfest-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # Checkout so hassfest can read manifests and structure
       - name: Checkout repository
