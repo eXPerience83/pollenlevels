@@ -41,7 +41,7 @@ billing credits on your account.
 
 Yes. You can use either method:
 - Press the per-location **Update now** button entity created by the integration to refresh one configured location.
-- Call the `pollenlevels.force_update` service from **Developer Tools → Services** to refresh all configured locations.
+- Call the `pollenlevels.force_update` action from **Developer Tools → Actions** to refresh all configured locations.
 Both methods request an immediate coordinator refresh. The normal scheduled polling interval remains managed by Home Assistant's DataUpdateCoordinator.
 
 ---
@@ -214,7 +214,7 @@ backup.
 
 ## 13. Can I choose how many forecast days Pollen Levels requests?
 
-No. Starting with v3 beta 4, Pollen Levels always requests 5 forecast days. This
+No. Pollen Levels v3 always requests 5 forecast days. This
 keeps the integration simpler and gives all existing sensors the maximum
 available forecast attributes.
 
@@ -232,8 +232,8 @@ forecast data is available on the base pollen sensors through the `forecast`,
 If the integration detects legacy per-day forecast entities or settings during
 upgrade, it also creates a persistent Repair warning in Home Assistant.
 
-This cleanup has been brought forward in v3 beta 4 so the migration can be
-tested before the release candidate.
+In Pollen Levels v3, this cleanup is part of the stable migration to the fixed
+5-day forecast model.
 
 Update any dashboards, automations, templates or custom cards that reference
 entities such as `sensor.example_grass_d1` or `sensor.example_grass_d2`.

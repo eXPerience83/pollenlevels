@@ -47,7 +47,7 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
   - **Plants** (Oak, Pine, Birch, etc.)
   - **Pollen Info** (Region / Date metadata)  
 - **Configurable updates** — Change update interval and API response language without reinstalling.
-- **Manual refresh** — Use the per-location **Update now** button entity to refresh a single configured location, or call the global `pollenlevels.force_update` service to refresh all configured locations.
+- **Manual refresh** — Use the per-location **Update now** button entity to refresh a single configured location, or call the global `pollenlevels.force_update` action to refresh all configured locations.
 - **Last Updated sensor** — Shows timestamp of last successful update.
 - **Rich attributes** — Includes `inSeason`, index `description`, health `advice`
   for pollen types, `color_hex`, `color_rgb`, and plant details.
@@ -117,8 +117,8 @@ sensor.example_grass_d2
 Forecast data is now exposed on the base pollen type sensor through attributes.
 Existing legacy `_d1` and `_d2` entity registry entries owned by Pollen Levels
 are removed automatically during setup/reload. Recorder history is not purged.
-This beta brings that cleanup forward so the migration can be tested with the
-fixed 5-day forecast model before the release candidate.
+In Pollen Levels v3, this cleanup is part of the stable migration to the fixed
+5-day forecast model.
 
 Before:
 
