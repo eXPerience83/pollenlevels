@@ -6,19 +6,20 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "37 0 * * *"
   workflow_dispatch:
 
 # No checkout needed; HACS action validates repo metadata remotely
 permissions: {}
 
 concurrency:
-  group: hacs-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate-hacs:
     runs-on: "ubuntu-latest"
+    timeout-minutes: 10
     steps:
       - name: HACS validation
         uses: "hacs/action@main"
