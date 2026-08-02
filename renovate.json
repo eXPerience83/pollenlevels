@@ -1,6 +1,49 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "customManagers:githubActionsVersions"
+  ],
+  "dependencyDashboard": true,
+  "timezone": "Europe/Madrid",
+  "schedule": [
+    "before 6am on Monday"
+  ],
+  "prConcurrentLimit": 5,
+  "automerge": false,
+  "packageRules": [
+    {
+      "description": "Group non-major GitHub Actions updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "patch",
+        "minor"
+      ],
+      "groupName": "GitHub Actions non-major updates"
+    },
+    {
+      "description": "Group non-major workflow security tooling updates",
+      "matchDepNames": [
+        "rhysd/actionlint",
+        "zizmor"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "groupName": "Workflow security tooling"
+    },
+    {
+      "description": "Delay newly released Python tooling",
+      "matchManagers": [
+        "pip_requirements",
+        "pep621"
+      ],
+      "minimumReleaseAge": "3 days"
+    }
   ]
 }
