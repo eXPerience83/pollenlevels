@@ -1,3 +1,27 @@
+## [3.0.0] - 2026-08-02
+
+### Added
+
+- Added one parent config entry per API key with one config subentry per
+  location and shared parent options.
+- Added per-location sensors, devices, coordinators, and Update now buttons.
+- Added `registry_summary` and `runtime_summary` diagnostics.
+
+### Changed
+
+- **Breaking change:** Consolidated v2 entries into the v3 parent/subentry
+  architecture by API key while preserving entity IDs, unique IDs, devices,
+  dashboards, automations, and Recorder history.
+- **Breaking change:** Removed separate D+1 and D+2 entities while retaining
+  `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak` attributes.
+- A Home Assistant backup is mandatory before upgrading from 2.x. Downgrading
+  to 2.x is unsupported without restoring that backup.
+
+### Fixed
+
+- Filtered stale deleted locations from `pollenlevels.force_update`.
+- Added automatic reauthentication for expired Google API keys.
+
 ## [3.0.0rc4] - 2026-08-01
 
 ### Fixed
