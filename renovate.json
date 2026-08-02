@@ -30,7 +30,8 @@
       "matchDepNames": [
         "rhysd/actionlint",
         "zizmor",
-        "astral-sh/uv"
+        "astral-sh/uv",
+        "koalaman/shellcheck"
       ],
       "matchUpdateTypes": [
         "patch",
