@@ -171,7 +171,11 @@ reviews:
         Check:
         - Minimal permissions.
         - concurrency is present where appropriate.
-        - actions are pinned to versioned major tags.
+        - All external Actions are pinned to verified full-length commit SHAs.
+        - Human-readable version or branch comments remain after each SHA.
+        - Renovate annotations and digest-update compatibility are preserved.
+        - actionlint and zizmor remain blocking checks.
+        - No broad zizmor ignores or unnecessary write permissions are added.
         - setup-python uses python-version "3.14" unless intentionally changed.
         - shell: bash is present when using set -euo pipefail.
         - ruff check and ruff format --check fail the job on issues.
