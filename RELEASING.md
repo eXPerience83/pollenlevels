@@ -30,16 +30,21 @@ Before merging, ensure that all required checks are green and all reviews and
 conversations are resolved. Use **Squash and merge**, then confirm that the
 exact release commit is on `main`.
 
-## 3. Prepare the draft release
+## 3. Release
 
-Normal stable release:
+Recommended draft-first mode:
 
 1. Open **Actions**.
-2. Open **Prepare Release**.
+2. Open **Release**.
 3. Select **Run workflow**.
 4. Select branch `main`.
 5. Leave `release_ref` empty to release the current `main` snapshot.
-6. Run the workflow.
+6. Run the workflow. It validates, builds the ZIP, creates or reuses the tag,
+   and prepares a draft.
+
+Review the draft and publish manually. The resulting `release: published` run
+detects the existing `pollenlevels.zip` and exits successfully without
+replacing it.
 
 Specific snapshot:
 
@@ -78,12 +83,23 @@ intended prerelease version, and verify GitHub marks the draft as a prerelease.
 - Confirm no unexpected asset is present.
 - Confirm the workflow completed successfully.
 
+## Emergency published fallback
+
+A trusted maintainer may manually create a tag and publish a GitHub release.
+The `release: published` event starts the same Release workflow. When
+`pollenlevels.zip` is absent, it validates the tagged snapshot, builds and
+validates the ZIP, and attaches it. The release is already public while this
+runs, so a failure leaves a public release requiring maintainer action.
+
+Prepare mode refuses to alter an already published release. Published-fallback
+mode may attach exactly one missing `pollenlevels.zip`, but never moves a tag,
+replaces an existing ZIP, or changes release metadata. Draft-first remains the
+recommended path; the published fallback is for exceptional use.
+
 ## 5. Publish
 
 Publication is always manual. For prereleases, ensure the pre-release option is
 enabled. For stable releases, ensure it is disabled.
-
-Do not manually create a tag or an empty release.
 
 ## 6. Verify the published package
 
@@ -114,7 +130,7 @@ after publication do not necessarily require a new release.
 - [ ] Changelog is complete.
 - [ ] Release PR checks are green.
 - [ ] Release PR was squash merged.
-- [ ] Prepare Release ran on `main`.
+- [ ] Release ran through either the draft-first or published-fallback route.
 - [ ] Draft review is complete.
 - [ ] `pollenlevels.zip` is attached.
 - [ ] Prerelease status is correct.
