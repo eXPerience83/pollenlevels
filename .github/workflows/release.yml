@@ -73,7 +73,7 @@ jobs:
         if: steps.event.outputs.skip_release != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ steps.event.outputs.selected_ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || steps.event.outputs.selected_ref }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -85,7 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$WORKFLOW_REF" != "refs/heads/main" ]]; then
-            echo "Prepare Release must run from refs/heads/main, not $WORKFLOW_REF." >&2
+            echo "Release must run from refs/heads/main, not $WORKFLOW_REF." >&2
             exit 1
           fi
 
@@ -93,8 +93,34 @@ jobs:
         if: steps.event.outputs.skip_release != 'true'
         id: release-commit
         shell: bash
+        env:
+          EVENT_MODE: ${{ steps.event.outputs.event_mode }}
+          RELEASE_REF: ${{ inputs.release_ref }}
         run: |
           set -euo pipefail
+          if [[ "$EVENT_MODE" == "prepare" && -n "$RELEASE_REF" ]]; then
+            if [[ "$RELEASE_REF" == *$'\n'* || "$RELEASE_REF" == refs/pull/* || "$RELEASE_REF" == pull/* || "$RELEASE_REF" == *:* ]]; then
+              echo "Unsupported release_ref." >&2
+              exit 1
+            fi
+            git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+            if [[ "$RELEASE_REF" =~ ^[0-9A-Fa-f]{40}$ ]]; then
+              selected_commit="$(git rev-parse --verify "$RELEASE_REF^{commit}")"
+            else
+              branch="refs/remotes/origin/${RELEASE_REF#refs/heads/}"
+              tag="refs/tags/${RELEASE_REF#refs/tags/}"
+              branch_commit="$(git rev-parse --verify "$branch^{commit}" 2>/dev/null || true)"
+              tag_commit="$(git rev-parse --verify "$tag^{commit}" 2>/dev/null || true)"
+              if [[ -n "$branch_commit" && -n "$tag_commit" && "$branch_commit" != "$tag_commit" ]]; then echo "Ambiguous release_ref." >&2; exit 1; fi
+              selected_commit="${branch_commit:-$tag_commit}"
+              test -n "$selected_commit"
+            fi
+            if ! git branch -r --contains "$selected_commit" | grep -q . && ! git tag --contains "$selected_commit" | grep -q .; then
+              echo "release_ref commit is not reachable from a normal repository branch or tag." >&2
+              exit 1
+            fi
+            git checkout --detach "$selected_commit"
+          fi
           selected_commit="$(git rev-parse HEAD)"
           printf 'release_commit=%s\n' "$selected_commit" >> "$GITHUB_OUTPUT"
 
