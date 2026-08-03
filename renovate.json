@@ -1,6 +1,97 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "customManagers:githubActionsVersions"
+  ],
+  "dependencyDashboard": true,
+  "timezone": "Europe/Madrid",
+  "schedule": [
+    "* 0-5 * * 1"
+  ],
+  "prConcurrentLimit": 5,
+  "automerge": false,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/workflow-security\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: shellcheck-release\\s+SHELLCHECK_TAG:\\s*\"(?<currentValue>v[^\"]+)\"\\s+SHELLCHECK_SHA256:\\s*\"(?<currentDigest>[0-9a-f]{64})\""
+      ],
+      "datasourceTemplate": "github-release-attachments",
+      "depNameTemplate": "koalaman/shellcheck",
+      "versioningTemplate": "semver-coerced"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Group non-major GitHub Actions updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "action"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "patch",
+        "minor"
+      ],
+      "groupName": "GitHub Actions non-major updates"
+    },
+    {
+      "description": "Delay workflow security tooling updates",
+      "matchDepNames": [
+        "rhysd/actionlint",
+        "zizmor",
+        "astral-sh/uv",
+        "koalaman/shellcheck",
+        "go"
+      ],
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Group non-major workflow security tooling updates",
+      "matchDepNames": [
+        "rhysd/actionlint",
+        "zizmor",
+        "astral-sh/uv",
+        "koalaman/shellcheck",
+        "go"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "groupName": "Workflow security tooling"
+    },
+    {
+      "description": "Keep workflow Python on 3.14",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "uses-with"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
+      "matchPackageNames": [
+        "actions/python-versions"
+      ],
+      "allowedVersions": "/^3\\.14(?:\\.|$)/"
+    },
+    {
+      "description": "Delay newly released Python tooling",
+      "matchManagers": [
+        "pip_requirements",
+        "pep621"
+      ],
+      "minimumReleaseAge": "3 days"
+    }
   ]
 }
