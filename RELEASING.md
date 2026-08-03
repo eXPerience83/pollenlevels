@@ -34,8 +34,9 @@ exact release commit is on `main`.
 5. Run the workflow.
 
 No version or tag needs to be typed. The workflow reads and validates both
-version files, runs tests, builds and validates the ZIP, creates the correct
-tag, prepares a draft, and attaches `pollenlevels.zip`.
+version files, runs tests, builds and validates the ZIP, prepares a draft for
+the derived tag bound to the validated commit, and attaches `pollenlevels.zip`.
+The Git ref may not exist until the draft is published.
 
 ## 4. Review the draft
 
@@ -66,10 +67,10 @@ Do not manually create a tag or an empty release.
 ## Recovery and reruns
 
 Rerunning Prepare Release before publication is supported: it replaces the ZIP
-asset on an existing draft while preserving manually edited draft notes. The
-workflow refuses to change an already published release. A tag pointing to a
-different commit is a hard failure. Failed validation does not create a public
-release.
+asset on an existing draft while preserving manually edited draft notes. No
+manual tag creation is required. The workflow refuses to change an already
+published release, and a tag or draft target pointing to a different commit is
+a hard failure. Failed validation does not create a public release.
 
 Do not manually move or delete a release tag to bypass validation.
 

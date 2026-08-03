@@ -221,8 +221,6 @@ jobs:
           VALIDATED_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
-          release_response="$(mktemp)"
-          release_error="$(mktemp)"
 
           tag_refs="$(git ls-remote --tags origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}")"
           if [[ -n "$tag_refs" ]]; then
@@ -240,44 +238,65 @@ jobs:
             tag_exists=false
           fi
 
-          set +e
-          gh api --include "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" \
-            >"$release_response" 2>"$release_error"
-          api_exit=$?
-          set -e
-          api_status="$(sed -n '1s/HTTP\/[0-9.]* \([0-9][0-9]*\).*/\1/p' "$release_response")"
+          releases_response="$(mktemp)"
+          gh api --paginate --slurp --method GET \
+            "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$releases_response"
 
-          if [[ "$api_exit" -ne 0 && "$api_status" != "404" ]]; then
-            cat "$release_error" >&2
-            exit "$api_exit"
-          fi
-
-          if [[ "$api_status" == "404" ]]; then
-            printf 'release_mode=new\nrelease_url=\n' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [[ "$tag_exists" != true ]]; then
-            echo "A release exists for $RELEASE_TAG but its Git tag is missing." >&2
-            exit 1
-          fi
-
-          RELEASE_RESPONSE="$release_response" python - <<'PY' >> "$GITHUB_OUTPUT"
+          RELEASES_RESPONSE="$releases_response" \
+          TAG_EXISTS="$tag_exists" \
+          TAG_COMMIT="${tag_commit:-}" \
+          RELEASE_TAG="$RELEASE_TAG" \
+          VALIDATED_COMMIT="$VALIDATED_COMMIT" \
+          python - <<'PY' >> "$GITHUB_OUTPUT"
           import json
           import os
           from pathlib import Path
 
-          raw = Path(os.environ["RELEASE_RESPONSE"]).read_bytes()
-          for separator in (b"\r\n\r\n", b"\n\n"):
-              if separator in raw:
-                  raw = raw.split(separator, 1)[1]
-                  break
-          release = json.loads(raw)
-          if not release.get("draft"):
+          try:
+              pages = json.loads(Path(os.environ["RELEASES_RESPONSE"]).read_text())
+          except (OSError, json.JSONDecodeError) as error:
+              raise SystemExit(f"Unable to parse paginated releases response: {error}")
+
+          if not isinstance(pages, list) or not all(isinstance(page, list) for page in pages):
+              raise SystemExit("Paginated releases response is not a list of pages")
+
+          releases = [release for page in pages for release in page]
+          if not all(isinstance(release, dict) for release in releases):
+              raise SystemExit("Paginated releases response contains an invalid record")
+          matches = [
+              release
+              for release in releases
+              if release.get("tag_name") == os.environ["RELEASE_TAG"]
+          ]
+          if len(matches) > 1:
+              raise SystemExit(
+                  "Multiple release records use tag "
+                  f"{os.environ['RELEASE_TAG']!r}; clean them up manually"
+              )
+
+          if not matches:
+              print("release_mode=new")
+              print("release_url=")
+              raise SystemExit(0)
+
+          release = matches[0]
+          if release.get("draft") is not True:
               raise SystemExit("Release is already published; refusing to modify it")
           url = release.get("html_url")
-          if not isinstance(url, str):
+          if not isinstance(url, str) or not url:
               raise SystemExit("Draft release response does not include html_url")
+
+          if os.environ["TAG_EXISTS"] == "true":
+              if os.environ["TAG_COMMIT"] != os.environ["VALIDATED_COMMIT"]:
+                  raise SystemExit("Existing Git tag does not match the validated commit")
+          else:
+              target_commitish = release.get("target_commitish")
+              if target_commitish != os.environ["VALIDATED_COMMIT"]:
+                  raise SystemExit(
+                      "Draft release has no Git ref and target_commitish does not "
+                      "match the validated commit"
+                  )
+
           print("release_mode=update")
           print(f"release_url={url}")
           PY
