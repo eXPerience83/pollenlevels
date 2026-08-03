@@ -21,3 +21,10 @@
   - `ruff format .`
   - `ruff format --check .`
   - `python -m pytest -q`
+
+## Releases
+
+Release preparation is restricted to maintainers. See
+[`RELEASING.md`](RELEASING.md) for the version, validation, draft-release,
+publication, and post-release verification process. Contributors must not
+manually create tags or releases as part of a normal pull request.
