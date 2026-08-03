@@ -12,6 +12,20 @@
   ],
   "prConcurrentLimit": 5,
   "automerge": false,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/workflow-security\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: shellcheck-release\\s+SHELLCHECK_TAG:\\s*\"(?<currentValue>v[^\"]+)\"\\s+SHELLCHECK_SHA256:\\s*\"(?<currentDigest>[0-9a-f]{64})\""
+      ],
+      "datasourceTemplate": "github-release-attachments",
+      "depNameTemplate": "koalaman/shellcheck",
+      "versioningTemplate": "semver-coerced"
+    }
+  ],
   "packageRules": [
     {
       "description": "Group non-major GitHub Actions updates",
@@ -38,7 +52,8 @@
         "minor"
       ],
       "groupName": "Workflow security tooling",
-      "minimumReleaseAge": "3 days"
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
     },
     {
       "description": "Delay newly released Python tooling",
