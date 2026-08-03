@@ -3,8 +3,8 @@ name: Prepare Release
 on:
   workflow_dispatch:
     inputs:
-      release_commit:
-        description: "Full release PR squash commit SHA. Leave empty only when main still points to the release commit."
+      release_ref:
+        description: "Branch, tag, or full commit SHA to release. Leave empty for the current main commit."
         required: false
         type: string
 
@@ -32,7 +32,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.release_ref || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -47,107 +47,13 @@ jobs:
             exit 1
           fi
 
-      - name: Resolve and validate release commit
+      - name: Resolve selected snapshot
         id: release-commit
         shell: bash
-        env:
-          DISPATCHED_MAIN_COMMIT: ${{ github.sha }}
-          REQUESTED_RELEASE_COMMIT: ${{ inputs.release_commit }}
         run: |
           set -euo pipefail
-          if [[ -n "$REQUESTED_RELEASE_COMMIT" ]]; then
-            if [[ ! "$REQUESTED_RELEASE_COMMIT" =~ ^[0-9A-Fa-f]{40}$ ]]; then
-              echo "release_commit must be a full 40-character hexadecimal SHA." >&2
-              exit 1
-            fi
-            selected_commit="$(git rev-parse --verify "$REQUESTED_RELEASE_COMMIT^{commit}")"
-          else
-            selected_commit="$(git rev-parse --verify "$DISPATCHED_MAIN_COMMIT^{commit}")"
-          fi
-
-          if ! git merge-base --is-ancestor "$selected_commit" "$DISPATCHED_MAIN_COMMIT"; then
-            echo "Selected release commit is not reachable from dispatched main." >&2
-            exit 1
-          fi
-          first_parent_commits="$(mktemp)"
-          trap 'rm -f "$first_parent_commits"' EXIT
-          git rev-list --first-parent "$DISPATCHED_MAIN_COMMIT" > "$first_parent_commits"
-          if ! grep -Fxq -- "$selected_commit" "$first_parent_commits"; then
-            echo "Selected release commit is not on dispatched main's first-parent history." >&2
-            exit 1
-          fi
-
-          SELECTED_COMMIT="$selected_commit" python - <<'PY'
-          import os
-          import subprocess
-
-          expected = {
-              "custom_components/pollenlevels/manifest.json",
-              "pyproject.toml",
-              "CHANGELOG.md",
-          }
-          selected = os.environ["SELECTED_COMMIT"]
-          parents = subprocess.check_output(
-              ["git", "rev-list", "--parents", "-n", "1", selected], text=True
-          ).split()
-          if len(parents) != 2:
-              raise SystemExit(
-                  "Selected release commit must be a normal single-parent commit"
-              )
-          parent = parents[1]
-          raw = subprocess.check_output(
-              [
-                  "git",
-                  "diff-tree",
-                  "--no-commit-id",
-                  "--name-status",
-                  "-r",
-                  "-z",
-                  parent,
-                  selected,
-              ]
-          )
-          fields = raw.split(b"\0")
-          if fields[-1:] == [b""]:
-              fields.pop()
-          changes: list[tuple[str, str]] = []
-          index = 0
-          while index < len(fields):
-              status = fields[index].decode("utf-8", "surrogateescape")
-              index += 1
-              if status[:1] in {"R", "C"}:
-                  old_path = fields[index].decode("utf-8", "surrogateescape")
-                  new_path = fields[index + 1].decode("utf-8", "surrogateescape")
-                  index += 2
-                  changes.append((status, f"{old_path} -> {new_path}"))
-              else:
-                  path = fields[index].decode("utf-8", "surrogateescape")
-                  index += 1
-                  changes.append((status, path))
-
-          actual_paths = {path for _, path in changes}
-          valid = (
-              len(changes) == 3
-              and actual_paths == expected
-              and all(status == "M" for status, _ in changes)
-          )
-          if not valid:
-              actual = ", ".join(f"{status} {path}" for status, path in changes)
-              raise SystemExit(
-                  "Selected release commit must change exactly manifest.json, "
-                  "pyproject.toml, and CHANGELOG.md as modifications. "
-                  f"Actual changes: {actual or '(none)'}"
-              )
-          PY
+          selected_commit="$(git rev-parse HEAD)"
           printf 'release_commit=%s\n' "$selected_commit" >> "$GITHUB_OUTPUT"
-
-      - name: Check out selected release commit
-        shell: bash
-        env:
-          SELECTED_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
-        run: |
-          set -euo pipefail
-          git checkout --detach "$SELECTED_COMMIT"
 
       - name: Set up Python 3.14
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
@@ -221,7 +127,7 @@ jobs:
           prerelease = bool(
               re.search(r"(?:a|b|rc)\d+", version, flags=re.IGNORECASE)
               or re.search(
-                  r"(?:alpha|beta|pre|preview|dev)", version, flags=re.IGNORECASE
+                  r"(?:alpha|beta|pre|preview|dev|test)", version, flags=re.IGNORECASE
               )
           )
           output = Path(os.environ["GITHUB_OUTPUT"])

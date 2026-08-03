@@ -27,42 +27,43 @@ exact release commit is on `main`.
 
 ## 3. Prepare the draft release
 
-Normal path:
+Normal stable release:
 
 1. Open **Actions**.
 2. Open **Prepare Release**.
 3. Select **Run workflow**.
 4. Select branch `main`.
-5. Leave `release_commit` empty when the release PR squash commit is still the
-   tip of `main`.
+5. Leave `release_ref` empty to release the current `main` snapshot.
 6. Run the workflow.
 
-Delayed or recovery path:
+Specific snapshot:
 
-1. Open the merged release PR and copy its full squash commit SHA.
-2. Open **Actions** and select **Prepare Release**.
-3. Select branch `main`.
-4. Enter the full SHA in `release_commit`.
-5. Run the workflow.
+Enter a branch, tag, or full commit SHA in `release_ref`. The workflow resolves
+it to an exact commit; validation, packaging, tagging, and draft preparation
+all use that SHA.
 
 No version or tag needs to be typed. The workflow reads and validates both
-version files, verifies that the selected commit is a single-parent release
-squash commit on `main` that changes exactly the three release files, runs
-tests, builds and validates the ZIP, and prepares a draft for the derived tag.
-Later unrelated commits are not included in the ZIP or release.
+version files, validates the selected snapshot, runs tests, builds and validates
+the ZIP, and prepares a draft for the derived tag. A dedicated release-only PR
+is recommended for normal stable releases but is not technically required.
 
 Validation, ZIP construction, tag creation, draft creation, and the workflow
-summary all use the selected commit. The workflow creates the derived tag
+summary all use the resolved commit. The workflow creates the derived tag
 automatically after validation, never moves or force-updates tags, and does not
 require manual tag creation. A matching tag can remain after a failed draft
 creation attempt; a rerun reuses it safely. Published releases remain immutable
-to this workflow.
+to this workflow. External fork refs are not supported.
+
+RC, alpha, beta, dev, preview, and test snapshots may be prepared from an
+unmerged same-repository branch: run the workflow from `main`, enter that
+branch or commit in `release_ref`, confirm both version files contain the
+intended prerelease version, and verify GitHub marks the draft as a prerelease.
 
 ## 4. Review the draft
 
 - Confirm the tag matches the intended version.
-- Confirm the tag points to the selected release PR squash commit.
-- Confirm the selected commit shown in the workflow summary.
+- Confirm the tag points to the resolved selected SHA.
+- Confirm the selected ref and resolved SHA shown in the workflow summary.
 - Confirm the prerelease status is correct.
 - For a stable release, review GitHub's latest-release setting before manual
   publication. Prereleases must not be marked latest.
@@ -97,8 +98,13 @@ a hard failure. Failed validation does not create a tag or public release.
 
 Do not manually move or delete a release tag to bypass validation.
 
+Once a version is published, its tag must not be moved. Code changes after a
+published version require a new version; documentation-only repository changes
+after publication do not necessarily require a new release.
+
 ## Release checklist
 
+- [ ] Selected ref and resolved SHA were reviewed.
 - [ ] Manifest and project version files match.
 - [ ] Changelog is complete.
 - [ ] Release PR checks are green.
