@@ -5,6 +5,11 @@
 Pollen Levels releases are prepared as GitHub drafts. A maintainer publishes a
 release manually only after all validation and package asset checks have passed.
 
+Only trusted maintainers with write access should dispatch Release. The workflow
+definition runs from `main`, while `release_ref` intentionally permits an
+unmerged same-repository branch, tag, or SHA for prerelease, express, and
+historical-snapshot releases; branch protection on `main` does not review it.
+
 ## 1. Prepare the release pull request
 
 Create a release-only pull request. It should normally modify only:
