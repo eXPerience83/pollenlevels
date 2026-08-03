@@ -99,25 +99,70 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$EVENT_MODE" == "prepare" && -n "$RELEASE_REF" ]]; then
-            if [[ "$RELEASE_REF" == *$'\n'* || "$RELEASE_REF" == refs/pull/* || "$RELEASE_REF" == pull/* || "$RELEASE_REF" == *:* ]]; then
+            if [[ "$RELEASE_REF" == *$'\n'* || "$RELEASE_REF" == *$'\r'* || "$RELEASE_REF" == refs/pull/* || "$RELEASE_REF" == pull/* || "$RELEASE_REF" == *:* ]]; then
               echo "Unsupported release_ref." >&2
               exit 1
             fi
             git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
             if [[ "$RELEASE_REF" =~ ^[0-9A-Fa-f]{40}$ ]]; then
-              selected_commit="$(git rev-parse --verify "$RELEASE_REF^{commit}")"
+              selected_commit="$(git rev-parse --verify "$RELEASE_REF^{commit}" 2>/dev/null)" || {
+                echo "release_ref does not identify an existing commit." >&2
+                exit 1
+              }
+              containing_ref="$(git for-each-ref --count=1 --format='%(refname)' \
+                --contains "$selected_commit" refs/remotes/origin refs/tags)"
+              if [[ -z "$containing_ref" ]]; then
+                echo "release_ref commit is not reachable from a normal repository branch or tag." >&2
+                exit 1
+              fi
+            elif [[ "$RELEASE_REF" =~ ^[0-9A-Fa-f]{4,39}$ ]]; then
+              echo "Abbreviated commit SHAs are not supported." >&2
+              exit 1
+            elif [[ "$RELEASE_REF" == refs/heads/* ]]; then
+              branch_name="${RELEASE_REF#refs/heads/}"
+              git check-ref-format --branch "$branch_name" >/dev/null || {
+                echo "Invalid branch release_ref." >&2
+                exit 1
+              }
+              selected_commit="$(git rev-parse --verify \
+                "refs/remotes/origin/$branch_name^{commit}" 2>/dev/null)" || {
+                echo "Unknown branch release_ref." >&2
+                exit 1
+              }
+            elif [[ "$RELEASE_REF" == refs/tags/* ]]; then
+              tag_name="${RELEASE_REF#refs/tags/}"
+              git check-ref-format "refs/tags/$tag_name" >/dev/null || {
+                echo "Invalid tag release_ref." >&2
+                exit 1
+              }
+              selected_commit="$(git rev-parse --verify \
+                "refs/tags/$tag_name^{commit}" 2>/dev/null)" || {
+                echo "Unknown tag release_ref." >&2
+                exit 1
+              }
             else
-              branch="refs/remotes/origin/${RELEASE_REF#refs/heads/}"
-              tag="refs/tags/${RELEASE_REF#refs/tags/}"
-              branch_commit="$(git rev-parse --verify "$branch^{commit}" 2>/dev/null || true)"
-              tag_commit="$(git rev-parse --verify "$tag^{commit}" 2>/dev/null || true)"
+              if [[ "$RELEASE_REF" == refs/* ]]; then
+                echo "Unsupported release_ref namespace." >&2
+                exit 1
+              fi
+              git check-ref-format --branch "$RELEASE_REF" >/dev/null || {
+                echo "Invalid branch or tag release_ref." >&2
+                exit 1
+              }
+              git check-ref-format "refs/tags/$RELEASE_REF" >/dev/null || {
+                echo "Invalid branch or tag release_ref." >&2
+                exit 1
+              }
+              branch_commit="$(git rev-parse --verify \
+                "refs/remotes/origin/$RELEASE_REF^{commit}" 2>/dev/null || true)"
+              tag_commit="$(git rev-parse --verify \
+                "refs/tags/$RELEASE_REF^{commit}" 2>/dev/null || true)"
               if [[ -n "$branch_commit" && -n "$tag_commit" && "$branch_commit" != "$tag_commit" ]]; then echo "Ambiguous release_ref." >&2; exit 1; fi
               selected_commit="${branch_commit:-$tag_commit}"
-              test -n "$selected_commit"
-            fi
-            if ! git branch -r --contains "$selected_commit" | grep -q . && ! git tag --contains "$selected_commit" | grep -q .; then
-              echo "release_ref commit is not reachable from a normal repository branch or tag." >&2
-              exit 1
+              if [[ -z "$selected_commit" ]]; then
+                echo "Unknown branch or tag release_ref." >&2
+                exit 1
+              fi
             fi
             git checkout --detach "$selected_commit"
           fi

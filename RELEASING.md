@@ -10,6 +10,10 @@ Only trusted maintainers with write access should dispatch Release. The workflow
 definition runs from `main`, while `release_ref` intentionally permits an
 unmerged same-repository branch, tag, or SHA for prerelease, express, and
 historical-snapshot releases; branch protection on `main` does not review it.
+Pull-request pseudo-refs and Git revision expressions are rejected. A full SHA
+must be reachable from a normal repository branch or tag; unmerged
+same-repository branches remain supported, and ancestry from `main` is not
+required.
 
 ## 1. Prepare the release pull request
 
