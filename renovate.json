@@ -8,7 +8,7 @@
   "dependencyDashboard": true,
   "timezone": "Europe/Madrid",
   "schedule": [
-    "before 6am on Monday"
+    "* 0-5 * * 1"
   ],
   "prConcurrentLimit": 5,
   "automerge": false,
@@ -32,6 +32,9 @@
       "matchManagers": [
         "github-actions"
       ],
+      "matchDepTypes": [
+        "action"
+      ],
       "matchUpdateTypes": [
         "digest",
         "patch",
@@ -40,20 +43,47 @@
       "groupName": "GitHub Actions non-major updates"
     },
     {
+      "description": "Delay workflow security tooling updates",
+      "matchDepNames": [
+        "rhysd/actionlint",
+        "zizmor",
+        "astral-sh/uv",
+        "koalaman/shellcheck",
+        "go"
+      ],
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
+    },
+    {
       "description": "Group non-major workflow security tooling updates",
       "matchDepNames": [
         "rhysd/actionlint",
         "zizmor",
         "astral-sh/uv",
-        "koalaman/shellcheck"
+        "koalaman/shellcheck",
+        "go"
       ],
       "matchUpdateTypes": [
         "patch",
         "minor"
       ],
-      "groupName": "Workflow security tooling",
-      "minimumReleaseAge": "3 days",
-      "internalChecksFilter": "strict"
+      "groupName": "Workflow security tooling"
+    },
+    {
+      "description": "Keep workflow Python on 3.14",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "uses-with"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
+      "matchPackageNames": [
+        "actions/python-versions"
+      ],
+      "allowedVersions": "/^3\\.14(?:\\.|$)/"
     },
     {
       "description": "Delay newly released Python tooling",
