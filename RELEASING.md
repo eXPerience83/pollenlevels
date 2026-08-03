@@ -2,8 +2,9 @@
 
 ## Release model
 
-Pollen Levels releases are prepared as GitHub drafts. A maintainer publishes a
-release manually only after all validation and package asset checks have passed.
+Draft-first preparation is the recommended release path. An emergency
+post-publication fallback is also supported, while publication itself is always
+initiated manually by a maintainer.
 
 Only trusted maintainers with write access should dispatch Release. The workflow
 definition runs from `main`, while `release_ref` intentionally permits an
@@ -61,8 +62,10 @@ Validation, ZIP construction, tag creation, draft creation, and the workflow
 summary all use the resolved commit. The workflow creates the derived tag
 automatically after validation, never moves or force-updates tags, and does not
 require manual tag creation. A matching tag can remain after a failed draft
-creation attempt; a rerun reuses it safely. Published releases remain immutable
-to this workflow. External fork refs are not supported.
+creation attempt; a rerun reuses it safely. Prepare mode refuses to alter an
+already published release; published-fallback mode may attach exactly one
+missing ZIP without replacing an existing ZIP, moving a tag, or changing release
+metadata. External fork refs are not supported.
 
 RC, alpha, beta, dev, preview, and test snapshots may be prepared from an
 unmerged same-repository branch: run the workflow from `main`, enter that
@@ -111,11 +114,11 @@ enabled. For stable releases, ensure it is disabled.
 
 ## Recovery and reruns
 
-Rerunning Prepare Release before publication is supported: it replaces the ZIP
-asset on an existing draft while preserving manually edited draft notes. No
-manual tag creation is required. The workflow refuses to change an already
-published release, and a tag or draft target pointing to a different commit is
-a hard failure. Failed validation does not create a tag or public release.
+Rerunning Release in draft-first mode before publication replaces the ZIP asset
+on an existing draft while preserving manually edited notes. Prepare mode
+refuses already published releases; a `release: published` fallback run may
+attach one missing ZIP. A tag or draft target pointing to another commit remains
+a hard failure.
 
 Do not manually move or delete a release tag to bypass validation.
 
@@ -130,9 +133,9 @@ after publication do not necessarily require a new release.
 - [ ] Changelog is complete.
 - [ ] Release PR checks are green.
 - [ ] Release PR was squash merged.
-- [ ] Release ran through either the draft-first or published-fallback route.
-- [ ] Draft review is complete.
-- [ ] `pollenlevels.zip` is attached.
+- [ ] Release completed through either the draft-first or emergency fallback route.
+- [ ] For draft-first releases, draft review is complete.
+- [ ] `pollenlevels.zip` is attached before HACS verification.
 - [ ] Prerelease status is correct.
 - [ ] The release was published manually.
 - [ ] HACS package verification is complete.
