@@ -69,7 +69,10 @@ jobs:
             echo "Selected release commit is not reachable from dispatched main." >&2
             exit 1
           fi
-          if ! git rev-list --first-parent "$DISPATCHED_MAIN_COMMIT" | grep -Fxq -- "$selected_commit"; then
+          first_parent_commits="$(mktemp)"
+          trap 'rm -f "$first_parent_commits"' EXIT
+          git rev-list --first-parent "$DISPATCHED_MAIN_COMMIT" > "$first_parent_commits"
+          if ! grep -Fxq -- "$selected_commit" "$first_parent_commits"; then
             echo "Selected release commit is not on dispatched main's first-parent history." >&2
             exit 1
           fi
@@ -315,6 +318,23 @@ jobs:
           actual_sha256="$(sha256sum pollenlevels.zip | awk '{print $1}')"
           if [[ "$actual_sha256" != "$VALIDATED_ZIP_SHA256" ]]; then
             echo "Downloaded ZIP digest does not match the validated artifact." >&2
+            exit 1
+          fi
+
+      - name: Validate GitHub CLI capability
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v gh >/dev/null 2>&1 || {
+            echo "GitHub CLI is required but is not installed." >&2
+            exit 1
+          }
+          gh --version
+          gh_api_help="$(mktemp)"
+          trap 'rm -f "$gh_api_help"' EXIT
+          gh api --help > "$gh_api_help"
+          if ! grep -Fq -- "--slurp" "$gh_api_help"; then
+            echo "The installed GitHub CLI does not support required gh api --slurp." >&2
             exit 1
           fi
 
