@@ -27,22 +27,45 @@ exact release commit is on `main`.
 
 ## 3. Prepare the draft release
 
+Normal path:
+
 1. Open **Actions**.
 2. Open **Prepare Release**.
 3. Select **Run workflow**.
 4. Select branch `main`.
+5. Leave `release_commit` empty when the release PR squash commit is still the
+   tip of `main`.
+6. Run the workflow.
+
+Delayed or recovery path:
+
+1. Open the merged release PR and copy its full squash commit SHA.
+2. Open **Actions** and select **Prepare Release**.
+3. Select branch `main`.
+4. Enter the full SHA in `release_commit`.
 5. Run the workflow.
 
 No version or tag needs to be typed. The workflow reads and validates both
-version files, runs tests, builds and validates the ZIP, prepares a draft for
-the derived tag bound to the validated commit, and attaches `pollenlevels.zip`.
-The Git ref may not exist until the draft is published.
+version files, verifies that the selected commit is a single-parent release
+squash commit on `main` that changes exactly the three release files, runs
+tests, builds and validates the ZIP, and prepares a draft for the derived tag.
+Later unrelated commits are not included in the ZIP or release.
+
+Validation, ZIP construction, tag creation, draft creation, and the workflow
+summary all use the selected commit. The workflow creates the derived tag
+automatically after validation, never moves or force-updates tags, and does not
+require manual tag creation. A matching tag can remain after a failed draft
+creation attempt; a rerun reuses it safely. Published releases remain immutable
+to this workflow.
 
 ## 4. Review the draft
 
 - Confirm the tag matches the intended version.
-- Confirm the target commit is the release PR squash commit.
+- Confirm the tag points to the selected release PR squash commit.
+- Confirm the selected commit shown in the workflow summary.
 - Confirm the prerelease status is correct.
+- For a stable release, review GitHub's latest-release setting before manual
+  publication. Prereleases must not be marked latest.
 - Review and edit generated notes as needed.
 - Confirm backup and downgrade warnings are present for v3 where applicable.
 - Confirm `pollenlevels.zip` is attached.
@@ -70,7 +93,7 @@ Rerunning Prepare Release before publication is supported: it replaces the ZIP
 asset on an existing draft while preserving manually edited draft notes. No
 manual tag creation is required. The workflow refuses to change an already
 published release, and a tag or draft target pointing to a different commit is
-a hard failure. Failed validation does not create a public release.
+a hard failure. Failed validation does not create a tag or public release.
 
 Do not manually move or delete a release tag to bypass validation.
 
