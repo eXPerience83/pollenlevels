@@ -1,4 +1,4 @@
-name: Prepare Release
+name: Release
 
 on:
   workflow_dispatch:
@@ -7,6 +7,8 @@ on:
         description: "Branch, tag, or full commit SHA to release. Leave empty for the current main commit."
         required: false
         type: string
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -27,16 +29,50 @@ jobs:
       prerelease: ${{ steps.metadata.outputs.prerelease }}
       zip_sha256: ${{ steps.zip-sha256.outputs.zip_sha256 }}
       release_commit: ${{ steps.release-commit.outputs.release_commit }}
+      event_mode: ${{ steps.event.outputs.event_mode }}
+      skip_release: ${{ steps.event.outputs.skip_release }}
 
     steps:
+      - name: Resolve release event
+        id: event
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_RELEASE_REF: ${{ inputs.release_ref }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          EVENT_RELEASE_ID: ${{ github.event.release.id }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            command -v gh >/dev/null 2>&1
+            assets="$(mktemp)"
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$EVENT_RELEASE_ID/assets?per_page=100" > "$assets"
+            ASSETS="$assets" python - <<'PY' >> "$GITHUB_OUTPUT"
+            import json, os
+            from pathlib import Path
+            assets = json.loads(Path(os.environ["ASSETS"]).read_text())
+            matches = [asset for asset in assets if asset.get("name") == "pollenlevels.zip"]
+            if len(matches) > 1:
+                raise SystemExit("Published release has multiple pollenlevels.zip assets; inspect manually")
+            print("event_mode=published-fallback")
+            print("selected_ref=" + os.environ["EVENT_TAG"])
+            print(f"skip_release={str(len(matches) == 1).lower()}")
+          PY
+          else
+            printf 'event_mode=prepare\nselected_ref=%s\nskip_release=false\n' "${INPUT_RELEASE_REF:-$GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check out repository
+        if: steps.event.outputs.skip_release != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ inputs.release_ref || github.sha }}
+          ref: ${{ steps.event.outputs.selected_ref }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: Require the main branch
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           WORKFLOW_REF: ${{ github.ref }}
@@ -48,6 +84,7 @@ jobs:
           fi
 
       - name: Resolve selected snapshot
+        if: steps.event.outputs.skip_release != 'true'
         id: release-commit
         shell: bash
         run: |
@@ -56,6 +93,7 @@ jobs:
           printf 'release_commit=%s\n' "$selected_commit" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python 3.14
+        if: steps.event.outputs.skip_release != 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.14"
@@ -63,6 +101,7 @@ jobs:
           cache-dependency-path: requirements_test.txt
 
       - name: Install validation dependencies
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -72,8 +111,12 @@ jobs:
           ruff --version
 
       - name: Validate release metadata
+        if: steps.event.outputs.skip_release != 'true'
         id: metadata
         shell: bash
+        env:
+          EVENT_MODE: ${{ steps.event.outputs.event_mode }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -123,6 +166,8 @@ jobs:
                   "Version mismatch: "
                   f"manifest={version!r} pyproject={project_version!r}"
               )
+          if os.environ["EVENT_MODE"] == "published-fallback" and os.environ["EVENT_TAG"] != f"v{version}":
+              raise SystemExit("Published release tag does not match the selected snapshot version")
 
           prerelease = bool(
               re.search(r"(?:a|b|rc)\d+", version, flags=re.IGNORECASE)
@@ -138,24 +183,28 @@ jobs:
           PY
 
       - name: Compile Python sources
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
           python -m compileall -q sitecustomize.py custom_components scripts tests
 
       - name: Ruff validation
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
           ruff check .
 
       - name: Ruff format validation
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
           ruff format --check .
 
       - name: Run tests
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         env:
           PYTHONPATH: .
@@ -164,12 +213,14 @@ jobs:
           python -m pytest -q
 
       - name: Build release ZIP (integration root at ZIP root)
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
           git archive --format=zip --output=pollenlevels.zip HEAD:custom_components/pollenlevels
 
       - name: Validate ZIP package
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         env:
           EXPECTED_RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
@@ -179,6 +230,7 @@ jobs:
           python scripts/validate_release_zip.py "$ZIP_PATH"
 
       - name: Calculate ZIP SHA-256
+        if: steps.event.outputs.skip_release != 'true'
         id: zip-sha256
         shell: bash
         run: |
@@ -186,6 +238,7 @@ jobs:
           printf 'zip_sha256=%s\n' "$(sha256sum pollenlevels.zip | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Upload validated ZIP
+        if: steps.event.outputs.skip_release != 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: pollenlevels-release-asset
@@ -193,8 +246,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  prepare-draft:
+  finalize-release:
     needs: validate-release
+    if: needs.validate-release.outputs.skip_release != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -245,6 +299,7 @@ jobs:
           fi
 
       - name: Preflight release state
+        if: needs.validate-release.outputs.event_mode == 'prepare'
         id: preflight
         shell: bash
         env:
@@ -338,7 +393,7 @@ jobs:
           PY
 
       - name: Create and verify release tag
-        if: steps.preflight.outputs.create_tag == 'true'
+        if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.create_tag == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -368,7 +423,7 @@ jobs:
 
       - name: Create draft release
         id: create-draft
-        if: steps.preflight.outputs.release_mode == 'new'
+        if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.release_mode == 'new'
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
@@ -382,7 +437,7 @@ jobs:
 
       - name: Update draft release asset
         id: update-draft
-        if: steps.preflight.outputs.release_mode == 'update'
+        if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.release_mode == 'update'
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
@@ -392,6 +447,7 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Write release summary
+        if: needs.validate-release.outputs.event_mode == 'prepare'
         shell: bash
         env:
           RELEASE_MODE: ${{ steps.preflight.outputs.release_mode }}
@@ -432,3 +488,28 @@ jobs:
             echo
             echo "Next manual step: Review the draft release and publish it from the GitHub Releases page."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload missing published release ZIP
+        if: needs.validate-release.outputs.event_mode == 'published-fallback'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ github.event.release.id }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          assets="$(mktemp)"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" > "$assets"
+          ASSETS="$assets" python - <<'PY' > "$RUNNER_TEMP/release_asset_state"
+          import json, os
+          from pathlib import Path
+          matches = [asset for asset in json.loads(Path(os.environ["ASSETS"]).read_text()) if asset.get("name") == "pollenlevels.zip"]
+          if len(matches) > 1:
+              raise SystemExit("Published release has multiple pollenlevels.zip assets; inspect manually")
+          print(len(matches))
+          PY
+          if [[ "$(cat "$RUNNER_TEMP/release_asset_state")" == "1" ]]; then
+            echo "Published release already contains pollenlevels.zip; skipping upload." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh release upload "$RELEASE_TAG" pollenlevels.zip
