@@ -292,9 +292,12 @@ jobs:
       - name: Build release ZIP (integration root at ZIP root)
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
+        env:
+          RELEASE_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
         run: |
           set -euo pipefail
-          git archive --format=zip --output=pollenlevels.zip HEAD:custom_components/pollenlevels
+          git archive --format=zip --output=pollenlevels.zip \
+            "${RELEASE_COMMIT}:custom_components/pollenlevels"
 
       - name: Validate ZIP package
         if: steps.event.outputs.skip_release != 'true'
