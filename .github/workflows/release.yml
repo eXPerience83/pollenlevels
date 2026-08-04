@@ -1,29 +1,175 @@
-name: Release Asset
+name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      release_ref:
+        description: "Branch, tag, or full commit SHA to release. Leave empty for the current main commit."
+        required: false
+        type: string
   release:
     types: [published]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || github.ref_name }}
+  group: prepare-release
   cancel-in-progress: false
 
 jobs:
-  package-and-upload:
+  validate-release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      tag: ${{ steps.metadata.outputs.tag }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
+      zip_sha256: ${{ steps.zip-sha256.outputs.zip_sha256 }}
+      release_commit: ${{ steps.release-commit.outputs.release_commit }}
+      event_mode: ${{ steps.event.outputs.event_mode }}
+      skip_release: ${{ steps.event.outputs.skip_release }}
 
     steps:
+      - name: Resolve release event
+        id: event
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          EVENT_RELEASE_ID: ${{ github.event.release.id }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            command -v gh >/dev/null 2>&1
+            asset_ids="$(mktemp)"
+            trap 'rm -f "$asset_ids"' EXIT
+            gh api --paginate --jq '.[] | select(.name == "pollenlevels.zip") | .id' \
+              "repos/$GITHUB_REPOSITORY/releases/$EVENT_RELEASE_ID/assets?per_page=100" > "$asset_ids"
+            mapfile -t matches < "$asset_ids"
+            if (( ${#matches[@]} > 1 )); then
+              echo "Published release has multiple pollenlevels.zip assets; inspect manually" >&2
+              exit 1
+            fi
+            printf 'event_mode=published-fallback\nselected_ref=refs/tags/%s\nskip_release=%s\n' "$EVENT_TAG" "$( (( ${#matches[@]} == 1 )) && echo true || echo false )" >> "$GITHUB_OUTPUT"
+            if (( ${#matches[@]} == 1 )); then
+              {
+                echo "## Release fallback"
+                echo "- Release tag: \`$EVENT_TAG\`"
+                echo "- Release ID: \`$EVENT_RELEASE_ID\`"
+                echo "- Result: existing \`pollenlevels.zip\` detected."
+                echo "- No validation, build, or upload was required; the existing asset was not modified."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            printf 'event_mode=prepare\nskip_release=false\n' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require the main branch
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$WORKFLOW_REF" != "refs/heads/main" ]]; then
+            echo "Release must run from refs/heads/main, not $WORKFLOW_REF." >&2
+            exit 1
+          fi
+
       - name: Check out repository
+        if: steps.event.outputs.skip_release != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || steps.event.outputs.selected_ref }}
+          fetch-depth: 0
           persist-credentials: false
 
+      - name: Resolve selected snapshot
+        if: steps.event.outputs.skip_release != 'true'
+        id: release-commit
+        shell: bash
+        env:
+          EVENT_MODE: ${{ steps.event.outputs.event_mode }}
+          RELEASE_REF: ${{ inputs.release_ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_MODE" == "prepare" && -n "$RELEASE_REF" ]]; then
+            if [[ "$RELEASE_REF" == *$'\n'* || "$RELEASE_REF" == *$'\r'* || "$RELEASE_REF" == refs/pull/* || "$RELEASE_REF" == pull/* || "$RELEASE_REF" == *:* ]]; then
+              echo "Unsupported release_ref." >&2
+              exit 1
+            fi
+            git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+            if [[ "$RELEASE_REF" =~ ^[0-9A-Fa-f]{40}$ ]]; then
+              selected_commit="$(git rev-parse --verify "$RELEASE_REF^{commit}" 2>/dev/null)" || {
+                echo "release_ref does not identify an existing commit." >&2
+                exit 1
+              }
+              containing_ref="$(git for-each-ref --count=1 --format='%(refname)' \
+                --contains "$selected_commit" refs/remotes/origin refs/tags)"
+              if [[ -z "$containing_ref" ]]; then
+                echo "release_ref commit is not reachable from a normal repository branch or tag." >&2
+                exit 1
+              fi
+            elif [[ "$RELEASE_REF" =~ ^[0-9A-Fa-f]{4,39}$ ]]; then
+              echo "Abbreviated commit SHAs are not supported." >&2
+              exit 1
+            elif [[ "$RELEASE_REF" == refs/heads/* ]]; then
+              branch_name="${RELEASE_REF#refs/heads/}"
+              git check-ref-format --branch "$branch_name" >/dev/null || {
+                echo "Invalid branch release_ref." >&2
+                exit 1
+              }
+              selected_commit="$(git rev-parse --verify \
+                "refs/remotes/origin/$branch_name^{commit}" 2>/dev/null)" || {
+                echo "Unknown branch release_ref." >&2
+                exit 1
+              }
+            elif [[ "$RELEASE_REF" == refs/tags/* ]]; then
+              tag_name="${RELEASE_REF#refs/tags/}"
+              git check-ref-format "refs/tags/$tag_name" >/dev/null || {
+                echo "Invalid tag release_ref." >&2
+                exit 1
+              }
+              selected_commit="$(git rev-parse --verify \
+                "refs/tags/$tag_name^{commit}" 2>/dev/null)" || {
+                echo "Unknown tag release_ref." >&2
+                exit 1
+              }
+            else
+              if [[ "$RELEASE_REF" == refs/* ]]; then
+                echo "Unsupported release_ref namespace." >&2
+                exit 1
+              fi
+              git check-ref-format --branch "$RELEASE_REF" >/dev/null || {
+                echo "Invalid branch or tag release_ref." >&2
+                exit 1
+              }
+              git check-ref-format "refs/tags/$RELEASE_REF" >/dev/null || {
+                echo "Invalid branch or tag release_ref." >&2
+                exit 1
+              }
+              branch_commit="$(git rev-parse --verify \
+                "refs/remotes/origin/$RELEASE_REF^{commit}" 2>/dev/null || true)"
+              tag_commit="$(git rev-parse --verify \
+                "refs/tags/$RELEASE_REF^{commit}" 2>/dev/null || true)"
+              if [[ -n "$branch_commit" && -n "$tag_commit" && "$branch_commit" != "$tag_commit" ]]; then echo "Ambiguous release_ref." >&2; exit 1; fi
+              selected_commit="${branch_commit:-$tag_commit}"
+              if [[ -z "$selected_commit" ]]; then
+                echo "Unknown branch or tag release_ref." >&2
+                exit 1
+              fi
+            fi
+            git checkout --detach "$selected_commit"
+          fi
+          selected_commit="$(git rev-parse HEAD)"
+          printf 'release_commit=%s\n' "$selected_commit" >> "$GITHUB_OUTPUT"
+
       - name: Set up Python 3.14
+        if: steps.event.outputs.skip_release != 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.14"
@@ -31,6 +177,7 @@ jobs:
           cache-dependency-path: requirements_test.txt
 
       - name: Install validation dependencies
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -39,51 +186,420 @@ jobs:
           python -m pip install -r requirements_test.txt
           ruff --version
 
+      - name: Validate release metadata
+        if: steps.event.outputs.skip_release != 'true'
+        id: metadata
+        shell: bash
+        env:
+          EVENT_MODE: ${{ steps.event.outputs.event_mode }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import tomllib
+          from pathlib import Path
+
+          manifest = json.loads(
+              Path("custom_components/pollenlevels/manifest.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          if not isinstance(manifest, dict):
+              raise SystemExit("manifest.json root is not an object")
+          if manifest.get("domain") != "pollenlevels":
+              raise SystemExit("manifest.domain must be 'pollenlevels'")
+
+          version = manifest.get("version")
+          if (
+              not isinstance(version, str)
+              or not version.strip()
+              or version != version.strip()
+              or "\n" in version
+              or "\r" in version
+          ):
+              raise SystemExit("manifest.version must be a non-empty single-line string")
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          project_section = project.get("project")
+          if not isinstance(project_section, dict):
+              raise SystemExit("pyproject.toml is missing [project]")
+          project_version = project_section.get("version")
+          if (
+              not isinstance(project_version, str)
+              or not project_version.strip()
+              or project_version != project_version.strip()
+              or "\n" in project_version
+              or "\r" in project_version
+          ):
+              raise SystemExit(
+                  "[project].version must be a non-empty single-line string"
+              )
+          if project_version != version:
+              raise SystemExit(
+                  "Version mismatch: "
+                  f"manifest={version!r} pyproject={project_version!r}"
+              )
+          if os.environ["EVENT_MODE"] == "published-fallback" and os.environ["EVENT_TAG"] != f"v{version}":
+              raise SystemExit("Published release tag does not match the selected snapshot version")
+
+          prerelease = bool(
+              re.search(r"(?:a|b|rc)\d+", version, flags=re.IGNORECASE)
+              or re.search(
+                  r"(?:alpha|beta|pre|preview|dev|test)", version, flags=re.IGNORECASE
+              )
+          )
+          output = Path(os.environ["GITHUB_OUTPUT"])
+          with output.open("a", encoding="utf-8") as file:
+              file.write(f"version={version}\n")
+              file.write(f"tag=v{version}\n")
+              file.write(f"prerelease={str(prerelease).lower()}\n")
+          PY
+
+      - name: Validate derived release tag
+        if: steps.event.outputs.skip_release != 'true'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! git check-ref-format "refs/tags/$RELEASE_TAG" >/dev/null; then
+            echo "Derived release tag is not a valid Git ref." >&2
+            exit 1
+          fi
+
       - name: Compile Python sources
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
           python -m compileall -q sitecustomize.py custom_components scripts tests
 
       - name: Ruff validation
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
           ruff check .
 
       - name: Ruff format validation
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         run: |
           set -euo pipefail
           ruff format --check .
 
       - name: Run tests
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
+        env:
+          PYTHONPATH: .
         run: |
           set -euo pipefail
           python -m pytest -q
-        env:
-          PYTHONPATH: .
 
       - name: Build release ZIP (integration root at ZIP root)
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f "${{ github.workspace }}/pollenlevels.zip"
-          git archive --format=zip --output="${{ github.workspace }}/pollenlevels.zip" HEAD:custom_components/pollenlevels
-
-      - name: Validate ZIP package
+        if: steps.event.outputs.skip_release != 'true'
         shell: bash
         env:
-          EXPECTED_RELEASE_TAG: ${{ github.event.release.tag_name }}
-          ZIP_PATH: ${{ github.workspace }}/pollenlevels.zip
+          RELEASE_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+        run: |
+          set -euo pipefail
+          git archive --format=zip --output=pollenlevels.zip \
+            "${RELEASE_COMMIT}:custom_components/pollenlevels"
+
+      - name: Validate ZIP package
+        if: steps.event.outputs.skip_release != 'true'
+        shell: bash
+        env:
+          EXPECTED_RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+          ZIP_PATH: pollenlevels.zip
         run: |
           set -euo pipefail
           python scripts/validate_release_zip.py "$ZIP_PATH"
 
-      - name: Upload ZIP to release
+      - name: Calculate ZIP SHA-256
+        if: steps.event.outputs.skip_release != 'true'
+        id: zip-sha256
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'zip_sha256=%s\n' "$(sha256sum pollenlevels.zip | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload validated ZIP
+        if: steps.event.outputs.skip_release != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: pollenlevels-release-asset
+          path: pollenlevels.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  finalize-release:
+    needs: validate-release
+    if: needs.validate-release.outputs.skip_release != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.validate-release.outputs.release_commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download validated ZIP
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pollenlevels-release-asset
+          path: .
+
+      - name: Verify validated ZIP digest
+        shell: bash
+        env:
+          VALIDATED_ZIP_SHA256: ${{ needs.validate-release.outputs.zip_sha256 }}
+        run: |
+          set -euo pipefail
+          test -f pollenlevels.zip
+          actual_sha256="$(sha256sum pollenlevels.zip | awk '{print $1}')"
+          if [[ "$actual_sha256" != "$VALIDATED_ZIP_SHA256" ]]; then
+            echo "Downloaded ZIP digest does not match the validated artifact." >&2
+            exit 1
+          fi
+
+      - name: Validate GitHub CLI capability
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v gh >/dev/null 2>&1 || {
+            echo "GitHub CLI is required but is not installed." >&2
+            exit 1
+          }
+          gh --version
+          gh_api_help="$(mktemp)"
+          trap 'rm -f "$gh_api_help"' EXIT
+          gh api --help > "$gh_api_help"
+          if ! grep -Fq -- "--slurp" "$gh_api_help"; then
+            echo "The installed GitHub CLI does not support required gh api --slurp." >&2
+            exit 1
+          fi
+
+      - name: Preflight release state
+        if: needs.validate-release.outputs.event_mode == 'prepare'
+        id: preflight
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+          VALIDATED_COMMIT: ${{ needs.validate-release.outputs.release_commit }}
+        run: |
+          set -euo pipefail
+
+          tag_refs="$(git ls-remote --tags origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}")"
+          if [[ -n "$tag_refs" ]]; then
+            tag_exists=true
+            tag_commit="$(printf '%s\n' "$tag_refs" | awk '
+              $2 ~ /\^\{\}$/ { peeled = $1 }
+              $2 !~ /\^\{\}$/ { direct = $1 }
+              END { print peeled ? peeled : direct }
+            ')"
+            if [[ "$tag_commit" != "$VALIDATED_COMMIT" ]]; then
+              echo "Existing tag $RELEASE_TAG points to $tag_commit, not $VALIDATED_COMMIT." >&2
+              exit 1
+            fi
+          else
+            tag_exists=false
+          fi
+
+          releases_response="$(mktemp)"
+          gh api --paginate --slurp --method GET \
+            "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$releases_response"
+
+          RELEASES_RESPONSE="$releases_response" \
+          TAG_EXISTS="$tag_exists" \
+          TAG_COMMIT="${tag_commit:-}" \
+          RELEASE_TAG="$RELEASE_TAG" \
+          VALIDATED_COMMIT="$VALIDATED_COMMIT" \
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          from pathlib import Path
+
+          try:
+              pages = json.loads(Path(os.environ["RELEASES_RESPONSE"]).read_text())
+          except (OSError, json.JSONDecodeError) as error:
+              raise SystemExit(f"Unable to parse paginated releases response: {error}")
+
+          if not isinstance(pages, list) or not all(isinstance(page, list) for page in pages):
+              raise SystemExit("Paginated releases response is not a list of pages")
+
+          releases = [release for page in pages for release in page]
+          if not all(isinstance(release, dict) for release in releases):
+              raise SystemExit("Paginated releases response contains an invalid record")
+          matches = [
+              release
+              for release in releases
+              if release.get("tag_name") == os.environ["RELEASE_TAG"]
+          ]
+          if len(matches) > 1:
+              raise SystemExit(
+                  "Multiple release records use tag "
+                  f"{os.environ['RELEASE_TAG']!r}; clean them up manually"
+              )
+
+          if not matches:
+              print("release_mode=new")
+              print("release_url=")
+              print(f"tag_exists={os.environ['TAG_EXISTS']}")
+              print(f"create_tag={str(os.environ['TAG_EXISTS'] != 'true').lower()}")
+              raise SystemExit(0)
+
+          release = matches[0]
+          if release.get("draft") is not True:
+              raise SystemExit("Release is already published; refusing to modify it")
+          url = release.get("html_url")
+          if not isinstance(url, str) or not url:
+              raise SystemExit("Draft release response does not include html_url")
+
+          if os.environ["TAG_EXISTS"] == "true":
+              if os.environ["TAG_COMMIT"] != os.environ["VALIDATED_COMMIT"]:
+                  raise SystemExit("Existing Git tag does not match the validated commit")
+          else:
+              target_commitish = release.get("target_commitish")
+              if target_commitish != os.environ["VALIDATED_COMMIT"]:
+                  raise SystemExit(
+                      "Draft release has no Git ref and target_commitish does not "
+                      "match the validated commit"
+                  )
+
+          print("release_mode=update")
+          print(f"release_url={url}")
+          print(f"tag_exists={os.environ['TAG_EXISTS']}")
+          print(f"create_tag={str(os.environ['TAG_EXISTS'] != 'true').lower()}")
+          PY
+
+      - name: Create and verify release tag
+        if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.create_tag == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+          VALIDATED_COMMIT: ${{ needs.validate-release.outputs.release_commit }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f "ref=refs/tags/$RELEASE_TAG" -f "sha=$VALIDATED_COMMIT" >/dev/null
+          tag_response="$(mktemp)"
+          gh api --method GET "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" \
+            > "$tag_response"
+          TAG_RESPONSE="$tag_response" VALIDATED_COMMIT="$VALIDATED_COMMIT" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          reference = json.loads(Path(os.environ["TAG_RESPONSE"]).read_text())
+          object_data = reference.get("object") if isinstance(reference, dict) else None
+          if (
+              not isinstance(object_data, dict)
+              or object_data.get("type") != "commit"
+              or object_data.get("sha") != os.environ["VALIDATED_COMMIT"]
+          ):
+              raise SystemExit("Created Git tag does not resolve to the validated commit")
+          PY
+
+      - name: Create draft release
+        id: create-draft
+        if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.release_mode == 'new'
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
+          tag_name: ${{ needs.validate-release.outputs.tag }}
+          name: ${{ needs.validate-release.outputs.tag }}
+          draft: true
+          prerelease: ${{ needs.validate-release.outputs.prerelease }}
+          generate_release_notes: true
           files: pollenlevels.zip
           overwrite_files: true
           fail_on_unmatched_files: true
+
+      - name: Update draft release asset
+        id: update-draft
+        if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.release_mode == 'update'
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        with:
+          tag_name: ${{ needs.validate-release.outputs.tag }}
+          draft: true
+          files: pollenlevels.zip
+          overwrite_files: true
+          fail_on_unmatched_files: true
+
+      - name: Write release summary
+        if: needs.validate-release.outputs.event_mode == 'prepare'
+        shell: bash
+        env:
+          RELEASE_MODE: ${{ steps.preflight.outputs.release_mode }}
+          PREEXISTING_RELEASE_URL: ${{ steps.preflight.outputs.release_url }}
+          CREATED_RELEASE_URL: ${{ steps.create-draft.outputs.url }}
+          UPDATED_RELEASE_URL: ${{ steps.update-draft.outputs.url }}
+          RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+          PRERELEASE: ${{ needs.validate-release.outputs.prerelease }}
+          VALIDATED_COMMIT: ${{ needs.validate-release.outputs.release_commit }}
+          ZIP_SHA256: ${{ needs.validate-release.outputs.zip_sha256 }}
+        run: |
+          set -euo pipefail
+          release_url="$PREEXISTING_RELEASE_URL"
+          if [[ -z "$release_url" ]]; then
+            release_url="$CREATED_RELEASE_URL"
+          fi
+          if [[ -z "$release_url" ]]; then
+            release_url="$UPDATED_RELEASE_URL"
+          fi
+          if [[ "$RELEASE_MODE" == "new" ]]; then
+            release_action="Created a new draft release"
+          else
+            release_action="Updated the existing draft release asset"
+          fi
+          {
+            echo "## Prepare Release"
+            echo
+            echo "- Version: \`$RELEASE_VERSION\`"
+            echo "- Tag: \`$RELEASE_TAG\`"
+            echo "- Commit: \`$VALIDATED_COMMIT\`"
+            echo "- Prerelease: \`$PRERELEASE\`"
+            echo "- ZIP SHA-256: \`$ZIP_SHA256\`"
+            echo "- Result: $release_action"
+            if [[ -n "$release_url" ]]; then
+              echo "- Draft release: $release_url"
+            fi
+            echo
+            echo "Next manual step: Review the draft release and publish it from the GitHub Releases page."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload missing published release ZIP
+        if: needs.validate-release.outputs.event_mode == 'published-fallback'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ github.event.release.id }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          asset_ids="$(mktemp)"
+          trap 'rm -f "$asset_ids"' EXIT
+          gh api --paginate --jq '.[] | select(.name == "pollenlevels.zip") | .id' \
+            "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" > "$asset_ids"
+          mapfile -t matches < "$asset_ids"
+          if (( ${#matches[@]} > 1 )); then
+            echo "Published release has multiple pollenlevels.zip assets; inspect manually" >&2
+            exit 1
+          fi
+          if (( ${#matches[@]} == 1 )); then
+            echo "Published release already contains pollenlevels.zip; skipping upload." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh release upload "$RELEASE_TAG" pollenlevels.zip
