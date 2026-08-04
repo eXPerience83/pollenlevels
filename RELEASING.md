@@ -135,8 +135,8 @@ after publication do not necessarily require a new release.
 - [ ] Selected ref and resolved SHA were reviewed.
 - [ ] Manifest and project version files match.
 - [ ] Changelog is complete.
-- [ ] Release PR checks are green.
-- [ ] Release PR was squash merged.
+- [ ] For normal stable releases, release PR checks are green.
+- [ ] For normal stable releases, the release PR was squash merged.
 - [ ] Release completed through either the draft-first or emergency fallback route.
 - [ ] For draft-first releases, draft review is complete.
 - [ ] `pollenlevels.zip` is attached before HACS verification.
