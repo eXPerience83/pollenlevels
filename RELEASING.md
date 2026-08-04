@@ -58,10 +58,10 @@ Enter a branch, tag, or full commit SHA in `release_ref`. The workflow resolves
 it to an exact commit; validation, packaging, tagging, and draft preparation
 all use that SHA.
 
-No version or tag needs to be typed. The workflow reads and validates both
-version files, validates the selected snapshot, runs tests, builds and validates
-the ZIP, and prepares a draft for the derived tag. A dedicated release-only PR
-is recommended for normal stable releases but is not technically required.
+For a specific snapshot, enter only `release_ref`; no separate version or
+release-tag field is required. The workflow reads and validates both version
+files, validates the selected snapshot, runs tests, builds and validates the
+ZIP, and prepares a draft for the derived tag.
 
 Validation, ZIP construction, tag creation, draft creation, and the workflow
 summary all use the resolved commit. The workflow creates the derived tag
