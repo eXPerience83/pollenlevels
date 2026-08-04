@@ -66,7 +66,7 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
             fi
           else
-            printf 'event_mode=prepare\nselected_ref=%s\nskip_release=false\n' "${INPUT_RELEASE_REF:-$GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            printf 'event_mode=prepare\nskip_release=false\n' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check out repository
