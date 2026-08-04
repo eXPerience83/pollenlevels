@@ -55,7 +55,7 @@ jobs:
               echo "Published release has multiple pollenlevels.zip assets; inspect manually" >&2
               exit 1
             fi
-            printf 'event_mode=published-fallback\nselected_ref=%s\nskip_release=%s\n' "$EVENT_TAG" "$( (( ${#matches[@]} == 1 )) && echo true || echo false )" >> "$GITHUB_OUTPUT"
+            printf 'event_mode=published-fallback\nselected_ref=refs/tags/%s\nskip_release=%s\n' "$EVENT_TAG" "$( (( ${#matches[@]} == 1 )) && echo true || echo false )" >> "$GITHUB_OUTPUT"
             if (( ${#matches[@]} == 1 )); then
               {
                 echo "## Release fallback"
@@ -69,14 +69,6 @@ jobs:
             printf 'event_mode=prepare\nskip_release=false\n' >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check out repository
-        if: steps.event.outputs.skip_release != 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || steps.event.outputs.selected_ref }}
-          fetch-depth: 0
-          persist-credentials: false
-
       - name: Require the main branch
         if: github.event_name == 'workflow_dispatch'
         shell: bash
@@ -88,6 +80,14 @@ jobs:
             echo "Release must run from refs/heads/main, not $WORKFLOW_REF." >&2
             exit 1
           fi
+
+      - name: Check out repository
+        if: steps.event.outputs.skip_release != 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || steps.event.outputs.selected_ref }}
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Resolve selected snapshot
         if: steps.event.outputs.skip_release != 'true'
@@ -258,6 +258,18 @@ jobs:
               file.write(f"tag=v{version}\n")
               file.write(f"prerelease={str(prerelease).lower()}\n")
           PY
+
+      - name: Validate derived release tag
+        if: steps.event.outputs.skip_release != 'true'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! git check-ref-format "refs/tags/$RELEASE_TAG" >/dev/null; then
+            echo "Derived release tag is not a valid Git ref." >&2
+            exit 1
+          fi
 
       - name: Compile Python sources
         if: steps.event.outputs.skip_release != 'true'

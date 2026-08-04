@@ -15,9 +15,10 @@ must be reachable from a normal repository branch or tag; unmerged
 same-repository branches remain supported, and ancestry from `main` is not
 required.
 
-## 1. Prepare the release pull request
+## 1. Prepare a release pull request (recommended)
 
-Create a release-only pull request. It should normally modify only:
+For normal stable releases, a release-only pull request is recommended. It
+should normally modify only:
 
 - `custom_components/pollenlevels/manifest.json`
 - `pyproject.toml`
@@ -29,11 +30,11 @@ derived automatically: version `3.0.1` maps to tag `v3.0.1`, and version
 
 Include backup, no-downgrade, migration, and prerelease notes where applicable.
 
-## 2. Merge the release pull request
+## 2. Merge the release pull request (if used)
 
-Before merging, ensure that all required checks are green and all reviews and
-conversations are resolved. Use **Squash and merge**, then confirm that the
-exact release commit is on `main`.
+If a release PR was used, ensure that all required checks are green and all
+reviews and conversations are resolved. Use **Squash and merge**, then confirm
+that the exact release commit is on `main`.
 
 ## 3. Release
 
