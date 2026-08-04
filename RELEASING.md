@@ -81,7 +81,8 @@ intended prerelease version, and verify GitHub marks the draft as a prerelease.
 
 - Confirm the tag matches the intended version.
 - Confirm the tag points to the resolved selected SHA.
-- Confirm the selected ref and resolved SHA shown in the workflow summary.
+- Confirm the resolved SHA shown in the workflow summary matches the intended
+  selected ref.
 - Confirm the prerelease status is correct.
 - For a stable release, review GitHub's latest-release setting before manual
   publication. Prereleases must not be marked latest.

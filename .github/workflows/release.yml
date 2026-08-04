@@ -39,7 +39,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
-          INPUT_RELEASE_REF: ${{ inputs.release_ref }}
           EVENT_TAG: ${{ github.event.release.tag_name }}
           EVENT_RELEASE_ID: ${{ github.event.release.id }}
         run: |
