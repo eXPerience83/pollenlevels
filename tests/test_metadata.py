@@ -9,7 +9,9 @@ import tomllib
 from importlib import metadata
 from pathlib import Path
 
+from packaging.markers import Marker
 from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -63,9 +65,22 @@ def test_pyproject_requires_python_is_314_plus() -> None:
     project = _load_pyproject().get("project", {})
     requires = project.get("requires-python")
 
-    assert isinstance(requires, str) and requires.startswith(">=3.14"), (
+    assert requires == ">=3.14", (
         "requires-python must stay aligned with the 3.14+ tooling story"
     )
+
+
+def _exact_requirement_version(requirement: Requirement) -> Version:
+    """Return the single non-wildcard version from an exact requirement."""
+    assert requirement.url is None, f"{requirement.name} must not use a URL"
+    specifiers = tuple(requirement.specifier)
+    assert len(specifiers) == 1, f"{requirement.name} must have one specifier"
+    specifier = specifiers[0]
+    assert specifier.operator == "==", f"{requirement.name} must use =="
+    assert not specifier.version.endswith(".*"), (
+        f"{requirement.name} must not use a wildcard pin"
+    )
+    return Version(specifier.version)
 
 
 def _exact_group_requirements(group: str) -> dict[str, Requirement]:
@@ -73,28 +88,79 @@ def _exact_group_requirements(group: str) -> dict[str, Requirement]:
     groups = _load_pyproject().get("dependency-groups", {})
     requirements = groups.get(group)
     assert isinstance(requirements, list), f"{group} dependency group is missing"
-    parsed = [
-        Requirement(requirement)
-        for requirement in requirements
-        if isinstance(requirement, str)
-    ]
-    return {requirement.name.lower(): requirement for requirement in parsed}
+    parsed: dict[str, Requirement] = {}
+    for requirement_text in requirements:
+        assert isinstance(requirement_text, str), (
+            f"{group} must contain only direct string requirements"
+        )
+        requirement = Requirement(requirement_text)
+        name = canonicalize_name(requirement.name)
+        assert name not in parsed, f"{group} duplicates {name}"
+        _exact_requirement_version(requirement)
+        parsed[name] = requirement
+    return parsed
 
 
-def _locked_version(package: str) -> str:
-    """Read one exact package version from the committed uv lock."""
-    lock = _read_text(LOCK_PATH)
+def _load_lock_packages() -> dict[str, set[Version]]:
+    """Return normalized package names and versions from the committed uv lock."""
+    with LOCK_PATH.open("rb") as file:
+        lock = tomllib.load(file)
+    packages = lock.get("package")
+    assert isinstance(packages, list), "uv.lock must contain package entries"
+
+    result: dict[str, set[Version]] = {}
+    for package in packages:
+        assert isinstance(package, dict), "uv.lock package entries must be tables"
+        name = package.get("name")
+        version = package.get("version")
+        assert isinstance(name, str) and isinstance(version, str), (
+            "uv.lock package entries need a name and version"
+        )
+        result.setdefault(canonicalize_name(name), set()).add(Version(version))
+    return result
+
+
+def _approved_python_version() -> Version:
+    """Read and validate the one exact approved CPython patch declaration."""
+    python_text = PYTHON_VERSION_PATH.read_text(encoding="utf-8")
+    assert python_text.endswith("\n")
+    assert python_text.count("\n") == 1
+    python_value = python_text.removesuffix("\n")
+    assert re.fullmatch(r"3\.14\.\d+", python_value)
+
+    python_version = Version(python_value)
+    assert python_version.release[:2] == (3, 14)
+    assert not python_version.is_prerelease
+    assert not python_version.is_devrelease
+    assert python_version.local is None
+    return python_version
+
+
+def _declared_direct_versions() -> dict[str, Version]:
+    """Return all exact direct validation versions from the maintained groups."""
+    requirements = {
+        **_exact_group_requirements("lint"),
+        **_exact_group_requirements("test"),
+    }
+    return {
+        name: _exact_requirement_version(requirement)
+        for name, requirement in requirements.items()
+    }
+
+
+def _workflow_step(workflow: str, name: str) -> str:
+    """Return one named GitHub Actions step block."""
     match = re.search(
-        rf'\[\[package\]\]\nname = "{re.escape(package)}"\nversion = "([^"]+)"',
-        lock,
+        rf"(?ms)^[ \t]*- name: {re.escape(name)}\n.*?(?=^[ \t]*- name:|\Z)",
+        workflow,
     )
-    assert match, f"{package} is missing from uv.lock"
-    return match.group(1)
+    assert match, f"Workflow step {name!r} is missing"
+    return match.group(0)
 
 
 def test_exact_python_source_and_python_policy_are_retained() -> None:
     """Keep routine tooling validation on one approved Python 3.14 patch."""
-    assert PYTHON_VERSION_PATH.read_text(encoding="utf-8") == "3.14.6\n"
+    _approved_python_version()
     assert _load_pyproject()["project"]["requires-python"] == ">=3.14"
     assert _load_pyproject()["tool"]["ruff"]["target-version"] == "py314"
 
@@ -102,73 +168,94 @@ def test_exact_python_source_and_python_policy_are_retained() -> None:
 def test_exact_uv_and_dependency_groups_are_declared() -> None:
     """Keep modern validation dependencies exact and source-of-truth driven."""
     project = _load_pyproject()
-    assert project["tool"]["uv"]["required-version"] == "==0.12.1"
+    uv = project["tool"]["uv"]
+    required_version = uv.get("required-version")
+    assert isinstance(required_version, str)
+    uv_version = _exact_requirement_version(Requirement(f"uv{required_version}"))
+    assert not uv_version.is_prerelease
+    assert not uv_version.is_devrelease
+    assert uv_version.local is None
+    assert _read_text(PYPROJECT_PATH).count("required-version") == 1
     assert "required-version" not in project["tool"]["ruff"]
-    assert project["tool"]["uv"]["default-groups"] == []
-    assert project["tool"]["uv"]["environments"] == [
-        "python_full_version >= '3.14.2' and python_full_version < '3.15'"
-    ]
+    assert uv["default-groups"] == []
+
+    environments = uv.get("environments")
+    assert isinstance(environments, list) and len(environments) == 1
+    assert isinstance(environments[0], str)
+    marker = Marker(environments[0])
+    assert marker.evaluate({"python_full_version": str(_approved_python_version())})
+    assert not marker.evaluate({"python_full_version": "3.15.0"})
+    assert not marker.evaluate({"python_full_version": "3.13.99"})
 
     lint = _exact_group_requirements("lint")
     test = _exact_group_requirements("test")
-    assert str(lint["ruff"].specifier) == "==0.16.1"
-    assert {
-        name: str(test[name].specifier)
-        for name in (
-            "pytest",
-            "pytest-asyncio",
-            "aiointercept",
-            "packaging",
-            "pytest-homeassistant-custom-component",
-            "homeassistant",
-        )
-    } == {
-        "pytest": "==9.0.3",
-        "pytest-asyncio": "==1.4.0",
-        "aiointercept": "==0.1.9",
-        "packaging": "==26.2",
-        "pytest-homeassistant-custom-component": "==0.13.351",
-        "homeassistant": "==2026.8.0b3",
+    assert set(lint) == {"ruff"}
+    assert set(test) == {
+        "pytest",
+        "pytest-asyncio",
+        "aiointercept",
+        "packaging",
+        "pytest-homeassistant-custom-component",
+        "homeassistant",
     }
     release = project["dependency-groups"]["release"]
     assert release == [{"include-group": "lint"}, {"include-group": "test"}]
 
 
+def test_direct_declarations_and_lock_agree() -> None:
+    """Require the generated lock to retain every declared direct version."""
+    lock_packages = _load_lock_packages()
+    for name, version in _declared_direct_versions().items():
+        assert lock_packages.get(name) == {version}, (
+            f"{name} must have one locked version matching its direct declaration"
+        )
+
+
 def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> None:
     """Require direct compatibility pins to match the selected HA harness."""
     test = _exact_group_requirements("test")
+    declared_versions = _declared_direct_versions()
+    lock_packages = _load_lock_packages()
     harness_name = "pytest-homeassistant-custom-component"
-    harness = metadata.distribution(harness_name)
+    assert "override-dependencies" not in _load_pyproject().get("tool", {}).get(
+        "uv", {}
+    )
+    declared_prereleases = {
+        name: version
+        for name, version in declared_versions.items()
+        if version.is_prerelease
+    }
+    locked_prereleases = {
+        name: versions
+        for name, versions in lock_packages.items()
+        if any(version.is_prerelease for version in versions)
+    }
+    assert locked_prereleases == {
+        name: {version} for name, version in declared_prereleases.items()
+    }
+
     if os.environ.get("HA_COMPATIBILITY_CANARY") == "1":
         # The advisory canary deliberately installs the newest harness instead
-        # of the committed locked environment. Its resolver result is reported
-        # by the workflow, while the direct declarations and lock remain static.
+        # of the committed locked environment, so only installed-version
+        # comparisons are skipped while static policy checks still run.
         return
-    assert harness.version == "0.13.351"
+    harness = metadata.distribution(harness_name)
+    assert Version(harness.version) == declared_versions[harness_name]
     harness_requirements = {
-        requirement.name.lower(): requirement
+        canonicalize_name(requirement.name): requirement
         for requirement_text in harness.requires or []
         if (requirement := Requirement(requirement_text)).name.lower()
         in {"homeassistant", "pytest", "pytest-asyncio"}
     }
     for name in ("homeassistant", "pytest", "pytest-asyncio"):
-        assert str(harness_requirements[name].specifier) == str(test[name].specifier)
-        assert metadata.version(name) == _locked_version(name)
-    for name in (harness_name, "aiointercept", "packaging"):
-        assert metadata.version(name) == _locked_version(name)
-
-    lock = _read_text(LOCK_PATH)
-    assert "override-dependencies" not in _load_pyproject().get("tool", {}).get(
-        "uv", {}
-    )
-    prereleases = {
-        name: version
-        for name, version in re.findall(
-            r'\[\[package\]\]\nname = "([^"]+)"\nversion = "([^"]+)"', lock
+        assert _exact_requirement_version(harness_requirements[name]) == (
+            _exact_requirement_version(test[name])
         )
-        if Version(version).is_prerelease
-    }
-    assert prereleases == {"homeassistant": "2026.8.0b3"}
+        assert Version(metadata.version(name)) == declared_versions[name]
+        assert lock_packages[name] == {declared_versions[name]}
+    for name in (harness_name, "aiointercept", "packaging"):
+        assert Version(metadata.version(name)) == declared_versions[name]
+        assert lock_packages[name] == {declared_versions[name]}
 
 
 def test_modern_workflows_use_locked_central_tooling() -> None:
@@ -204,11 +291,35 @@ def test_modern_workflows_use_locked_central_tooling() -> None:
 def test_workflows_do_not_duplicate_python_or_uv_executable_pins() -> None:
     """Keep exact executable versions out of individual workflow files."""
     workflow_text = "\n".join(_read_text(path) for path in WORKFLOWS_PATH.glob("*.yml"))
-    assert 'python-version: "3.14"' not in workflow_text
-    assert 'python-version: "3.14.6"' not in workflow_text
+    python_version = str(_approved_python_version())
+    required_version = _load_pyproject()["tool"]["uv"]["required-version"]
+    uv_version = str(_exact_requirement_version(Requirement(f"uv{required_version}")))
+
+    assert (
+        re.search(
+            rf"(?m)^\s*python-version:\s*[\"']?{re.escape(python_version)}"
+            rf"(?:[\"']|\s*(?:#|$))",
+            workflow_text,
+        )
+        is None
+    )
+    assert (
+        re.search(
+            r"(?m)^\s*python-version:\s*[\"']?3\.14(?:[\"']|\s*(?:#|$))",
+            workflow_text,
+        )
+        is None
+    )
     assert "UV_VERSION" not in workflow_text
     assert "version: ${{ env.UV_VERSION }}" not in workflow_text
-    assert 'version: "0.12.1"' not in workflow_text
+    assert (
+        re.search(
+            rf"(?m)^\s*version:\s*[\"']?{re.escape(uv_version)}"
+            rf"(?:[\"']|\s*(?:#|$))",
+            workflow_text,
+        )
+        is None
+    )
 
 
 def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
@@ -220,10 +331,13 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "group: ha-compatibility-canary" in canary
     assert "cancel-in-progress: true" in canary
     assert "ref: main" in canary
-    assert "python-version-file: .python-version" in canary
-    assert "version-file: pyproject.toml" in canary
-    assert "cache: false" in canary
-    assert "enable-cache: false" in canary
+    setup_python = _workflow_step(canary, "Set up Python")
+    assert "python-version-file: .python-version" in setup_python
+    assert re.search(r"(?m)^\s+cache\s*:", setup_python) is None
+    assert "cache-dependency-path" not in setup_python
+    setup_uv = _workflow_step(canary, "Set up uv")
+    assert "version-file: pyproject.toml" in setup_uv
+    assert "enable-cache: false" in setup_uv
     assert 'UV_NO_CACHE: "1"' in canary
     assert "$RUNNER_TEMP/ha-compatibility-canary-venv" in canary
     assert "uv lock" not in canary
@@ -238,6 +352,7 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     for name in (
         "pytest-homeassistant-custom-component",
         "homeassistant",
+        "pytest",
         "pytest-asyncio",
         "aiointercept",
         "packaging",
