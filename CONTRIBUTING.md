@@ -1,8 +1,10 @@
 # Contributing
 
-- The integration targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
-  Use Python 3.14 for local development and CI parity.
-- Ruff handles linting, import ordering, and formatting. Upgrade Ruff before validating to match CI's rolling minimum policy: `python -m pip install --upgrade "ruff>=0.15"`.
+- The integration targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline. Use the exact patch in `.python-version` for local development and CI parity.
+- `[tool.uv].required-version` is the sole uv executable source. Bootstrap that exact uv, then use the committed lock: `uv lock --check`, `uv sync --locked --only-group lint`, and `uv sync --locked --only-group test`.
+- Ruff handles linting, import ordering, and formatting through the exact `lint` dependency group. Run `uv run --locked --no-sync ruff check .` and `uv run --locked --no-sync ruff format --check .`.
+- Direct validation dependencies are exact and Renovate proposes reviewed updates after a 72-hour release age. The Home Assistant harness lane updates its paired Home Assistant, pytest, and pytest-asyncio pins only when its published metadata requires it; `uv.lock` maintenance is reviewed weekly.
+- Required CI is locked and reproducible. The daily latest-Home-Assistant canary is intentionally non-reproducible and advisory: it resolves the newest stable harness for early warning but never updates committed pins or blocks normal release validation.
 - Tooling targets Python 3.14 with line length 88, and Ruff preview formatting is disabled.
 - The translation source of truth is `custom_components/pollenlevels/translations/en.json`. Keep every other locale file in
   sync with it.
@@ -16,11 +18,12 @@
   parsing, API client behavior, redaction helpers, malformed payloads, and
   targeted failure injection.
 - Before submitting changes, run:
-  - `ruff check --fix --select I .`
-  - `ruff check .`
-  - `ruff format .`
-  - `ruff format --check .`
-  - `python -m pytest -q`
+  - `uv lock --check`
+  - `uv sync --locked --only-group lint`
+  - `uv run --locked --no-sync ruff check .`
+  - `uv run --locked --no-sync ruff format --check .`
+  - `uv sync --locked --only-group test`
+  - `PYTHONPATH=. uv run --locked --no-sync python -m pytest -q`
 
 ## Releases
 

@@ -80,11 +80,11 @@ jobs:
             exit 1
           fi
 
-      - name: Check out repository
+      - name: Check out trusted workflow definition
         if: steps.event.outputs.skip_release != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || steps.event.outputs.selected_ref }}
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -95,9 +95,15 @@ jobs:
         env:
           EVENT_MODE: ${{ steps.event.outputs.event_mode }}
           RELEASE_REF: ${{ inputs.release_ref }}
+          SELECTED_REF: ${{ steps.event.outputs.selected_ref }}
         run: |
           set -euo pipefail
-          if [[ "$EVENT_MODE" == "prepare" && -n "$RELEASE_REF" ]]; then
+          if [[ "$EVENT_MODE" == "published-fallback" ]]; then
+            selected_commit="$(git rev-parse --verify "$SELECTED_REF^{commit}" 2>/dev/null)" || {
+              echo "Published release tag does not identify an existing commit." >&2
+              exit 1
+            }
+          elif [[ "$EVENT_MODE" == "prepare" && -n "$RELEASE_REF" ]]; then
             if [[ "$RELEASE_REF" == *$'\n'* || "$RELEASE_REF" == *$'\r'* || "$RELEASE_REF" == refs/pull/* || "$RELEASE_REF" == pull/* || "$RELEASE_REF" == *:* ]]; then
               echo "Unsupported release_ref." >&2
               exit 1
@@ -163,28 +169,92 @@ jobs:
                 exit 1
               fi
             fi
-            git checkout --detach "$selected_commit"
+          else
+            selected_commit="$(git rev-parse HEAD)"
           fi
-          selected_commit="$(git rev-parse HEAD)"
           printf 'release_commit=%s\n' "$selected_commit" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Python 3.14
+      - name: Classify selected snapshot
         if: steps.event.outputs.skip_release != 'true'
+        id: validation-mode
+        shell: bash
+        env:
+          RELEASE_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+        run: |
+          set -euo pipefail
+          python scripts/classify_release_validation.py \
+            --repository . \
+            --commit "$RELEASE_COMMIT" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Check out selected snapshot
+        if: steps.event.outputs.skip_release != 'true'
+        shell: bash
+        env:
+          RELEASE_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+        run: |
+          set -euo pipefail
+          git checkout --detach "$RELEASE_COMMIT"
+
+      - name: Set up modern Python
+        if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: "3.14"
-          cache: "pip"
-          cache-dependency-path: requirements_test.txt
+          python-version-file: .python-version
 
-      - name: Install validation dependencies
-        if: steps.event.outputs.skip_release != 'true'
+      - name: Set up legacy Python
+        if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'legacy'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ steps.validation-mode.outputs.python_version }}
+
+      - name: Set up modern uv
+        if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version-file: pyproject.toml
+          enable-cache: true
+          cache-dependency-glob: |
+            .python-version
+            pyproject.toml
+            uv.lock
+          cache-suffix: release
+
+      - name: Set up modern locked validation environment
+        if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade "ruff>=0.15"
+          uv lock --check
+          uv sync --locked --only-group release
+
+      - name: Set up selected legacy validation environment
+        if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'legacy'
+        shell: bash
+        env:
+          RUFF_REQUIREMENT: ${{ steps.validation-mode.outputs.ruff_requirement }}
+        run: |
+          set -euo pipefail
+          python -m pip install "$RUFF_REQUIREMENT"
           python -m pip install -r requirements_test.txt
-          ruff --version
+
+      - name: Summarize validation mode
+        if: steps.event.outputs.skip_release != 'true'
+        shell: bash
+        env:
+          RELEASE_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Release validation"
+            echo "- Selected SHA: \`$RELEASE_COMMIT\`"
+            if [[ "$VALIDATION_MODE" == "modern" ]]; then
+              echo "- Classification: modern, locked reproducible validation"
+            else
+              echo "- Classification: legacy, non-lock-reproducible validation"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate release metadata
         if: steps.event.outputs.skip_release != 'true'
@@ -193,9 +263,15 @@ jobs:
         env:
           EVENT_MODE: ${{ steps.event.outputs.event_mode }}
           EVENT_TAG: ${{ github.event.release.tag_name }}
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
         run: |
           set -euo pipefail
-          python - <<'PY'
+          if [[ "$VALIDATION_MODE" == "modern" ]]; then
+            runner=(uv run --locked --no-sync python)
+          else
+            runner=(python)
+          fi
+          "${runner[@]}" - <<'PY'
           import json
           import os
           import re
@@ -273,32 +349,55 @@ jobs:
       - name: Compile Python sources
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
+        env:
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
         run: |
           set -euo pipefail
-          python -m compileall -q sitecustomize.py custom_components scripts tests
+          if [[ "$VALIDATION_MODE" == "modern" ]]; then
+            uv run --locked --no-sync python -m compileall -q sitecustomize.py custom_components scripts tests
+          else
+            python -m compileall -q sitecustomize.py custom_components scripts tests
+          fi
 
       - name: Ruff validation
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
+        env:
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
         run: |
           set -euo pipefail
-          ruff check .
+          if [[ "$VALIDATION_MODE" == "modern" ]]; then
+            uv run --locked --no-sync ruff check .
+          else
+            ruff check .
+          fi
 
       - name: Ruff format validation
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
+        env:
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
         run: |
           set -euo pipefail
-          ruff format --check .
+          if [[ "$VALIDATION_MODE" == "modern" ]]; then
+            uv run --locked --no-sync ruff format --check .
+          else
+            ruff format --check .
+          fi
 
       - name: Run tests
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
         env:
           PYTHONPATH: .
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
         run: |
           set -euo pipefail
-          python -m pytest -q
+          if [[ "$VALIDATION_MODE" == "modern" ]]; then
+            uv run --locked --no-sync python -m pytest -q
+          else
+            python -m pytest -q
+          fi
 
       - name: Build release ZIP (integration root at ZIP root)
         if: steps.event.outputs.skip_release != 'true'
@@ -316,9 +415,14 @@ jobs:
         env:
           EXPECTED_RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
           ZIP_PATH: pollenlevels.zip
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
         run: |
           set -euo pipefail
-          python scripts/validate_release_zip.py "$ZIP_PATH"
+          if [[ "$VALIDATION_MODE" == "modern" ]]; then
+            uv run --locked --no-sync python scripts/validate_release_zip.py "$ZIP_PATH"
+          else
+            python scripts/validate_release_zip.py "$ZIP_PATH"
+          fi
 
       - name: Calculate ZIP SHA-256
         if: steps.event.outputs.skip_release != 'true'

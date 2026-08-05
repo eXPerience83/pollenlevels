@@ -12,14 +12,33 @@
   ],
   "prConcurrentLimit": 5,
   "automerge": false,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 4am on Monday"
+    ],
+    "groupName": "uv.lock maintenance"
+  },
   "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^pyproject\\.toml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=github-releases depName=astral-sh/uv\\s+required-version\\s*=\\s*\\\"==(?<currentValue>[^\\\"]+)\\\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "astral-sh/uv",
+      "versioningTemplate": "semver-coerced"
+    },
     {
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github\\/workflows\\/workflow-security\\.yml$/"
       ],
       "matchStrings": [
-        "# renovate: shellcheck-release\\s+SHELLCHECK_TAG:\\s*\"(?<currentValue>v[^\"]+)\"\\s+SHELLCHECK_SHA256:\\s*\"(?<currentDigest>[0-9a-f]{64})\""
+        "# renovate: shellcheck-release\\s+SHELLCHECK_TAG:\\s*\\\"(?<currentValue>v[^\\\"]+)\\\"\\s+SHELLCHECK_SHA256:\\s*\\\"(?<currentDigest>[0-9a-f]{64})\\\""
       ],
       "datasourceTemplate": "github-release-attachments",
       "depNameTemplate": "koalaman/shellcheck",
@@ -47,7 +66,6 @@
       "matchDepNames": [
         "rhysd/actionlint",
         "zizmor",
-        "astral-sh/uv",
         "koalaman/shellcheck",
         "go"
       ],
@@ -59,7 +77,6 @@
       "matchDepNames": [
         "rhysd/actionlint",
         "zizmor",
-        "astral-sh/uv",
         "koalaman/shellcheck",
         "go"
       ],
@@ -70,28 +87,97 @@
       "groupName": "Workflow security tooling"
     },
     {
-      "description": "Keep workflow Python on 3.14",
+      "description": "Delay direct validation dependency updates",
       "matchManagers": [
-        "github-actions"
+        "pep621",
+        "pyenv",
+        "custom.regex"
       ],
-      "matchDepTypes": [
-        "uses-with"
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Keep CI Python on the approved 3.14 patch line",
+      "matchManagers": [
+        "pyenv"
       ],
       "matchDepNames": [
         "python"
       ],
-      "matchPackageNames": [
-        "actions/python-versions"
-      ],
-      "allowedVersions": "/^3\\.14(?:\\.|$)/"
+      "allowedVersions": "/^3\\.14\\.\\d+$/"
     },
     {
-      "description": "Delay newly released Python tooling",
+      "description": "Keep the declared Python floor owner-reviewed",
       "matchManagers": [
-        "pip_requirements",
         "pep621"
       ],
-      "minimumReleaseAge": "3 days"
+      "matchFileNames": [
+        "pyproject.toml"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Ruff updates are reviewed individually",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchPackageNames": [
+        "ruff"
+      ],
+      "groupName": "Ruff",
+      "separateMajorMinor": true
+    },
+    {
+      "description": "uv executable updates are reviewed individually",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchDepNames": [
+        "astral-sh/uv"
+      ],
+      "groupName": "uv",
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Group compatible generic pytest tooling updates",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchPackageNames": [
+        "pytest",
+        "pytest-asyncio",
+        "aiointercept",
+        "packaging"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "groupName": "Generic pytest tooling"
+    },
+    {
+      "description": "Keep Home Assistant harness compatibility updates separate",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchPackageNames": [
+        "pytest-homeassistant-custom-component"
+      ],
+      "groupName": "Home Assistant test compatibility",
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Only the harness compatibility lane updates Home Assistant pins",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchPackageNames": [
+        "homeassistant"
+      ],
+      "enabled": false
     }
   ]
 }

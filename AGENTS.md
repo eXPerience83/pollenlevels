@@ -1,8 +1,10 @@
 # Repository Guidelines
 
 ## Tooling
-- Tooling (CI, lint, format) runs on **Python 3.14**. The `pyproject.toml` targets packaging/tooling and also pins `requires-python = ">=3.14"`. All code under `custom_components/pollenlevels/` targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline.
-- Ruff is the single tool for linting, import sorting, and formatting. CI uses the rolling minimum `ruff>=0.15`, and `pyproject.toml` uses Ruff's `required-version` to reject older versions without pinning an exact release.
+- Tooling (CI, lint, and format) runs on the exact Python 3.14 patch in `.python-version`. Keep `requires-python = ">=3.14"` and Ruff `target-version = "py314"` until a dedicated Home Assistant compatibility change approves a new minor.
+- Ruff is the single tool for linting, import sorting, and formatting. Its exact validation version is declared in the PEP 735 `lint` dependency group; do not add a rolling Ruff requirement.
+- `[tool.uv].required-version` is the sole exact uv executable declaration. Use `uv lock --check` and `uv sync --locked --only-group <group>` for validation; commit generated `uv.lock` changes with reviewed dependency updates.
+- Required Lint, Tests, and modern Release validation are locked. The scheduled latest-Home-Assistant canary is intentionally fresh-resolving and advisory: it must not update pins or `uv.lock`, become required, or be used for Release decisions.
 - Ruff targets `py314`, line length 88, and stable formatting with preview disabled. Python 3.14 syntax must not be reported as invalid merely because it is unsupported by older Python versions.
 - Future stable Ruff versions may require mechanical formatting updates; this is intentional under the rolling tooling policy.
 - Tests run with pytest>=9 on Python 3.14.
@@ -61,9 +63,9 @@
 ## Verification
 - Ensure the integration still loads within Home Assistant with the existing config flows and maintains parity with the current logic paths for entity updates and notifications.
 - Before submitting changes, run the following checks:
-  - `python -m pip install --upgrade "ruff>=0.15"`
-  - `ruff check --fix --select I .`
-  - `ruff check .`
-  - `ruff format .`
-  - `ruff format --check .`
-  - `python -m pytest -q`
+  - `uv lock --check`
+  - `uv sync --locked --only-group lint`
+  - `uv run --locked --no-sync ruff check .`
+  - `uv run --locked --no-sync ruff format --check .`
+  - `uv sync --locked --only-group test`
+  - `PYTHONPATH=. uv run --locked --no-sync python -m pytest -q`

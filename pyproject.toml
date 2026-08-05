@@ -1,6 +1,4 @@
 # Tooling aligned to the Home Assistant Python floor (>=3.14.0).
-# CI installs Ruff from the rolling minimum version, while required-version
-# rejects older local versions and allows future compatible stable releases.
 
 [project]
 name = "pollenlevels"
@@ -8,8 +6,32 @@ version = "3.0.0"
 # Enforce the runtime floor aligned with Home Assistant Python 3.14 images.
 requires-python = ">=3.14"
 
+[dependency-groups]
+lint = [
+    "ruff==0.16.1",
+]
+test = [
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "aiointercept==0.1.9",
+    "packaging==26.2",
+    "pytest-homeassistant-custom-component==0.13.351",
+    "homeassistant==2026.8.0b3",
+]
+release = [
+    { include-group = "lint" },
+    { include-group = "test" },
+]
+
+[tool.uv]
+# renovate: datasource=github-releases depName=astral-sh/uv
+required-version = "==0.12.1"
+default-groups = []
+# Home Assistant 2026.8.0b3 requires Python 3.14.2+, while CI itself uses the
+# exact patch from .python-version. Keep the lock within the supported 3.14 line.
+environments = ["python_full_version >= '3.14.2' and python_full_version < '3.15'"]
+
 [tool.ruff]
-required-version = ">=0.15"
 line-length = 88
 # Match runtime: Python 3.14
 target-version = "py314"
