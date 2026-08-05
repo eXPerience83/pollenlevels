@@ -559,7 +559,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self,
         user_input: dict[str, Any],
         *,
-        check_unique_id: bool,
         description_placeholders: dict[str, Any] | None = None,
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
@@ -615,22 +614,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         normalized[CONF_LATITUDE] = lat
         normalized[CONF_LONGITUDE] = lon
 
-        if check_unique_id:
-            # Keep unique_id formatting aligned with legacy entries for
-            # duplicate detection compatibility across upgrades.
-            uid = f"{lat:.4f}_{lon:.4f}"
-            try:
-                await self.async_set_unique_id(uid, raise_on_progress=False)
-                self._abort_if_unique_id_configured()
-            except config_entries.AbortFlow:
-                raise
-            except Exception as err:  # defensive
-                _LOGGER.exception(
-                    "Unique ID setup failed for coordinates (values redacted): %s",
-                    redact_api_key(err, api_key),
-                )
-                raise
-
         normalized[CONF_API_KEY] = api_key
 
         try:
@@ -678,7 +661,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             errors, normalized = await self._async_validate_input(
                 sanitized_input,
-                check_unique_id=False,
                 description_placeholders=description_placeholders,
             )
             if not errors and normalized is not None:
@@ -725,7 +707,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         step_id: str,
         success_reason: str,
         user_input: dict[str, Any] | None,
-        persist_normalized_data: bool = True,
     ) -> config_entries.ConfigFlowResult:
         """Render/process an API-key confirmation step for an existing entry."""
         errors: dict[str, str] = {}
@@ -783,7 +764,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
                 errors, normalized = await self._async_validate_input(
                     combined,
-                    check_unique_id=False,
                     description_placeholders=candidate_placeholders,
                 )
                 if not errors and normalized is not None:
@@ -799,15 +779,9 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         display_errors = errors
                         display_placeholders = candidate_placeholders
                         break
-                    if persist_normalized_data:
-                        data_updates = normalized
-                    else:
-                        data_updates = {
-                            CONF_API_KEY: updated_api_key,
-                        }
                     return self.async_update_reload_and_abort(
                         entry,
-                        data_updates=data_updates,
+                        data_updates={CONF_API_KEY: updated_api_key},
                         unique_id=updated_unique_id,
                         reason=success_reason,
                     )
@@ -852,7 +826,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             success_reason="reauth_successful",
             user_input=user_input,
-            persist_normalized_data=False,
         )
 
     async def async_step_reconfigure(
@@ -867,7 +840,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reconfigure",
             success_reason="reconfigure_successful",
             user_input=user_input,
-            persist_normalized_data=False,
         )
 
 

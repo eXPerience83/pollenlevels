@@ -530,7 +530,6 @@ def test_validate_input_invalid_language_key_mapping(
                 },
                 config_flow_stubs.CONF_LANGUAGE_CODE: "bad code",
             },
-            check_unique_id=False,
         )
     )
 
@@ -556,7 +555,6 @@ def test_validate_input_invalid_language_code_not_logged_raw(
                     },
                     config_flow_stubs.CONF_LANGUAGE_CODE: "bad code",
                 },
-                check_unique_id=False,
             )
         )
 
@@ -592,7 +590,6 @@ def test_validate_input_empty_api_key(
                     config_flow_stubs.CONF_LONGITUDE: 2.0,
                 },
             },
-            check_unique_id=False,
         )
     )
 
@@ -633,7 +630,6 @@ def test_validate_input_invalid_coordinates(config_flow_stubs: ConfigFlowStubs) 
                     config_flow_stubs.CONF_LONGITUDE: "west",
                 },
             },
-            check_unique_id=False,
         )
     )
 
@@ -658,7 +654,6 @@ def test_validate_input_out_of_range_coordinates(
                     config_flow_stubs.CONF_LONGITUDE: "-300",
                 },
             },
-            check_unique_id=False,
         )
     )
 
@@ -680,7 +675,6 @@ def test_validate_input_missing_longitude(config_flow_stubs: ConfigFlowStubs) ->
                     config_flow_stubs.CONF_LATITUDE: 10.0
                 },
             },
-            check_unique_id=False,
         )
     )
 
@@ -700,7 +694,6 @@ def test_validate_input_non_dict_location(config_flow_stubs: ConfigFlowStubs) ->
                 config_flow_stubs.CONF_API_KEY: "test-key",
                 config_flow_stubs.CONF_LOCATION: "not-a-dict",
             },
-            check_unique_id=False,
         )
     )
 
@@ -1035,9 +1028,7 @@ def test_validate_input_update_interval_below_min_sets_error(
         config_flow_stubs.CONF_UPDATE_INTERVAL: 0,
     }
 
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(user_input, check_unique_id=False)
-    )
+    errors, normalized = asyncio.run(flow._async_validate_input(user_input))
 
     assert errors == {config_flow_stubs.CONF_UPDATE_INTERVAL: "invalid_update_interval"}
     assert normalized is None
@@ -1064,9 +1055,7 @@ def test_validate_input_update_interval_float_string(
         config_flow_stubs.CONF_UPDATE_INTERVAL: "1.0",
     }
 
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(user_input, check_unique_id=False)
-    )
+    errors, normalized = asyncio.run(flow._async_validate_input(user_input))
 
     assert errors == {}
     assert normalized is not None
@@ -1090,9 +1079,7 @@ def test_validate_input_update_interval_non_numeric_sets_error(
         config_flow_stubs.CONF_UPDATE_INTERVAL: "abc",
     }
 
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(user_input, check_unique_id=False)
-    )
+    errors, normalized = asyncio.run(flow._async_validate_input(user_input))
 
     assert errors == {config_flow_stubs.CONF_UPDATE_INTERVAL: "invalid_update_interval"}
     assert normalized is None
@@ -1126,9 +1113,7 @@ def test_validate_input_http_auth_errors_map_correctly(
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(config_flow_stubs), check_unique_id=False
-        )
+        flow._async_validate_input(_base_user_input(config_flow_stubs))
     )
 
     assert calls
@@ -1155,7 +1140,6 @@ def test_validate_input_http_429_code_only_uses_quota_fallback(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1184,9 +1168,7 @@ def test_validate_input_http_429_sets_quota_exceeded(
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(config_flow_stubs), check_unique_id=False
-        )
+        flow._async_validate_input(_base_user_input(config_flow_stubs))
     )
 
     assert calls
@@ -1210,9 +1192,7 @@ def test_validate_input_http_500_sets_cannot_connect(
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(config_flow_stubs), check_unique_id=False
-        )
+        flow._async_validate_input(_base_user_input(config_flow_stubs))
     )
 
     assert calls
@@ -1237,7 +1217,6 @@ def test_validate_input_http_code_only_uses_connect_fallback(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1269,7 +1248,6 @@ def test_validate_input_http_500_sets_error_message_placeholder(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1310,7 +1288,6 @@ def test_validate_input_update_failed_redacts_api_key_and_coordinates(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             user_input,
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1344,7 +1321,6 @@ def test_validate_input_clears_error_message_placeholder_on_validation_error(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1360,7 +1336,6 @@ def test_validate_input_clears_error_message_placeholder_on_validation_error(
                 **_base_user_input(config_flow_stubs),
                 config_flow_stubs.CONF_LANGUAGE_CODE: "bad code",
             },
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1389,7 +1364,6 @@ def test_validate_input_connection_error_sets_error_message_placeholder(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1422,7 +1396,6 @@ def test_validate_input_ignores_removed_forecast_options_and_uses_fixed_days(
                 config_flow_stubs.CONF_FORECAST_DAYS: "bad",
                 config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
             },
-            check_unique_id=False,
         )
     )
 
@@ -1455,7 +1428,6 @@ def test_validate_input_auth_error_sets_error_message_placeholder(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1485,7 +1457,6 @@ def test_validate_input_auth_error_empty_message_uses_fallback_placeholder(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1517,7 +1488,6 @@ def test_validate_input_quota_error_maps_to_quota_exceeded(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1545,7 +1515,6 @@ def test_validate_input_update_failed_empty_message_uses_connect_fallback(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1582,7 +1551,6 @@ def test_validate_input_http_429_whitespace_redacted_uses_quota_fallback(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1615,7 +1583,6 @@ def test_validate_input_update_failed_whitespace_redacted_uses_connect_fallback(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1652,7 +1619,6 @@ def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1678,7 +1644,6 @@ def test_validate_input_timeout_sets_fallback_error_message(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1708,7 +1673,6 @@ def test_validate_input_client_error_sets_fallback_error_message(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             _base_user_input(config_flow_stubs),
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1745,7 +1709,6 @@ def test_validate_input_redacts_api_key_in_error_message(
     errors, normalized = asyncio.run(
         flow._async_validate_input(
             user_input,
-            check_unique_id=False,
             description_placeholders=placeholders,
         )
     )
@@ -1772,9 +1735,7 @@ def test_validate_input_http_200_non_list_dailyinfo_sets_cannot_connect(
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(config_flow_stubs), check_unique_id=False
-        )
+        flow._async_validate_input(_base_user_input(config_flow_stubs))
     )
 
     assert calls
@@ -1796,9 +1757,7 @@ def test_validate_input_http_200_dailyinfo_with_non_dict_sets_cannot_connect(
     flow.hass = SimpleNamespace()
 
     errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(config_flow_stubs), check_unique_id=False
-        )
+        flow._async_validate_input(_base_user_input(config_flow_stubs))
     )
 
     assert calls
@@ -1831,9 +1790,7 @@ def test_validate_input_unexpected_exception_sets_unknown(
     }
 
     with caplog.at_level("ERROR", logger=config_flow_stubs.config_flow.__name__):
-        errors, normalized = asyncio.run(
-            flow._async_validate_input(user_input, check_unique_id=False)
-        )
+        errors, normalized = asyncio.run(flow._async_validate_input(user_input))
 
     assert errors == {"base": "unknown"}
     assert normalized is None
@@ -1844,43 +1801,25 @@ def test_validate_input_unexpected_exception_sets_unknown(
     assert "***" in caplog.text
 
 
-def test_validate_input_happy_path_sets_unique_id_and_normalizes(
+def test_validate_input_happy_path_normalizes(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Successful validation should normalize data and set unique ID."""
+    """Successful validation should normalize persisted input data."""
 
     calls = _patch_client_fetch(
         config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
     )
 
-    class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.unique_ids: list[str] = []
-            self.abort_calls = 0
-
-        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
-            self.unique_ids.append(uid)
-            return None
-
-        def _abort_if_unique_id_configured(self):
-            self.abort_calls += 1
-            return None
-
-    flow = _TrackingFlow()
-    flow.hass = SimpleNamespace(
-        config=SimpleNamespace(),
-    )
+    flow = config_flow_stubs.PollenLevelsConfigFlow()
+    flow.hass = SimpleNamespace(config=SimpleNamespace())
 
     user_input = {
         **_base_user_input(config_flow_stubs),
         config_flow_stubs.CONF_LANGUAGE_CODE: " es ",
     }
 
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(user_input, check_unique_id=True)
-    )
+    errors, normalized = asyncio.run(flow._async_validate_input(user_input))
 
     assert calls
     assert errors == {}
@@ -1888,64 +1827,6 @@ def test_validate_input_happy_path_sets_unique_id_and_normalizes(
     assert normalized[config_flow_stubs.CONF_LATITUDE] == pytest.approx(1.0)
     assert normalized[config_flow_stubs.CONF_LONGITUDE] == pytest.approx(2.0)
     assert normalized[config_flow_stubs.CONF_LANGUAGE_CODE] == "es"
-    assert flow.unique_ids == ["1.0000_2.0000"]
-    assert flow.abort_calls == 1
-
-
-def test_validate_input_unique_id_collapses_nearby_locations_legacy_compat(
-    config_flow_stubs: ConfigFlowStubs,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Unique-id format should match legacy 4-decimal duplicate detection."""
-
-    calls = _patch_client_fetch(
-        config_flow_stubs, monkeypatch, result=_valid_daily_info_payload()
-    )
-
-    class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.unique_ids: list[str] = []
-
-        async def async_set_unique_id(self, uid: str, raise_on_progress: bool = False):
-            self.unique_ids.append(uid)
-            return None
-
-        def _abort_if_unique_id_configured(self):
-            return None
-
-    flow = _TrackingFlow()
-    flow.hass = SimpleNamespace(config=SimpleNamespace())
-
-    first = {
-        **_base_user_input(config_flow_stubs),
-        config_flow_stubs.CONF_LOCATION: {
-            config_flow_stubs.CONF_LATITUDE: "1.0000044",
-            config_flow_stubs.CONF_LONGITUDE: "2.0000044",
-        },
-    }
-    second = {
-        **_base_user_input(config_flow_stubs),
-        config_flow_stubs.CONF_LOCATION: {
-            config_flow_stubs.CONF_LATITUDE: "1.0000046",
-            config_flow_stubs.CONF_LONGITUDE: "2.0000046",
-        },
-    }
-
-    first_errors, first_normalized = asyncio.run(
-        flow._async_validate_input(first, check_unique_id=True)
-    )
-    second_errors, second_normalized = asyncio.run(
-        flow._async_validate_input(second, check_unique_id=True)
-    )
-
-    assert calls
-    assert first_errors == {}
-    assert second_errors == {}
-    assert first_normalized is not None
-    assert second_normalized is not None
-    assert len(flow.unique_ids) == 2
-    assert flow.unique_ids[0] == flow.unique_ids[1] == "1.0000_2.0000"
 
 
 @pytest.mark.parametrize(
@@ -1983,9 +1864,7 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     captured: dict[str, object] = {}
     normalized = {**entry.data, config_flow_stubs.CONF_API_KEY: "new-key"}
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
+    async def fake_validate(user_input, *, description_placeholders=None):
         captured["description_placeholders"] = description_placeholders
         captured["user_input"] = dict(user_input)
         return {}, normalized
@@ -2172,9 +2051,7 @@ def test_reconfigure_api_key_validation_accepts_later_working_location(
     flow.context = {"entry_id": "entry-id"}
     attempts: list[tuple[float, float]] = []
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
+    async def fake_validate(user_input, *, description_placeholders=None):
         attempts.append(
             (
                 user_input[config_flow_stubs.CONF_LATITUDE],
@@ -2245,9 +2122,7 @@ def test_reconfigure_api_key_error_uses_failing_location_placeholders(
     )
     attempts = 0
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
+    async def fake_validate(user_input, *, description_placeholders=None):
         nonlocal attempts
         attempts += 1
         if attempts == 1:
@@ -2317,9 +2192,7 @@ def test_reconfigure_api_key_validation_stops_on_invalid_auth(
     )
     attempts = 0
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
+    async def fake_validate(user_input, *, description_placeholders=None):
         nonlocal attempts
         attempts += 1
         return {"base": "invalid_auth"}, None
@@ -2382,9 +2255,7 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data(
         config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
     }
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
+    async def fake_validate(user_input, *, description_placeholders=None):
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
@@ -2457,9 +2328,7 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data(
         config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
     }
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
+    async def fake_validate(user_input, *, description_placeholders=None):
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
@@ -2499,9 +2368,7 @@ def test_async_step_user_defaults_entry_name(
         config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
+    async def fake_validate(user_input, *, description_placeholders=None):
         assert user_input[config_flow_stubs.CONF_NAME] == "   "
         return {}, normalized
 
@@ -2561,10 +2428,7 @@ def test_async_step_user_checks_api_key_unique_id_with_async_entries_fallback(
         config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
-    async def fake_validate(
-        user_input, *, check_unique_id, description_placeholders=None
-    ):
-        assert check_unique_id is False
+    async def fake_validate(user_input, *, description_placeholders=None):
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
