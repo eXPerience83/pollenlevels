@@ -7,7 +7,8 @@
 - Required Lint, Tests, and modern Release validation are locked. The scheduled latest-Home-Assistant canary is intentionally fresh-resolving and advisory: it must not update pins or `uv.lock`, become required, or be used for Release decisions.
 - Ruff targets `py314`, line length 88, and stable formatting with preview disabled. Python 3.14 syntax must not be reported as invalid merely because it is unsupported by older Python versions.
 - Future stable Ruff versions may require mechanical formatting updates; this is intentional under the rolling tooling policy.
-- Tests run with pytest>=9 on Python 3.14.
+- Tests use the exact pytest version declared in the PEP 735 `test`
+  dependency group on Python 3.14.
 - Home Assistant integration-surface tests should use
   `pytest-homeassistant-custom-component` when practical, especially for config
   flows, subentry flows, setup/unload, platform entity registration, services,
