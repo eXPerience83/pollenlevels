@@ -19,8 +19,6 @@ env:
   ACTIONLINT_VERSION: "v1.7.12"
   # renovate: datasource=pypi depName=zizmor versioning=pep440
   ZIZMOR_VERSION: "1.29.0"
-  # renovate: datasource=github-releases depName=astral-sh/uv
-  UV_VERSION: "0.12.1"
   # renovate: shellcheck-release
   SHELLCHECK_TAG: "v0.11.0"
   SHELLCHECK_SHA256: "b7af85e41cc99489dcc21d66c6d5f3685138f06d34651e6d34b42ec6d54fe6f6"
@@ -93,7 +91,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
-          version: ${{ env.UV_VERSION }}
+          version-file: pyproject.toml
           enable-cache: false
 
       - name: Run zizmor

@@ -176,7 +176,8 @@ reviews:
         - Renovate annotations and digest-update compatibility are preserved.
         - actionlint and zizmor remain blocking checks.
         - No broad zizmor ignores or unnecessary write permissions are added.
-        - setup-python uses python-version "3.14" unless intentionally changed.
+        - Modern Python workflows use `.python-version` through `python-version-file`; legacy Release validation may use only the selected snapshot's historical request.
+        - setup-uv reads the exact executable requirement from `pyproject.toml`; do not add workflow-local uv pins.
         - shell: bash is present when using set -euo pipefail.
         - ruff check and ruff format --check fail the job on issues.
         - YAML syntax is valid.

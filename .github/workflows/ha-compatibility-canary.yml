@@ -1,0 +1,124 @@
+name: Latest Home Assistant Compatibility Canary
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ha-compatibility-canary
+  cancel-in-progress: true
+
+env:
+  UV_NO_CACHE: "1"
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version-file: .python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version-file: pyproject.toml
+          enable-cache: false
+
+      - name: Create disposable environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          canary_venv="$RUNNER_TEMP/ha-compatibility-canary-venv"
+          uv venv --python "$(command -v python)" "$canary_venv"
+          printf 'CANARY_PYTHON=%s\n' "$canary_venv/bin/python" >> "$GITHUB_ENV"
+
+      - name: Read current auxiliary test requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_ENV"
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          requirements = project["dependency-groups"]["test"]
+          selected = {}
+          for requirement in requirements:
+              if isinstance(requirement, str):
+                  for name in ("aiointercept", "packaging"):
+                      if requirement.startswith(f"{name}=="):
+                          selected[name] = requirement
+          missing = {"aiointercept", "packaging"} - selected.keys()
+          if missing:
+              raise SystemExit(f"Missing exact canary helper requirements: {sorted(missing)}")
+          for name, requirement in selected.items():
+              print(f"{name.upper()}_REQUIREMENT={requirement}")
+          PY
+
+      - name: Resolve latest stable Home Assistant harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv pip install --python "$CANARY_PYTHON" \
+            pytest-homeassistant-custom-component \
+            "$AIOINTERCEPT_REQUIREMENT" \
+            "$PACKAGING_REQUIREMENT"
+
+      - name: Report resolved compatibility versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$CANARY_PYTHON" - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import importlib.metadata
+          import os
+          import subprocess
+
+          names = (
+              "pytest-homeassistant-custom-component",
+              "homeassistant",
+              "pytest",
+              "pytest-asyncio",
+              "aiointercept",
+              "packaging",
+          )
+          versions = {
+              name: importlib.metadata.version(name)
+              for name in names
+          }
+          python_version = subprocess.check_output(
+              [os.environ["CANARY_PYTHON"], "--version"], text=True
+          ).strip()
+          uv_version = subprocess.check_output(["uv", "--version"], text=True).strip()
+          print("## Latest Home Assistant compatibility canary")
+          print()
+          print("| Component | Resolved version |")
+          print("| --- | --- |")
+          for name in names:
+              print(f"| {name} | `{versions[name]}` |")
+          print(f"| Python | `{python_version}` |")
+          print(f"| uv | `{uv_version}` |")
+          PY
+
+      - name: Run full test suite
+        shell: bash
+        env:
+          HA_COMPATIBILITY_CANARY: "1"
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          "$CANARY_PYTHON" -m pytest -q -p no:cacheprovider

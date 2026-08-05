@@ -15,6 +15,27 @@ must be reachable from a normal repository branch or tag; unmerged
 same-repository branches remain supported, and ancestry from `main` is not
 required.
 
+## Validation environments
+
+Modern snapshots use the exact Python patch in `.python-version`, the central
+`[tool.uv].required-version`, exact PEP 735 dependencies, and committed
+`uv.lock`. Release validates modern snapshots with `uv lock --check` and
+`uv sync --locked --only-group release`; do not replace this with pip installs
+or a fresh resolution.
+
+Historical snapshots are classified against immutable boundary
+`0e65e38e2830c0485cdc6b3a00c95ad7e65d7427`. A selected commit that is equal
+to or older than that boundary may use only its own historical release
+workflow, Python request, Ruff requirement, `requirements_test.txt`, and ZIP
+validator. Divergent snapshots are modern only with a complete modern toolset,
+or legacy only with zero modern markers and complete selected-snapshot legacy
+inputs; partial or ambiguous snapshots fail closed. Legacy summaries explicitly
+report that validation is non-lock-reproducible.
+
+The scheduled latest-Home-Assistant compatibility canary is advisory and
+intentionally fresh-resolving. It is not a Release dependency, does not update
+pins or `uv.lock`, and cannot replace the required locked validation lane.
+
 ## 1. Prepare a release pull request (recommended)
 
 For normal stable releases, a release-only pull request is recommended. It
