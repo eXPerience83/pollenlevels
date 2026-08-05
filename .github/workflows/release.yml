@@ -84,7 +84,7 @@ jobs:
         if: steps.event.outputs.skip_release != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.workflow_sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -96,6 +96,7 @@ jobs:
           EVENT_MODE: ${{ steps.event.outputs.event_mode }}
           RELEASE_REF: ${{ inputs.release_ref }}
           SELECTED_REF: ${{ steps.event.outputs.selected_ref }}
+          EVENT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           if [[ "$EVENT_MODE" == "published-fallback" ]]; then
@@ -170,7 +171,10 @@ jobs:
               fi
             fi
           else
-            selected_commit="$(git rev-parse HEAD)"
+            selected_commit="$(git rev-parse --verify "$EVENT_SHA^{commit}" 2>/dev/null)" || {
+              echo "The workflow event SHA does not identify an existing commit." >&2
+              exit 1
+            }
           fi
           printf 'release_commit=%s\n' "$selected_commit" >> "$GITHUB_OUTPUT"
 

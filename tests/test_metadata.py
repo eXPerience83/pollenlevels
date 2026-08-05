@@ -151,11 +151,48 @@ def _declared_direct_versions() -> dict[str, Version]:
 def _workflow_step(workflow: str, name: str) -> str:
     """Return one named GitHub Actions step block."""
     match = re.search(
-        rf"(?ms)^[ \t]*- name: {re.escape(name)}\n.*?(?=^[ \t]*- name:|\Z)",
+        rf"(?ms)^(?P<indent>[ \t]*)- name: {re.escape(name)}\n"
+        rf".*?(?=^(?P=indent)- |\Z)",
         workflow,
     )
     assert match, f"Workflow step {name!r} is missing"
     return match.group(0)
+
+
+def _workflow_paths(directory: Path = WORKFLOWS_PATH) -> list[Path]:
+    """Return every workflow definition path in deterministic order."""
+    return sorted(
+        {path for pattern in ("*.yml", "*.yaml") for path in directory.glob(pattern)}
+    )
+
+
+def test_workflow_step_keeps_nested_name_entries() -> None:
+    """Ensure nested list names do not terminate the enclosing step block."""
+    workflow = """\
+      - name: Parent step
+        with:
+          entries:
+            - name: nested entry
+              value: retained
+      - name: Sibling step
+        run: echo sibling
+    """
+
+    step = _workflow_step(workflow, "Parent step")
+
+    assert "- name: nested entry" in step
+    assert "- name: Sibling step" not in step
+
+
+def test_workflow_paths_cover_both_yaml_suffixes(tmp_path: Path) -> None:
+    """Ensure executable-pin checks include both valid workflow suffixes."""
+    yml = tmp_path / "a.yml"
+    yaml = tmp_path / "b.yaml"
+    ignored = tmp_path / "ignored.txt"
+    for path in (yml, yaml, ignored):
+        path.write_text("name: test\n", encoding="utf-8")
+
+    assert _workflow_paths(tmp_path) == [yml, yaml]
 
 
 def test_exact_python_source_and_python_policy_are_retained() -> None:
@@ -290,7 +327,7 @@ def test_modern_workflows_use_locked_central_tooling() -> None:
 
 def test_workflows_do_not_duplicate_python_or_uv_executable_pins() -> None:
     """Keep exact executable versions out of individual workflow files."""
-    workflow_text = "\n".join(_read_text(path) for path in WORKFLOWS_PATH.glob("*.yml"))
+    workflow_text = "\n".join(_read_text(path) for path in _workflow_paths())
     python_version = str(_approved_python_version())
     required_version = _load_pyproject()["tool"]["uv"]["required-version"]
     uv_version = str(_exact_requirement_version(Requirement(f"uv{required_version}")))
@@ -367,6 +404,26 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "action-gh-release" not in canary
     release = _read_text(WORKFLOWS_PATH / "release.yml")
     assert "ha-compatibility-canary" not in release
+
+
+def test_release_binds_trusted_and_default_snapshots_to_event_shas() -> None:
+    """Keep Release selection independent from a default-branch race."""
+    release = _read_text(WORKFLOWS_PATH / "release.yml")
+    trusted_checkout = _workflow_step(release, "Check out trusted workflow definition")
+    resolver = _workflow_step(release, "Resolve selected snapshot")
+
+    assert "ref: ${{ github.workflow_sha }}" in trusted_checkout
+    assert "github.event.repository.default_branch" not in trusted_checkout
+    assert "EVENT_SHA: ${{ github.sha }}" in resolver
+    assert '"$EVENT_SHA^{commit}"' in resolver
+    assert 'selected_commit="$(git rev-parse HEAD)"' not in resolver
+    assert 'if [[ "$EVENT_MODE" == "published-fallback" ]]' in resolver
+    assert 'elif [[ "$EVENT_MODE" == "prepare" && -n "$RELEASE_REF" ]]' in resolver
+    assert '"refs/remotes/origin/$branch_name^{commit}"' in resolver
+    assert '"refs/tags/$tag_name^{commit}"' in resolver
+    assert release.index("scripts/classify_release_validation.py") < release.index(
+        'git checkout --detach "$RELEASE_COMMIT"'
+    )
 
 
 def test_renovate_has_one_source_for_each_managed_validation_dependency() -> None:
