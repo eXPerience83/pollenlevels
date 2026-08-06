@@ -374,15 +374,12 @@ def _location_subentry_data(
     title: str,
     lat: float,
     lon: float,
-    legacy_entry_id: str | None = None,
 ) -> dict[str, Any]:
     """Return ConfigSubentryData for one pollen location."""
     data: dict[str, Any] = {
         CONF_LATITUDE: lat,
         CONF_LONGITUDE: lon,
     }
-    if legacy_entry_id:
-        data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
     return {
         "subentry_type": SUBENTRY_TYPE_LOCATION,
         "title": title,
