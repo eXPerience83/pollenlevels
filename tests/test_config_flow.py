@@ -1854,6 +1854,7 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(
         config_entries=SimpleNamespace(
+            async_entry_for_domain_unique_id=lambda _domain, _unique_id: None,
             async_update_entry=lambda *args, **kwargs: None,
             async_reload=lambda *args, **kwargs: None,
         )
@@ -2035,6 +2036,9 @@ def test_reconfigure_api_key_validation_accepts_later_working_location(
         def __init__(self) -> None:
             self.updated = None
             self.reloaded = None
+
+        def async_entry_for_domain_unique_id(self, _domain, _unique_id):
+            return None
 
         def async_get_entry(self, entry_id: str):
             return entry if entry_id == entry.entry_id else None
@@ -2232,6 +2236,9 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data(
         def __init__(self) -> None:
             self.updated = None
 
+        def async_entry_for_domain_unique_id(self, _domain, _unique_id):
+            return None
+
         def async_get_entry(self, entry_id: str):
             return entry if entry_id == entry.entry_id else None
 
@@ -2299,6 +2306,9 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data(
         def __init__(self) -> None:
             self.updated = None
 
+        def async_entry_for_domain_unique_id(self, _domain, _unique_id):
+            return None
+
         def async_get_entry(self, entry_id: str):
             return entry if entry_id == entry.entry_id else None
 
@@ -2358,7 +2368,10 @@ def test_async_step_user_defaults_entry_name(
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
+        config_entries=SimpleNamespace(
+            async_entry_for_domain_unique_id=lambda _domain, _unique_id: None
+        ),
     )
 
     normalized = {
@@ -2396,10 +2409,10 @@ def test_async_step_user_defaults_entry_name(
     }
 
 
-def test_async_step_user_checks_api_key_unique_id_with_async_entries_fallback(
+def test_async_step_user_checks_api_key_unique_id(
     config_flow_stubs: ConfigFlowStubs,
 ) -> None:
-    """New setup should detect duplicate API-key parents via async_entries fallback."""
+    """New setup should detect duplicate API-key parents by unique ID."""
 
     class _TrackingFlow(config_flow_stubs.PollenLevelsConfigFlow):
         def __init__(self) -> None:
@@ -2411,14 +2424,21 @@ def test_async_step_user_checks_api_key_unique_id_with_async_entries_fallback(
             return None
 
     duplicate_unique_id = config_flow_stubs.config_flow._api_key_unique_id("shared-key")
+    lookup_calls: list[tuple[str, str]] = []
+
+    def _lookup_parent(domain: str, unique_id: str):
+        lookup_calls.append((domain, unique_id))
+        if (
+            domain == config_flow_stubs.config_flow.DOMAIN
+            and unique_id == duplicate_unique_id
+        ):
+            return SimpleNamespace(unique_id=duplicate_unique_id)
+        return None
+
     flow = _TrackingFlow()
     flow.hass = SimpleNamespace(
         config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
-        config_entries=SimpleNamespace(
-            async_entries=lambda _domain: [
-                SimpleNamespace(unique_id=duplicate_unique_id)
-            ]
-        ),
+        config_entries=SimpleNamespace(async_entry_for_domain_unique_id=_lookup_parent),
     )
 
     normalized = {
@@ -2443,6 +2463,7 @@ def test_async_step_user_checks_api_key_unique_id_with_async_entries_fallback(
 
     assert result == {"type": "abort", "reason": "api_key_already_configured"}
     assert flow.unique_ids == [duplicate_unique_id]
+    assert lookup_calls == [(config_flow_stubs.config_flow.DOMAIN, duplicate_unique_id)]
 
 
 class _SubentryRecorder:
