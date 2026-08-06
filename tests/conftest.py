@@ -20,7 +20,10 @@ from custom_components.pollenlevels.const import (
     DOMAIN,
     SUBENTRY_TYPE_LOCATION,
 )
-from custom_components.pollenlevels.util import api_key_unique_id
+from custom_components.pollenlevels.util import (
+    api_key_unique_id,
+    format_location_unique_id,
+)
 
 TESTS_DIR = Path(__file__).resolve().parent
 
@@ -157,6 +160,56 @@ def ha_config_entry(
             CONF_LANGUAGE_CODE: "es",
         },
         subentries_data=[sample_location_subentry_data],
+        version=6,
+    )
+
+
+@pytest.fixture
+def ha_two_location_config_entry(fake_api_key: str):
+    """Return a parent MockConfigEntry with Madrid and Barcelona locations."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    madrid_latitude = 40.4168
+    madrid_longitude = -3.7038
+    barcelona_latitude = 41.3874
+    barcelona_longitude = 2.1686
+
+    return MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="pollenlevels-entry",
+        title="Pollen Levels",
+        unique_id=api_key_unique_id(fake_api_key),
+        data={CONF_API_KEY: fake_api_key},
+        options={
+            CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
+            CONF_LANGUAGE_CODE: "es",
+        },
+        subentries_data=[
+            {
+                "subentry_id": "location-madrid",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Madrid",
+                "unique_id": format_location_unique_id(
+                    madrid_latitude, madrid_longitude
+                ),
+                "data": {
+                    CONF_LATITUDE: madrid_latitude,
+                    CONF_LONGITUDE: madrid_longitude,
+                },
+            },
+            {
+                "subentry_id": "location-barcelona",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Barcelona",
+                "unique_id": format_location_unique_id(
+                    barcelona_latitude, barcelona_longitude
+                ),
+                "data": {
+                    CONF_LATITUDE: barcelona_latitude,
+                    CONF_LONGITUDE: barcelona_longitude,
+                },
+            },
+        ],
         version=6,
     )
 
