@@ -11,20 +11,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
 
 from custom_components.pollenlevels.const import (
-    CONF_API_KEY,
-    CONF_LANGUAGE_CODE,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
 from custom_components.pollenlevels.issue_helpers import (
     PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID,
 )
-from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
     async_setup_config_entry,
-    location_subentry_data,
     mock_pollen_api,
 )
 
@@ -33,35 +27,12 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
-    fake_api_key: str,
-    sample_location_subentry_data: dict[str, Any],
+    ha_two_location_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
     """Sensor and button platforms should attach entities to each subentry."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     clear_integration_modules()
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        entry_id="pollenlevels-entry",
-        title="Pollen Levels",
-        data={CONF_API_KEY: fake_api_key},
-        options={
-            CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
-            CONF_LANGUAGE_CODE: "es",
-        },
-        unique_id=api_key_unique_id(fake_api_key),
-        subentries_data=[
-            sample_location_subentry_data,
-            location_subentry_data(
-                subentry_id="location-barcelona",
-                title="Barcelona",
-                latitude=41.3874,
-                longitude=2.1686,
-            ),
-        ],
-        version=6,
-    )
+    entry = ha_two_location_config_entry
     entry.add_to_hass(hass)
 
     async with aiointercept(mock_external_urls=True) as mocked:

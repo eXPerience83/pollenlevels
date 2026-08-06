@@ -21,7 +21,6 @@ from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
     async_setup_config_entry,
-    location_subentry_data,
     mock_pollen_api,
 )
 
@@ -67,36 +66,13 @@ async def test_ha_force_update_skips_removed_subentry_without_reload(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
-    fake_api_key: str,
-    sample_location_subentry_data: dict[str, Any],
+    ha_two_location_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
     monkeypatch,
 ) -> None:
     """force_update should skip a removed subentry before runtime reloads."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     clear_integration_modules()
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        entry_id="pollenlevels-entry",
-        title="Pollen Levels",
-        data={CONF_API_KEY: fake_api_key},
-        options={
-            CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
-            CONF_LANGUAGE_CODE: "es",
-        },
-        unique_id=api_key_unique_id(fake_api_key),
-        subentries_data=[
-            sample_location_subentry_data,
-            location_subentry_data(
-                subentry_id="location-barcelona",
-                title="Barcelona",
-                latitude=41.3874,
-                longitude=2.1686,
-            ),
-        ],
-        version=6,
-    )
+    entry = ha_two_location_config_entry
     entry.add_to_hass(hass)
 
     async with aiointercept(mock_external_urls=True) as mocked:
@@ -143,36 +119,13 @@ async def test_ha_force_update_refreshes_multiple_location_subentries(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
-    fake_api_key: str,
-    sample_location_subentry_data: dict[str, Any],
+    ha_two_location_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
     monkeypatch,
 ) -> None:
     """force_update should refresh every active location subentry."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     clear_integration_modules()
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        entry_id="pollenlevels-entry",
-        title="Pollen Levels",
-        data={CONF_API_KEY: fake_api_key},
-        options={
-            CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
-            CONF_LANGUAGE_CODE: "es",
-        },
-        unique_id=api_key_unique_id(fake_api_key),
-        subentries_data=[
-            sample_location_subentry_data,
-            location_subentry_data(
-                subentry_id="location-barcelona",
-                title="Barcelona",
-                latitude=41.3874,
-                longitude=2.1686,
-            ),
-        ],
-        version=6,
-    )
+    entry = ha_two_location_config_entry
     entry.add_to_hass(hass)
 
     async with aiointercept(mock_external_urls=True) as mocked:
@@ -201,36 +154,13 @@ async def test_ha_force_update_continues_after_one_location_failure(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
-    fake_api_key: str,
-    sample_location_subentry_data: dict[str, Any],
+    ha_two_location_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
     monkeypatch,
 ) -> None:
     """force_update should continue refreshing locations after one failure."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     clear_integration_modules()
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        entry_id="pollenlevels-entry",
-        title="Pollen Levels",
-        data={CONF_API_KEY: fake_api_key},
-        options={
-            CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
-            CONF_LANGUAGE_CODE: "es",
-        },
-        unique_id=api_key_unique_id(fake_api_key),
-        subentries_data=[
-            sample_location_subentry_data,
-            location_subentry_data(
-                subentry_id="location-barcelona",
-                title="Barcelona",
-                latitude=41.3874,
-                longitude=2.1686,
-            ),
-        ],
-        version=6,
-    )
+    entry = ha_two_location_config_entry
     entry.add_to_hass(hass)
 
     async with aiointercept(mock_external_urls=True) as mocked:
@@ -293,38 +223,16 @@ async def test_ha_force_update_reports_absorbed_coordinator_failure_and_continue
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
-    fake_api_key: str,
-    sample_location_subentry_data: dict[str, Any],
+    ha_two_location_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
     caplog,
     monkeypatch,
 ) -> None:
     """force_update reports coordinator-absorbed UpdateFailed and continues."""
     from homeassistant.helpers.update_coordinator import UpdateFailed
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     clear_integration_modules()
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        entry_id="pollenlevels-entry",
-        title="Pollen Levels",
-        data={CONF_API_KEY: fake_api_key},
-        options={
-            CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
-            CONF_LANGUAGE_CODE: "es",
-        },
-        unique_id=api_key_unique_id(fake_api_key),
-        subentries_data=[
-            sample_location_subentry_data,
-            location_subentry_data(
-                subentry_id="location-barcelona",
-                title="Barcelona",
-                latitude=41.3874,
-                longitude=2.1686,
-            ),
-        ],
-        version=6,
-    )
+    entry = ha_two_location_config_entry
     entry.add_to_hass(hass)
 
     async with aiointercept(mock_external_urls=True) as mocked:
