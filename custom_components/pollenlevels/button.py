@@ -22,7 +22,7 @@ from .util import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from .coordinator import PollenDataUpdateCoordinator
 
@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(
     _hass: HomeAssistant,
     config_entry: PollenLevelsConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Pollen Levels update buttons for all configured locations."""
     runtime = getattr(config_entry, "runtime_data", None)
