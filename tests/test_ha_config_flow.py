@@ -449,10 +449,22 @@ async def test_ha_location_subentry_flow_creates_subentry(
     clear_integration_modules()
     captured_params: list[dict[str, Any]] = []
     scheduled_reloads: list[str] = []
+    subentries_at_reload: list[list[tuple[str, str, str | None, dict[str, Any]]]] = []
     original_schedule_reload = hass.config_entries.async_schedule_reload
 
     def _capture_schedule_reload(entry_id: str) -> None:
         scheduled_reloads.append(entry_id)
+        subentries_at_reload.append(
+            [
+                (
+                    subentry.subentry_type,
+                    subentry.title,
+                    subentry.unique_id,
+                    dict(subentry.data),
+                )
+                for subentry in entry.subentries.values()
+            ]
+        )
         original_schedule_reload(entry_id)
 
     monkeypatch.setattr(
@@ -488,6 +500,16 @@ async def test_ha_location_subentry_flow_creates_subentry(
     assert_fixed_forecast_days(captured_params)
     assert captured_params[0]["languageCode"] == "es"
     assert scheduled_reloads == [entry.entry_id]
+    assert subentries_at_reload == [
+        [
+            (
+                SUBENTRY_TYPE_LOCATION,
+                "Garden",
+                "41.3874_2.1686",
+                {CONF_LATITUDE: 41.3874, CONF_LONGITUDE: 2.1686},
+            )
+        ]
+    ]
     assert len(entry.subentries) == 1
 
     subentry = next(iter(entry.subentries.values()))

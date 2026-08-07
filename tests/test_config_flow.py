@@ -2479,19 +2479,11 @@ class _SubentryRecorder:
         self.reload_calls.append(entry_id)
 
 
-class _ReloadOnlySubentryRecorder:
-    def __init__(self) -> None:
-        self.reload_calls: list[str] = []
-
-    async def async_reload(self, entry_id: str) -> None:
-        self.reload_calls.append(entry_id)
-
-
 def _build_location_subentry_flow(config_flow_stubs: ConfigFlowStubs, entry):
     recorder = _SubentryRecorder(entry)
 
     def _async_create_task(coro, *, name=None):
-        task = asyncio.create_task(coro, name=name)
+        task = asyncio.create_task(coro, name=name, eager_start=True)
         recorder.created_tasks.append(task)
         return task
 
@@ -2529,21 +2521,57 @@ def test_location_subentry_user_step_shows_form(
     assert result == {"type": "form", "step_id": "user", "errors": {}}
 
 
-def test_location_subentry_create_reload_helper_falls_back_to_async_reload(
+def test_location_subentry_user_step_creates_entry_without_premature_reload(
     config_flow_stubs: ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Subentry reload helper should use async_reload when schedule_reload is absent."""
+    """Adding a valid location should reload the parent after create is returned."""
 
-    recorder = _ReloadOnlySubentryRecorder()
-    hass = SimpleNamespace(config_entries=recorder)
-
-    asyncio.run(
-        config_flow_stubs.config_flow._async_reload_parent_after_subentry_create(
-            hass, "entry-id"
-        )
+    calls = _patch_client_fetch(config_flow_stubs, monkeypatch)
+    entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        options={config_flow_stubs.CONF_LANGUAGE_CODE: " es-ES "},
+        entry_id="entry-id",
     )
+    flow, recorder = _build_location_subentry_flow(config_flow_stubs, entry)
 
+    async def run_flow():
+        result = await flow.async_step_user(
+            {
+                config_flow_stubs.CONF_NAME: " Garden ",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 12.34567,
+                    config_flow_stubs.CONF_LONGITUDE: -98.76543,
+                },
+            }
+        )
+        assert recorder.reload_calls == []
+        assert len(recorder.created_tasks) == 1
+        assert recorder.created_tasks[0].get_name() == (
+            "reload Pollen Levels parent after location subentry create"
+        )
+        await recorder.created_tasks[0]
+        return result
+
+    result = asyncio.run(run_flow())
+
+    assert result["type"] == "create_entry"
+    assert result["title"] == "Garden"
+    assert result["data"] == {
+        config_flow_stubs.CONF_LATITUDE: 12.34567,
+        config_flow_stubs.CONF_LONGITUDE: -98.76543,
+    }
+    assert result["unique_id"] == "12.3457_-98.7654"
+    assert len(recorder.created_tasks) == 1
     assert recorder.reload_calls == ["entry-id"]
+    assert calls == [
+        {
+            "latitude": 12.34567,
+            "longitude": -98.76543,
+            "days": config_flow_stubs.FORECAST_DAYS,
+            "language_code": "es-ES",
+        }
+    ]
 
 
 def test_location_subentry_user_step_rejects_invalid_api_payload(
