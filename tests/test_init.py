@@ -836,6 +836,7 @@ def test_setup_entry_skips_invalid_subentry_coordinates_when_others_load(
     failure = entry.runtime_data.failed_locations["bad-location"]
     assert failure.error_type == "InvalidStoredLocation"
     assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+    assert hass.config_entries.reload_calls == []
     expected_issue_id = integration.invalid_stored_location_issue_id(
         entry.entry_id, subentry_id="bad-location"
     )

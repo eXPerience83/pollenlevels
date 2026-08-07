@@ -271,25 +271,9 @@ def _setup_failure_is_retryable(failure: PollenLocationSetupFailure) -> bool:
     return failure.error_type not in _NON_RETRYABLE_SETUP_FAILURE_TYPES
 
 
-def _schedule_parent_reload(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Schedule a parent config entry reload when supported by the runtime."""
-    schedule_reload = getattr(hass.config_entries, "async_schedule_reload", None)
-    if callable(schedule_reload):
-        schedule_reload(entry.entry_id)
-        return True
-
-    async_reload = getattr(hass.config_entries, "async_reload", None)
-    if not callable(async_reload):
-        return False
-
-    result = async_reload(entry.entry_id)
-    if asyncio.iscoroutine(result):
-        create_task = getattr(hass, "async_create_task", None)
-        if not callable(create_task):
-            result.close()
-            return False
-        create_task(result, name=f"pollenlevels setup retry {entry.entry_id}")
-    return True
+def _schedule_parent_reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Schedule a parent config entry reload."""
+    hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
 # ---- Service -------------------------------------------------------------
@@ -652,13 +636,11 @@ async def async_setup_entry(
         raise ConfigEntryNotReady from err
 
     retry_reload_needed = False
-    first_retry_failures: list[PollenLocationSetupFailure] = []
     for failure in failed_locations.values():
         if not _setup_failure_is_retryable(failure):
             continue
         if not _setup_retry_failure_seen(hass, entry.entry_id, failure.subentry_id):
             _mark_setup_retry_failure(hass, entry.entry_id, failure.subentry_id)
-            first_retry_failures.append(failure)
             retry_reload_needed = True
             continue
         create_location_setup_failed_issue(
@@ -671,17 +653,8 @@ async def async_setup_entry(
             reason=failure.reason,
         )
 
-    if retry_reload_needed and not _schedule_parent_reload(hass, entry):
-        for failure in first_retry_failures:
-            create_location_setup_failed_issue(
-                hass,
-                entry_id=entry.entry_id,
-                entry_title=entry.title,
-                location_title=failure.title,
-                subentry_id=failure.subentry_id,
-                error_type=failure.error_type,
-                reason=failure.reason,
-            )
+    if retry_reload_needed:
+        _schedule_parent_reload(hass, entry)
 
     _LOGGER.info("PollenLevels integration loaded successfully")
     return True
