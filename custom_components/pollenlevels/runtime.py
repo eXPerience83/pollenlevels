@@ -43,31 +43,11 @@ class PollenLevelsRuntimeData:
         client: GooglePollenApiClient,
         locations: dict[str, PollenLocationRuntime] | None = None,
         failed_locations: dict[str, PollenLocationSetupFailure] | None = None,
-        coordinator: PollenDataUpdateCoordinator | None = None,
     ) -> None:
-        """Initialize runtime data with v3 locations or a legacy coordinator."""
+        """Initialize runtime data for configured pollen locations."""
         self.client = client
         self.failed_locations = failed_locations or {}
-        if locations is not None:
-            self.locations = locations
-            return
-        self.locations = {}
-        if coordinator is not None:
-            subentry_id = getattr(coordinator, "subentry_id", None) or getattr(
-                coordinator, "entry_id", "legacy"
-            )
-            self.locations[subentry_id] = PollenLocationRuntime(
-                subentry_id=subentry_id,
-                coordinator=coordinator,
-                legacy_entry_id=getattr(coordinator, "legacy_entry_id", None),
-            )
-
-    @property
-    def coordinator(self) -> PollenDataUpdateCoordinator | None:
-        """Return the first location coordinator for legacy callers/tests."""
-        if not self.locations:
-            return None
-        return next(iter(self.locations.values())).coordinator
+        self.locations = locations if locations is not None else {}
 
 
 if TYPE_CHECKING:
