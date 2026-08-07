@@ -465,17 +465,7 @@ def _entry_for_parent_unique_id(
     hass: Any, unique_id: str
 ) -> config_entries.ConfigEntry | None:
     """Return an existing parent entry with this API-key unique ID."""
-    config_entry_manager = getattr(hass, "config_entries", None)
-    lookup = getattr(config_entry_manager, "async_entry_for_domain_unique_id", None)
-    if callable(lookup):
-        return lookup(DOMAIN, unique_id)
-
-    async_entries = getattr(config_entry_manager, "async_entries", None)
-    if callable(async_entries):
-        for candidate in async_entries(DOMAIN):
-            if getattr(candidate, "unique_id", None) == unique_id:
-                return candidate
-    return None
+    return hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
 
 
 async def _async_reload_parent_after_subentry_create(hass: Any, entry_id: str) -> None:
