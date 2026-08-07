@@ -15,51 +15,25 @@ def test_add_entities_for_subentry_passes_config_subentry_id() -> None:
     """Modern callbacks receive the subentry association."""
     first = object()
     second = object()
-    calls: list[tuple[list[Any], dict[str, Any]]] = []
+    calls: list[tuple[list[Any], bool, str | None]] = []
 
-    def _add_entities(entities: list[Any], **kwargs: Any) -> None:
-        calls.append((entities, kwargs))
+    def _add_entities(
+        entities: list[Any],
+        update_before_add: bool = False,
+        *,
+        config_subentry_id: str | None = None,
+    ) -> None:
+        calls.append((entities, update_before_add, config_subentry_id))
 
     add_entities_for_subentry(_add_entities, (first, second), "location-home")
 
     assert calls == [
-        ([first, second], {"config_subentry_id": "location-home"}),
+        ([first, second], False, "location-home"),
     ]
 
 
-def test_add_entities_for_subentry_falls_back_for_legacy_callback() -> None:
-    """Callbacks without config_subentry_id support still receive entities."""
-    first = object()
-    second = object()
-    calls: list[list[Any]] = []
-
-    def _add_entities(entities: list[Any]) -> None:
-        calls.append(entities)
-
-    add_entities_for_subentry(_add_entities, (first, second), "location-home")
-
-    assert calls == [[first, second]]
-
-
-def test_add_entities_for_subentry_falls_back_for_wrapped_legacy_callback() -> None:
-    """Wrapped legacy callbacks still fall back when the inner callable rejects kwargs."""
-    first = object()
-    second = object()
-    calls: list[list[Any]] = []
-
-    def _add_entities(entities: list[Any]) -> None:
-        calls.append(entities)
-
-    def _wrapped_add_entities(*args: Any, **kwargs: Any) -> None:
-        _add_entities(*args, **kwargs)
-
-    add_entities_for_subentry(_wrapped_add_entities, (first, second), "location-home")
-
-    assert calls == [[first, second]]
-
-
 def test_add_entities_for_subentry_reraises_internal_type_error() -> None:
-    """Internal callback TypeError should not trigger legacy fallback."""
+    """Internal callback TypeError should propagate without retry."""
     calls: list[str | None] = []
 
     def _add_entities(
@@ -74,35 +48,6 @@ def test_add_entities_for_subentry_reraises_internal_type_error() -> None:
         add_entities_for_subentry(_add_entities, [object()], "location-home")
     except TypeError as err:
         assert str(err) == "internal config_subentry_id setup bug"
-    else:  # pragma: no cover - assertion guard
-        raise AssertionError("Expected internal TypeError to be reraised")
-
-    assert calls == ["location-home"]
-
-
-def test_add_entities_for_subentry_reraises_modern_internal_keyword_type_error() -> (
-    None
-):
-    """Explicit modern callbacks should not fall back on internal keyword errors."""
-    calls: list[str | None] = []
-
-    def _add_entities(
-        entities: list[Any],
-        *,
-        config_subentry_id: str | None = None,
-    ) -> None:
-        calls.append(config_subentry_id)
-        raise TypeError(
-            "internal helper got an unexpected keyword argument 'config_subentry_id'"
-        )
-
-    try:
-        add_entities_for_subentry(_add_entities, [object()], "location-home")
-    except TypeError as err:
-        assert (
-            str(err)
-            == "internal helper got an unexpected keyword argument 'config_subentry_id'"
-        )
     else:  # pragma: no cover - assertion guard
         raise AssertionError("Expected internal TypeError to be reraised")
 

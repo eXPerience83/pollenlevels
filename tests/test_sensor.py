@@ -147,10 +147,17 @@ def _install_sensor_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
 
     entity_platform_mod = types.ModuleType("homeassistant.helpers.entity_platform")
 
-    def _add_entities_callback_stub(entities, update_before_add: bool = False) -> None:
+    def _add_config_entry_entities_callback_stub(
+        entities,
+        update_before_add: bool = False,
+        *,
+        config_subentry_id: str | None = None,
+    ) -> None:
         return None
 
-    entity_platform_mod.AddEntitiesCallback = _add_entities_callback_stub  # type: ignore[assignment]
+    entity_platform_mod.AddConfigEntryEntitiesCallback = (
+        _add_config_entry_entities_callback_stub  # type: ignore[assignment]
+    )
     monkeypatch.setitem(
         sys.modules, "homeassistant.helpers.entity_platform", entity_platform_mod
     )
@@ -3006,7 +3013,12 @@ async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
 
     captured: list[Any] = []
 
-    def _capture_entities(entities, _update_before_add=False):
+    def _capture_entities(
+        entities,
+        _update_before_add=False,
+        *,
+        config_subentry_id: str | None = None,
+    ):
         captured.extend(entities)
 
     await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
@@ -3084,7 +3096,12 @@ async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
     )
     captured: list[Any] = []
 
-    def _capture_entities(entities, _update_before_add=False):
+    def _capture_entities(
+        entities,
+        _update_before_add=False,
+        *,
+        config_subentry_id: str | None = None,
+    ):
         captured.extend(entities)
 
     await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
@@ -3399,7 +3416,12 @@ async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_
     captured: list[Any] = []
     update_before_add_value: bool | None = None
 
-    def _capture_entities(entities, _update_before_add=False):
+    def _capture_entities(
+        entities,
+        _update_before_add=False,
+        *,
+        config_subentry_id: str | None = None,
+    ):
         nonlocal update_before_add_value
         captured.extend(entities)
         update_before_add_value = _update_before_add
@@ -3463,7 +3485,12 @@ async def test_async_setup_entry_adds_daily_summary_sensors(
 
     captured: list[Any] = []
 
-    def _capture_entities(entities, _update_before_add=False):
+    def _capture_entities(
+        entities,
+        _update_before_add=False,
+        *,
+        config_subentry_id: str | None = None,
+    ):
         captured.extend(entities)
 
     await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
@@ -3520,7 +3547,12 @@ async def test_device_info_uses_default_title_when_blank(
 
     captured: list[Any] = []
 
-    def _capture_entities(entities, _update_before_add=False):
+    def _capture_entities(
+        entities,
+        _update_before_add=False,
+        *,
+        config_subentry_id: str | None = None,
+    ):
         captured.extend(entities)
 
     await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)
@@ -3574,7 +3606,12 @@ async def test_device_info_trims_custom_title(
 
     captured: list[Any] = []
 
-    def _capture_entities(entities, _update_before_add=False):
+    def _capture_entities(
+        entities,
+        _update_before_add=False,
+        *,
+        config_subentry_id: str | None = None,
+    ):
         captured.extend(entities)
 
     await sensor_modules.sensor.async_setup_entry(hass, config_entry, _capture_entities)

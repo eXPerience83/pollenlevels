@@ -34,7 +34,7 @@ from homeassistant.helpers.update_coordinator import (
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
     ATTRIBUTION,
@@ -176,7 +176,7 @@ async def _remove_legacy_per_day_entities(
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: PollenLevelsConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Create coordinator and build sensors."""
     runtime = cast(
