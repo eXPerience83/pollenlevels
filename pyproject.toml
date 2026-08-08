@@ -27,6 +27,8 @@ release = [
 # renovate: datasource=github-releases depName=astral-sh/uv
 required-version = "==0.12.1"
 default-groups = []
+# Keep transitive packages behind the same supply-chain cooldown as Renovate.
+exclude-newer = "3 days"
 # Home Assistant 2026.8.0b3 requires Python 3.14.2+, while CI itself uses the
 # exact patch from .python-version. Keep the lock within the supported 3.14 line.
 environments = ["python_full_version >= '3.14.2' and python_full_version < '3.15'"]
