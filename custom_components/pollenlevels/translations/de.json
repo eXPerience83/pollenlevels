@@ -116,7 +116,6 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Standort",
       "entry_type": "Standort",
       "initiate_flow": {
         "user": "Standort hinzufügen"

@@ -336,6 +336,12 @@ def test_config_subentries_location_schema_shape() -> None:
         data = _load_translation(translation_path)
         location = data.get("config_subentries", {}).get("location", {})
 
+        if "title" in location:
+            problems.append(
+                f"{translation_path.name}: "
+                "config_subentries.location.title is deprecated and must be omitted"
+            )
+
         entry_type = location.get("entry_type")
         if not isinstance(entry_type, str) or not entry_type.strip():
             problems.append(
@@ -378,7 +384,6 @@ def test_v3_subentry_translation_strings_are_localized() -> None:
         "config.step.user.description",
         "options.step.init.description",
         "config.error.already_configured",
-        "config_subentries.location.title",
         "config_subentries.location.entry_type",
         "config_subentries.location.initiate_flow.user",
         "config_subentries.location.step.user.title",
@@ -497,7 +502,6 @@ def test_sensor_translation_keys_present() -> None:
 
 def test_services_translation_keys_present() -> None:
     """Ensure services declared in services.yaml have translations in en.json."""
-
     english = _flatten_keys(_load_translation(TRANSLATIONS_DIR / "en.json"))
     service_names = _extract_services_from_services_yaml()
     if not service_names:

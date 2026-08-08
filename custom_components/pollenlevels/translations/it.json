@@ -116,7 +116,6 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Posizione",
       "entry_type": "Posizione",
       "initiate_flow": {
         "user": "Aggiungi posizione"
