@@ -97,6 +97,16 @@
       "internalChecksFilter": "strict"
     },
     {
+      "description": "Delegate uv.lock release age enforcement to uv",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
       "description": "Keep CI Python on the approved 3.14 patch line",
       "matchManagers": [
         "pyenv"
