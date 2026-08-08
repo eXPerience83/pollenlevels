@@ -146,7 +146,12 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
         data={f"type_{idx}": {} for idx in range(60)},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
@@ -772,7 +777,12 @@ async def test_diagnostics_request_days_are_fixed(
         data={"type_grass": {"source": "type"}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
@@ -818,7 +828,12 @@ async def test_diagnostics_normalizes_request_example_language_code(
         data={"type_grass": {"source": "type"}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
@@ -858,7 +873,12 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
         data={"type_grass": {"source": "type"}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
@@ -939,7 +959,12 @@ async def test_diagnostics_includes_daily_summary_sensor_snapshot(
         },
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
@@ -995,7 +1020,12 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data(
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
@@ -1074,7 +1104,12 @@ async def test_diagnostics_includes_registry_summary_without_sensitive_values(
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": diagnostics_modules.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(

@@ -382,10 +382,6 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             runtime = getattr(entry, "runtime_data", None)
             locations = getattr(runtime, "locations", None) or {}
             if not locations:
-                coordinator = getattr(runtime, "coordinator", None)
-                if coordinator:
-                    targets.append((entry, entry.entry_id, coordinator))
-                    continue
                 _LOGGER.debug(
                     "Skipping force_update for entry %s (no location coordinators)",
                     entry.entry_id,

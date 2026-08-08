@@ -35,6 +35,7 @@ class SensorModules(NamedTuple):
     const: types.ModuleType
     client_mod: types.ModuleType
     coordinator_mod: types.ModuleType
+    runtime_mod: types.ModuleType
     sensor: types.ModuleType
 
 
@@ -246,6 +247,7 @@ def sensor_modules(monkeypatch: pytest.MonkeyPatch) -> SensorModules:
         sensor=_load_module(
             "custom_components.pollenlevels.sensor", "sensor.py", monkeypatch
         ),
+        runtime_mod=sys.modules["custom_components.pollenlevels.runtime"],
     )
     yield modules
     # Remove imported integration modules directly so pytest does not restore
@@ -3008,7 +3010,14 @@ async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
         "type_grass_d2": {"source": "type", "name": "Grass D+2"},
     }
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=client
+        client=client,
+        locations={
+            coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
+                subentry_id=coordinator.subentry_id,
+                coordinator=coordinator,
+                legacy_entry_id=coordinator.legacy_entry_id,
+            )
+        },
     )
 
     captured: list[Any] = []
@@ -3092,7 +3101,14 @@ async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
         "type_grass": {"source": "type", "name": "Grass"},
     }
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=client
+        client=client,
+        locations={
+            coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
+                subentry_id=coordinator.subentry_id,
+                coordinator=coordinator,
+                legacy_entry_id=coordinator.legacy_entry_id,
+            )
+        },
     )
     captured: list[Any] = []
 
@@ -3410,7 +3426,12 @@ async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            "entry": sensor_modules.runtime_mod.PollenLocationRuntime(
+                subentry_id="entry", coordinator=coordinator
+            )
+        },
     )
 
     captured: list[Any] = []
@@ -3480,7 +3501,12 @@ async def test_async_setup_entry_adds_daily_summary_sensors(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=object()
+        client=object(),
+        locations={
+            entry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
+                subentry_id=entry_id, coordinator=coordinator
+            )
+        },
     )
 
     captured: list[Any] = []
@@ -3542,7 +3568,14 @@ async def test_device_info_uses_default_title_when_blank(
     )
     coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=client
+        client=client,
+        locations={
+            coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
+                subentry_id=coordinator.subentry_id,
+                coordinator=coordinator,
+                legacy_entry_id=coordinator.legacy_entry_id,
+            )
+        },
     )
 
     captured: list[Any] = []
@@ -3601,7 +3634,14 @@ async def test_device_info_trims_custom_title(
     )
     coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        coordinator=coordinator, client=client
+        client=client,
+        locations={
+            coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
+                subentry_id=coordinator.subentry_id,
+                coordinator=coordinator,
+                legacy_entry_id=coordinator.legacy_entry_id,
+            )
+        },
     )
 
     captured: list[Any] = []

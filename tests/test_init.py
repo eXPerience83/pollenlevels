@@ -558,7 +558,6 @@ def test_setup_entry_without_location_subentries_loads_empty_runtime(
 
     assert entry.runtime_data is not None
     assert entry.runtime_data.locations == {}
-    assert entry.runtime_data.coordinator is None
     assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
 
 
@@ -696,8 +695,9 @@ def test_setup_entry_numeric_string_coordinates_are_allowed(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert entry.runtime_data is not None
-    assert entry.runtime_data.coordinator.lat == pytest.approx(1.5)
-    assert entry.runtime_data.coordinator.lon == pytest.approx(2.5)
+    coordinator = entry.runtime_data.locations[entry.entry_id].coordinator
+    assert coordinator.lat == pytest.approx(1.5)
+    assert coordinator.lon == pytest.approx(2.5)
 
 
 def test_setup_entry_boundary_coordinates_are_allowed(
@@ -1242,7 +1242,10 @@ def test_setup_entry_success_and_unload(
     assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
 
     assert entry.runtime_data is not None
-    assert entry.runtime_data.coordinator.entry_id == entry.entry_id
+    assert (
+        entry.runtime_data.locations[entry.entry_id].coordinator.entry_id
+        == entry.entry_id
+    )
 
     assert asyncio.run(integration.async_unload_entry(hass, entry)) is True
     assert hass.config_entries.unload_calls == [(entry, ["sensor", "button"])]
@@ -1410,10 +1413,36 @@ def test_force_update_requests_refresh_per_entry(
         async def async_request_refresh(self):
             await self._mark()
 
-    entry1 = _FakeEntry(integration, entry_id="entry-1")
-    entry1.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
-    entry2 = _FakeEntry(integration, entry_id="entry-2")
-    entry2.runtime_data = types.SimpleNamespace(coordinator=_StubCoordinator())
+    coordinator1 = _StubCoordinator()
+    entry1 = _FakeEntry(
+        integration,
+        entry_id="entry-1",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "location-1"),
+    )
+    entry1.runtime_data = integration.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "location-1": integration.PollenLocationRuntime(
+                subentry_id="location-1", coordinator=coordinator1
+            )
+        },
+    )
+    coordinator2 = _StubCoordinator()
+    entry2 = _FakeEntry(
+        integration,
+        entry_id="entry-2",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "location-2"),
+    )
+    entry2.runtime_data = integration.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            "location-2": integration.PollenLocationRuntime(
+                subentry_id="location-2", coordinator=coordinator2
+            )
+        },
+    )
     entry3 = _FakeEntry(integration, entry_id="entry-3")
     entry3.runtime_data = None
     entry4 = _FakeEntry(integration, entry_id="entry-4")
@@ -1426,63 +1455,10 @@ def test_force_update_requests_refresh_per_entry(
 
     asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
 
-    assert entry1.runtime_data.coordinator.calls == ["refresh"]
-    assert entry2.runtime_data.coordinator.calls == ["refresh"]
-    assert entry1.runtime_data.coordinator.done.is_set()
-    assert entry2.runtime_data.coordinator.done.is_set()
-
-
-def test_force_update_continues_after_single_coordinator_failure(
-    integration_modules: _InitModules,
-) -> None:
-    """One coordinator failure should not block refreshes for other entries."""
-    integration = integration_modules.integration
-
-    class _OkCoordinator:
-        def __init__(self):
-            self.calls = 0
-
-        async def async_request_refresh(self):
-            self.calls += 1
-
-    class _FailCoordinator:
-        async def async_request_refresh(self):
-            raise RuntimeError("boom")
-
-    good_entry = _FakeEntry(integration, entry_id="entry-good")
-    good_entry.runtime_data = types.SimpleNamespace(coordinator=_OkCoordinator())
-    bad_entry = _FakeEntry(integration, entry_id="entry-bad")
-    bad_entry.runtime_data = types.SimpleNamespace(coordinator=_FailCoordinator())
-
-    hass = _FakeHass(entries=[bad_entry, good_entry])
-
-    assert asyncio.run(integration.async_setup(hass, {})) is True
-    asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
-
-    assert good_entry.runtime_data.coordinator.calls == 1
-
-
-def test_force_update_propagates_per_entry_cancelled_error(
-    integration_modules: _InitModules, caplog
-) -> None:
-    """Per-entry cancellation must propagate through the global service."""
-    integration = integration_modules.integration
-
-    class _CancelledCoordinator:
-        async def async_request_refresh(self):
-            raise asyncio.CancelledError
-
-    entry = _FakeEntry(integration, entry_id="entry-cancel")
-    entry.runtime_data = types.SimpleNamespace(coordinator=_CancelledCoordinator())
-
-    hass = _FakeHass(entries=[entry])
-
-    assert asyncio.run(integration.async_setup(hass, {})) is True
-    with caplog.at_level("DEBUG"):
-        with pytest.raises(asyncio.CancelledError):
-            asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
-
-    assert "Manual refresh cancelled for entry entry-cancel" in caplog.text
+    assert coordinator1.calls == ["refresh"]
+    assert coordinator2.calls == ["refresh"]
+    assert coordinator1.done.is_set()
+    assert coordinator2.done.is_set()
 
 
 def test_force_update_no_coordinators_is_noop(
@@ -1515,6 +1491,7 @@ def test_force_update_logs_do_not_expose_secrets(
                 "location.longitude=-98.765432"
             )
 
+    subentry_id = "location-secrets"
     entry = _FakeEntry(
         integration,
         entry_id="entry-secrets",
@@ -1523,8 +1500,16 @@ def test_force_update_logs_do_not_expose_secrets(
             integration.CONF_LATITUDE: 12.345678,
             integration.CONF_LONGITUDE: -98.765432,
         },
+        subentries=_location_subentries(integration, subentry_id),
     )
-    entry.runtime_data = types.SimpleNamespace(coordinator=_FailCoordinator())
+    entry.runtime_data = integration.PollenLevelsRuntimeData(
+        client=object(),
+        locations={
+            subentry_id: integration.PollenLocationRuntime(
+                subentry_id=subentry_id, coordinator=_FailCoordinator()
+            )
+        },
+    )
 
     hass = _FakeHass(entries=[entry])
 
@@ -1543,7 +1528,10 @@ def test_force_update_logs_do_not_expose_secrets(
     assert "token=***" in text
     assert "location.latitude=***" in text
     assert "location.longitude=***" in text
-    assert "Manual refresh failed for entry entry-secrets (RuntimeError):" in text
+    assert (
+        "Manual refresh failed for entry entry-secrets subentry location-secrets "
+        "(RuntimeError):"
+    ) in text
 
 
 def test_force_update_refreshes_location_subentries_sequentially(

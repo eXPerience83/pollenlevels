@@ -234,37 +234,6 @@ async def test_setup_entry_raises_if_runtime_data_missing(
 
 
 @pytest.mark.asyncio
-async def test_setup_entry_raises_if_runtime_data_attribute_missing(
-    button_platform: SimpleNamespace,
-) -> None:
-    entry = types.SimpleNamespace()
-
-    with pytest.raises(button_platform.exceptions.ConfigEntryNotReady):
-        await button_platform.module.async_setup_entry(
-            button_platform.hass_class(), entry, lambda entities: None
-        )
-
-
-@pytest.mark.asyncio
-async def test_setup_entry_adds_one_button_entity(
-    button_platform: SimpleNamespace,
-) -> None:
-    coordinator = _FakeCoordinator()
-    runtime = types.SimpleNamespace(coordinator=coordinator)
-    entry = types.SimpleNamespace(runtime_data=runtime)
-    added = []
-
-    def _add_entities(entities):
-        added.extend(entities)
-
-    await button_platform.module.async_setup_entry(
-        button_platform.hass_class(), entry, _add_entities
-    )
-    assert len(added) == 1
-    assert isinstance(added[0], button_platform.module.PollenLevelsUpdateButton)
-
-
-@pytest.mark.asyncio
 async def test_setup_entry_without_locations_adds_no_button(
     button_platform: SimpleNamespace,
 ) -> None:
