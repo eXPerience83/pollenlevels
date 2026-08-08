@@ -116,7 +116,6 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Ubicació",
       "entry_type": "Ubicació",
       "initiate_flow": {
         "user": "Afegeix ubicació"

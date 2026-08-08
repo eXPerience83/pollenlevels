@@ -116,7 +116,6 @@
   },
   "config_subentries": {
     "location": {
-      "title": "Emplacement",
       "entry_type": "Emplacement",
       "initiate_flow": {
         "user": "Ajouter un emplacement"
