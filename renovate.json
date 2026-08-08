@@ -152,13 +152,11 @@
       "separateMajorMinor": true
     },
     {
-      "description": "Group compatible generic pytest tooling updates",
+      "description": "Group independent generic test tooling updates",
       "matchManagers": [
         "pep621"
       ],
       "matchPackageNames": [
-        "pytest",
-        "pytest-asyncio",
         "aiointercept",
         "packaging"
       ],
@@ -169,7 +167,7 @@
       "groupName": "Generic pytest tooling"
     },
     {
-      "description": "Keep Home Assistant harness compatibility updates separate",
+      "description": "Require approval for Home Assistant harness compatibility updates",
       "matchManagers": [
         "pep621"
       ],
@@ -177,15 +175,18 @@
         "pytest-homeassistant-custom-component"
       ],
       "groupName": "Home Assistant test compatibility",
-      "separateMajorMinor": true
+      "separateMajorMinor": true,
+      "dependencyDashboardApproval": true
     },
     {
-      "description": "Only the harness compatibility lane updates Home Assistant pins",
+      "description": "Keep harness-controlled compatibility pins owner-reviewed",
       "matchManagers": [
         "pep621"
       ],
       "matchPackageNames": [
-        "homeassistant"
+        "homeassistant",
+        "pytest",
+        "pytest-asyncio"
       ],
       "enabled": false
     }
