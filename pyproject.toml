@@ -11,10 +11,10 @@ lint = [
     "ruff==0.16.1",
 ]
 test = [
-    "pytest==9.0.3",
+    "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "aiointercept==0.1.9",
-    "packaging==26.2",
+    "packaging==26.3",
     "pytest-homeassistant-custom-component==0.13.351",
     "homeassistant==2026.8.0b3",
 ]
