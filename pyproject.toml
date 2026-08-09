@@ -15,7 +15,7 @@ test = [
     "pytest-asyncio==1.4.0",
     "aiointercept==0.1.9",
     "packaging==26.3",
-    "pytest-homeassistant-custom-component==0.13.351",
+    "pytest-homeassistant-custom-component==0.13.354",
     "homeassistant==2026.8.0b3",
 ]
 release = [
