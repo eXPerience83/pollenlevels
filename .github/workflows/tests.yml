@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          uv run --locked --no-sync python -m compileall -q sitecustomize.py custom_components tests
+          uv run --locked --no-sync python -m compileall -q custom_components tests
 
       - name: Run tests
         shell: bash
