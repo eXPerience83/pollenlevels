@@ -1,6 +1,7 @@
 # Contributing
 
 - The integration targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline. Use the exact patch in `.python-version` for local development and CI parity.
+- Development and test validation are supported on Linux and Linux containers. On Windows, use WSL2 and run the Linux commands from within WSL2; native Windows Python/pytest is not part of the project validation contract. This applies only to repository development and testing, not to the integration's Home Assistant runtime compatibility.
 - `[tool.uv].required-version` is the sole uv executable source. Bootstrap that exact uv, then use the committed lock: `uv lock --check`, `uv sync --locked --only-group lint`, and `uv sync --locked --only-group test`.
 - Ruff handles linting, import ordering, and formatting through the exact `lint` dependency group. Run `uv run --locked --no-sync ruff check .` and `uv run --locked --no-sync ruff format --check .`.
 - Direct validation dependencies are exact and Renovate proposes reviewed updates after a 72-hour release age. The Home Assistant harness lane updates its paired Home Assistant, pytest, and pytest-asyncio pins only when its published metadata requires it; `uv.lock` maintenance is reviewed weekly.

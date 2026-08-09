@@ -358,9 +358,9 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$VALIDATION_MODE" == "modern" ]]; then
-            uv run --locked --no-sync python -m compileall -q sitecustomize.py custom_components scripts tests
+            uv run --locked --no-sync python -m compileall -q custom_components scripts tests
           else
-            python -m compileall -q sitecustomize.py custom_components scripts tests
+            python -m compileall -q custom_components scripts tests
           fi
 
       - name: Ruff validation
