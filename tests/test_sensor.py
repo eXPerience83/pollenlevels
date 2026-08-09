@@ -2148,6 +2148,14 @@ def test_coordinator_normalizes_mixed_pollen_index_values(
                             "color": {"red": 255, "green": 0, "blue": 0},
                         },
                     },
+                    {
+                        "code": "MOLD",
+                        "displayName": "Mold",
+                        "indexInfo": {
+                            "value": 6,
+                            "color": {"red": 1},
+                        },
+                    },
                 ],
                 "plantInfo": [
                     {
@@ -2227,6 +2235,7 @@ def test_coordinator_normalizes_mixed_pollen_index_values(
         "region",
         "date",
         "type_grass",
+        "type_mold",
         "type_tree",
         "plants_hazel",
         "plants_oak",
@@ -2251,6 +2260,14 @@ def test_coordinator_normalizes_mixed_pollen_index_values(
     assert type_entry["tomorrow_value"] is None
     assert type_entry["trend"] is None
     assert type_entry["expected_peak"] is None
+
+    color_only_type_entry = data["type_mold"]
+    assert color_only_type_entry["value"] is None
+    assert color_only_type_entry["category"] is None
+    assert color_only_type_entry["description"] is None
+    assert color_only_type_entry["color_hex"] == "#FF0000"
+    assert color_only_type_entry["color_rgb"] == [255, 0, 0]
+    assert color_only_type_entry["forecast"][0]["offset"] == 1
 
     plant_entry = data["plants_hazel"]
     assert plant_entry["value"] is None

@@ -393,6 +393,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                 and existing.get("value") is None
                 and existing.get("category") is None
                 and existing.get("description") is None
+                and existing.get("color_hex") is None
+                and existing.get("color_rgb") is None
             )
             base = existing or {}
             if needs_skeleton:
