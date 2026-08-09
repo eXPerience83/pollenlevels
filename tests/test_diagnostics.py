@@ -205,6 +205,8 @@ async def test_diagnostics_includes_all_locations_without_top_level_duplicates(
         entity_identity_id="legacy-entry",
         language="en",
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        using_stale_data=True,
+        last_payload_valid=False,
         lat=12.3456,
         lon=78.9876,
         entry_title="Home",
@@ -217,6 +219,8 @@ async def test_diagnostics_includes_all_locations_without_top_level_duplicates(
         entity_identity_id="entry_subentry-2",
         language="en",
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
+        using_stale_data=False,
+        last_payload_valid=True,
         lat=40.7128,
         lon=-74.0060,
         entry_title="Office",
@@ -272,6 +276,10 @@ async def test_diagnostics_includes_all_locations_without_top_level_duplicates(
     assert "legacy_entry_id" not in first_payload["coordinator"]
     assert "entity_identity_id" not in first_payload["coordinator"]
     assert second_payload["coordinator"]["subentry_id"] == "subentry-2"
+    assert first_payload["coordinator"]["using_stale_data"] is True
+    assert first_payload["coordinator"]["last_payload_valid"] is False
+    assert second_payload["coordinator"]["using_stale_data"] is False
+    assert second_payload["coordinator"]["last_payload_valid"] is True
 
 
 @pytest.mark.asyncio

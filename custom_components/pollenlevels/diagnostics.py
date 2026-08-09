@@ -113,6 +113,8 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
         "forecast_days": FORECAST_DAYS,
         "language": getattr(coordinator, "language", None),
         "last_updated": _iso_or_none(getattr(coordinator, "last_updated", None)),
+        "using_stale_data": getattr(coordinator, "using_stale_data", False),
+        "last_payload_valid": getattr(coordinator, "last_payload_valid", None),
         "data_keys_total": 0,
         "data_keys": [],
     }

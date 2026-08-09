@@ -138,6 +138,68 @@ async def test_ha_diagnostics_summarizes_stale_and_failed_locations(
     assert "-98.765432" not in serialized
 
 
+async def test_ha_diagnostics_reports_stale_payload_per_active_location(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    fake_api_key: str,
+    ha_two_location_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+) -> None:
+    """A stale payload for one active location must not affect another location."""
+
+    clear_integration_modules()
+    entry = ha_two_location_config_entry
+    entry.add_to_hass(hass)
+    serve_invalid_barcelona = False
+
+    def _callback(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
+        if serve_invalid_barcelona and float(params["location.latitude"]) == 41.3874:
+            return CallbackResult(status=200, payload={"dailyInfo": []})
+        return CallbackResult(status=200, payload=google_pollen_5_day_payload)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=_callback, repeat=True)
+        await async_setup_config_entry(hass, entry)
+
+        serve_invalid_barcelona = True
+        barcelona = entry.runtime_data.locations["location-barcelona"].coordinator
+        madrid = entry.runtime_data.locations["location-madrid"].coordinator
+        await barcelona.async_refresh()
+
+        diagnostics_module = importlib.import_module(
+            "custom_components.pollenlevels.diagnostics"
+        )
+        diagnostics = await diagnostics_module.async_get_config_entry_diagnostics(
+            hass, entry
+        )
+
+    assert barcelona.last_update_success is True
+    assert barcelona.using_stale_data is True
+    assert barcelona.last_payload_valid is False
+    assert madrid.using_stale_data is False
+    assert madrid.last_payload_valid is True
+    barcelona_diagnostics = diagnostics["locations"]["location-barcelona"][
+        "coordinator"
+    ]
+    madrid_diagnostics = diagnostics["locations"]["location-madrid"]["coordinator"]
+    assert barcelona_diagnostics["using_stale_data"] is True
+    assert barcelona_diagnostics["last_payload_valid"] is False
+    assert madrid_diagnostics["using_stale_data"] is False
+    assert madrid_diagnostics["last_payload_valid"] is True
+    assert diagnostics["runtime_summary"] == {
+        "stale_location_count": 0,
+        "stale_location_ids": [],
+        "failed_location_count": 0,
+        "failed_location_ids": [],
+    }
+    serialized = json.dumps(diagnostics, sort_keys=True)
+    assert fake_api_key not in serialized
+    assert "41.3874" not in serialized
+    assert "2.1686" not in serialized
+
+
 async def test_ha_diagnostics_registry_summary_uses_real_registries(
     hass: HomeAssistant,
     enable_custom_integrations: None,
