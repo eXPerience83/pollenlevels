@@ -172,7 +172,7 @@ after publication do not necessarily require a new release.
 - [ ] `uv.lock` local `pollenlevels` package version matches the release version.
 - [ ] `uv lock --check` passes.
 - [ ] Release lock synchronization introduced no unrelated dependency, hash,
-      source, or resolution-marker changes.
+      source, resolution-marker, or other lock metadata changes.
 - [ ] Changelog is complete.
 - [ ] If a release PR was used, its checks are green.
 - [ ] If a release PR was used, it was squash merged.
