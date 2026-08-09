@@ -1,3 +1,24 @@
+## [3.0.1] - 2026-08-09
+
+### Added
+
+- Added per-location `using_stale_data` and `last_payload_valid` diagnostics so
+  support data clearly identifies cached pollen payload reuse after an invalid
+  upstream response.
+
+### Changed
+
+- Aligned config-flow, runtime, and entity setup with the Home Assistant APIs
+  supported by the current minimum version, removing obsolete compatibility
+  fallbacks without changing the v3 migration or public entity and device
+  identities.
+
+### Fixed
+
+- Removed deprecated config-subentry root `title` translation metadata to match
+  current Home Assistant translation validation while retaining the localized
+  entry type and setup-flow labels.
+
 ## [3.0.0] - 2026-08-02
 
 ### Added
