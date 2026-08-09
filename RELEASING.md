@@ -39,15 +39,27 @@ pins or `uv.lock`, and cannot replace the required locked validation lane.
 ## 1. Prepare a release pull request (recommended)
 
 For normal stable releases, a release-only pull request is recommended. It
-should normally modify only:
+should normally modify exactly:
 
+- `CHANGELOG.md`
 - `custom_components/pollenlevels/manifest.json`
 - `pyproject.toml`
-- `CHANGELOG.md`
+- `uv.lock`
 
-The manifest and project versions must match exactly. The release tag is
-derived automatically: version `3.0.1` maps to tag `v3.0.1`, and version
-`3.0.1rc1` maps to tag `v3.0.1rc1`.
+The manifest and project versions must match exactly, and the local
+`pollenlevels` package version recorded in `uv.lock` must match that same release
+version. Synchronize the lockfile with the repository-pinned uv version and the
+existing lock policy; do not use `uv lock --upgrade` as part of release
+preparation.
+
+For a release-only version synchronization, the expected `uv.lock` diff is only
+the local `pollenlevels` project version. Any unrelated dependency version,
+hash, source, resolution marker, or other lock metadata change is unexpected and
+must be investigated before merge. `uv lock --check` must pass before the
+release pull request is considered ready.
+
+The release tag is derived automatically: version `3.0.1` maps to tag `v3.0.1`,
+and version `3.0.1rc1` maps to tag `v3.0.1rc1`.
 
 Include backup, no-downgrade, migration, and prerelease notes where applicable.
 
@@ -156,7 +168,11 @@ after publication do not necessarily require a new release.
 ## Release checklist
 
 - [ ] Selected ref and resolved SHA were reviewed.
-- [ ] Manifest and project version files match.
+- [ ] Manifest version matches project version.
+- [ ] `uv.lock` local `pollenlevels` package version matches the release version.
+- [ ] `uv lock --check` passes.
+- [ ] Release lock synchronization introduced no unrelated dependency, hash,
+      source, resolution-marker, or other lock metadata changes.
 - [ ] Changelog is complete.
 - [ ] If a release PR was used, its checks are green.
 - [ ] If a release PR was used, it was squash merged.
