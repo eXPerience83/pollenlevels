@@ -25,7 +25,7 @@ release = [
 
 [tool.uv]
 # renovate: datasource=github-releases depName=astral-sh/uv
-required-version = "==0.12.1"
+required-version = "==0.12.2"
 default-groups = []
 # Keep transitive packages behind the same supply-chain cooldown as Renovate.
 exclude-newer = "3 days"
