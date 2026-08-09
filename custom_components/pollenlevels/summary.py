@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any, NamedTuple
 
 from .forecast import attach_forecast_attributes
+from .util import normalize_pollen_index_value
 
 
 class SummaryEntry(NamedTuple):
@@ -15,15 +15,6 @@ class SummaryEntry(NamedTuple):
     name: str
     key: str
     info: dict[str, Any]
-
-
-def is_finite_number(value: Any) -> bool:
-    """Return whether value is a finite non-boolean number."""
-    return (
-        isinstance(value, int | float)
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-    )
 
 
 def normalize_entry_code(key: str, info: dict[str, Any], prefix: str) -> str:
@@ -59,7 +50,7 @@ def current_day_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
             continue
         if not isinstance(info, dict) or info.get("source") != "type":
             continue
-        if not is_finite_number(info.get("value")):
+        if normalize_pollen_index_value(info.get("value")) is None:
             continue
         code = normalize_entry_code(key, info, "type_")
         name = info.get("displayName") or code
@@ -87,7 +78,7 @@ def forecast_type_entries(data_map: dict[str, Any]) -> list[SummaryEntry]:
 
 def top_type_entries(
     data_map: dict[str, Any],
-) -> tuple[float | int | None, list[SummaryEntry]]:
+) -> tuple[int | None, list[SummaryEntry]]:
     """Return the maximum current-day type value and all entries tied for it."""
     entries = current_day_type_entries(data_map)
     if not entries:
@@ -134,7 +125,8 @@ def _overall_forecast_from_type_forecasts(
         valid = [
             (entry, f)
             for entry, f in pairs
-            if f.get("has_index") is True and is_finite_number(f.get("value"))
+            if f.get("has_index") is True
+            and normalize_pollen_index_value(f.get("value")) is not None
         ]
 
         if not valid:

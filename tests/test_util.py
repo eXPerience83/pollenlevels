@@ -329,6 +329,46 @@ def test_safe_parse_int(util_module, value, expected):
     assert util_module.safe_parse_int(value) == expected
 
 
+@pytest.mark.parametrize("value", range(6))
+def test_normalize_pollen_index_value_accepts_valid_integers(
+    util_module, value
+) -> None:
+    """Valid Google pollen index integers are returned unchanged."""
+
+    result = util_module.normalize_pollen_index_value(value)
+
+    assert result is value
+    assert type(result) is int
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        True,
+        False,
+        -1,
+        6,
+        2.0,
+        2.5,
+        "3",
+        "5",
+        float("nan"),
+        float("inf"),
+        float("-inf"),
+        None,
+        [],
+        {},
+        object(),
+    ],
+)
+def test_normalize_pollen_index_value_rejects_contract_violations(
+    util_module, value
+) -> None:
+    """Non-integer and out-of-range pollen index values normalize to None."""
+
+    assert util_module.normalize_pollen_index_value(value) is None
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [

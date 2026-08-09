@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .util import normalize_pollen_index_value
+
 
 def attach_forecast_attributes(
     base: dict[str, Any],
@@ -33,7 +35,11 @@ def attach_forecast_attributes(
     def _set_convenience(prefix: str, off: int) -> None:
         f = forecast_by_offset.get(off)
         base[f"{prefix}_has_index"] = f.get("has_index") if f else False
-        base[f"{prefix}_value"] = f.get("value") if f and f.get("has_index") else None
+        base[f"{prefix}_value"] = (
+            normalize_pollen_index_value(f.get("value"))
+            if f and f.get("has_index")
+            else None
+        )
         base[f"{prefix}_category"] = (
             f.get("category") if f and f.get("has_index") else None
         )
@@ -48,9 +54,10 @@ def attach_forecast_attributes(
     _set_convenience("d2", 2)
 
     # Trend (today vs tomorrow)
-    now_val = current_value if current_value is not None else base.get("value")
+    selected_current = current_value if current_value is not None else base.get("value")
+    now_val = normalize_pollen_index_value(selected_current)
     tomorrow_val = base.get("tomorrow_value")
-    if isinstance(now_val, (int, float)) and isinstance(tomorrow_val, (int, float)):
+    if now_val is not None and tomorrow_val is not None:
         if tomorrow_val > now_val:
             base["trend"] = "up"
         elif tomorrow_val < now_val:
@@ -62,15 +69,19 @@ def attach_forecast_attributes(
 
     # Expected peak (excluding today)
     peak = None
+    peak_value = None
     for f in forecast_list:
-        if f.get("has_index") and isinstance(f.get("value"), (int, float)):
-            if peak is None or f["value"] > peak["value"]:
-                peak = f
+        value = (
+            normalize_pollen_index_value(f.get("value")) if f.get("has_index") else None
+        )
+        if value is not None and (peak_value is None or value > peak_value):
+            peak = f
+            peak_value = value
     base["expected_peak"] = (
         {
             "offset": peak["offset"],
             "date": peak["date"],
-            "value": peak["value"],
+            "value": peak_value,
             "category": peak["category"],
         }
         if peak

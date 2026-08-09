@@ -887,7 +887,7 @@ def test_type_summary_sensors_ignore_per_day_d1_d2_values(
             "type_grass_d2": {
                 "source": "type",
                 "displayName": "Grass D+2",
-                "value": 6,
+                "value": 4,
             },
         }
     )
@@ -1882,7 +1882,7 @@ def test_coordinator_requests_five_days_and_exposes_four_future_offsets(
                         "code": "ragweed",
                         "displayName": "Ragweed",
                         "indexInfo": {
-                            "value": day + 10,
+                            "value": (day + 1) % 6,
                             "category": f"PLANT-{day}",
                             "indexDescription": f"Plant day {day}",
                         },
@@ -1924,7 +1924,7 @@ def test_coordinator_requests_five_days_and_exposes_four_future_offsets(
         4,
     ]
     assert data["type_grass"]["forecast"][3]["value"] == 5
-    assert data["plants_ragweed"]["forecast"][3]["value"] == 15
+    assert data["plants_ragweed"]["forecast"][3]["value"] == 0
     assert "type_grass_d1" not in data
     assert "type_grass_d2" not in data
 
@@ -2116,6 +2116,181 @@ def test_forecast_extraction_preserves_missing_index_and_date_behavior(
     }
     assert plant_entry["forecast"][1]["date"] is None
     assert plant_entry["forecast"][1]["color_hex"] == "#00FF00"
+
+
+def test_coordinator_normalizes_mixed_pollen_index_values(
+    sensor_modules: SensorModules,
+) -> None:
+    """Malformed indexes become None without discarding usable payload data."""
+    payload = {
+        "regionCode": "us_test_region",
+        "dailyInfo": [
+            {
+                "date": {"year": 2026, "month": 8, "day": 9},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {
+                            "value": 0,
+                            "category": "NONE",
+                            "indexDescription": "No grass pollen",
+                            "color": {"red": 0, "green": 255, "blue": 0},
+                        },
+                    },
+                    {
+                        "code": "TREE",
+                        "displayName": "Tree",
+                        "indexInfo": {
+                            "value": 6,
+                            "category": "INVALID TYPE",
+                            "indexDescription": "Type metadata survives",
+                            "color": {"red": 255, "green": 0, "blue": 0},
+                        },
+                    },
+                    {
+                        "code": "MOLD",
+                        "displayName": "Mold",
+                        "indexInfo": {
+                            "value": 6,
+                            "color": {"red": 1},
+                        },
+                    },
+                ],
+                "plantInfo": [
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {
+                            "value": 5,
+                            "category": "VERY HIGH",
+                            "indexDescription": "Valid oak value",
+                            "color": {"red": 255, "green": 0, "blue": 0},
+                        },
+                        "plantDescription": {"type": "TREE", "family": "Fagaceae"},
+                    },
+                    {
+                        "code": "hazel",
+                        "displayName": "Hazel",
+                        "indexInfo": {
+                            "value": "3",
+                            "category": "INVALID PLANT",
+                            "indexDescription": "Plant metadata survives",
+                            "color": {"red": 0, "green": 255, "blue": 0},
+                        },
+                        "plantDescription": {
+                            "type": "TREE",
+                            "family": "Betulaceae",
+                            "season": "Winter",
+                        },
+                    },
+                ],
+            },
+            {
+                "date": {"year": 2026, "month": 8, "day": 10},
+                "pollenTypeInfo": [
+                    {
+                        "code": "GRASS",
+                        "displayName": "Grass",
+                        "indexInfo": {"value": 4, "category": "HIGH"},
+                    },
+                    {
+                        "code": "TREE",
+                        "displayName": "Tree",
+                        "indexInfo": {
+                            "value": 2.0,
+                            "category": "INVALID FORECAST TYPE",
+                            "indexDescription": "Forecast metadata survives",
+                            "color": {"red": 255, "green": 0, "blue": 0},
+                        },
+                    },
+                ],
+                "plantInfo": [
+                    {
+                        "code": "oak",
+                        "displayName": "Oak",
+                        "indexInfo": {"value": True, "category": "INVALID OAK"},
+                    },
+                    {
+                        "code": "hazel",
+                        "displayName": "Hazel",
+                        "indexInfo": {"value": 1, "category": "VERY LOW"},
+                    },
+                ],
+            },
+        ],
+    }
+
+    client = sensor_modules.client_mod.GooglePollenApiClient(
+        FakeSession(payload), "test"
+    )
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert set(data) == {
+        "region",
+        "date",
+        "type_grass",
+        "type_mold",
+        "type_tree",
+        "plants_hazel",
+        "plants_oak",
+    }
+
+    assert data["type_grass"]["value"] == 0
+    assert data["type_grass"]["forecast"][0]["value"] == 4
+    assert data["plants_oak"]["value"] == 5
+
+    type_entry = data["type_tree"]
+    assert type_entry["value"] is None
+    assert type_entry["category"] == "INVALID TYPE"
+    assert type_entry["description"] == "Type metadata survives"
+    assert type_entry["color_hex"] == "#FF0000"
+    assert type_entry["forecast"][0]["offset"] == 1
+    assert type_entry["forecast"][0]["has_index"] is True
+    assert type_entry["forecast"][0]["value"] is None
+    assert type_entry["forecast"][0]["category"] == "INVALID FORECAST TYPE"
+    assert type_entry["forecast"][0]["description"] == "Forecast metadata survives"
+    assert type_entry["forecast"][0]["color_hex"] == "#FF0000"
+    assert type_entry["tomorrow_has_index"] is True
+    assert type_entry["tomorrow_value"] is None
+    assert type_entry["trend"] is None
+    assert type_entry["expected_peak"] is None
+
+    color_only_type_entry = data["type_mold"]
+    assert color_only_type_entry["value"] is None
+    assert color_only_type_entry["category"] is None
+    assert color_only_type_entry["description"] is None
+    assert color_only_type_entry["color_hex"] == "#FF0000"
+    assert color_only_type_entry["color_rgb"] == [255, 0, 0]
+    assert color_only_type_entry["forecast"][0]["offset"] == 1
+
+    plant_entry = data["plants_hazel"]
+    assert plant_entry["value"] is None
+    assert plant_entry["category"] == "INVALID PLANT"
+    assert plant_entry["description"] == "Plant metadata survives"
+    assert plant_entry["color_hex"] == "#00FF00"
+    assert plant_entry["type"] == "TREE"
+    assert plant_entry["family"] == "Betulaceae"
+    assert plant_entry["season"] == "Winter"
+    assert plant_entry["forecast"][0]["offset"] == 1
+    assert plant_entry["forecast"][0]["value"] == 1
+
+    assert data["plants_oak"]["forecast"][0]["has_index"] is True
+    assert data["plants_oak"]["forecast"][0]["value"] is None
+
+    assert (
+        sensor_modules.sensor.PollenSensor(coordinator, "type_tree").native_value
+        is None
+    )
+    assert (
+        sensor_modules.sensor.PollenSensor(coordinator, "plants_hazel").native_value
+        is None
+    )
 
 
 def test_plant_forecast_matches_codes_case_insensitively(
