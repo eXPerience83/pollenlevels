@@ -167,23 +167,12 @@
       "groupName": "Generic pytest tooling"
     },
     {
-      "description": "Require approval for Home Assistant harness compatibility updates",
+      "description": "Keep Home Assistant harness compatibility pins owner-managed",
       "matchManagers": [
         "pep621"
       ],
       "matchPackageNames": [
-        "pytest-homeassistant-custom-component"
-      ],
-      "groupName": "Home Assistant test compatibility",
-      "separateMajorMinor": true,
-      "dependencyDashboardApproval": true
-    },
-    {
-      "description": "Keep harness-controlled compatibility pins owner-reviewed",
-      "matchManagers": [
-        "pep621"
-      ],
-      "matchPackageNames": [
+        "pytest-homeassistant-custom-component",
         "homeassistant",
         "pytest",
         "pytest-asyncio"
