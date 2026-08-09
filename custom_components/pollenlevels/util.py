@@ -377,6 +377,14 @@ def validate_location_pair(latitude: Any, longitude: Any) -> tuple[float, float]
     return parsed_latitude, parsed_longitude
 
 
+def normalize_pollen_index_value(value: Any) -> int | None:
+    """Return a valid Google pollen index value or None."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+
+    return value if 0 <= value <= 5 else None
+
+
 def safe_parse_int(value: Any) -> int | None:
     """Parse an integer-like value, rejecting non-finite and decimal numbers."""
     if value is None or isinstance(value, bool):
@@ -407,6 +415,7 @@ __all__ = [
     "has_legacy_per_day_option",
     "LEGACY_FORECAST_OPTION_KEYS",
     "normalize_language_code",
+    "normalize_pollen_index_value",
     "normalize_subentry_ids",
     "parse_finite_float",
     "redact_api_key",

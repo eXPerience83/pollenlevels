@@ -16,6 +16,8 @@ _PKG_NAME = "custom_components.pollenlevels"
 _STUB_MODULE_NAMES = (
     "custom_components",
     _PKG_NAME,
+    f"{_PKG_NAME}.const",
+    f"{_PKG_NAME}.util",
     f"{_PKG_NAME}.forecast",
     f"{_PKG_NAME}.summary",
 )
@@ -78,7 +80,6 @@ _module = _load_summary_module()
 daily_summary = _module.daily_summary
 current_day_type_entries = _module.current_day_type_entries
 forecast_type_entries = _module.forecast_type_entries
-is_finite_number = _module.is_finite_number
 
 
 # ── existing tests (unchanged) ─────────────────────────────────────────────
@@ -141,13 +142,13 @@ def test_daily_summary_preserves_ties_and_ignores_future_and_nonfinite_values() 
             "type_grass_d1": {
                 "source": "type",
                 "displayName": "Grass tomorrow",
-                "value": 6,
+                "value": 5,
                 "category": "Very High",
             },
             "type_weed_d2": {
                 "source": "type",
                 "displayName": "Weed D+2",
-                "value": 7,
+                "value": 3,
                 "category": "Very High",
             },
         }
@@ -319,7 +320,7 @@ def test_overall_forecast_three_days() -> None:
                         "offset": 2,
                         "date": "2026-06-11",
                         "has_index": True,
-                        "value": 7,
+                        "value": 5,
                         "category": "Very High",
                         "description": "Very High",
                         "color_hex": "#FF0000",
@@ -336,10 +337,102 @@ def test_overall_forecast_three_days() -> None:
     assert overall["forecast"][0]["offset"] == 1
     assert overall["forecast"][1]["offset"] == 2
     assert overall["tomorrow_value"] == 3
-    assert overall["d2_value"] == 7
+    assert overall["d2_value"] == 5
     assert overall["d2_has_index"] is True
     assert overall["expected_peak"]["offset"] == 2
-    assert overall["expected_peak"]["value"] == 7
+    assert overall["expected_peak"]["value"] == 5
+
+
+def test_summary_ignores_malformed_current_and_forecast_values() -> None:
+    """Only valid indexes contribute to current and forecast summaries."""
+    summary = daily_summary(
+        {
+            "type_tree": {
+                "source": "type",
+                "code": "TREE",
+                "displayName": "Tree",
+                "value": 0,
+                "category": "None",
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 0,
+                        "category": "None",
+                        "description": "No pollen",
+                        "color_hex": "#00FF00",
+                        "color_rgb": [0, 255, 0],
+                    },
+                    {
+                        "offset": 2,
+                        "date": "2026-06-11",
+                        "has_index": True,
+                        "value": 4,
+                        "category": "High",
+                        "description": "High",
+                        "color_hex": "#FF0000",
+                        "color_rgb": [255, 0, 0],
+                    },
+                ],
+            },
+            "type_grass": {
+                "source": "type",
+                "code": "GRASS",
+                "displayName": "Grass",
+                "value": 6,
+                "category": "Invalid current",
+                "forecast": [
+                    {
+                        "offset": 1,
+                        "date": "2026-06-10",
+                        "has_index": True,
+                        "value": 6,
+                        "category": "Invalid forecast",
+                        "description": "Invalid forecast",
+                        "color_hex": "#FFFFFF",
+                        "color_rgb": [255, 255, 255],
+                    },
+                    {
+                        "offset": 2,
+                        "date": "2026-06-11",
+                        "has_index": True,
+                        "value": float("nan"),
+                        "category": "Invalid forecast",
+                        "description": "Invalid forecast",
+                        "color_hex": "#FFFFFF",
+                        "color_rgb": [255, 255, 255],
+                    },
+                ],
+            },
+        }
+    )
+
+    overall = summary["overall_pollen_risk_today"]
+    assert overall["state"] == 0
+    assert overall["category"] == "None"
+    assert overall["top_pollen_codes"] == ["TREE"]
+    assert overall["top_pollen_names"] == ["Tree"]
+    assert overall["tie_count"] == 1
+    assert [item["offset"] for item in overall["forecast"]] == [1, 2]
+    assert overall["forecast"][0]["value"] == 0
+    assert overall["forecast"][0]["top_pollen_codes"] == ["TREE"]
+    assert overall["forecast"][0]["tie_count"] == 1
+    assert overall["forecast"][1]["value"] == 4
+    assert overall["tomorrow_value"] == 0
+    assert overall["trend"] == "flat"
+    assert overall["expected_peak"] == {
+        "offset": 2,
+        "date": "2026-06-11",
+        "value": 4,
+        "category": "High",
+    }
+
+    top = summary["top_pollen_types_today"]
+    assert top["state"] == "Tree"
+    assert top["top_value"] == 0
+    assert top["top_pollen_codes"] == ["TREE"]
+    assert top["tie_count"] == 1
 
 
 def test_overall_forecast_five_day_offsets() -> None:
@@ -505,14 +598,14 @@ def test_overall_forecast_ignores_per_day_d1_d2_keys() -> None:
             "type_grass_d1": {
                 "source": "type",
                 "displayName": "Grass D+1",
-                "value": 9,
+                "value": 5,
                 "category": "Extreme",
                 "forecast": [
                     {
                         "offset": 1,
                         "date": "2026-06-10",
                         "has_index": True,
-                        "value": 9,
+                        "value": 5,
                         "category": "Extreme",
                         "description": "Extreme",
                         "color_hex": "#FF0000",

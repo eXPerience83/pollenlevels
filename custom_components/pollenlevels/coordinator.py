@@ -21,6 +21,7 @@ from .const import (
 from .forecast import attach_forecast_attributes
 from .util import (
     normalize_language_code,
+    normalize_pollen_index_value,
     redact_sensitive_values,
     safe_parse_int,
 )
@@ -116,7 +117,7 @@ def _build_forecast_entry(
         "offset": offset,
         "date": date,
         "has_index": has_index,
-        "value": idx.get("value") if has_index else None,
+        "value": normalize_pollen_index_value(idx.get("value")) if has_index else None,
         "category": idx.get("category") if has_index else None,
         "description": idx.get("indexDescription") if has_index else None,
         "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
@@ -337,7 +338,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             key = f"type_{tcode.lower()}"
             new_data[key] = {
                 "source": "type",
-                "value": idx.get("value"),
+                "value": normalize_pollen_index_value(idx.get("value")),
                 "category": idx.get("category"),
                 "displayName": titem.get("displayName", tcode),
                 "inSeason": titem.get("inSeason"),
@@ -365,7 +366,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             key = f"plants_{code.lower()}"
             new_data[key] = {
                 "source": "plant",
-                "value": idx.get("value"),
+                "value": normalize_pollen_index_value(idx.get("value")),
                 "category": idx.get("category"),
                 "displayName": pitem.get("displayName", code),
                 "code": code,
