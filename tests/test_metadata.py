@@ -439,6 +439,22 @@ def test_renovate_has_one_source_for_each_managed_validation_dependency() -> Non
     assert uv_managers[0]["managerFilePatterns"] == ["/^pyproject\\.toml$/"]
     assert renovate["automerge"] is False
     assert renovate["lockFileMaintenance"]["enabled"] is True
+    harness_packages = {
+        "pytest-homeassistant-custom-component",
+        "homeassistant",
+        "pytest",
+        "pytest-asyncio",
+    }
+    harness_rules = [
+        rule
+        for rule in renovate["packageRules"]
+        if harness_packages.intersection(rule.get("matchPackageNames", []))
+    ]
+    assert len(harness_rules) == 1
+    harness_rule = harness_rules[0]
+    assert harness_rule["matchManagers"] == ["pep621"]
+    assert set(harness_rule["matchPackageNames"]) == harness_packages
+    assert harness_rule["enabled"] is False
     policy = json.dumps(renovate)
     assert "minimumGroupSize" not in policy
     assert "groupSingleUpdates" not in policy
