@@ -1141,7 +1141,12 @@ def test_coordinator_preserves_last_data_when_dailyinfo_missing(
     coordinator = _make_coordinator(sensor_modules, loop, client)
 
     try:
+        assert coordinator.using_stale_data is False
+        assert coordinator.last_payload_valid is None
         first_data = loop.run_until_complete(coordinator._async_update_data())
+        first_updated = coordinator.last_updated
+        assert coordinator.using_stale_data is False
+        assert coordinator.last_payload_valid is True
         coordinator.data = first_data
         second_data = loop.run_until_complete(coordinator._async_update_data())
     finally:
@@ -1150,6 +1155,9 @@ def test_coordinator_preserves_last_data_when_dailyinfo_missing(
     assert first_data["type_grass"]["value"] == 2
     assert second_data == first_data
     assert second_data == coordinator.data
+    assert coordinator.last_updated == first_updated
+    assert coordinator.using_stale_data is True
+    assert coordinator.last_payload_valid is False
 
 
 def test_coordinator_handles_real_partial_google_pollen_fixture(
@@ -1265,12 +1273,16 @@ def test_coordinator_first_refresh_missing_dailyinfo_raises(
     coordinator = _make_coordinator(sensor_modules, loop, client)
 
     try:
+        assert coordinator.using_stale_data is False
+        assert coordinator.last_payload_valid is None
         with pytest.raises(sensor_modules.client_mod.UpdateFailed, match="dailyInfo"):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
 
     assert coordinator.data == {}
+    assert coordinator.using_stale_data is False
+    assert coordinator.last_payload_valid is False
 
 
 def test_coordinator_first_refresh_invalid_dailyinfo_type_raises(
@@ -1316,6 +1328,7 @@ def test_coordinator_invalid_dailyinfo_items_keep_last_data(
                 },
             ),
             ResponseSpec(status=200, payload={"dailyInfo": ["bad-item"]}),
+            ResponseSpec(status=200, payload={"dailyInfo": ["bad-item"]}),
         ]
     )
     client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
@@ -1327,11 +1340,15 @@ def test_coordinator_invalid_dailyinfo_items_keep_last_data(
         first_data = loop.run_until_complete(coordinator._async_update_data())
         coordinator.data = first_data
         second_data = loop.run_until_complete(coordinator._async_update_data())
+        third_data = loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
 
     assert first_data["type_grass"]["value"] == 2
     assert second_data == first_data
+    assert third_data == first_data
+    assert coordinator.using_stale_data is True
+    assert coordinator.last_payload_valid is False
 
 
 def test_coordinator_mixed_dailyinfo_items_keep_last_data(
@@ -1418,6 +1435,8 @@ def test_coordinator_stale_cached_data_raises_after_ttl(
         loop.close()
 
     assert coordinator.data == first_data
+    assert coordinator.using_stale_data is False
+    assert coordinator.last_payload_valid is False
 
 
 def test_coordinator_stale_cached_data_accepted_at_exactly_24_hours(
@@ -1448,6 +1467,8 @@ def test_coordinator_stale_cached_data_accepted_at_exactly_24_hours(
         loop.close()
 
     assert second_data == first_data
+    assert coordinator.using_stale_data is True
+    assert coordinator.last_payload_valid is False
 
 
 def test_coordinator_stale_data_ttl_is_fixed_24_hours(
@@ -1513,11 +1534,15 @@ def test_coordinator_success_after_malformed_response_updates_last_updated(
     try:
         first_data = loop.run_until_complete(coordinator._async_update_data())
         assert coordinator.last_updated == first_refresh
+        assert coordinator.using_stale_data is False
+        assert coordinator.last_payload_valid is True
 
         now = malformed_refresh
         cached_data = loop.run_until_complete(coordinator._async_update_data())
         assert cached_data == first_data
         assert coordinator.last_updated == first_refresh
+        assert coordinator.using_stale_data is True
+        assert coordinator.last_payload_valid is False
 
         now = second_refresh
         second_data = loop.run_until_complete(coordinator._async_update_data())
@@ -1526,6 +1551,83 @@ def test_coordinator_success_after_malformed_response_updates_last_updated(
 
     assert second_data["type_grass"]["value"] == 4
     assert coordinator.last_updated == second_refresh
+    assert coordinator.using_stale_data is False
+    assert coordinator.last_payload_valid is True
+
+
+def test_coordinator_preserves_stale_provenance_after_later_processing_failure(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A structurally valid payload must not clear stale provenance before success."""
+
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=_minimal_valid_payload(value=2)),
+            ResponseSpec(status=200, payload={}),
+            ResponseSpec(status=200, payload=_minimal_valid_payload(value=4)),
+        ]
+    )
+    client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
+
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        loop.run_until_complete(coordinator._async_update_data())
+
+        def _raise_during_processing(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            raise RuntimeError("forecast processing failed")
+
+        monkeypatch.setattr(
+            sensor_modules.coordinator_mod,
+            "attach_forecast_attributes",
+            _raise_during_processing,
+        )
+        with pytest.raises(RuntimeError, match="forecast processing failed"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert coordinator.data == first_data
+    assert coordinator.using_stale_data is True
+    assert coordinator.last_payload_valid is True
+
+
+@pytest.mark.parametrize("exception_name", ["update_failed", "auth_failed"])
+def test_coordinator_transport_failures_leave_payload_state_unchanged(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+    exception_name: str,
+) -> None:
+    """Failures before dailyInfo validation must keep the retained-data state."""
+
+    client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "test")
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    coordinator.using_stale_data = True
+    coordinator.last_payload_valid = False
+
+    exception_type = (
+        sensor_modules.client_mod.UpdateFailed
+        if exception_name == "update_failed"
+        else sensor_modules.client_mod.ConfigEntryAuthFailed
+    )
+
+    async def _raise_before_validation(**_kwargs: Any) -> dict[str, Any]:
+        raise exception_type("request failed")
+
+    monkeypatch.setattr(client, "async_fetch_pollen_data", _raise_before_validation)
+
+    try:
+        with pytest.raises(exception_type, match="request failed"):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert coordinator.using_stale_data is True
+    assert coordinator.last_payload_valid is False
 
 
 def test_coordinator_rejects_removed_forecast_day_arguments(

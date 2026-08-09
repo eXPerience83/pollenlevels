@@ -214,6 +214,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.data: dict[str, dict[str, Any]] = {}
         self.last_updated: datetime | None = None
+        self.using_stale_data: bool = False
+        self.last_payload_valid: bool | None = None
 
     def _utcnow(self) -> datetime:
         """Return the current UTC time."""
@@ -268,7 +270,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             daily = None
 
         if not daily:
+            self.last_payload_valid = False
             if self._has_fresh_cached_data():
+                self.using_stale_data = True
                 if not self._missing_dailyinfo_warned:
                     cache_age = self._utcnow() - self.last_updated
                     _LOGGER.warning(
@@ -280,6 +284,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     )
                     self._missing_dailyinfo_warned = True
                 return self.data
+            self.using_stale_data = False
             if self.data:
                 if not self._stale_dailyinfo_warned:
                     _LOGGER.warning(
@@ -290,6 +295,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     "API response missing or invalid dailyInfo; cached data expired"
                 )
             raise UpdateFailed("API response missing or invalid dailyInfo")
+        self.last_payload_valid = True
         self._missing_dailyinfo_warned = False
         self._stale_dailyinfo_warned = False
 
@@ -434,6 +440,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.data = new_data
         self.last_updated = self._utcnow()
+        self.using_stale_data = False
         if _LOGGER.isEnabledFor(logging.DEBUG):
             total = len(new_data)
             types = 0
