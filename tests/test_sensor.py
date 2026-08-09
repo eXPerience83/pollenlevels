@@ -26,7 +26,6 @@ from tests._ha_stubs import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 
 
 class SensorModules(NamedTuple):
