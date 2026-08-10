@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import sys
 from pathlib import Path
@@ -78,6 +79,8 @@ class FakeResponse:
         self.headers: dict[str, str] = {}
         self._json_results = list(json_results or [])
         self._text_body = text_body
+        self.in_context = False
+        self.exit_calls = 0
 
     async def json(self, *args: Any, **kwargs: Any) -> Any:
         """Return or raise the next configured JSON result."""
@@ -98,11 +101,14 @@ class FakeResponse:
     async def __aenter__(self) -> FakeResponse:
         """Support the async context manager protocol."""
 
+        self.in_context = True
         return self
 
     async def __aexit__(self, exc_type, exc: BaseException | None, tb) -> None:
         """Support the async context manager protocol."""
 
+        self.in_context = False
+        self.exit_calls += 1
         return None
 
 
@@ -370,3 +376,77 @@ async def test_client_treats_400_non_auth_error_as_update_failed(
 
     with pytest.raises(client_module.UpdateFailed, match="HTTP 400"):
         await _fetch_with_response(client_module, response)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "expected_error_name"),
+    [
+        (429, "PollenQuotaExceededError"),
+        (503, "UpdateFailed"),
+    ],
+)
+async def test_client_releases_retry_response_before_backoff(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    expected_error_name: str,
+) -> None:
+    """Retryable HTTP responses should exit their context before backoff."""
+
+    response = FakeResponse(status=status)
+    session = FakeSession(response)
+    client = client_module.GooglePollenApiClient(session, "test")
+    sleep_observations: list[tuple[bool, int, int]] = []
+
+    async def _sleep(_delay: float) -> None:
+        sleep_observations.append(
+            (response.in_context, response.exit_calls, session.calls)
+        )
+
+    monkeypatch.setattr(client_module.asyncio, "sleep", _sleep)
+
+    expected_error = getattr(client_module, expected_error_name)
+    with pytest.raises(expected_error):
+        await client.async_fetch_pollen_data(
+            latitude=1.0,
+            longitude=2.0,
+            days=5,
+            language_code=None,
+        )
+
+    assert sleep_observations == [(False, 1, 1)]
+    assert session.calls == 2
+    assert response.exit_calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [429, 503])
+async def test_client_retry_backoff_propagates_cancelled_error(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+) -> None:
+    """Cancellation during HTTP retry backoff should propagate unchanged."""
+
+    response = FakeResponse(status=status)
+    session = FakeSession(response)
+    client = client_module.GooglePollenApiClient(session, "test")
+
+    async def _cancel_sleep(_delay: float) -> None:
+        assert response.in_context is False
+        assert response.exit_calls == 1
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(client_module.asyncio, "sleep", _cancel_sleep)
+
+    with pytest.raises(asyncio.CancelledError):
+        await client.async_fetch_pollen_data(
+            latitude=1.0,
+            longitude=2.0,
+            days=5,
+            language_code=None,
+        )
+
+    assert session.calls == 1
+    assert response.exit_calls == 1

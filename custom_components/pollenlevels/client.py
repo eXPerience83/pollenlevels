@@ -141,6 +141,9 @@ class GooglePollenApiClient:
         max_retries = MAX_RETRIES
         for attempt in range(0, max_retries + 1):
             try:
+                retry_429_delay: float | None = None
+                retry_5xx_status: int | None = None
+
                 async with self._session.get(
                     url,
                     params=params,
@@ -172,44 +175,29 @@ class GooglePollenApiClient:
                             if retry_after_raw:
                                 delay = self._parse_retry_after(retry_after_raw)
                             delay = delay + random.uniform(0.0, 0.4)
-                            delay = max(0.0, min(delay, 5.0))
-                            _LOGGER.warning(
-                                "Pollen API 429 — retrying in %.2fs (attempt %d/%d)",
-                                delay,
-                                attempt + 1,
-                                max_retries,
+                            retry_429_delay = max(0.0, min(delay, 5.0))
+                        else:
+                            _, message = await self._async_redacted_http_message(
+                                resp,
+                                default="",
+                                latitude=latitude,
+                                longitude=longitude,
                             )
-                            await asyncio.sleep(delay)
-                            continue
-                        _, message = await self._async_redacted_http_message(
-                            resp,
-                            default="",
-                            latitude=latitude,
-                            longitude=longitude,
-                        )
-                        raise PollenQuotaExceededError(message)
+                            raise PollenQuotaExceededError(message)
 
-                    if 500 <= resp.status <= 599:
+                    elif 500 <= resp.status <= 599:
                         if attempt < max_retries:
-                            await self._async_backoff(
-                                attempt=attempt,
-                                max_retries=max_retries,
-                                message=(
-                                    "Pollen API HTTP %s — retrying in %.2fs "
-                                    "(attempt %d/%d)"
-                                ),
-                                base_args=(resp.status,),
+                            retry_5xx_status = resp.status
+                        else:
+                            _, message = await self._async_redacted_http_message(
+                                resp,
+                                default="",
+                                latitude=latitude,
+                                longitude=longitude,
                             )
-                            continue
-                        _, message = await self._async_redacted_http_message(
-                            resp,
-                            default="",
-                            latitude=latitude,
-                            longitude=longitude,
-                        )
-                        raise UpdateFailed(message)
+                            raise UpdateFailed(message)
 
-                    if 400 <= resp.status < 500 and resp.status not in (403, 429):
+                    elif 400 <= resp.status < 500 and resp.status not in (403, 429):
                         raw_message, message = await self._async_redacted_http_message(
                             resp,
                             default="",
@@ -219,7 +207,7 @@ class GooglePollenApiClient:
                         _raise_auth_failed_if_invalid_api_key(raw_message, message)
                         raise UpdateFailed(message)
 
-                    if resp.status != 200:
+                    elif resp.status != 200:
                         _, message = await self._async_redacted_http_message(
                             resp,
                             default="",
@@ -228,22 +216,44 @@ class GooglePollenApiClient:
                         )
                         raise UpdateFailed(message)
 
-                    try:
+                    else:
                         try:
-                            payload = await resp.json(content_type=None)
-                        except TypeError:
-                            payload = await resp.json()
-                    except (ContentTypeError, TypeError, ValueError) as err:
-                        raise UpdateFailed(
-                            "Unexpected API response: invalid JSON"
-                        ) from err
+                            try:
+                                payload = await resp.json(content_type=None)
+                            except TypeError:
+                                payload = await resp.json()
+                        except (ContentTypeError, TypeError, ValueError) as err:
+                            raise UpdateFailed(
+                                "Unexpected API response: invalid JSON"
+                            ) from err
 
-                    if not isinstance(payload, dict):
-                        raise UpdateFailed(
-                            "Unexpected API response: expected JSON object"
-                        )
+                        if not isinstance(payload, dict):
+                            raise UpdateFailed(
+                                "Unexpected API response: expected JSON object"
+                            )
 
-                    return payload
+                        return payload
+
+                if retry_429_delay is not None:
+                    _LOGGER.warning(
+                        "Pollen API 429 — retrying in %.2fs (attempt %d/%d)",
+                        retry_429_delay,
+                        attempt + 1,
+                        max_retries,
+                    )
+                    await asyncio.sleep(retry_429_delay)
+                    continue
+
+                if retry_5xx_status is not None:
+                    await self._async_backoff(
+                        attempt=attempt,
+                        max_retries=max_retries,
+                        message=(
+                            "Pollen API HTTP %s — retrying in %.2fs (attempt %d/%d)"
+                        ),
+                        base_args=(retry_5xx_status,),
+                    )
+                    continue
 
             except ConfigEntryAuthFailed:
                 raise
