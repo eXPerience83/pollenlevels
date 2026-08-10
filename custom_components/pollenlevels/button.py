@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from .coordinator import PollenDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+PARALLEL_UPDATES = 1
 
 
 async def async_setup_entry(
