@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import sys
 import types
@@ -198,6 +199,18 @@ async def test_button_press_raises_homeassistant_error_on_refresh_failure(
 
     assert err.value.translation_domain == "pollenlevels"
     assert err.value.translation_key == "refresh_failed"
+
+
+@pytest.mark.asyncio
+async def test_button_press_propagates_cancelled_error(
+    button_platform: SimpleNamespace,
+) -> None:
+    coordinator = _FakeCoordinator()
+    coordinator.async_request_refresh.side_effect = asyncio.CancelledError
+    entity = button_platform.module.PollenLevelsUpdateButton(coordinator)
+
+    with pytest.raises(asyncio.CancelledError):
+        await entity.async_press()
 
 
 @pytest.mark.asyncio
