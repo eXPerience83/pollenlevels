@@ -4,6 +4,8 @@ import asyncio
 import logging
 import math
 import random
+from email.utils import parsedate_to_datetime
+from time import monotonic
 from typing import Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, ContentTypeError
@@ -15,6 +17,8 @@ from .const import MAX_RETRIES, POLLEN_API_TIMEOUT, is_invalid_api_key_message
 from .util import extract_error_message, redact_sensitive_values
 
 _LOGGER = logging.getLogger(__name__)
+_DEFAULT_429_RETRY_DELAY = 2.0
+_MAX_INLINE_RETRY_AFTER = 5.0
 
 
 def _format_http_message(status: int, raw_message: str | None) -> str:
@@ -42,6 +46,16 @@ class PollenQuotaExceededError(UpdateFailed):
     error handling while still allowing explicit quota classification in config flow.
     """
 
+    def __init__(
+        self,
+        *args: object,
+        retry_after: float | None = None,
+    ) -> None:
+        """Initialize a quota error with an optional server-requested delay."""
+
+        super().__init__(*args)
+        self.retry_after = retry_after
+
 
 class GooglePollenApiClient:
     """Thin async client wrapper for the Google Pollen API."""
@@ -50,23 +64,53 @@ class GooglePollenApiClient:
         self._session = session
         self._api_key = api_key
         self._request_lock = asyncio.Lock()
+        self._quota_cooldown_until: float | None = None
 
-    def _parse_retry_after(self, retry_after_raw: str) -> float:
-        """Translate a Retry-After header into a delay in seconds."""
+    def _parse_retry_after(self, retry_after_raw: str) -> float | None:
+        """Translate a usable Retry-After header into a delay in seconds."""
 
         try:
             parsed = float(retry_after_raw)
             if math.isfinite(parsed) and parsed > 0:
                 return parsed
-            return 2.0
+            return None
         except TypeError, ValueError:
-            retry_at = dt_util.parse_http_date(retry_after_raw)
-            if retry_at is not None:
-                delay = (retry_at - dt_util.utcnow()).total_seconds()
-                if math.isfinite(delay) and delay > 0:
-                    return delay
+            try:
+                retry_at = parsedate_to_datetime(retry_after_raw)
+            except TypeError, ValueError, IndexError, OverflowError:
+                return None
 
-        return 2.0
+            if retry_at is None or retry_at.tzinfo is None:
+                return None
+
+            delay = (retry_at - dt_util.utcnow()).total_seconds()
+            if math.isfinite(delay) and delay > 0:
+                return delay
+
+        return None
+
+    def _set_quota_cooldown(self, retry_after: float) -> None:
+        """Record the longest active server-requested quota cooldown."""
+
+        if not math.isfinite(retry_after) or retry_after <= 0:
+            return
+
+        deadline = monotonic() + retry_after
+        if self._quota_cooldown_until is None or deadline > self._quota_cooldown_until:
+            self._quota_cooldown_until = deadline
+
+    def _quota_cooldown_remaining(self) -> float | None:
+        """Return the active quota cooldown delay, clearing expired state."""
+
+        if self._quota_cooldown_until is None:
+            return None
+
+        remaining = self._quota_cooldown_until - monotonic()
+        if not math.isfinite(remaining) or remaining <= 0:
+            self._quota_cooldown_until = None
+            return None
+
+        return remaining
 
     async def _async_backoff(
         self,
@@ -126,6 +170,16 @@ class GooglePollenApiClient:
         """Fetch pollen data while serializing requests through this client."""
 
         async with self._request_lock:
+            if (retry_after := self._quota_cooldown_remaining()) is not None:
+                _LOGGER.debug(
+                    "Pollen API quota cooldown active — skipping request for %.2fs",
+                    retry_after,
+                )
+                raise PollenQuotaExceededError(
+                    "HTTP 429",
+                    retry_after=retry_after,
+                )
+
             return await self._async_fetch_pollen_data(
                 latitude=latitude,
                 longitude=longitude,
@@ -162,6 +216,8 @@ class GooglePollenApiClient:
             try:
                 retry_429_delay: float | None = None
                 retry_5xx_status: int | None = None
+                quota_retry_after: float | None = None
+                quota_error_message: str | None = None
 
                 async with self._session.get(
                     url,
@@ -188,13 +244,38 @@ class GooglePollenApiClient:
                         raise UpdateFailed(message)
 
                     if resp.status == 429:
-                        if attempt < max_retries:
-                            retry_after_raw = resp.headers.get("Retry-After")
-                            delay = 2.0
-                            if retry_after_raw:
-                                delay = self._parse_retry_after(retry_after_raw)
-                            delay = delay + random.uniform(0.0, 0.4)
-                            retry_429_delay = max(0.0, min(delay, 5.0))
+                        retry_after_raw = resp.headers.get("Retry-After")
+                        retry_after = (
+                            self._parse_retry_after(retry_after_raw)
+                            if retry_after_raw is not None
+                            else None
+                        )
+
+                        if retry_after is not None and (
+                            retry_after > _MAX_INLINE_RETRY_AFTER
+                            or attempt >= max_retries
+                        ):
+                            (
+                                _,
+                                quota_error_message,
+                            ) = await self._async_redacted_http_message(
+                                resp,
+                                default="",
+                                latitude=latitude,
+                                longitude=longitude,
+                            )
+                            quota_retry_after = retry_after
+                        elif attempt < max_retries:
+                            delay = (
+                                retry_after
+                                if retry_after is not None
+                                else _DEFAULT_429_RETRY_DELAY
+                            )
+                            delay += random.uniform(0.0, 0.4)
+                            retry_429_delay = max(
+                                0.0,
+                                min(delay, _MAX_INLINE_RETRY_AFTER),
+                            )
                         else:
                             _, message = await self._async_redacted_http_message(
                                 resp,
@@ -252,6 +333,17 @@ class GooglePollenApiClient:
                             )
 
                         return payload
+
+                if quota_error_message is not None and quota_retry_after is not None:
+                    self._set_quota_cooldown(quota_retry_after)
+                    _LOGGER.warning(
+                        "Pollen API 429 — deferring requests for %.2fs",
+                        quota_retry_after,
+                    )
+                    raise PollenQuotaExceededError(
+                        quota_error_message,
+                        retry_after=quota_retry_after,
+                    )
 
                 if retry_429_delay is not None:
                     _LOGGER.warning(

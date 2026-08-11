@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import importlib
 import sys
+from datetime import UTC, datetime, timedelta
+from email.utils import format_datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -30,6 +32,14 @@ class _StubConfigEntryAuthFailed(Exception):
 
 class _StubUpdateFailed(Exception):
     """Minimal Home Assistant update failure stub."""
+
+    def __init__(
+        self,
+        *args: object,
+        retry_after: float | None = None,
+    ) -> None:
+        super().__init__(*args)
+        self.retry_after = retry_after
 
 
 @pytest.fixture
@@ -126,6 +136,23 @@ class FakeSession:
         return self.response
 
 
+class SequenceSession:
+    """Return a sequence of fake aiohttp-like responses."""
+
+    def __init__(self, responses: list[FakeResponse]) -> None:
+        self.responses = responses
+        self.calls = 0
+
+    def get(self, *_args: Any, **_kwargs: Any) -> FakeResponse:
+        """Return the next configured response."""
+
+        if self.calls >= len(self.responses):
+            raise AssertionError("Unexpected extra HTTP request")
+        response = self.responses[self.calls]
+        self.calls += 1
+        return response
+
+
 class RaisingSession:
     """Raise an aiohttp-like client error for each GET call."""
 
@@ -136,6 +163,17 @@ class RaisingSession:
         """Raise the configured error."""
 
         raise self.error
+
+
+async def _fetch_client(client: Any) -> dict[str, Any]:
+    """Execute a representative direct client fetch."""
+
+    return await client.async_fetch_pollen_data(
+        latitude=1.0,
+        longitude=2.0,
+        days=5,
+        language_code=None,
+    )
 
 
 async def _fetch_with_response(
@@ -376,6 +414,266 @@ async def test_client_treats_400_non_auth_error_as_update_failed(
 
     with pytest.raises(client_module.UpdateFailed, match="HTTP 400"):
         await _fetch_with_response(client_module, response)
+
+
+@pytest.mark.asyncio
+async def test_client_short_numeric_retry_after_retries_inline(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Short numeric Retry-After should wait at least that long and retry once."""
+
+    first = FakeResponse(status=429)
+    first.headers["Retry-After"] = "1.5"
+    second = FakeResponse(json_results=[{"ok": True}])
+    session = SequenceSession([first, second])
+    client = client_module.GooglePollenApiClient(session, "test")
+    sleep_delays: list[float] = []
+
+    async def _sleep(delay: float) -> None:
+        sleep_delays.append(delay)
+
+    monkeypatch.setattr(client_module.random, "uniform", lambda *_args: 0.0)
+    monkeypatch.setattr(client_module.asyncio, "sleep", _sleep)
+
+    assert await _fetch_client(client) == {"ok": True}
+    assert sleep_delays == pytest.approx([1.5])
+    assert session.calls == 2
+    assert first.exit_calls == 1
+    assert second.exit_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_client_http_date_retry_after_retries_inline(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A short HTTP-date Retry-After should behave like a numeric delay."""
+
+    now = datetime(2026, 8, 11, 13, 0, tzinfo=UTC)
+    first = FakeResponse(status=429)
+    first.headers["Retry-After"] = format_datetime(
+        now + timedelta(seconds=3),
+        usegmt=True,
+    )
+    second = FakeResponse(json_results=[{"ok": True}])
+    session = SequenceSession([first, second])
+    client = client_module.GooglePollenApiClient(session, "test")
+    sleep_delays: list[float] = []
+
+    async def _sleep(delay: float) -> None:
+        sleep_delays.append(delay)
+
+    monkeypatch.setattr(client_module.dt_util, "utcnow", lambda: now)
+    monkeypatch.setattr(client_module.random, "uniform", lambda *_args: 0.0)
+    monkeypatch.setattr(client_module.asyncio, "sleep", _sleep)
+
+    assert await _fetch_client(client) == {"ok": True}
+    assert sleep_delays == pytest.approx([3.0])
+    assert session.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_client_long_retry_after_sets_cooldown_without_inline_sleep(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Long Retry-After should fail fast with a coordinator-visible cooldown."""
+
+    api_key = "AIzaFAKEPLACEHOLDER1234567890"
+    response = FakeResponse(
+        status=429,
+        json_results=[{"error": {"message": f"Quota exceeded for {api_key}"}}],
+    )
+    response.headers["Retry-After"] = "60"
+    session = FakeSession(response)
+    client = client_module.GooglePollenApiClient(session, api_key)
+
+    async def _unexpected_sleep(_delay: float) -> None:
+        raise AssertionError("Long Retry-After must not sleep inline")
+
+    monkeypatch.setattr(client_module, "monotonic", lambda: 100.0)
+    monkeypatch.setattr(client_module.asyncio, "sleep", _unexpected_sleep)
+
+    with pytest.raises(client_module.PollenQuotaExceededError) as exc_info:
+        await _fetch_client(client)
+
+    assert exc_info.value.retry_after == pytest.approx(60.0)
+    assert api_key not in str(exc_info.value)
+    assert session.calls == 1
+    assert response.exit_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_client_active_cooldown_blocks_sibling_without_http_request(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A shared client cooldown should block sibling calls without network I/O."""
+
+    response = FakeResponse(status=429)
+    response.headers["Retry-After"] = "60"
+    session = FakeSession(response)
+    client = client_module.GooglePollenApiClient(session, "test")
+    now = [100.0]
+
+    monkeypatch.setattr(client_module, "monotonic", lambda: now[0])
+
+    with pytest.raises(client_module.PollenQuotaExceededError) as first_error:
+        await _fetch_client(client)
+    assert first_error.value.retry_after == pytest.approx(60.0)
+    assert session.calls == 1
+
+    now[0] = 110.0
+    with pytest.raises(client_module.PollenQuotaExceededError) as sibling_error:
+        await _fetch_client(client)
+
+    assert sibling_error.value.retry_after == pytest.approx(50.0)
+    assert session.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_client_cooldown_expires_and_allows_next_request(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An expired cooldown should clear and permit the next HTTP request."""
+
+    limited = FakeResponse(status=429)
+    limited.headers["Retry-After"] = "60"
+    healthy = FakeResponse(json_results=[{"ok": True}])
+    session = SequenceSession([limited, healthy])
+    client = client_module.GooglePollenApiClient(session, "test")
+    now = [100.0]
+
+    monkeypatch.setattr(client_module, "monotonic", lambda: now[0])
+
+    with pytest.raises(client_module.PollenQuotaExceededError):
+        await _fetch_client(client)
+    assert session.calls == 1
+
+    now[0] = 161.0
+    assert await _fetch_client(client) == {"ok": True}
+    assert session.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_client_cooldown_does_not_block_different_client(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cooldown must remain scoped to one client/API-key runtime."""
+
+    limited_response = FakeResponse(status=429)
+    limited_response.headers["Retry-After"] = "60"
+    limited_session = FakeSession(limited_response)
+    limited_client = client_module.GooglePollenApiClient(limited_session, "key-a")
+
+    healthy_response = FakeResponse(json_results=[{"ok": True}])
+    healthy_session = FakeSession(healthy_response)
+    healthy_client = client_module.GooglePollenApiClient(healthy_session, "key-b")
+
+    monkeypatch.setattr(client_module, "monotonic", lambda: 100.0)
+
+    with pytest.raises(client_module.PollenQuotaExceededError):
+        await _fetch_client(limited_client)
+
+    assert await _fetch_client(healthy_client) == {"ok": True}
+    assert limited_session.calls == 1
+    assert healthy_session.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_client_exhausted_short_retry_after_sets_cooldown(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An exhausted short Retry-After should create a shared cooldown."""
+
+    first = FakeResponse(status=429)
+    first.headers["Retry-After"] = "2"
+    second = FakeResponse(status=429)
+    second.headers["Retry-After"] = "2"
+    session = SequenceSession([first, second])
+    client = client_module.GooglePollenApiClient(session, "test")
+    now = [100.0]
+    sleep_delays: list[float] = []
+
+    async def _sleep(delay: float) -> None:
+        sleep_delays.append(delay)
+
+    monkeypatch.setattr(client_module, "monotonic", lambda: now[0])
+    monkeypatch.setattr(client_module.random, "uniform", lambda *_args: 0.0)
+    monkeypatch.setattr(client_module.asyncio, "sleep", _sleep)
+
+    with pytest.raises(client_module.PollenQuotaExceededError) as exc_info:
+        await _fetch_client(client)
+
+    assert sleep_delays == pytest.approx([2.0])
+    assert exc_info.value.retry_after == pytest.approx(2.0)
+    assert session.calls == 2
+    assert first.exit_calls == 1
+    assert second.exit_calls == 1
+
+    now[0] = 101.0
+    with pytest.raises(client_module.PollenQuotaExceededError) as sibling_error:
+        await _fetch_client(client)
+
+    assert sibling_error.value.retry_after == pytest.approx(1.0)
+    assert session.calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "retry_after_raw",
+    [None, "not-a-date", "-1", "0", "nan", "inf"],
+)
+async def test_client_invalid_retry_after_uses_short_fallback(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    retry_after_raw: str | None,
+) -> None:
+    """Missing or malformed Retry-After should keep the short fallback retry."""
+
+    first = FakeResponse(status=429)
+    if retry_after_raw is not None:
+        first.headers["Retry-After"] = retry_after_raw
+    second = FakeResponse(json_results=[{"ok": True}])
+    session = SequenceSession([first, second])
+    client = client_module.GooglePollenApiClient(session, "test")
+    sleep_delays: list[float] = []
+
+    async def _sleep(delay: float) -> None:
+        sleep_delays.append(delay)
+
+    monkeypatch.setattr(client_module.random, "uniform", lambda *_args: 0.0)
+    monkeypatch.setattr(client_module.asyncio, "sleep", _sleep)
+
+    assert await _fetch_client(client) == {"ok": True}
+    assert sleep_delays == pytest.approx([2.0])
+    assert session.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_client_final_invalid_retry_after_does_not_create_cooldown(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A final malformed Retry-After should not invent a cooldown."""
+
+    monkeypatch.setattr(client_module, "MAX_RETRIES", 0)
+    first = FakeResponse(status=429)
+    first.headers["Retry-After"] = "not-a-date"
+    second = FakeResponse(json_results=[{"ok": True}])
+    session = SequenceSession([first, second])
+    client = client_module.GooglePollenApiClient(session, "test")
+
+    with pytest.raises(client_module.PollenQuotaExceededError) as exc_info:
+        await _fetch_client(client)
+
+    assert exc_info.value.retry_after is None
+    assert await _fetch_client(client) == {"ok": True}
+    assert session.calls == 2
 
 
 @pytest.mark.asyncio
