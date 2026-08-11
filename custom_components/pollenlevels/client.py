@@ -49,6 +49,7 @@ class GooglePollenApiClient:
     def __init__(self, session: ClientSession, api_key: str) -> None:
         self._session = session
         self._api_key = api_key
+        self._request_lock = asyncio.Lock()
 
     def _parse_retry_after(self, retry_after_raw: str) -> float:
         """Translate a Retry-After header into a delay in seconds."""
@@ -115,6 +116,24 @@ class GooglePollenApiClient:
         return raw_message, _format_http_message(resp.status, raw_message or None)
 
     async def async_fetch_pollen_data(
+        self,
+        *,
+        latitude: float,
+        longitude: float,
+        days: int,
+        language_code: str | None,
+    ) -> dict[str, Any]:
+        """Fetch pollen data while serializing requests through this client."""
+
+        async with self._request_lock:
+            return await self._async_fetch_pollen_data(
+                latitude=latitude,
+                longitude=longitude,
+                days=days,
+                language_code=language_code,
+            )
+
+    async def _async_fetch_pollen_data(
         self,
         *,
         latitude: float,
