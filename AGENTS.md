@@ -117,8 +117,10 @@ Migration and registry identity are high-risk compatibility surfaces.
 
 Privacy and support diagnostics are part of the public maintenance contract.
 
-- API keys must always be redacted from diagnostics, logs, exceptions, Repairs,
-  test fixtures, and PR/issue text.
+- Real API keys and other secrets must never appear in diagnostics, logs,
+  exceptions, Repairs, test fixtures, or PR/issue text. Use clearly synthetic
+  credentials in tests and redact sensitive runtime values before surfacing
+  them.
 - Never log complete credential-bearing request URLs or precise coordinates.
 - Diagnostics may expose only deliberately reduced location information; current
   coordinate examples are rounded to one decimal place.
@@ -231,9 +233,8 @@ This section is the repository source of truth for changelog style.
   automatically. If such a section already exists, leave it unless the task
   explicitly changes it.
 - Version headings use `## [version] - YYYY-MM-DD` with an ASCII hyphen and stay
-  in reverse chronological order. Use SemVer identifiers such as `3.0.2`,
-  `3.0.0-rc1`, or `3.0.0-alpha1` according to the repository's established
-  release naming.
+  in reverse chronological order. Match the version notation used by the
+  current release metadata and changelog, for example `3.0.2` or `3.0.0rc4`.
 - Inside each version use only: `### Added`, `### Changed`, `### Deprecated`,
   `### Removed`, `### Fixed`, and `### Security`.
 - For breaking changes, keep one of those headings and prefix the bullet with
