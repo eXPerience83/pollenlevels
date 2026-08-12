@@ -73,20 +73,21 @@ Migration and registry identity are high-risk compatibility surfaces.
 - Migration changes require Home Assistant harness coverage for the affected
   scenarios. At minimum consider: one legacy location; multiple locations
   sharing one API key; locations using different API keys; mixed same-key and
-  different-key entries; a parent without locations; merging a residual legacy
-  entry into an existing clean v3 parent; registry reassociation; and
-  retry/idempotency behavior.
+  different-key entries; invalid or corrupt stored location data; a parent
+  without locations; merging a residual legacy entry into an existing clean v3
+  parent; registry reassociation; retry/idempotency behavior; and prerelease
+  upgrade paths when applicable.
 - Treat migration failures conservatively. If identity cannot be moved safely,
   preserving the legacy state and allowing a retry is preferable to silent
   history or registry loss.
-- User-facing migration/release documentation must continue to make backup and
-  downgrade implications explicit when relevant.
+- For v2-to-v3 user-facing migration guidance, keep the mandatory backup warning
+  and state that downgrade to 2.x is unsupported without restoring that backup.
 
 ## Runtime lifecycle and manual refresh
 
-- `pollenlevels.force_update` is a global service. It may refresh loaded active
-  locations, but it must not refresh runtime coordinators whose location
-  subentry has already been removed.
+- `pollenlevels.force_update` is a global service with an empty payload contract.
+  It may refresh loaded active locations, but it must not refresh runtime
+  coordinators whose location subentry has already been removed.
 - The per-location `Update now` button refreshes only its own coordinator.
 - Home Assistant may clean registry associations before in-memory runtime state
   has been reloaded after a subentry deletion. Treat that temporary stale state
@@ -141,10 +142,16 @@ Use the repository's current locked toolchain rather than remembered versions
 from older releases.
 
 - Use the exact Python patch from `.python-version` for local development and
-  modern CI parity. The package metadata floor remains `requires-python =
-  ">=3.14"`; do not infer support for every 3.14 patch when the pinned Home
-  Assistant harness requires a newer patch.
+  modern CI parity. The package metadata keeps `requires-python` at `>=3.14`;
+  do not infer support for every 3.14 patch when the pinned Home Assistant
+  harness requires a newer patch.
+- Repository development and test validation use Linux or Linux containers. On
+  Windows, use WSL2; native Windows Python/pytest is outside the validation
+  contract.
 - Use the exact uv version declared in `[tool.uv].required-version`.
+- Keep direct validation dependencies exact and the committed `uv.lock`
+  authoritative. Do not loosen pins or fresh-resolve dependencies as collateral
+  work.
 - Ruff is the single linter, import sorter, and formatter. Do not add Black back
   unless a dedicated tooling change explicitly reverses that decision.
 - Ruff targets Python 3.14, line length 88, double quotes, and stable formatting
@@ -180,6 +187,7 @@ from older releases.
   registration, services, diagnostics, Repairs, registries, and migration.
 - Keep lightweight unit tests for pure parsing, API-client behavior, redaction
   helpers, malformed payload edges, and targeted failure injection.
+- Tests must not depend on real network calls or real API keys.
 - Add defensive handling or regression tests when they protect public behavior,
   cover a real or observed failure, cover a new branch, prevent a likely
   exception from partially malformed upstream data, or document intentional
