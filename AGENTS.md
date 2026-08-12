@@ -43,6 +43,8 @@ into the legacy one-entry-per-location design.
   `location` under that parent.
 - The API key remains parent-scoped. Shared options such as update interval and
   language remain parent-scoped.
+- Legacy `forecast_days` and `create_forecast_sensors` keys are cleanup-only
+  compatibility data from older releases; do not restore them as active options.
 - Location title/name, latitude, longitude, and any migration-only legacy
   identity belong to the location subentry.
 - Runtime state is per location: each loaded location has its own coordinator.
@@ -70,8 +72,9 @@ Migration and registry identity are high-risk compatibility surfaces.
   when they can be safely preserved or reassociated.
 - Migration changes require Home Assistant harness coverage for the affected
   scenarios. At minimum consider: one legacy location; multiple locations
-  sharing one API key; locations using different API keys; merging a residual
-  legacy entry into an existing clean v3 parent; registry reassociation; and
+  sharing one API key; locations using different API keys; mixed same-key and
+  different-key entries; a parent without locations; merging a residual legacy
+  entry into an existing clean v3 parent; registry reassociation; and
   retry/idempotency behavior.
 - Treat migration failures conservatively. If identity cannot be moved safely,
   preserving the legacy state and allowing a retry is preferable to silent
@@ -105,8 +108,8 @@ Migration and registry identity are high-risk compatibility surfaces.
 - Forecast information stays on the base entities. Preserve the public forecast
   attributes and semantics, including `forecast`, `tomorrow_*`, `d2_*`, `trend`,
   and `expected_peak`, unless the task explicitly changes that contract.
-- Do not add/remove forecast entities, alter offsets, change state types, or
-  change stable unique-ID patterns as collateral cleanup.
+- Do not introduce separate forecast entities, alter forecast offsets or state
+  types, or change stable unique-ID patterns as collateral cleanup.
 - Do not impose a hardcoded universal plant catalogue or a strict plant-code
   whitelist. The API can expose region-specific plant codes, and the current
   runtime must remain tolerant of supported upstream codes.
@@ -137,9 +140,10 @@ Privacy and support diagnostics are part of the public maintenance contract.
 Use the repository's current locked toolchain rather than remembered versions
 from older releases.
 
-- Use the exact Python patch from `.python-version` for local/CI tooling. The
-  project runtime floor remains `requires-python = ">=3.14"` unless a dedicated
-  compatibility change updates it.
+- Use the exact Python patch from `.python-version` for local development and
+  modern CI parity. The package metadata floor remains `requires-python =
+  ">=3.14"`; do not infer support for every 3.14 patch when the pinned Home
+  Assistant harness requires a newer patch.
 - Use the exact uv version declared in `[tool.uv].required-version`.
 - Ruff is the single linter, import sorter, and formatter. Do not add Black back
   unless a dedicated tooling change explicitly reverses that decision.
@@ -198,17 +202,24 @@ Use the locked commands reflected by the current repository configuration:
 - `uv run --locked --no-sync ruff check .`
 - `uv run --locked --no-sync ruff format --check .`
 - `uv sync --locked --only-group test`
+- `uv run --locked --no-sync python -m compileall -q custom_components tests`
 - `PYTHONPATH=. uv run --locked --no-sync python -m pytest -q`
 
 Run the narrowest relevant tests while developing, then the complete required
-suite before merge. Use `python -m compileall` as required by the current CI or
-release workflow for the files in scope.
+suite before merge.
 
 Hosted validation currently includes the locked Lint, Tests, Package Test,
 Workflow Security, hassfest, HACS validation, and CodeQL gates where configured.
 The scheduled latest-Home-Assistant compatibility canary is intentionally
 fresh-resolving and advisory; do not treat it as a replacement for locked merge
 or Release validation.
+
+When editing GitHub Actions, preserve the repository's supply-chain and workflow
+safety conventions: minimal `permissions`, appropriate `concurrency`, external
+actions pinned to reviewed full commit SHAs with readable version comments,
+`.python-version` via `python-version-file`, uv from `pyproject.toml`, and
+`shell: bash` for steps using `set -euo pipefail`. Keep actionlint and zizmor
+blocking and do not add broad security ignores to make a workflow pass.
 
 ## Commit, PR, and release discipline
 
@@ -218,10 +229,18 @@ or Release validation.
   link the owning issue when one exists.
 - Do not create tags or GitHub releases from a normal implementation PR.
 - Do not change `custom_components/pollenlevels/manifest.json`, the project
-  version in `pyproject.toml`, or add a release CHANGELOG entry unless the task is
-  explicitly a release/version PR.
+  version in `pyproject.toml`, or the local project version in `uv.lock` unless
+  the task is explicitly a release/version PR.
+- Preserve manifest identity fields such as `domain`, `integration_type`, and
+  `iot_class` unless a dedicated compatibility change explicitly requires them.
+- A normal stable release-only PR should normally modify exactly
+  `CHANGELOG.md`, `custom_components/pollenlevels/manifest.json`,
+  `pyproject.toml`, and `uv.lock`, following `RELEASING.md`. The manifest,
+  project, and local lockfile versions must stay synchronized.
 - Keep release-only PRs limited to release metadata and the exact release notes
   unless a separate fix is required first.
+- Let the Release workflow derive and create the release tag after validation;
+  do not manually create or move tags to bypass the documented release path.
 - Do not combine an unrelated runtime fix with migration, tooling, broad docs,
   dependency upgrades, or release preparation.
 
@@ -239,9 +258,9 @@ This section is the repository source of truth for changelog style.
   `### Removed`, `### Fixed`, and `### Security`.
 - For breaking changes, keep one of those headings and prefix the bullet with
   `**Breaking change:**`; do not add a separate `### Breaking Changes` heading.
-- Each change uses a bullet line that starts with a hyphen. Wrap long bullets
-  around 80-100 characters with indented continuation lines; do not insert blank
-  lines inside a bullet or use `<br>`/trailing double spaces.
+- Each change uses a hyphen followed by one space as the Markdown bullet marker.
+  Wrap long bullets around 80-100 characters with indented continuation lines;
+  do not insert blank lines inside a bullet or use `<br>`/trailing double spaces.
 - Keep diffs minimal: never reflow unrelated historical entries or rename
   existing headings unless they clearly violate these rules.
 - If comparison links exist at the bottom of the changelog, preserve the
