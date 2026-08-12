@@ -1536,7 +1536,7 @@ def test_force_update_logs_do_not_expose_secrets(
 def test_force_update_refreshes_location_subentries_sequentially(
     integration_modules: _InitModules,
 ) -> None:
-    """force_update should limit location refresh concurrency to one."""
+    """force_update should refresh locations under one parent sequentially."""
     integration = integration_modules.integration
 
     active = 0
@@ -1579,6 +1579,46 @@ def test_force_update_refreshes_location_subentries_sequentially(
 
     assert max_active == 1
     assert order == ["loc-1:start", "loc-1:end", "loc-2:start", "loc-2:end"]
+
+
+def test_force_update_refreshes_different_parents_concurrently(
+    integration_modules: _InitModules,
+) -> None:
+    """force_update should refresh locations under different parents concurrently."""
+    integration = integration_modules.integration
+
+    active = 0
+    max_active = 0
+
+    class _Coordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            nonlocal active, max_active
+            self.calls += 1
+            active += 1
+            max_active = max(max_active, active)
+            await asyncio.sleep(0)
+            active -= 1
+
+    coordinator1 = _Coordinator()
+    coordinator2 = _Coordinator()
+    entry1 = _FakeEntry(integration, entry_id="entry-1")
+    entry2 = _FakeEntry(integration, entry_id="entry-2")
+
+    asyncio.run(
+        integration._refresh_force_update_targets(
+            [
+                (entry1, "loc-1", coordinator1),
+                (entry2, "loc-2", coordinator2),
+            ]
+        )
+    )
+
+    assert max_active == 2
+    assert coordinator1.calls == 1
+    assert coordinator2.calls == 1
 
 
 def test_force_update_refreshes_fallback_location_without_subentries(
@@ -1713,6 +1753,45 @@ def test_force_update_continues_after_one_location_failure(
     assert "-98.765432" not in text
     assert "location.latitude=***" in text
     assert "location.longitude=***" in text
+
+
+def test_force_update_continues_after_different_parent_failure(
+    integration_modules: _InitModules,
+) -> None:
+    """One parent failure should not prevent another parent from refreshing."""
+    integration = integration_modules.integration
+
+    class _FailCoordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+            raise RuntimeError("refresh failed")
+
+    class _OkCoordinator:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def async_request_refresh(self):
+            self.calls += 1
+
+    failing = _FailCoordinator()
+    ok = _OkCoordinator()
+    entry1 = _FakeEntry(integration, entry_id="entry-failing")
+    entry2 = _FakeEntry(integration, entry_id="entry-ok")
+
+    asyncio.run(
+        integration._refresh_force_update_targets(
+            [
+                (entry1, "loc-failing", failing),
+                (entry2, "loc-ok", ok),
+            ]
+        )
+    )
+
+    assert failing.calls == 1
+    assert ok.calls == 1
 
 
 def test_force_update_propagates_location_cancelled_error(
