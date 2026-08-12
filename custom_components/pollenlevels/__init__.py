@@ -73,7 +73,6 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
 TARGET_ENTRY_VERSION = 6
-_FORCE_UPDATE_CONCURRENCY_LIMIT = 1
 _SETUP_FAILURE_REASON_MAX_LENGTH = 240
 _SETUP_RETRY_FAILURES_DATA_KEY = "setup_retry_failures"
 _NON_RETRYABLE_SETUP_FAILURE_TYPES = frozenset({"InvalidStoredLocation"})
@@ -354,14 +353,24 @@ async def _refresh_force_update_target(
 async def _refresh_force_update_targets(
     targets: list[tuple[ConfigEntry, str, Any]],
 ) -> None:
-    """Refresh force_update targets with an explicit concurrency limit."""
-    semaphore = asyncio.Semaphore(_FORCE_UPDATE_CONCURRENCY_LIMIT)
+    """Refresh force_update targets sequentially within each parent entry."""
+    targets_by_entry: dict[str, list[tuple[ConfigEntry, str, Any]]] = {}
+    for target in targets:
+        entry = target[0]
+        targets_by_entry.setdefault(entry.entry_id, []).append(target)
 
-    async def _refresh(target: tuple[ConfigEntry, str, Any]) -> None:
-        async with semaphore:
+    async def _refresh_parent(
+        parent_targets: list[tuple[ConfigEntry, str, Any]],
+    ) -> None:
+        for target in parent_targets:
             await _refresh_force_update_target(*target)
 
-    await asyncio.gather(*(_refresh(target) for target in targets))
+    await asyncio.gather(
+        *(
+            _refresh_parent(parent_targets)
+            for parent_targets in targets_by_entry.values()
+        )
+    )
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
