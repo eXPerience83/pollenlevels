@@ -1,3 +1,29 @@
+## [3.0.2] - 2026-08-12
+
+### Changed
+
+- Declared Home Assistant platform concurrency explicitly so Update now button
+  actions under the same parent are serialized while sensor polling remains
+  coordinator-managed.
+- Serialized Google Pollen API requests through each shared runtime client so
+  sibling locations using the same API key cannot issue overlapping requests,
+  while independent API-key clients remain independent.
+- Updated the global `pollenlevels.force_update` action to keep locations under
+  the same parent/API key sequential while allowing independent parents to
+  refresh concurrently.
+
+### Fixed
+
+- Normalized Google pollen index values defensively across current state,
+  forecast, summary, trend, and peak calculations, accepting only integer
+  values from 0 through 5 while preserving valid non-index metadata.
+- Released retryable HTTP 429 and 5xx responses before backoff so connections
+  can be reused without changing retry classification or cancellation
+  behavior.
+- Honored valid long HTTP 429 `Retry-After` delays with shared client-local
+  cooldowns instead of retrying too early, while retaining short inline retries
+  and the safe fallback for missing, malformed, or non-positive values.
+
 ## [3.0.1] - 2026-08-09
 
 ### Added
