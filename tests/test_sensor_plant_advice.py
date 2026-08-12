@@ -162,7 +162,7 @@ def _make_coordinator(
     )
 
 
-def test_plant_sensor_does_not_inherit_type_health_recommendations(
+async def test_plant_sensor_does_not_inherit_type_health_recommendations(
     sensor_modules: SensorModules,
 ) -> None:
     """Plant advice is not derived from same-family pollen type advice."""
@@ -202,19 +202,15 @@ def test_plant_sensor_does_not_inherit_type_health_recommendations(
     fake_session = FakeSession(payload)
     client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
 
-    loop = asyncio.new_event_loop()
+    loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-
-    try:
-        data = loop.run_until_complete(coordinator._async_update_data())
-    finally:
-        loop.close()
+    data = await coordinator._async_update_data()
 
     assert data["type_weed"]["advice"] == ["Keep windows closed"]
     assert data["plants_ragweed"]["advice"] is None
 
 
-def test_plant_without_index_info(
+async def test_plant_without_index_info(
     sensor_modules: SensorModules,
 ) -> None:
     """Plant without indexInfo is present in coordinator output with null index fields."""
@@ -257,13 +253,9 @@ def test_plant_without_index_info(
     fake_session = FakeSession(payload)
     client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
 
-    loop = asyncio.new_event_loop()
+    loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-
-    try:
-        data = loop.run_until_complete(coordinator._async_update_data())
-    finally:
-        loop.close()
+    data = await coordinator._async_update_data()
 
     assert "plants_hazel" in data
     hazel = data["plants_hazel"]
@@ -285,7 +277,7 @@ def test_plant_without_index_info(
     assert data["type_tree"]["advice"] == ["Avoid outdoor activity"]
 
 
-def test_plant_missing_optional_metadata(
+async def test_plant_missing_optional_metadata(
     sensor_modules: SensorModules,
 ) -> None:
     """Missing optional plant metadata fields fall back safely."""
@@ -333,13 +325,9 @@ def test_plant_missing_optional_metadata(
     fake_session = FakeSession(payload)
     client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
 
-    loop = asyncio.new_event_loop()
+    loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-
-    try:
-        data = loop.run_until_complete(coordinator._async_update_data())
-    finally:
-        loop.close()
+    data = await coordinator._async_update_data()
 
     alder = data["plants_alder"]
     assert alder["displayName"] == "alder"
@@ -372,7 +360,7 @@ def test_plant_missing_optional_metadata(
     assert oak["picture_closeup"] == "https://example.com/oak-close.jpg"
 
 
-def test_plant_missing_and_partial_colors(
+async def test_plant_missing_and_partial_colors(
     sensor_modules: SensorModules,
 ) -> None:
     """Missing, empty, partial, and zero-valued color structures produce correct output."""
@@ -425,13 +413,9 @@ def test_plant_missing_and_partial_colors(
     fake_session = FakeSession(payload)
     client = sensor_modules.client_mod.GooglePollenApiClient(fake_session, "test")
 
-    loop = asyncio.new_event_loop()
+    loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-
-    try:
-        data = loop.run_until_complete(coordinator._async_update_data())
-    finally:
-        loop.close()
+    data = await coordinator._async_update_data()
 
     assert data["plants_alder"]["color_hex"] is None
     assert data["plants_alder"]["color_rgb"] is None
