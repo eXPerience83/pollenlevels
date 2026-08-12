@@ -239,9 +239,9 @@ This section is the repository source of truth for changelog style.
   `### Removed`, `### Fixed`, and `### Security`.
 - For breaking changes, keep one of those headings and prefix the bullet with
   `**Breaking change:**`; do not add a separate `### Breaking Changes` heading.
-- Each change is a `- ` bullet. Wrap long bullets around 80-100 characters with
-  indented continuation lines; do not insert blank lines inside a bullet or use
-  `<br>`/trailing double spaces.
+- Each change uses a bullet line that starts with a hyphen. Wrap long bullets
+  around 80-100 characters with indented continuation lines; do not insert blank
+  lines inside a bullet or use `<br>`/trailing double spaces.
 - Keep diffs minimal: never reflow unrelated historical entries or rename
   existing headings unless they clearly violate these rules.
 - If comparison links exist at the bottom of the changelog, preserve the
