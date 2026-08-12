@@ -4,22 +4,18 @@
 
 # 🌼 Pollen Levels Integration for Home Assistant
 
-**Monitor real-time pollen levels** from the Google Maps Pollen API directly in Home Assistant.  
-Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants like **OAK**, **PINE**, **OLIVE**, and many more!
+**Monitor current and forecast pollen levels** from the Google Maps Pollen API directly in Home Assistant.  
+Track **grass**, **tree**, and **weed** pollen, regional plant species, daily summaries, and up to **5 days of forecast data** across multiple locations.
 
 [![GitHub Release](https://img.shields.io/github/v/release/eXPerience83/pollenlevels)](https://github.com/eXPerience83/pollenlevels/releases)
-![Python 3.14](https://img.shields.io/badge/python-3.14-blue.svg)
-[![Lint](https://github.com/eXPerience83/pollenlevels/actions/workflows/lint.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/lint.yml)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.3%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
+[![Latest Home Assistant Compatibility](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml/badge.svg?branch=main)](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml)
 [![hassfest validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml)
 [![HACS validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
-[![CodeQL enabled](https://img.shields.io/badge/CodeQL-enabled-brightgreen.svg)](https://github.com/eXPerience83/pollenlevels/security/code-scanning)
-[![License](https://img.shields.io/github/license/eXPerience83/pollenlevels?logo=github)](https://github.com/eXPerience83/pollenlevels/blob/main/LICENSE)
-[![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/integration)
-[![FAQ](https://img.shields.io/badge/FAQ-Read%20Here-blue?logo=readthedocs&logoColor=white)](https://github.com/eXPerience83/pollenlevels/blob/main/FAQ.md)
-[![Terms](https://img.shields.io/badge/Terms-Read-blue)](TERMS.md)
-[![Privacy](https://img.shields.io/badge/Privacy-Read-blue)](PRIVACY.md)
-[![Ko-fi](https://img.shields.io/badge/Ko%E2%80%91fi-Support%20this%20project-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/experience83)
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-blue?logo=paypal)](https://paypal.me/eXPerience83)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/default/blob/master/integration)
+[![License](https://img.shields.io/github/license/eXPerience83/pollenlevels?logo=github)](LICENSE)
+
+[FAQ](FAQ.md) · [Terms](TERMS.md) · [Privacy](PRIVACY.md)
 
 [![Open your Home Assistant instance and add this repository inside HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eXPerience83&repository=pollenlevels&category=integration)
 
@@ -27,8 +23,9 @@ Get sensors for **grass**, **tree**, **weed** pollen, plus individual plants lik
 
 ## Requirements
 
-- Requires Home Assistant 2026.3.0 or newer.
-- This release line targets Python 3.14+, matching the Home Assistant runtime baseline.
+- Home Assistant 2026.3.0 or newer.
+- HACS 2.0.0 or newer when installing through HACS.
+- A Google Cloud API key with the Maps Pollen API enabled.
 
 ## 🌟 Features
 
@@ -424,7 +421,7 @@ curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&locat
 
 If this integration helps you, consider supporting development:
 
-[![Ko-fi](https://img.shields.io/badge/Ko%E2%80%91fi-Support%20this%20project-ff5e5b?logo=ko-fi\&logoColor=white)](https://ko-fi.com/experience83)
+[![Ko-fi](https://img.shields.io/badge/Ko%E2%80%91fi-Support%20this%20project-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/experience83)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-blue?logo=paypal)](https://paypal.me/eXPerience83)
 
 ---
