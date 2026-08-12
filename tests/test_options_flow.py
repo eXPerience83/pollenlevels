@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import importlib
 import sys
 from dataclasses import dataclass
@@ -221,20 +220,18 @@ def test_options_flow_uses_modern_reload_base_class(
     )
 
 
-def test_options_flow_invalid_language_sets_error(
+async def test_options_flow_invalid_language_sets_error(
     options_flow_env: OptionsFlowEnv,
 ) -> None:
     """Invalid language in options should map to invalid_language_format."""
 
     flow = _flow(options_flow_env)
 
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                options_flow_env.CONF_LANGUAGE_CODE: "bad code",
-                options_flow_env.CONF_UPDATE_INTERVAL: 6,
-            }
-        )
+    result = await flow.async_step_init(
+        {
+            options_flow_env.CONF_LANGUAGE_CODE: "bad code",
+            options_flow_env.CONF_UPDATE_INTERVAL: 6,
+        }
     )
 
     assert result["errors"] == {
@@ -242,20 +239,18 @@ def test_options_flow_invalid_language_sets_error(
     }
 
 
-def test_options_flow_invalid_language_code_not_logged_raw(
+async def test_options_flow_invalid_language_code_not_logged_raw(
     options_flow_env: OptionsFlowEnv, caplog
 ) -> None:
     """Invalid language in options should not log the raw user-provided value."""
     flow = _flow(options_flow_env)
 
     with caplog.at_level("WARNING", logger=options_flow_env.config_flow.__name__):
-        result = asyncio.run(
-            flow.async_step_init(
-                {
-                    options_flow_env.CONF_LANGUAGE_CODE: "bad code",
-                    options_flow_env.CONF_UPDATE_INTERVAL: 6,
-                }
-            )
+        result = await flow.async_step_init(
+            {
+                options_flow_env.CONF_LANGUAGE_CODE: "bad code",
+                options_flow_env.CONF_UPDATE_INTERVAL: 6,
+            }
         )
 
     assert "bad code" not in caplog.text
@@ -264,20 +259,18 @@ def test_options_flow_invalid_language_code_not_logged_raw(
     }
 
 
-def test_options_flow_update_interval_below_min_sets_error(
+async def test_options_flow_update_interval_below_min_sets_error(
     options_flow_env: OptionsFlowEnv,
 ) -> None:
     """Sub-1 update intervals should raise a field error."""
 
     flow = _flow(options_flow_env)
 
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                options_flow_env.CONF_LANGUAGE_CODE: "en",
-                options_flow_env.CONF_UPDATE_INTERVAL: 0,
-            }
-        )
+    result = await flow.async_step_init(
+        {
+            options_flow_env.CONF_LANGUAGE_CODE: "en",
+            options_flow_env.CONF_UPDATE_INTERVAL: 0,
+        }
     )
 
     assert result["errors"] == {
@@ -285,20 +278,18 @@ def test_options_flow_update_interval_below_min_sets_error(
     }
 
 
-def test_options_flow_invalid_update_interval_short_circuits(
+async def test_options_flow_invalid_update_interval_short_circuits(
     options_flow_env: OptionsFlowEnv,
 ) -> None:
     """Invalid update interval should short-circuit without extra errors."""
 
     flow = _flow(options_flow_env)
 
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                options_flow_env.CONF_LANGUAGE_CODE: "en",
-                options_flow_env.CONF_UPDATE_INTERVAL: "not-a-number",
-            }
-        )
+    result = await flow.async_step_init(
+        {
+            options_flow_env.CONF_LANGUAGE_CODE: "en",
+            options_flow_env.CONF_UPDATE_INTERVAL: "not-a-number",
+        }
     )
 
     assert result["errors"] == {
@@ -306,20 +297,18 @@ def test_options_flow_invalid_update_interval_short_circuits(
     }
 
 
-def test_options_flow_update_interval_above_max_sets_error(
+async def test_options_flow_update_interval_above_max_sets_error(
     options_flow_env: OptionsFlowEnv,
 ) -> None:
     """Over-max update intervals should raise a field error."""
 
     flow = _flow(options_flow_env)
 
-    result = asyncio.run(
-        flow.async_step_init(
-            {
-                options_flow_env.CONF_LANGUAGE_CODE: "en",
-                options_flow_env.CONF_UPDATE_INTERVAL: 999,
-            }
-        )
+    result = await flow.async_step_init(
+        {
+            options_flow_env.CONF_LANGUAGE_CODE: "en",
+            options_flow_env.CONF_UPDATE_INTERVAL: 999,
+        }
     )
 
     assert result["errors"] == {
@@ -335,7 +324,7 @@ def test_options_flow_update_interval_above_max_sets_error(
         (999, "MAX_UPDATE_INTERVAL_HOURS"),
     ],
 )
-def test_options_schema_update_interval_default_is_sanitized(
+async def test_options_schema_update_interval_default_is_sanitized(
     monkeypatch: pytest.MonkeyPatch,
     options_flow_env: OptionsFlowEnv,
     raw_value: object,
@@ -361,12 +350,12 @@ def test_options_schema_update_interval_default_is_sanitized(
         options_flow_env,
         options={options_flow_env.CONF_UPDATE_INTERVAL: raw_value},
     )
-    asyncio.run(flow.async_step_init(user_input=None))
+    await flow.async_step_init(user_input=None)
 
     assert captured_defaults == [expected]
 
 
-def test_options_schema_omits_removed_forecast_options(
+async def test_options_schema_omits_removed_forecast_options(
     monkeypatch: pytest.MonkeyPatch,
     options_flow_env: OptionsFlowEnv,
 ) -> None:
@@ -387,7 +376,7 @@ def test_options_schema_omits_removed_forecast_options(
             options_flow_env.CONF_CREATE_FORECAST_SENSORS: "bad",
         },
     )
-    asyncio.run(flow.async_step_init(user_input=None))
+    await flow.async_step_init(user_input=None)
 
     assert options_flow_env.CONF_FORECAST_DAYS not in captured_keys
     assert options_flow_env.CONF_CREATE_FORECAST_SENSORS not in captured_keys
