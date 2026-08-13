@@ -170,23 +170,11 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         }
         if config_entry is not None:
             coordinator_kwargs["config_entry"] = config_entry
-        try:
-            super().__init__(
-                hass,
-                _LOGGER,
-                **coordinator_kwargs,
-            )
-        except TypeError as err:
-            if "config_entry" not in coordinator_kwargs or "config_entry" not in str(
-                err
-            ):
-                raise
-            coordinator_kwargs.pop("config_entry")
-            super().__init__(
-                hass,
-                _LOGGER,
-                **coordinator_kwargs,
-            )
+        super().__init__(
+            hass,
+            _LOGGER,
+            **coordinator_kwargs,
+        )
         self.api_key = api_key
         self.lat = lat
         self.lon = lon

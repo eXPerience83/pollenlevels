@@ -176,9 +176,10 @@ class _StubCoordinatorEntity:
 
 
 class _StubDataUpdateCoordinator:
-    def __init__(self, hass, logger, *, name: str, update_interval):
+    def __init__(self, hass, logger, *, config_entry=None, name: str, update_interval):
         self.hass = hass
         self.logger = logger
+        self.config_entry = config_entry
         self.name = name
         self.update_interval = update_interval
         self.data = {"date": {}, "region": {}}
