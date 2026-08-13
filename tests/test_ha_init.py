@@ -62,6 +62,12 @@ async def test_ha_setup_unload_reload_smoke(
 
         assert ha_config_entry.state is ConfigEntryState.LOADED
         assert set(ha_config_entry.runtime_data.locations) == {"location-madrid"}
+        assert (
+            ha_config_entry.runtime_data.locations[
+                "location-madrid"
+            ].coordinator.config_entry
+            is ha_config_entry
+        )
         assert_fixed_forecast_days(captured_params)
 
         registry = er.async_get(hass)
@@ -80,6 +86,12 @@ async def test_ha_setup_unload_reload_smoke(
         assert await hass.config_entries.async_setup(ha_config_entry.entry_id)
         await hass.async_block_till_done()
         assert ha_config_entry.state is ConfigEntryState.LOADED
+        assert (
+            ha_config_entry.runtime_data.locations[
+                "location-madrid"
+            ].coordinator.config_entry
+            is ha_config_entry
+        )
 
 
 async def test_ha_expired_api_key_reload_preserves_registry_identity(

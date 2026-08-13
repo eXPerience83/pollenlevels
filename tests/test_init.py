@@ -176,9 +176,10 @@ class _StubCoordinatorEntity:
 
 
 class _StubDataUpdateCoordinator:
-    def __init__(self, hass, logger, *, name: str, update_interval):
+    def __init__(self, hass, logger, *, config_entry=None, name: str, update_interval):
         self.hass = hass
         self.logger = logger
+        self.config_entry = config_entry
         self.name = name
         self.update_interval = update_interval
         self.data = {"date": {}, "region": {}}
@@ -697,6 +698,7 @@ def test_setup_entry_numeric_string_coordinates_are_allowed(
     coordinator = entry.runtime_data.locations[entry.entry_id].coordinator
     assert coordinator.lat == pytest.approx(1.5)
     assert coordinator.lon == pytest.approx(2.5)
+    assert coordinator.config_entry is entry
 
 
 def test_setup_entry_boundary_coordinates_are_allowed(
