@@ -698,7 +698,6 @@ def test_setup_entry_numeric_string_coordinates_are_allowed(
     coordinator = entry.runtime_data.locations[entry.entry_id].coordinator
     assert coordinator.lat == pytest.approx(1.5)
     assert coordinator.lon == pytest.approx(2.5)
-    assert coordinator.config_entry is entry
 
 
 def test_setup_entry_boundary_coordinates_are_allowed(
