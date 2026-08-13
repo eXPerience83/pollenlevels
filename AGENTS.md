@@ -158,7 +158,7 @@ from older releases.
   with preview disabled; `pyproject.toml` is authoritative.
 - Use modern Python typing: PEP 604 unions and built-in generics where
   applicable. Prefer `collections.abc` for runtime collection protocols.
-- Keep imports Ruff/isort-clean. `custom_components/pollenlevels` is first-party.
+- Keep imports Ruff/isort-clean. `custom_components.pollenlevels` is first-party.
 - All code comments and docstrings must be in English.
 - Repository-facing technical documentation, README text, FAQ text, PR text, and
   CHANGELOG entries should be in English unless a task explicitly requests
