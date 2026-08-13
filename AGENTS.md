@@ -61,8 +61,9 @@ into the legacy one-entry-per-location design.
 
 Migration and registry identity are high-risk compatibility surfaces.
 
-- Do not modify v2-to-v3 migration logic unless the task fixes a demonstrated
-  migration bug or explicitly requires a migration change.
+- Do not modify v2-to-v3 migration logic unless fixing a demonstrated migration
+  bug. If a broader task appears to require it, report that discrepancy before
+  changing migration behavior.
 - Preserve existing `entity_id`, `unique_id`, device associations, dashboards,
   automations, and Recorder history across migration and reloads.
 - Do not change legacy entry IDs, location identity semantics, device
