@@ -287,9 +287,16 @@ def stub_update_coordinator_module(
 ) -> ModuleType:
     """Install a minimal update coordinator module with caller-provided types."""
 
+    class _ConfigEntryAwareDataUpdateCoordinator(data_update_coordinator):
+        """Mirror the supported Home Assistant coordinator config-entry keyword."""
+
+        def __init__(self, *args, config_entry=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.config_entry = config_entry
+
     module = ModuleType("homeassistant.helpers.update_coordinator")
     module.UpdateFailed = update_failed
-    module.DataUpdateCoordinator = data_update_coordinator
+    module.DataUpdateCoordinator = _ConfigEntryAwareDataUpdateCoordinator
     module.CoordinatorEntity = coordinator_entity
     _set_module(
         "homeassistant.helpers.update_coordinator", module, monkeypatch=monkeypatch
