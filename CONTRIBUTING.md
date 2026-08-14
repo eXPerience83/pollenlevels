@@ -1,5 +1,62 @@
 # Contributing
 
+## Home Assistant Core readiness
+
+Pollen Levels is currently a custom integration distributed through HACS, but the
+long-term project goal is to prepare it for a future contribution to Home
+Assistant Core.
+
+Development in this repository should therefore improve **Core readiness** while
+preserving the complete and stable HACS integration that users run today. The
+current Home Assistant developer documentation and Integration Quality Scale are
+the upstream reference for that work:
+
+- [Contributing an integration to Core](https://developers.home-assistant.io/docs/core/integration/contributing_to_core/)
+- [Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+- [Full config-flow test coverage](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/config-flow-test-coverage/)
+- [Above 95% test coverage for all integration modules](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/test-coverage/)
+
+New Core integrations currently need to meet the Bronze quality tier. This
+repository deliberately aims beyond that minimum where doing so improves the
+existing integration and reduces future upstream work. In particular:
+
+- supported `config_flow.py` behavior should have complete behavioral test
+  coverage, including recovery after errors;
+- integration modules should target more than 95% statement coverage, measured
+  per module rather than only as a repository-wide total;
+- tests should protect real behavior, identity, privacy, lifecycle, retry, and
+  failure semantics rather than merely execute lines to improve a percentage;
+- unreachable compatibility or test-stub fallbacks should be demonstrated and
+  reviewed instead of being covered by artificial tests solely for a coverage
+  gate;
+- supported public Home Assistant APIs, async patterns, typing conventions, and
+  Home Assistant harness tests are preferred whenever they represent the real
+  integration surface.
+
+Core readiness does **not** mean reducing the HACS integration to the size of a
+future initial Core pull request. Home Assistant recommends that a new Core
+integration start with a small, focused contribution, normally one platform and
+without non-essential features such as diagnostics, custom actions, reauth, or
+reconfigure. Those upstream scoping rules will be applied when a dedicated Core
+port is prepared; they are not a reason to remove working HACS functionality now.
+
+Home Assistant Core also expects communication with the external service to live
+in a separate Python library. The current in-repository API client remains part
+of the HACS architecture until a dedicated, reviewed library-extraction effort
+is undertaken. Do not split it out opportunistically as collateral work.
+
+Likewise, this custom repository keeps
+`custom_components/pollenlevels/translations/en.json` as its translation source
+of truth. A future Core contribution will adapt to Core repository translation
+conventions at that boundary; do not introduce `strings.json` here prematurely.
+
+Before any upstream Core submission, perform a dedicated Core-readiness audit
+against the then-current Home Assistant requirements, including the Quality
+Scale checklist, dependency transparency/library requirements, manifest and
+branding requirements, documentation, test coverage, and initial-PR scope.
+
+## Development environment
+
 - The integration targets Python 3.14+, matching the Home Assistant 2026.3 runtime baseline. Use the exact patch in `.python-version` for local development and CI parity.
 - Development and test validation are supported on Linux and Linux containers. On Windows, use WSL2 and run the Linux commands from within WSL2; native Windows Python/pytest is not part of the project validation contract. This applies only to repository development and testing, not to the integration's Home Assistant runtime compatibility.
 - `[tool.uv].required-version` is the sole uv executable source. Bootstrap that exact uv, then use the committed lock: `uv lock --check`, `uv sync --locked --only-group lint`, and `uv sync --locked --only-group test`.
