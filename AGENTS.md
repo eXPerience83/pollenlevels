@@ -33,6 +33,41 @@ Pollen Levels is a Home Assistant custom integration distributed through HACS.
 Keep platform-specific behavior in its existing modules and preserve the
 coordinator-driven async design.
 
+## Home Assistant Core readiness
+
+Pollen Levels remains a HACS custom integration today, but the long-term project
+goal is a future contribution to Home Assistant Core. Day-to-day work should
+therefore increase Core readiness without weakening the complete HACS integration
+used by existing users.
+
+- Treat the current official Home Assistant developer documentation and
+  Integration Quality Scale as the upstream reference. Re-check requirements
+  before making Core-readiness claims because those rules evolve.
+- New Core integrations currently must meet Bronze. Treat its rules as the
+  minimum readiness baseline, including full `config_flow.py` coverage and
+  dependency transparency. Above 95% coverage for all integration modules is a
+  Silver rule; this repository targets it proactively.
+- Target literal 100% statement coverage in `config_flow.py` and above 95%
+  statement coverage in every integration module, measured per module rather
+  than only as a repository-wide aggregate.
+- Do not game coverage. Prefer tests that protect supported behavior, identity,
+  privacy, lifecycle, retry, cancellation, and conservative failure semantics.
+  If code is proven unreachable on supported Home Assistant, prefer a dedicated
+  cleanup/refactor or explicit reviewed decision rather than fake tests or a
+  silent module exemption.
+- Prefer supported public Home Assistant APIs and current Core idioms so that the
+  HACS code does not accumulate avoidable upstream-port debt.
+- Preserve working HACS features and compatibility contracts. Scope the future
+  Core contribution separately according to the then-current upstream rules.
+- Keep the current in-repository `GooglePollenApiClient` until a dedicated,
+  reviewed library-extraction effort is planned; Core expects external-service
+  communication to live in a separate Python library.
+- Before any upstream submission, run a dedicated Core-readiness audit against
+  the then-current Quality Scale, dependency/library requirements,
+  manifest/branding/docs requirements, coverage, and initial-PR scope.
+- If a future Core requirement conflicts with a current HACS public contract,
+  report and track it explicitly instead of silently changing HACS behavior.
+
 ## v3 architecture invariants
 
 The current storage/runtime model is deliberate and must not be flattened back
@@ -143,9 +178,10 @@ Use the repository's current locked toolchain rather than remembered versions
 from older releases.
 
 - Use the exact Python patch from `.python-version` for local development and
-  modern CI parity. The package metadata keeps `requires-python` at `>=3.14`;
-  do not infer support for every 3.14 patch when the pinned Home Assistant
-  harness requires a newer patch.
+  modern CI parity. Home Assistant 2026.3 requires Python >=3.14.2. The package
+  metadata keeps `requires-python` at `>=3.14`; do not infer runtime support for
+  earlier 3.14 patch releases when the pinned Home Assistant harness requires a
+  newer patch.
 - Repository development and test validation use Linux or Linux containers. On
   Windows, use WSL2; native Windows Python/pytest is outside the validation
   contract.
