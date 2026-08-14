@@ -33,6 +33,58 @@ Pollen Levels is a Home Assistant custom integration distributed through HACS.
 Keep platform-specific behavior in its existing modules and preserve the
 coordinator-driven async design.
 
+## Home Assistant Core readiness
+
+Pollen Levels remains a HACS custom integration today, but the long-term project
+goal is a future contribution to Home Assistant Core. Day-to-day work should
+therefore increase Core readiness without weakening or prematurely reducing the
+complete HACS integration used by existing users.
+
+- Treat the current official Home Assistant developer documentation and
+  Integration Quality Scale as the upstream reference for Core-readiness work.
+  Re-check current requirements before making claims because those rules evolve.
+- New Core integrations currently need at least the Bronze quality tier. This
+  repository should voluntarily target stronger quality practices where they
+  improve the HACS integration and reduce future upstream work.
+- Treat complete behavioral coverage of supported `config_flow.py` paths as a
+  project target, including user, reauth, reconfigure, subentry, options, and
+  recovery-after-error behavior where present.
+- Target more than 95% statement coverage for each meaningful integration
+  module, measured per module rather than only as a repository-wide aggregate.
+- Do not game coverage. Prefer tests that protect supported behavior, identity,
+  privacy, lifecycle, retry, cancellation, and conservative failure semantics.
+  Do not add artificial monkeypatch-only tests solely to execute code that
+  cannot occur on supported Home Assistant.
+- When a coverage gap appears unreachable because a supported Home Assistant API
+  always exists or has a stronger contract, demonstrate that first. Then either
+  keep the fallback explicitly justified or remove/refactor it in a dedicated,
+  reviewed cleanup; never alter unrelated runtime merely to satisfy a number.
+- Prefer public Home Assistant APIs and current Core idioms so that HACS code
+  does not accumulate avoidable upstream-port debt.
+- Do not remove diagnostics, custom actions, reauth/reconfigure, migration, or
+  other working HACS features merely because Home Assistant recommends a small
+  initial Core PR. The future Core contribution should be scoped separately,
+  normally starting with the minimum useful platform and adding non-essential
+  features in later upstream PRs.
+- Home Assistant Core expects communication with an external service to live in
+  a separate Python library. The current in-repository `GooglePollenApiClient`
+  remains part of the HACS architecture until a dedicated library-extraction
+  effort is planned and reviewed. Do not split it out as collateral work.
+- Keep this custom repository's translation contract unchanged:
+  `translations/en.json` remains the source of truth and `strings.json` must not
+  be introduced here. A future Core port will adapt translations to the Core
+  repository conventions at that boundary.
+- Existing v2-to-v3 migration and registry identity guarantees remain part of
+  the HACS production contract. Do not simplify or remove them merely to make a
+  future Core contribution smaller.
+- Before any upstream submission, run a dedicated Core-readiness audit against
+  the then-current Bronze/Quality Scale checklist, dependency-transparency and
+  library requirements, manifest/branding/docs requirements, coverage, and
+  initial-PR scope.
+- If a future Core requirement conflicts with a current HACS public contract,
+  report and track the discrepancy explicitly. Do not silently change HACS
+  behavior in the name of Core readiness.
+
 ## v3 architecture invariants
 
 The current storage/runtime model is deliberate and must not be flattened back
