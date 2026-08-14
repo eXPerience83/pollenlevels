@@ -134,7 +134,6 @@ def test_legacy_coordinate_validation_recovers_after_malformed_input(
 ) -> None:
     """Legacy coordinate validation should recover on corrected resubmission."""
 
-    module = config_flow_stubs.config_flow
     calls = config_flow_tests._patch_client_fetch(config_flow_stubs, monkeypatch)
     flow = config_flow_stubs.PollenLevelsConfigFlow()
     flow.hass = SimpleNamespace()
@@ -167,4 +166,77 @@ def test_legacy_coordinate_validation_recovers_after_malformed_input(
     assert normalized is not None
     assert normalized[config_flow_stubs.CONF_LATITUDE] == 1.0
     assert normalized[config_flow_stubs.CONF_LONGITUDE] == 2.0
+    assert len(calls) == 1
+
+
+def test_location_reconfigure_step_recovers_after_invalid_coordinates(
+    config_flow_stubs: config_flow_tests.ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The defensive reconfigure branch should accept corrected direct input."""
+
+    module = config_flow_stubs.config_flow
+    config_subentry = module.config_entries.ConfigSubentry
+    subentry = config_subentry(
+        subentry_id="location-madrid",
+        subentry_type="location",
+        title="Madrid",
+        unique_id="40.4168_-3.7038",
+        data={
+            config_flow_stubs.CONF_LATITUDE: 40.4168,
+            config_flow_stubs.CONF_LONGITUDE: -3.7038,
+        },
+    )
+    entry = config_flow_stubs.StubConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "synthetic-api-key"},
+        subentries={subentry.subentry_id: subentry},
+    )
+    flow = module.PollenLevelsLocationSubentryFlow()
+    flow.hass = SimpleNamespace(
+        config=SimpleNamespace(
+            latitude=40.4168,
+            longitude=-3.7038,
+            language="en",
+            location_name="Home",
+        ),
+        config_entries=SimpleNamespace(async_schedule_reload=lambda _entry_id: None),
+    )
+    flow._get_entry = lambda: entry  # type: ignore[method-assign]
+    flow._get_reconfigure_subentry = lambda: subentry  # type: ignore[method-assign]
+
+    result = asyncio.run(
+        flow.async_step_reconfigure(
+            {
+                config_flow_stubs.CONF_NAME: "Broken",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: "north",
+                    config_flow_stubs.CONF_LONGITUDE: 2.1686,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "reconfigure"
+    assert result["errors"] == {
+        config_flow_stubs.CONF_LOCATION: "invalid_coordinates"
+    }
+
+    calls = config_flow_tests._patch_client_fetch(config_flow_stubs, monkeypatch)
+    result = asyncio.run(
+        flow.async_step_reconfigure(
+            {
+                config_flow_stubs.CONF_NAME: "Barcelona",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 41.3874,
+                    config_flow_stubs.CONF_LONGITUDE: 2.1686,
+                },
+            }
+        )
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+    assert subentry.title == "Barcelona"
+    assert subentry.unique_id == "41.3874_2.1686"
     assert len(calls) == 1
