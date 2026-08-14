@@ -178,9 +178,10 @@ Use the repository's current locked toolchain rather than remembered versions
 from older releases.
 
 - Use the exact Python patch from `.python-version` for local development and
-  modern CI parity. The package metadata keeps `requires-python` at `>=3.14`;
-  do not infer support for every 3.14 patch when the pinned Home Assistant
-  harness requires a newer patch.
+  modern CI parity. Home Assistant 2026.3 requires Python >=3.14.2. The package
+  metadata keeps `requires-python` at `>=3.14`; do not infer runtime support for
+  earlier 3.14 patch releases when the pinned Home Assistant harness requires a
+  newer patch.
 - Repository development and test validation use Linux or Linux containers. On
   Windows, use WSL2; native Windows Python/pytest is outside the validation
   contract.
