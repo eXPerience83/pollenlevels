@@ -86,8 +86,8 @@ branding requirements, documentation, test coverage, and initial-PR scope.
   updates after a 72-hour release age. Home Assistant harness compatibility pins
   (`pytest-homeassistant-custom-component`, `homeassistant`, `pytest`, and
   `pytest-asyncio`) are intentionally owner-managed and excluded from Renovate;
-  review and update them together when compatibility metadata requires it.
-  `uv.lock` maintenance is reviewed weekly.
+  review and update them together in a dedicated owner-reviewed compatibility
+  change. `uv.lock` maintenance is reviewed weekly.
 - Required CI is locked and reproducible. The daily latest-Home-Assistant canary
   is intentionally non-reproducible and advisory: it resolves the newest stable
   harness for early warning but never updates committed pins or blocks normal
