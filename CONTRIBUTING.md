@@ -16,22 +16,30 @@ the upstream reference for that work:
 - [Full config-flow test coverage](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/config-flow-test-coverage/)
 - [Above 95% test coverage for all integration modules](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/test-coverage/)
 
-New Core integrations currently need to meet the Bronze quality tier. This
-repository deliberately aims beyond that minimum where doing so improves the
-existing integration and reduces future upstream work. In particular:
+New Core integrations currently need to meet the Bronze quality tier. Bronze
+already includes full config-flow test coverage, above 95% test coverage for all
+integration modules, and dependency transparency. Treat those as baseline
+Core-readiness requirements, not as higher-tier extras.
 
-- supported `config_flow.py` behavior should have complete behavioral test
-  coverage, including recovery after errors;
-- integration modules should target more than 95% statement coverage, measured
-  per module rather than only as a repository-wide total;
+For this repository:
+
+- `config_flow.py` should reach literal 100% statement coverage, including error
+  recovery and all supported user, reauth, reconfigure, subentry, and options
+  behavior;
+- every integration module should exceed 95% statement coverage, measured per
+  module rather than only as a repository-wide total;
 - tests should protect real behavior, identity, privacy, lifecycle, retry, and
   failure semantics rather than merely execute lines to improve a percentage;
-- unreachable compatibility or test-stub fallbacks should be demonstrated and
-  reviewed instead of being covered by artificial tests solely for a coverage
-  gate;
+- code proven unreachable on supported Home Assistant should be reviewed for a
+  dedicated cleanup/refactor rather than covered by artificial tests or silently
+  excluded from the target;
 - supported public Home Assistant APIs, async patterns, typing conventions, and
   Home Assistant harness tests are preferred whenever they represent the real
   integration surface.
+
+The project may adopt higher-tier Quality Scale practices when they improve the
+current HACS integration or reduce future upstream work, but that must not make a
+future initial Core pull request unnecessarily large.
 
 Core readiness does **not** mean reducing the HACS integration to the size of a
 future initial Core pull request. Home Assistant recommends that a new Core
