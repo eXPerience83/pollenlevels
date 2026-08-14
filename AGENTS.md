@@ -43,37 +43,29 @@ used by existing users.
 - Treat the current official Home Assistant developer documentation and
   Integration Quality Scale as the upstream reference. Re-check requirements
   before making Core-readiness claims because those rules evolve.
-- New Core integrations currently must meet the Bronze quality tier. Treat Bronze
-  as the minimum readiness baseline, including full `config_flow.py` test
-  coverage, above 95% test coverage for all integration modules, and dependency
-  transparency; do not describe those baseline rules as beyond Bronze.
-- For this repository, target literal 100% statement coverage in `config_flow.py`
-  and above 95% statement coverage in every integration module, measured per
-  module rather than only as a repository-wide aggregate.
+- New Core integrations currently must meet Bronze. Treat its rules as the
+  minimum readiness baseline, including full `config_flow.py` coverage, above
+  95% coverage for all integration modules, and dependency transparency.
+- Target literal 100% statement coverage in `config_flow.py` and above 95%
+  statement coverage in every integration module, measured per module rather
+  than only as a repository-wide aggregate.
 - Do not game coverage. Prefer tests that protect supported behavior, identity,
   privacy, lifecycle, retry, cancellation, and conservative failure semantics.
   If code is proven unreachable on supported Home Assistant, prefer a dedicated
-  cleanup/refactor or an explicit reviewed decision rather than fake tests or a
+  cleanup/refactor or explicit reviewed decision rather than fake tests or a
   silent module exemption.
 - Prefer supported public Home Assistant APIs and current Core idioms so that the
   HACS code does not accumulate avoidable upstream-port debt.
-- Do not remove diagnostics, custom actions, reauth/reconfigure, migration, or
-  other working HACS features merely because Home Assistant recommends a small
-  initial Core PR. Scope the future Core contribution separately, starting with
-  the minimum useful platform/features required by then-current upstream rules.
-- Home Assistant Core expects communication with an external service to live in
-  a separate Python library. Keep the current in-repository
-  `GooglePollenApiClient` until a dedicated library-extraction effort is planned
-  and reviewed; do not split it out as collateral work.
-- Keep the current HACS translation and migration contracts intact in this
-  repository. Adapt repository structure and any HACS-only compatibility surface
-  only as part of the future Core-port plan, not as incidental cleanup.
+- Preserve working HACS features and compatibility contracts. Scope the future
+  Core contribution separately according to the then-current upstream rules.
+- Keep the current in-repository `GooglePollenApiClient` until a dedicated,
+  reviewed library-extraction effort is planned; Core expects external-service
+  communication to live in a separate Python library.
 - Before any upstream submission, run a dedicated Core-readiness audit against
   the then-current Quality Scale, dependency/library requirements,
   manifest/branding/docs requirements, coverage, and initial-PR scope.
 - If a future Core requirement conflicts with a current HACS public contract,
-  report and track the discrepancy explicitly instead of silently changing HACS
-  behavior in the name of Core readiness.
+  report and track it explicitly instead of silently changing HACS behavior.
 
 ## v3 architecture invariants
 
