@@ -44,8 +44,9 @@ used by existing users.
   Integration Quality Scale as the upstream reference. Re-check requirements
   before making Core-readiness claims because those rules evolve.
 - New Core integrations currently must meet Bronze. Treat its rules as the
-  minimum readiness baseline, including full `config_flow.py` coverage, above
-  95% coverage for all integration modules, and dependency transparency.
+  minimum readiness baseline, including full `config_flow.py` coverage and
+  dependency transparency. Above 95% coverage for all integration modules is a
+  Silver rule; this repository targets it proactively.
 - Target literal 100% statement coverage in `config_flow.py` and above 95%
   statement coverage in every integration module, measured per module rather
   than only as a repository-wide aggregate.
