@@ -17,9 +17,9 @@ the upstream reference for that work:
 - [Above 95% test coverage for all integration modules](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/test-coverage/)
 
 New Core integrations currently need to meet the Bronze quality tier. Bronze
-already includes full config-flow test coverage, above 95% test coverage for all
-integration modules, and dependency transparency. Treat those as baseline
-Core-readiness requirements, not as higher-tier extras.
+includes full config-flow test coverage and dependency transparency. Above 95%
+test coverage for all integration modules is a Silver rule; this repository
+adopts that stricter target proactively as part of its Core-readiness work.
 
 For this repository:
 
@@ -65,9 +65,10 @@ branding requirements, documentation, test coverage, and initial-PR scope.
 
 ## Development environment
 
-- The integration targets Python 3.14+, matching the Home Assistant 2026.3
-  runtime baseline. Use the exact patch in `.python-version` for local
-  development and CI parity.
+- Home Assistant 2026.3 requires Python >=3.14.2. Use the exact patch in
+  `.python-version` for local development and CI parity; the repository project
+  metadata intentionally remains at `requires-python = ">=3.14"`, while the
+  locked Home Assistant test environment is constrained to Python 3.14.2+.
 - Development and test validation are supported on Linux and Linux containers.
   On Windows, use WSL2 and run the Linux commands from within WSL2; native
   Windows Python/pytest is not part of the project validation contract. This
@@ -81,9 +82,11 @@ branding requirements, documentation, test coverage, and initial-PR scope.
   dependency group. Run `uv run --locked --no-sync ruff check .` and
   `uv run --locked --no-sync ruff format --check .`.
 - Direct validation dependencies are exact and Renovate proposes reviewed
-  updates after a 72-hour release age. The Home Assistant harness lane updates
-  its paired Home Assistant, pytest, and pytest-asyncio pins only when its
-  published metadata requires it; `uv.lock` maintenance is reviewed weekly.
+  updates after a 72-hour release age. Home Assistant harness compatibility pins
+  (`pytest-homeassistant-custom-component`, `homeassistant`, `pytest`, and
+  `pytest-asyncio`) are intentionally owner-managed and excluded from Renovate;
+  review and update them together when compatibility metadata requires it.
+  `uv.lock` maintenance is reviewed weekly.
 - Required CI is locked and reproducible. The daily latest-Home-Assistant canary
   is intentionally non-reproducible and advisory: it resolves the newest stable
   harness for early warning but never updates committed pins or blocks normal
