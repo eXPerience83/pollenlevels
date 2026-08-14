@@ -218,9 +218,7 @@ def test_location_reconfigure_step_recovers_after_invalid_coordinates(
 
     assert result["type"] == "form"
     assert result["step_id"] == "reconfigure"
-    assert result["errors"] == {
-        config_flow_stubs.CONF_LOCATION: "invalid_coordinates"
-    }
+    assert result["errors"] == {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"}
 
     calls = config_flow_tests._patch_client_fetch(config_flow_stubs, monkeypatch)
     result = asyncio.run(
