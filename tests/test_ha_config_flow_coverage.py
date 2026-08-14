@@ -108,6 +108,7 @@ async def test_ha_parent_api_key_flow_tries_next_location_after_invalid_coordina
     socket_enabled: None,
     fake_api_key: str,
     google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
     source: str,
     reason: str,
 ) -> None:
@@ -147,6 +148,10 @@ async def test_ha_parent_api_key_flow_tries_next_location_after_invalid_coordina
         version=6,
     )
     entry.add_to_hass(hass)
+    scheduled_reloads: list[str] = []
+    monkeypatch.setattr(
+        hass.config_entries, "async_schedule_reload", scheduled_reloads.append
+    )
 
     result = await _start_parent_api_key_flow(entry, hass, source)
     assert result["type"] is FlowResultType.FORM
@@ -162,6 +167,7 @@ async def test_ha_parent_api_key_flow_tries_next_location_after_invalid_coordina
     assert result["reason"] == reason
     assert entry.data == {CONF_API_KEY: new_api_key}
     assert entry.unique_id == api_key_unique_id(new_api_key)
+    assert scheduled_reloads == [entry.entry_id]
 
 
 @pytest.mark.parametrize(
@@ -229,6 +235,7 @@ async def test_ha_location_subentry_reconfigure_recovers_after_invalid_parent_ke
     fake_api_key: str,
     sample_location_subentry_data: dict[str, Any],
     google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Location reconfigure should recover after the parent key is repaired."""
 
@@ -245,6 +252,10 @@ async def test_ha_location_subentry_reconfigure_recovers_after_invalid_parent_ke
     )
     entry.add_to_hass(hass)
     subentry = entry.subentries["location-madrid"]
+    scheduled_reloads: list[str] = []
+    monkeypatch.setattr(
+        hass.config_entries, "async_schedule_reload", scheduled_reloads.append
+    )
 
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, SUBENTRY_TYPE_LOCATION),
@@ -279,4 +290,11 @@ async def test_ha_location_subentry_reconfigure_recovers_after_invalid_parent_ke
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
-    assert entry.subentries["location-madrid"].title == "Barcelona"
+    updated = entry.subentries["location-madrid"]
+    assert updated.title == "Barcelona"
+    assert updated.unique_id == "41.3874_2.1686"
+    assert dict(updated.data) == {
+        CONF_LATITUDE: 41.3874,
+        CONF_LONGITUDE: 2.1686,
+    }
+    assert scheduled_reloads == [entry.entry_id]
