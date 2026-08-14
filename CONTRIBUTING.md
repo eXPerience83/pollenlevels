@@ -66,9 +66,10 @@ branding requirements, documentation, test coverage, and initial-PR scope.
 ## Development environment
 
 - Home Assistant 2026.3 requires Python >=3.14.2. Use the exact patch in
-  `.python-version` for local development and CI parity; the repository project
-  metadata intentionally remains at `requires-python = ">=3.14"`, while the
-  locked Home Assistant test environment is constrained to Python 3.14.2+.
+  `.python-version` for local development and CI parity. The project metadata
+  remains `requires-python = ">=3.14"`, but the locked Home Assistant test
+  environment is constrained to Python 3.14.2+; do not infer runtime support for
+  earlier Python 3.14 patch releases.
 - Development and test validation are supported on Linux and Linux containers.
   On Windows, use WSL2 and run the Linux commands from within WSL2; native
   Windows Python/pytest is not part of the project validation contract. This
