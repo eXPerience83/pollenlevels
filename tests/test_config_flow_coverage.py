@@ -191,6 +191,7 @@ def test_location_reconfigure_step_recovers_after_invalid_coordinates(
         data={config_flow_stubs.CONF_API_KEY: "synthetic-api-key"},
         subentries={subentry.subentry_id: subentry},
     )
+    scheduled_reloads: list[str] = []
     flow = module.PollenLevelsLocationSubentryFlow()
     flow.hass = SimpleNamespace(
         config=SimpleNamespace(
@@ -199,7 +200,7 @@ def test_location_reconfigure_step_recovers_after_invalid_coordinates(
             language="en",
             location_name="Home",
         ),
-        config_entries=SimpleNamespace(async_schedule_reload=lambda _entry_id: None),
+        config_entries=SimpleNamespace(async_schedule_reload=scheduled_reloads.append),
     )
     flow._get_entry = lambda: entry  # type: ignore[method-assign]
     flow._get_reconfigure_subentry = lambda: subentry  # type: ignore[method-assign]
@@ -237,4 +238,9 @@ def test_location_reconfigure_step_recovers_after_invalid_coordinates(
     assert result["reason"] == "reconfigure_successful"
     assert subentry.title == "Barcelona"
     assert subentry.unique_id == "41.3874_2.1686"
+    assert subentry.data == {
+        config_flow_stubs.CONF_LATITUDE: 41.3874,
+        config_flow_stubs.CONF_LONGITUDE: 2.1686,
+    }
+    assert scheduled_reloads == [entry.entry_id]
     assert len(calls) == 1
