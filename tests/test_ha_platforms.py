@@ -72,6 +72,39 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
         )
 
 
+async def test_ha_forecast_derived_current_day_sensors_have_no_state_class(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    ha_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+) -> None:
+    """Current-day forecast values should not claim measurement semantics."""
+    clear_integration_modules()
+    entry = ha_config_entry
+    entry.add_to_hass(hass)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    registry = er.async_get(hass)
+    entity_ids_by_unique_id = {
+        entity.unique_id: entity.entity_id
+        for entity in er.async_entries_for_config_entry(registry, entry.entry_id)
+        if entity.domain == "sensor" and entity.config_subentry_id == "location-madrid"
+    }
+    identity_id = f"{entry.entry_id}_location-madrid"
+
+    for unique_id in (
+        f"{identity_id}_type_grass",
+        f"{identity_id}_overall_pollen_risk_today",
+    ):
+        state = hass.states.get(entity_ids_by_unique_id[unique_id])
+        assert state is not None
+        assert "state_class" not in state.attributes
+
+
 async def test_ha_button_press_refreshes_only_location_coordinator(
     hass: HomeAssistant,
     enable_custom_integrations: None,

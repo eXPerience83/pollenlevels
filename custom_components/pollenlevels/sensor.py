@@ -277,8 +277,8 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
 
     # Keep forecast attributes available in live state but exclude from Recorder.
     _unrecorded_attributes = _FORECAST_UNRECORDED_ATTRIBUTES
-    # Enable long-term statistics for numeric pollen index values
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    # Google exposes this value as current-day forecast data, not a measurement.
+    _attr_state_class: SensorStateClass | None = None
     # Hint the UI to show integers (does not affect recorder/statistics)
     _attr_suggested_display_precision = 0  # type: ignore[assignment]
     # Modern friendly name composition: Device name + Entity short name
@@ -482,7 +482,8 @@ class OverallPollenRiskTodaySensor(_BaseSummarySensor):
     _unrecorded_attributes = _FORECAST_UNRECORDED_ATTRIBUTES
     _attr_translation_key = "overall_pollen_risk_today"
     _attr_icon = DEFAULT_ICON
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    # This summary is derived from the same current-day forecast values.
+    _attr_state_class: SensorStateClass | None = None
     _attr_suggested_display_precision = 0  # type: ignore[assignment]
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:
