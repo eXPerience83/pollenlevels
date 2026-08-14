@@ -157,8 +157,9 @@ async def test_ha_parent_api_key_flow_tries_next_location_after_invalid_coordina
     assert result["type"] is FlowResultType.FORM
 
     new_api_key = f"{fake_api_key}-{source}"
+    captured_params: list[dict[str, Any]] = []
     async with aiointercept(mock_external_urls=True) as mocked:
-        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        mock_pollen_api(mocked, google_pollen_5_day_payload, captured_params)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {CONF_API_KEY: new_api_key}
         )
@@ -168,6 +169,9 @@ async def test_ha_parent_api_key_flow_tries_next_location_after_invalid_coordina
     assert entry.data == {CONF_API_KEY: new_api_key}
     assert entry.unique_id == api_key_unique_id(new_api_key)
     assert scheduled_reloads == [entry.entry_id]
+    assert len(captured_params) == 1
+    assert captured_params[0]["location.latitude"] == "41.387400"
+    assert captured_params[0]["location.longitude"] == "2.168600"
 
 
 @pytest.mark.parametrize(
