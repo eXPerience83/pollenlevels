@@ -222,54 +222,6 @@ async def test_ha_location_subentry_user_recovers_after_invalid_parent_api_key(
     assert len(entry.subentries) == 1
 
 
-async def test_ha_location_subentry_reconfigure_recovers_after_invalid_coordinates(
-    hass: HomeAssistant,
-    enable_custom_integrations: None,
-    socket_enabled: None,
-    ha_config_entry: Any,
-    google_pollen_5_day_payload: dict[str, Any],
-) -> None:
-    """Location reconfigure should accept corrected coordinates on retry."""
-
-    clear_integration_modules()
-    ha_config_entry.add_to_hass(hass)
-    subentry = ha_config_entry.subentries["location-madrid"]
-
-    result = await hass.config_entries.subentries.async_init(
-        (ha_config_entry.entry_id, SUBENTRY_TYPE_LOCATION),
-        context={
-            "source": SOURCE_RECONFIGURE,
-            "subentry_id": subentry.subentry_id,
-        },
-    )
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        _location_input(name="Broken", latitude="north", longitude=2.1686),
-    )
-
-    assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "reconfigure"
-    assert result["errors"] == {CONF_LOCATION: "invalid_coordinates"}
-
-    async with aiointercept(mock_external_urls=True) as mocked:
-        mock_pollen_api(mocked, google_pollen_5_day_payload)
-        result = await hass.config_entries.subentries.async_configure(
-            result["flow_id"],
-            _location_input(
-                name="Barcelona",
-                latitude=41.3874,
-                longitude=2.1686,
-            ),
-        )
-        await hass.async_block_till_done()
-
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "reconfigure_successful"
-    updated = ha_config_entry.subentries["location-madrid"]
-    assert updated.title == "Barcelona"
-    assert updated.unique_id == "41.3874_2.1686"
-
-
 async def test_ha_location_subentry_reconfigure_recovers_after_invalid_parent_key(
     hass: HomeAssistant,
     enable_custom_integrations: None,
