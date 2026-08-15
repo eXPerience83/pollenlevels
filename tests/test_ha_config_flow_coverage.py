@@ -73,26 +73,45 @@ async def test_ha_user_flow_recovers_after_invalid_language(
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input
-    )
+    invalid_params: list[dict[str, Any]] = []
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload, invalid_params)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input
+        )
 
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
     assert result["errors"] == {CONF_LANGUAGE_CODE: "invalid_language_format"}
+    assert invalid_params == []
 
     corrected_input = {**user_input, CONF_LANGUAGE_CODE: "es"}
+    corrected_params: list[dict[str, Any]] = []
     async with aiointercept(mock_external_urls=True) as mocked:
-        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        mock_pollen_api(mocked, google_pollen_5_day_payload, corrected_params)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], corrected_input
         )
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert corrected_params
+    assert all(
+        params["location.latitude"] == "40.416800" for params in corrected_params
+    )
+    assert all(
+        params["location.longitude"] == "-3.703800" for params in corrected_params
+    )
     entry = result["result"]
     assert entry.data == {CONF_API_KEY: fake_api_key}
     assert entry.options[CONF_LANGUAGE_CODE] == "es"
     assert len(entry.subentries) == 1
+    subentry = next(iter(entry.subentries.values()))
+    assert subentry.title == "Madrid"
+    assert subentry.unique_id == "40.4168_-3.7038"
+    assert dict(subentry.data) == {
+        CONF_LATITUDE: 40.4168,
+        CONF_LONGITUDE: -3.7038,
+    }
 
 
 @pytest.mark.parametrize(
@@ -208,28 +227,47 @@ async def test_ha_location_subentry_user_recovers_after_invalid_parent_api_key(
         context={"source": SOURCE_USER},
     )
     user_input = _location_input(name="Garden", latitude=41.3874, longitude=2.1686)
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], user_input
-    )
+    invalid_params: list[dict[str, Any]] = []
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload, invalid_params)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], user_input
+        )
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
     assert result["description_placeholders"] == {"error_message": "Invalid API key."}
+    assert invalid_params == []
 
     hass.config_entries.async_update_entry(
         entry,
         data={CONF_API_KEY: fake_api_key},
         unique_id=api_key_unique_id(fake_api_key),
     )
+    corrected_params: list[dict[str, Any]] = []
     async with aiointercept(mock_external_urls=True) as mocked:
-        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        mock_pollen_api(mocked, google_pollen_5_day_payload, corrected_params)
         result = await hass.config_entries.subentries.async_configure(
             result["flow_id"], user_input
         )
         await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert corrected_params
+    assert all(
+        params["location.latitude"] == "41.387400" for params in corrected_params
+    )
+    assert all(
+        params["location.longitude"] == "2.168600" for params in corrected_params
+    )
     assert len(entry.subentries) == 1
+    created = next(iter(entry.subentries.values()))
+    assert created.title == "Garden"
+    assert created.unique_id == "41.3874_2.1686"
+    assert dict(created.data) == {
+        CONF_LATITUDE: 41.3874,
+        CONF_LONGITUDE: 2.1686,
+    }
 
 
 async def test_ha_location_subentry_reconfigure_recovers_after_invalid_parent_key(
@@ -273,27 +311,36 @@ async def test_ha_location_subentry_reconfigure_recovers_after_invalid_parent_ke
         latitude=41.3874,
         longitude=2.1686,
     )
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], user_input
-    )
+    invalid_params: list[dict[str, Any]] = []
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload, invalid_params)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], user_input
+        )
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
     assert result["description_placeholders"] == {"error_message": "Invalid API key."}
+    assert invalid_params == []
+    assert scheduled_reloads == []
 
     hass.config_entries.async_update_entry(
         entry,
         data={CONF_API_KEY: fake_api_key},
         unique_id=api_key_unique_id(fake_api_key),
     )
+    corrected_params: list[dict[str, Any]] = []
     async with aiointercept(mock_external_urls=True) as mocked:
-        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        mock_pollen_api(mocked, google_pollen_5_day_payload, corrected_params)
         result = await hass.config_entries.subentries.async_configure(
             result["flow_id"], user_input
         )
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
+    assert len(corrected_params) == 1
+    assert corrected_params[0]["location.latitude"] == "41.387400"
+    assert corrected_params[0]["location.longitude"] == "2.168600"
     updated = entry.subentries["location-madrid"]
     assert updated.title == "Barcelona"
     assert updated.unique_id == "41.3874_2.1686"
