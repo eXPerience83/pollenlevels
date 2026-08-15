@@ -97,6 +97,27 @@ def test_location_schema_supports_missing_home_assistant_default(
     assert captured_defaults == [_MISSING]
 
 
+def test_duplicate_location_scan_ignores_matching_unrelated_subentry(
+    config_flow_stubs: config_flow_tests.ConfigFlowStubs,
+) -> None:
+    """A matching non-location subentry should not be treated as a duplicate."""
+
+    module = config_flow_stubs.config_flow
+    config_subentry = module.config_entries.ConfigSubentry
+    target_unique_id = "12.3456_-65.4321"
+    entry = config_flow_stubs.StubConfigEntry(
+        subentries={
+            "unrelated": config_subentry(
+                subentry_id="unrelated",
+                subentry_type="other",
+                unique_id=target_unique_id,
+            )
+        }
+    )
+
+    assert not module._has_duplicate_location(entry, target_unique_id)
+
+
 def test_duplicate_location_scan_ignores_unrelated_subentries(
     config_flow_stubs: config_flow_tests.ConfigFlowStubs,
 ) -> None:
