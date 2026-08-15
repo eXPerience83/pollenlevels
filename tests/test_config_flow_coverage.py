@@ -188,6 +188,8 @@ def test_legacy_coordinate_validation_recovers_after_malformed_input(
     assert normalized[config_flow_stubs.CONF_LATITUDE] == 1.0
     assert normalized[config_flow_stubs.CONF_LONGITUDE] == 2.0
     assert len(calls) == 1
+    assert calls[0]["latitude"] == 1.0
+    assert calls[0]["longitude"] == 2.0
 
 
 def test_location_reconfigure_step_recovers_after_invalid_coordinates(
@@ -213,6 +215,7 @@ def test_location_reconfigure_step_recovers_after_invalid_coordinates(
         subentries={subentry.subentry_id: subentry},
     )
     scheduled_reloads: list[str] = []
+    calls = config_flow_tests._patch_client_fetch(config_flow_stubs, monkeypatch)
     flow = module.PollenLevelsLocationSubentryFlow()
     flow.hass = SimpleNamespace(
         config=SimpleNamespace(
@@ -241,8 +244,9 @@ def test_location_reconfigure_step_recovers_after_invalid_coordinates(
     assert result["type"] == "form"
     assert result["step_id"] == "reconfigure"
     assert result["errors"] == {config_flow_stubs.CONF_LOCATION: "invalid_coordinates"}
+    assert calls == []
+    assert scheduled_reloads == []
 
-    calls = config_flow_tests._patch_client_fetch(config_flow_stubs, monkeypatch)
     result = asyncio.run(
         flow.async_step_reconfigure(
             {
@@ -265,3 +269,5 @@ def test_location_reconfigure_step_recovers_after_invalid_coordinates(
     }
     assert scheduled_reloads == [entry.entry_id]
     assert len(calls) == 1
+    assert calls[0]["latitude"] == 41.3874
+    assert calls[0]["longitude"] == 2.1686
