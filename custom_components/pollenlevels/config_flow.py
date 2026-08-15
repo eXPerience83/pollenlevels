@@ -797,8 +797,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.ConfigFlowResult:
         """Prompt for a refreshed API key and validate it."""
         entry = self._get_reauth_entry()
-        if entry is None:
-            return self.async_abort(reason="reauth_failed")
         return await self._async_handle_api_key_confirm(
             entry=entry,
             step_id="reauth_confirm",
@@ -811,8 +809,6 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.ConfigFlowResult:
         """Prompt for a refreshed API key from the reconfigure UI."""
         entry = self._get_reconfigure_entry()
-        if entry is None:
-            return self.async_abort(reason="reconfigure_failed")
         return await self._async_handle_api_key_confirm(
             entry=entry,
             step_id="reconfigure",
