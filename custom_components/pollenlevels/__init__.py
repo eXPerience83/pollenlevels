@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .client import GooglePollenApiClient
+from .client import GooglePollenApiClient, PollenTransportError
 from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS as CONF_CREATE_FORECAST_SENSORS,
@@ -75,6 +75,7 @@ _LOGGER = logging.getLogger(__name__)
 TARGET_ENTRY_VERSION = 6
 _SETUP_FAILURE_REASON_MAX_LENGTH = 240
 _SETUP_RETRY_FAILURES_DATA_KEY = "setup_retry_failures"
+_MAX_CONSECUTIVE_TRANSPORT_SETUP_FAILURES = 2
 _NON_RETRYABLE_SETUP_FAILURE_TYPES = frozenset({"InvalidStoredLocation"})
 PLATFORMS = ["sensor", "button"]
 
@@ -479,6 +480,7 @@ async def async_setup_entry(
     locations: dict[str, PollenLocationRuntime] = {}
     failed_locations: dict[str, PollenLocationSetupFailure] = {}
     has_legacy_invalid_location_issue = False
+    consecutive_transport_failures = 0
     for subentry_id, title, data, legacy_entry_id in location_configs:
         raw_lat = data.get(CONF_LATITUDE)
         raw_lon = data.get(CONF_LONGITUDE)
@@ -543,6 +545,10 @@ async def async_setup_entry(
         except ConfigEntryAuthFailed:
             raise
         except ConfigEntryNotReady as err:
+            if isinstance(err.__cause__, PollenTransportError):
+                consecutive_transport_failures += 1
+            else:
+                consecutive_transport_failures = 0
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
             )
@@ -562,8 +568,16 @@ async def async_setup_entry(
                 latitude=lat,
                 longitude=lon,
             )
+            if (
+                consecutive_transport_failures
+                >= _MAX_CONSECUTIVE_TRANSPORT_SETUP_FAILURES
+            ):
+                raise ConfigEntryNotReady(
+                    "Google Pollen API transport unavailable for multiple locations"
+                ) from err
             continue
         except Exception as err:
+            consecutive_transport_failures = 0
             safe_message = redact_sensitive_values(
                 err, api_key=api_key, latitude=lat, longitude=lon
             )
@@ -585,6 +599,7 @@ async def async_setup_entry(
             )
             continue
 
+        consecutive_transport_failures = 0
         if not _coordinator_has_usable_initial_data(coordinator):
             reason = "API response missing usable pollen data"
             _LOGGER.warning(
