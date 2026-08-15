@@ -1031,9 +1031,11 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
                 )
                 errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
             except Exception as err:  # defensive
-                _LOGGER.exception(
-                    "Options validation error: %s",
-                    redact_api_key(err, self.config_entry.data.get(CONF_API_KEY)),
+                _LOGGER.error(
+                    "Options validation error (%s): %s",
+                    type(err).__name__,
+                    redact_api_key(err, self.config_entry.data.get(CONF_API_KEY))
+                    or "no error details",
                 )
                 errors["base"] = "unknown"
 
