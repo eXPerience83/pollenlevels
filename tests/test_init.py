@@ -1179,17 +1179,18 @@ async def test_setup_entry_invalid_location_does_not_reset_transport_failure_cou
 ) -> None:
     """A skipped invalid location should not break consecutive request failures."""
     integration = integration_modules.integration
-    subentries = _location_subentries(
-        integration,
-        "first-transport",
-        "invalid-location",
-        "second-transport",
-        "later-location",
+    subentries = _location_subentries(integration, "first-transport")
+    subentries["invalid-location"] = integration.ConfigSubentry(
+        data={
+            integration.CONF_LATITUDE: 91.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="invalid-location",
+        title="invalid-location",
     )
-    subentries["invalid-location"].data = {
-        integration.CONF_LATITUDE: 91.0,
-        integration.CONF_LONGITUDE: 2.0,
-    }
+    subentries.update(
+        _location_subentries(integration, "second-transport", "later-location")
+    )
     entry = _FakeEntry(
         integration,
         data={integration.CONF_API_KEY: "synthetic-key"},

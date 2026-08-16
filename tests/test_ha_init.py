@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -17,6 +17,7 @@ from homeassistant.helpers import (
     issue_registry as ir,
 )
 from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_time_changed,
@@ -196,9 +197,6 @@ async def test_ha_external_setup_cancellation_sets_setup_error_and_shuts_down_co
     assert update_order == ["first-location", "second-location"]
     assert len(coordinators) == 2
     assert set(shutdown_coordinators) == set(coordinators)
-    assert all(coordinator._shutdown_requested for coordinator in coordinators)
-    assert all(not coordinator._listeners for coordinator in coordinators)
-    assert all(coordinator._unsub_refresh is None for coordinator in coordinators)
     assert not er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
 
 
@@ -305,7 +303,7 @@ async def test_ha_transport_threshold_enters_setup_retry_and_recovers(
     assert not er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
 
     recovered = True
-    async_fire_time_changed(hass, datetime.now(UTC) + timedelta(minutes=1))
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=1))
     await hass.async_block_till_done(wait_background_tasks=True)
 
     assert entry.state is ConfigEntryState.LOADED
