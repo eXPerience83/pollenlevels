@@ -230,6 +230,7 @@ def test_exact_uv_and_dependency_groups_are_declared() -> None:
     assert set(test) == {
         "pytest",
         "pytest-asyncio",
+        "pytest-cov",
         "aiointercept",
         "packaging",
         "pytest-homeassistant-custom-component",
