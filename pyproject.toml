@@ -13,6 +13,7 @@ lint = [
 test = [
     "pytest==9.0.3",
     "pytest-asyncio==1.4.0",
+    "pytest-cov==7.1.0",
     "aiointercept==0.1.9",
     "packaging==26.3",
     "pytest-homeassistant-custom-component==0.13.354",

@@ -55,10 +55,14 @@ jobs:
           set -euo pipefail
           uv run --locked --no-sync python -m compileall -q custom_components tests
 
-      - name: Run tests
+      - name: Run tests with statement coverage
         shell: bash
         env:
           PYTHONPATH: .
         run: |
           set -euo pipefail
-          uv run --locked --no-sync python -m pytest -q
+          uv run --locked --no-sync python -m pytest -q \
+            --cov=custom_components.pollenlevels \
+            --cov-report=term-missing \
+            --cov-report=json:coverage.json
+          uv run --locked --no-sync python scripts/check_coverage.py coverage.json
