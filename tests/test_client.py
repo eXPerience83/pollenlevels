@@ -158,10 +158,12 @@ class RaisingSession:
 
     def __init__(self, error: Exception) -> None:
         self.error = error
+        self.calls = 0
 
     def get(self, *_args: Any, **_kwargs: Any) -> FakeResponse:
         """Raise the configured error."""
 
+        self.calls += 1
         raise self.error
 
 
@@ -322,6 +324,79 @@ async def test_client_redacts_sensitive_values_from_client_error(
     assert str(latitude) not in message
     assert str(longitude) not in message
     assert "***" in message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error_name", ["TimeoutError", "ClientError"])
+async def test_client_exhausted_transport_error_keeps_retry_and_redaction(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    error_name: str,
+) -> None:
+    """Exhausted transport attempts should retain retry and redaction behavior."""
+    api_key = "synthetic-secret-key"
+    latitude = 40.4168
+    longitude = -3.7038
+    message = (
+        "request failed: "
+        "https://pollen.googleapis.com/v1/forecast:lookup?"
+        f"key={api_key}&location.latitude={latitude}&"
+        f"location.longitude={longitude}&days=5"
+    )
+    error_type = (
+        TimeoutError if error_name == "TimeoutError" else client_module.ClientError
+    )
+    session = RaisingSession(error_type(message))
+    client = client_module.GooglePollenApiClient(session, api_key)
+    sleep_delays: list[float] = []
+
+    async def _sleep(delay: float) -> None:
+        sleep_delays.append(delay)
+
+    monkeypatch.setattr(client_module.random, "uniform", lambda *_args: 0.0)
+    monkeypatch.setattr(client_module.asyncio, "sleep", _sleep)
+
+    with pytest.raises(client_module.PollenTransportError) as exc_info:
+        await client.async_fetch_pollen_data(
+            latitude=latitude,
+            longitude=longitude,
+            days=5,
+            language_code=None,
+        )
+
+    assert isinstance(exc_info.value, client_module.UpdateFailed)
+    assert session.calls == 2
+    assert sleep_delays == pytest.approx([0.8])
+    raised_message = str(exc_info.value)
+    assert api_key not in raised_message
+    assert str(latitude) not in raised_message
+    assert str(longitude) not in raised_message
+    assert "***" in raised_message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error_name", ["TimeoutError", "ClientError"])
+async def test_client_transport_retry_backoff_propagates_cancelled_error(
+    client_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    error_name: str,
+) -> None:
+    """Cancellation during transport retry backoff should propagate unchanged."""
+    error_type = (
+        TimeoutError if error_name == "TimeoutError" else client_module.ClientError
+    )
+    session = RaisingSession(error_type("transport unavailable"))
+    client = client_module.GooglePollenApiClient(session, "synthetic-key")
+
+    async def _cancel_sleep(_delay: float) -> None:
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(client_module.asyncio, "sleep", _cancel_sleep)
+
+    with pytest.raises(asyncio.CancelledError):
+        await _fetch_client(client)
+
+    assert session.calls == 1
 
 
 @pytest.mark.asyncio
@@ -705,7 +780,7 @@ async def test_client_releases_retry_response_before_backoff(
     monkeypatch.setattr(client_module.asyncio, "sleep", _sleep)
 
     expected_error = getattr(client_module, expected_error_name)
-    with pytest.raises(expected_error):
+    with pytest.raises(expected_error) as exc_info:
         await client.async_fetch_pollen_data(
             latitude=1.0,
             longitude=2.0,
@@ -713,6 +788,7 @@ async def test_client_releases_retry_response_before_backoff(
             language_code=None,
         )
 
+    assert not isinstance(exc_info.value, client_module.PollenTransportError)
     assert sleep_observations == [(False, 1, 1)]
     assert session.calls == 2
     assert response.exit_calls == 2

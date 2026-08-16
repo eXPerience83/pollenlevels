@@ -57,6 +57,10 @@ class PollenQuotaExceededError(UpdateFailed):
         self.retry_after = retry_after
 
 
+class PollenTransportError(UpdateFailed):
+    """Raised after all transport-level request attempts are exhausted."""
+
+
 class GooglePollenApiClient:
     """Thin async client wrapper for the Google Pollen API."""
 
@@ -384,7 +388,7 @@ class GooglePollenApiClient:
                     )
                     or "Google Pollen API call timed out"
                 )
-                raise UpdateFailed(f"Timeout: {msg}") from err
+                raise PollenTransportError(f"Timeout: {msg}") from err
             except ClientError as err:
                 if attempt < max_retries:
                     await self._async_backoff(
@@ -402,7 +406,7 @@ class GooglePollenApiClient:
                     )
                     or "Network error while calling the Google Pollen API"
                 )
-                raise UpdateFailed(msg) from err
+                raise PollenTransportError(msg) from err
             except UpdateFailed:
                 raise
             except Exception as err:  # noqa: BLE001

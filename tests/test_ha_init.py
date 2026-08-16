@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+from datetime import timedelta
 from typing import Any
 
+import pytest
 from aiointercept import CallbackResult, aiointercept
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -13,15 +16,49 @@ from homeassistant.helpers import (
     entity_registry as er,
     issue_registry as ir,
 )
+from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.pollenlevels.const import CONF_API_KEY, DOMAIN
+from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
     POLLEN_API_URL_RE,
     assert_fixed_forecast_days,
     async_setup_config_entry,
+    location_subentry_data,
     mock_pollen_api,
 )
+
+
+def _parent_entry(
+    *,
+    entry_id: str,
+    api_key: str,
+    locations: list[tuple[str, str, float, float]],
+) -> MockConfigEntry:
+    """Build a parent entry with synthetic location subentries."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        entry_id=entry_id,
+        title=f"Pollen Levels {entry_id}",
+        unique_id=api_key_unique_id(api_key),
+        data={CONF_API_KEY: api_key},
+        subentries_data=[
+            location_subentry_data(
+                subentry_id=subentry_id,
+                title=title,
+                latitude=latitude,
+                longitude=longitude,
+            )
+            for subentry_id, title, latitude, longitude in locations
+        ],
+        version=6,
+    )
 
 
 def _create_test_repair(
@@ -92,6 +129,194 @@ async def test_ha_setup_unload_reload_smoke(
             ].coordinator.config_entry
             is ha_config_entry
         )
+
+
+async def test_ha_external_setup_cancellation_sets_setup_error_and_shuts_down_coordinators(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Real external cancellation should fail setup and clean coordinators."""
+    clear_integration_modules()
+    assert await async_setup_component(hass, DOMAIN, {})
+
+    from custom_components.pollenlevels.coordinator import (
+        PollenDataUpdateCoordinator,
+    )
+
+    entry = _parent_entry(
+        entry_id="cancelled-parent",
+        api_key="synthetic-cancelled-key",
+        locations=[
+            ("first-location", "First", 1.0, 2.0),
+            ("second-location", "Second", 3.0, 4.0),
+            ("third-location", "Third", 5.0, 6.0),
+        ],
+    )
+    entry.add_to_hass(hass)
+    second_entered = asyncio.Event()
+    coordinators: list[PollenDataUpdateCoordinator] = []
+    shutdown_coordinators: list[PollenDataUpdateCoordinator] = []
+    update_order: list[str] = []
+    original_init = PollenDataUpdateCoordinator.__init__
+    original_shutdown = PollenDataUpdateCoordinator.async_shutdown
+
+    def _capture_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        coordinators.append(self)
+
+    async def _controlled_update(self):
+        update_order.append(self.subentry_id)
+        if self.subentry_id == "second-location":
+            second_entered.set()
+            await asyncio.Event().wait()
+        return {"date": {"source": "meta", "value": "2026-08-15"}}
+
+    async def _capture_shutdown(self):
+        shutdown_coordinators.append(self)
+        await original_shutdown(self)
+
+    monkeypatch.setattr(PollenDataUpdateCoordinator, "__init__", _capture_init)
+    monkeypatch.setattr(
+        PollenDataUpdateCoordinator, "_async_update_data", _controlled_update
+    )
+    monkeypatch.setattr(
+        PollenDataUpdateCoordinator, "async_shutdown", _capture_shutdown
+    )
+
+    setup_task = asyncio.create_task(hass.config_entries.async_setup(entry.entry_id))
+    await second_entered.wait()
+    setup_task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await setup_task
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    assert getattr(entry, "runtime_data", None) is None
+    assert update_order == ["first-location", "second-location"]
+    assert len(coordinators) == 2
+    assert set(shutdown_coordinators) == set(coordinators)
+    assert not er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+
+
+async def test_ha_slow_parent_setup_does_not_block_independent_parent(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A blocked parent should not prevent an independent parent from loading."""
+    clear_integration_modules()
+    assert await async_setup_component(hass, DOMAIN, {})
+
+    from custom_components.pollenlevels.coordinator import (
+        PollenDataUpdateCoordinator,
+    )
+
+    blocked_entry = _parent_entry(
+        entry_id="blocked-parent",
+        api_key="synthetic-blocked-key",
+        locations=[("blocked-location", "Blocked", 1.0, 2.0)],
+    )
+    healthy_entry = _parent_entry(
+        entry_id="healthy-parent",
+        api_key="synthetic-healthy-key",
+        locations=[("healthy-location", "Healthy", 3.0, 4.0)],
+    )
+    blocked_entry.add_to_hass(hass)
+    healthy_entry.add_to_hass(hass)
+    blocked_entered = asyncio.Event()
+
+    async def _controlled_update(self):
+        if self.config_entry is blocked_entry:
+            blocked_entered.set()
+            await asyncio.Event().wait()
+        return {"date": {"source": "meta", "value": "2026-08-15"}}
+
+    monkeypatch.setattr(
+        PollenDataUpdateCoordinator, "_async_update_data", _controlled_update
+    )
+
+    blocked_task = asyncio.create_task(
+        hass.config_entries.async_setup(blocked_entry.entry_id)
+    )
+    await blocked_entered.wait()
+
+    assert await hass.config_entries.async_setup(healthy_entry.entry_id)
+    await hass.async_block_till_done()
+    assert healthy_entry.state is ConfigEntryState.LOADED
+    assert set(healthy_entry.runtime_data.locations) == {"healthy-location"}
+
+    blocked_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await blocked_task
+    await hass.async_block_till_done()
+
+    assert blocked_entry.state is ConfigEntryState.SETUP_ERROR
+    assert getattr(blocked_entry, "runtime_data", None) is None
+    assert healthy_entry.state is ConfigEntryState.LOADED
+    assert set(healthy_entry.runtime_data.locations) == {"healthy-location"}
+
+
+async def test_ha_transport_threshold_enters_setup_retry_and_recovers(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exhausted transport failures should defer setup to HA-managed retry."""
+    clear_integration_modules()
+    assert await async_setup_component(hass, DOMAIN, {})
+
+    from custom_components.pollenlevels.client import PollenTransportError
+    from custom_components.pollenlevels.coordinator import (
+        PollenDataUpdateCoordinator,
+    )
+
+    entry = _parent_entry(
+        entry_id="retry-parent",
+        api_key="synthetic-retry-key",
+        locations=[
+            ("first-location", "First", 1.0, 2.0),
+            ("second-location", "Second", 3.0, 4.0),
+        ],
+    )
+    entry.add_to_hass(hass)
+    recovered = False
+    update_order: list[str] = []
+
+    async def _controlled_update(self):
+        update_order.append(self.subentry_id)
+        if not recovered:
+            raise PollenTransportError("transport unavailable")
+        return {"date": {"source": "meta", "value": "2026-08-15"}}
+
+    monkeypatch.setattr(
+        PollenDataUpdateCoordinator, "_async_update_data", _controlled_update
+    )
+
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert getattr(entry, "runtime_data", None) is None
+    assert update_order == ["first-location", "second-location"]
+    assert not er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+
+    recovered = True
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=1))
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert set(entry.runtime_data.locations) == {
+        "first-location",
+        "second-location",
+    }
+    assert update_order == [
+        "first-location",
+        "second-location",
+        "first-location",
+        "second-location",
+    ]
 
 
 async def test_ha_expired_api_key_reload_preserves_registry_identity(

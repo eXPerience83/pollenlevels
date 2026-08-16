@@ -408,6 +408,13 @@ def _location_subentries(
     }
 
 
+def _not_ready_from(integration: types.ModuleType, cause: Exception) -> Exception:
+    """Build a config-entry-not-ready error with an explicit cause."""
+    error = integration.ConfigEntryNotReady()
+    error.__cause__ = cause
+    return error
+
+
 class _FakeHass:
     def __init__(
         self,
@@ -954,6 +961,326 @@ def test_setup_entry_keeps_first_subentry_when_later_subentry_is_not_ready(
         entry.entry_id, "second-location"
     )
     assert issue_id not in registry.issues
+    assert hass.config_entries.reload_calls == [entry.entry_id]
+
+
+async def test_setup_entry_slow_location_delays_accumulate_sequentially(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Initial location work should accumulate without overlapping refreshes."""
+    integration = integration_modules.integration
+    subentry_ids = ("first-location", "second-location", "third-location")
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "synthetic-key"},
+        subentries=_location_subentries(integration, *subentry_ids),
+    )
+    hass = _FakeHass()
+    entered = {subentry_id: asyncio.Event() for subentry_id in subentry_ids}
+    release = {subentry_id: asyncio.Event() for subentry_id in subentry_ids}
+    call_order: list[str] = []
+    active_refreshes = 0
+    max_active_refreshes = 0
+    logical_elapsed = 0.0
+    logical_delay = 21.1
+
+    class _ControlledCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.legacy_entry_id = kwargs.get("legacy_entry_id")
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            nonlocal active_refreshes, logical_elapsed, max_active_refreshes
+            call_order.append(self.subentry_id)
+            active_refreshes += 1
+            max_active_refreshes = max(max_active_refreshes, active_refreshes)
+            entered[self.subentry_id].set()
+            try:
+                await release[self.subentry_id].wait()
+                logical_elapsed += logical_delay
+            finally:
+                active_refreshes -= 1
+
+    monkeypatch.setattr(
+        integration, "PollenDataUpdateCoordinator", _ControlledCoordinator
+    )
+
+    setup_task = asyncio.create_task(integration.async_setup_entry(hass, entry))
+    for index, subentry_id in enumerate(subentry_ids):
+        await entered[subentry_id].wait()
+        assert call_order == list(subentry_ids[: index + 1])
+        assert not any(
+            entered[later_subentry_id].is_set()
+            for later_subentry_id in subentry_ids[index + 1 :]
+        )
+        assert logical_elapsed == pytest.approx(index * logical_delay)
+        release[subentry_id].set()
+
+    assert await setup_task is True
+    assert call_order == list(subentry_ids)
+    assert max_active_refreshes == 1
+    assert logical_elapsed == pytest.approx(len(subentry_ids) * logical_delay)
+
+
+async def test_setup_entry_cancellation_during_later_location_leaves_setup_uncommitted(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cancellation during a later refresh should leave setup uncommitted."""
+    integration = integration_modules.integration
+    subentry_ids = ("first-location", "second-location", "third-location")
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "synthetic-key"},
+        subentries=_location_subentries(integration, *subentry_ids),
+    )
+    hass = _FakeHass()
+    second_entered = asyncio.Event()
+    release_second = asyncio.Event()
+    call_order: list[str] = []
+
+    class _CancellationCoordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.legacy_entry_id = kwargs.get("legacy_entry_id")
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            call_order.append(self.subentry_id)
+            if self.subentry_id == "second-location":
+                second_entered.set()
+                await release_second.wait()
+
+    monkeypatch.setattr(
+        integration, "PollenDataUpdateCoordinator", _CancellationCoordinator
+    )
+
+    setup_task = asyncio.create_task(integration.async_setup_entry(hass, entry))
+    await second_entered.wait()
+    setup_task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await setup_task
+
+    assert call_order == ["first-location", "second-location"]
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
+    assert hass.config_entries.reload_calls == []
+
+
+async def test_setup_entry_success_resets_transport_failure_counter(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Successful siblings should isolate single transport failures."""
+    integration = integration_modules.integration
+    subentry_ids = (
+        "first-transport",
+        "first-success",
+        "second-transport",
+        "second-success",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "synthetic-key"},
+        subentries=_location_subentries(integration, *subentry_ids),
+    )
+    hass = _FakeHass()
+    attempted: list[str] = []
+
+    class _Coordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.legacy_entry_id = kwargs.get("legacy_entry_id")
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            attempted.append(self.subentry_id)
+            if self.subentry_id.endswith("transport"):
+                raise _not_ready_from(
+                    integration,
+                    integration.PollenTransportError("transport unavailable"),
+                )
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _Coordinator)
+
+    assert await integration.async_setup_entry(hass, entry) is True
+
+    assert attempted == list(subentry_ids)
+    assert set(entry.runtime_data.locations) == {
+        "first-success",
+        "second-success",
+    }
+    assert set(entry.runtime_data.failed_locations) == {
+        "first-transport",
+        "second-transport",
+    }
+    assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+    assert hass.config_entries.reload_calls == [entry.entry_id]
+
+
+async def test_setup_entry_two_transport_failures_abort_before_later_location(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Two consecutive transport failures should abort the whole setup attempt."""
+    integration = integration_modules.integration
+    subentry_ids = (
+        "earlier-success",
+        "first-transport",
+        "second-transport",
+        "later-location",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "synthetic-key"},
+        subentries=_location_subentries(integration, *subentry_ids),
+    )
+    hass = _FakeHass()
+    attempted: list[str] = []
+
+    class _Coordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.legacy_entry_id = kwargs.get("legacy_entry_id")
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            attempted.append(self.subentry_id)
+            if self.subentry_id.endswith("transport"):
+                raise _not_ready_from(
+                    integration,
+                    integration.PollenTransportError("transport unavailable"),
+                )
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _Coordinator)
+
+    with pytest.raises(
+        integration.ConfigEntryNotReady,
+        match="transport unavailable for multiple locations",
+    ):
+        await integration.async_setup_entry(hass, entry)
+
+    assert attempted == [
+        "earlier-success",
+        "first-transport",
+        "second-transport",
+    ]
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
+    assert hass.config_entries.reload_calls == []
+
+
+async def test_setup_entry_invalid_location_does_not_reset_transport_failure_counter(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A skipped invalid location should not break consecutive request failures."""
+    integration = integration_modules.integration
+    subentries = _location_subentries(integration, "first-transport")
+    subentries["invalid-location"] = integration.ConfigSubentry(
+        data={
+            integration.CONF_LATITUDE: 91.0,
+            integration.CONF_LONGITUDE: 2.0,
+        },
+        subentry_id="invalid-location",
+        title="invalid-location",
+    )
+    subentries.update(
+        _location_subentries(integration, "second-transport", "later-location")
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "synthetic-key"},
+        subentries=subentries,
+    )
+    hass = _FakeHass()
+    attempted: list[str] = []
+
+    class _Coordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.data = {"date": {"source": "meta"}}
+
+        async def async_config_entry_first_refresh(self):
+            attempted.append(self.subentry_id)
+            raise _not_ready_from(
+                integration,
+                integration.PollenTransportError("transport unavailable"),
+            )
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _Coordinator)
+
+    with pytest.raises(integration.ConfigEntryNotReady):
+        await integration.async_setup_entry(hass, entry)
+
+    assert attempted == ["first-transport", "second-transport"]
+    assert entry.runtime_data is None
+    assert hass.config_entries.forward_calls == []
+    assert hass.config_entries.reload_calls == []
+
+
+@pytest.mark.parametrize("middle_outcome", ["quota", "http_5xx", "payload"])
+async def test_setup_entry_non_transport_outcome_resets_transport_failure_counter(
+    integration_modules: _InitModules,
+    monkeypatch: pytest.MonkeyPatch,
+    middle_outcome: str,
+) -> None:
+    """Quota, HTTP, and payload failures should not count as transport failures."""
+    integration = integration_modules.integration
+    subentry_ids = (
+        "first-transport",
+        "middle-outcome",
+        "second-transport",
+        "healthy-location",
+    )
+    entry = _FakeEntry(
+        integration,
+        data={integration.CONF_API_KEY: "synthetic-key"},
+        subentries=_location_subentries(integration, *subentry_ids),
+    )
+    hass = _FakeHass()
+    attempted: list[str] = []
+
+    class _Coordinator:
+        def __init__(self, *args, **kwargs):
+            self.subentry_id = kwargs["subentry_id"]
+            self.legacy_entry_id = kwargs.get("legacy_entry_id")
+            self.data = (
+                {}
+                if self.subentry_id == "middle-outcome" and middle_outcome == "payload"
+                else {"date": {"source": "meta"}}
+            )
+
+        async def async_config_entry_first_refresh(self):
+            attempted.append(self.subentry_id)
+            if self.subentry_id.endswith("transport"):
+                raise _not_ready_from(
+                    integration,
+                    integration.PollenTransportError("transport unavailable"),
+                )
+            if self.subentry_id != "middle-outcome" or middle_outcome == "payload":
+                return
+            cause = (
+                integration.client.PollenQuotaExceededError("HTTP 429")
+                if middle_outcome == "quota"
+                else integration.client.UpdateFailed("HTTP 503")
+            )
+            raise _not_ready_from(integration, cause)
+
+    monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _Coordinator)
+
+    assert await integration.async_setup_entry(hass, entry) is True
+
+    assert attempted == list(subentry_ids)
+    assert set(entry.runtime_data.locations) == {"healthy-location"}
+    assert set(entry.runtime_data.failed_locations) == {
+        "first-transport",
+        "middle-outcome",
+        "second-transport",
+    }
     assert hass.config_entries.reload_calls == [entry.entry_id]
 
 
