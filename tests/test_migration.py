@@ -496,12 +496,14 @@ def test_migration_creates_repair_issue_for_invalid_legacy_coordinates(
     integration = migration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
+    raw_api_key = "  SYNTHETIC-MIGRATION-REPAIR-KEY  "
+    effective_api_key = raw_api_key.strip()
     entry = _FakeEntry(
         integration,
         entry_id="legacy-corrupt",
-        title="Corrupt Legacy secret-key at 2.000000",
+        title=f"Corrupt Legacy {effective_api_key} at 2.000000",
         data={
-            integration.CONF_API_KEY: "secret-key",
+            integration.CONF_API_KEY: raw_api_key,
             integration.CONF_LATITUDE: "not-a-number",
             integration.CONF_LONGITUDE: 2.0,
         },
@@ -530,7 +532,8 @@ def test_migration_creates_repair_issue_for_invalid_legacy_coordinates(
         "entry_title": "Corrupt Legacy *** at ***",
         "location_title": "Corrupt Legacy *** at ***",
     }
-    assert "secret-key" not in caplog.text
+    assert effective_api_key not in str(issue["translation_placeholders"])
+    assert effective_api_key not in caplog.text
     assert "not-a-number" not in caplog.text
 
 

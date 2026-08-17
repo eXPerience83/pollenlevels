@@ -10,13 +10,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
 from .const import (
-    CONF_API_KEY,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     DEFAULT_ENTRY_TITLE,
     DOMAIN,
 )
-from .util import redact_sensitive_values
+from .util import entry_api_key, redact_sensitive_values
 
 PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID = "per_day_forecast_sensors_removed"
 LOCATION_SETUP_FAILED_TRANSLATION_KEY = "location_setup_failed"
@@ -45,7 +44,6 @@ def _entry_repair_privacy_context(
 ) -> tuple[str | None, list[tuple[Any, Any]]]:
     """Return the parent API key and stored coordinates for Repair redaction."""
     data = dict(entry.data or {})
-    api_key = data.get(CONF_API_KEY)
     coordinate_pairs: list[tuple[Any, Any]] = []
     if CONF_LATITUDE in data or CONF_LONGITUDE in data:
         coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
@@ -60,7 +58,7 @@ def _entry_repair_privacy_context(
                 )
             )
 
-    return api_key if isinstance(api_key, str) else None, coordinate_pairs
+    return entry_api_key(entry), coordinate_pairs
 
 
 def _location_issue_prefixes(entry_id: str) -> tuple[str, str]:
