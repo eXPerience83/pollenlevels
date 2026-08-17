@@ -1287,6 +1287,7 @@ async def test_setup_entry_non_transport_outcome_resets_transport_failure_counte
 def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Repeated retryable partial setup failures should create a Repair warning."""
     integration = integration_modules.integration
@@ -1296,13 +1297,21 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="first-location",
     )
+    synthetic_key = "SYNTHETIC-REPAIR-KEY"
+    second_latitude = 3.123456
+    second_longitude = 4.654321
     second = integration.ConfigSubentry(
-        data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
+        data={
+            integration.CONF_LATITUDE: second_latitude,
+            integration.CONF_LONGITUDE: second_longitude,
+        },
         subentry_id="second-location",
+        title=f"Garden {synthetic_key} {second_latitude}",
     )
     entry = _FakeEntry(
         integration,
-        data={integration.CONF_API_KEY: "key"},
+        title=f"My Home {synthetic_key} {second_longitude}",
+        data={integration.CONF_API_KEY: synthetic_key},
         subentries={first.subentry_id: first, second.subentry_id: second},
     )
     hass = _FakeHass()
@@ -1319,13 +1328,16 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
 
         async def async_config_entry_first_refresh(self):
             if self.subentry_id == "second-location":
-                raise integration.ConfigEntryNotReady("retry later")
+                raise integration.ConfigEntryNotReady(
+                    f"retry later {synthetic_key} {second_latitude} {second_longitude}"
+                )
 
     monkeypatch.setattr(
         integration, "PollenDataUpdateCoordinator", _PartiallyReadyCoordinator
     )
 
-    assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+    with caplog.at_level("WARNING", logger=integration.__name__):
+        assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
     issue_id = integration.issue_helpers.location_setup_failed_issue_id(
         entry.entry_id, "second-location"
@@ -1336,6 +1348,16 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     assert issue["translation_placeholders"]["error_type"].endswith(
         "ConfigEntryNotReady"
     )
+    placeholders = issue["translation_placeholders"]
+    assert placeholders["entry_title"] == "My Home *** ***"
+    assert placeholders["location_title"] == "Garden *** ***"
+    assert placeholders["reason"] == "retry later *** *** ***"
+    assert synthetic_key not in str(placeholders)
+    assert str(second_latitude) not in str(placeholders)
+    assert str(second_longitude) not in str(placeholders)
+    assert synthetic_key not in caplog.text
+    assert str(second_latitude) not in caplog.text
+    assert str(second_longitude) not in caplog.text
     assert hass.config_entries.reload_calls == []
 
 
@@ -1355,6 +1377,8 @@ def test_create_location_setup_failed_repair_is_persistent(
         subentry_id="location-garden",
         error_type="UpdateFailed",
         reason="API response missing usable pollen data",
+        api_key=None,
+        coordinate_pairs=(),
     )
 
     issue_id = integration.issue_helpers.location_setup_failed_issue_id(
@@ -4136,19 +4160,20 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
+    synthetic_key = "SYNTHETIC-INVALID-LOCATION-KEY"
     bad_subentry = integration.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 91.123456,
             integration.CONF_LONGITUDE: 2.654321,
         },
         subentry_id="bad-location",
-        title="Bad Location",
+        title=f"Bad Location {synthetic_key} 2.654321",
     )
     entry = _FakeEntry(
         integration,
         entry_id="entry-invalid",
-        title="My Home",
-        data={integration.CONF_API_KEY: "secret-key"},
+        title=f"My Home {synthetic_key} 91.123456",
+        data={integration.CONF_API_KEY: synthetic_key},
         subentries={bad_subentry.subentry_id: bad_subentry},
     )
     hass = _FakeHass()
@@ -4174,10 +4199,12 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     )
     assert issue["is_fixable"] is False
     assert issue["is_persistent"] is False
-    assert issue["translation_placeholders"]["entry_title"] == "My Home"
-    assert issue["translation_placeholders"]["location_title"] == "Bad Location"
-    assert "secret-key" not in caplog.text
+    assert issue["translation_placeholders"]["entry_title"] == "My Home *** ***"
+    assert issue["translation_placeholders"]["location_title"] == "Bad Location *** ***"
+    assert synthetic_key not in str(issue["translation_placeholders"])
+    assert synthetic_key not in caplog.text
     assert "91.123456" not in caplog.text
+    assert "2.654321" not in caplog.text
 
 
 def test_setup_entry_loads_valid_location_when_later_subentry_is_invalid(
@@ -4424,6 +4451,8 @@ def test_setup_entry_clears_location_repairs_for_deleted_subentries(
         entry_title="Stale Home",
         location_title="Deleted",
         subentry_id="deleted-location",
+        api_key=None,
+        coordinate_pairs=(),
     )
     integration.issue_helpers.create_location_setup_failed_issue(
         hass,
@@ -4433,6 +4462,8 @@ def test_setup_entry_clears_location_repairs_for_deleted_subentries(
         subentry_id="deleted-location",
         error_type="UpdateFailed",
         reason="old failure",
+        api_key=None,
+        coordinate_pairs=(),
     )
 
     class _StubCoordinator:

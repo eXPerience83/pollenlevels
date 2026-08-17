@@ -23,7 +23,12 @@ from pytest_homeassistant_custom_component.common import (
     async_fire_time_changed,
 )
 
-from custom_components.pollenlevels.const import CONF_API_KEY, DOMAIN
+from custom_components.pollenlevels.const import (
+    CONF_API_KEY,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    DOMAIN,
+)
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
@@ -78,6 +83,47 @@ def _create_test_repair(
         severity=ir.IssueSeverity.WARNING,
         translation_key="location_setup_failed",
     )
+
+
+async def test_ha_invalid_location_repair_stores_redacted_placeholders(
+    hass: HomeAssistant,
+) -> None:
+    """The real issue registry should store only redacted dynamic placeholders."""
+    clear_integration_modules()
+    from custom_components.pollenlevels.issue_helpers import (
+        create_entry_invalid_stored_location_issue,
+        invalid_stored_location_issue_id,
+    )
+
+    synthetic_key = "SYNTHETIC-HA-REPAIR-KEY"
+    latitude = 12.345678
+    longitude = -45.678912
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="entry-private-repair",
+        title=f"Safe Home {synthetic_key} {latitude} {longitude}",
+        data={
+            CONF_API_KEY: synthetic_key,
+            CONF_LATITUDE: latitude,
+            CONF_LONGITUDE: longitude,
+        },
+        version=6,
+    )
+
+    create_entry_invalid_stored_location_issue(hass, entry)
+
+    issue = ir.async_get(hass).async_get_issue(
+        DOMAIN, invalid_stored_location_issue_id(entry.entry_id)
+    )
+    assert issue is not None
+    assert issue.translation_placeholders == {
+        "entry_title": "Safe Home *** *** ***",
+        "location_title": "Safe Home *** *** ***",
+    }
+    assert issue.translation_key == "invalid_stored_location"
+    assert issue.severity is ir.IssueSeverity.ERROR
+    assert issue.is_persistent is False
+    assert issue.is_fixable is False
 
 
 async def test_ha_setup_unload_reload_smoke(
