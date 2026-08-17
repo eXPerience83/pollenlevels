@@ -2,7 +2,7 @@
 
 [project]
 name = "pollenlevels"
-version = "3.0.2"
+version = "3.1.0"
 # Keep broad project metadata while the locked HA test environment enforces >=3.14.2.
 requires-python = ">=3.14"
 
