@@ -33,40 +33,40 @@ Pollen Levels is a Home Assistant custom integration distributed through HACS.
 Keep platform-specific behavior in its existing modules and preserve the
 coordinator-driven async design.
 
-## Home Assistant Core readiness
+## Home Assistant upstream alignment and separate Core project
 
-Pollen Levels remains a HACS custom integration today, but the long-term project
-goal is a future contribution to Home Assistant Core. Day-to-day work should
-therefore increase Core readiness without weakening the complete HACS integration
-used by existing users.
+Pollen Levels is and remains a HACS custom integration. This repository uses
+current Home Assistant Core guidance as an upstream quality reference, but it is
+not a staging tree for a future Core submission.
 
-- Treat the current official Home Assistant developer documentation and
-  Integration Quality Scale as the upstream reference. Re-check requirements
-  before making Core-readiness claims because those rules evolve.
-- New Core integrations currently must meet Bronze. Treat its rules as the
-  minimum readiness baseline, including full `config_flow.py` coverage and
-  dependency transparency. Above 95% coverage for all integration modules is a
-  Silver rule; this repository targets it proactively.
-- Target literal 100% statement coverage in `config_flow.py` and above 95%
-  statement coverage in every integration module, measured per module rather
-  than only as a repository-wide aggregate.
-- Do not game coverage. Prefer tests that protect supported behavior, identity,
-  privacy, lifecycle, retry, cancellation, and conservative failure semantics.
-  If code is proven unreachable on supported Home Assistant, prefer a dedicated
-  cleanup/refactor or explicit reviewed decision rather than fake tests or a
-  silent module exemption.
-- Prefer supported public Home Assistant APIs and current Core idioms so that the
-  HACS code does not accumulate avoidable upstream-port debt.
-- Preserve working HACS features and compatibility contracts. Scope the future
-  Core contribution separately according to the then-current upstream rules.
-- Keep the current in-repository `GooglePollenApiClient` until a dedicated,
-  reviewed library-extraction effort is planned; Core expects external-service
-  communication to live in a separate Python library.
-- Before any upstream submission, run a dedicated Core-readiness audit against
-  the then-current Quality Scale, dependency/library requirements,
-  manifest/branding/docs requirements, coverage, and initial-PR scope.
-- If a future Core requirement conflicts with a current HACS public contract,
-  report and track it explicitly instead of silently changing HACS behavior.
+- A future Google Pollen integration for Home Assistant Core, likely named
+  `Pollen`, will be designed from scratch in a separate clean project/repository.
+- Reuse knowledge, evidence, behavioral lessons, and useful test ideas from
+  Pollen Levels, but do not assume its code, storage architecture, IDs,
+  migrations, entity contracts, helper layout, or HACS compatibility should be
+  ported.
+- Treat current official Home Assistant developer documentation and the
+  Integration Quality Scale as quality references when they improve supported
+  HACS behavior. Re-check requirements before relying on them because upstream
+  rules evolve.
+- Keep the repository's existing quality targets, including literal 100%
+  statement coverage in `config_flow.py` and above 95% statement coverage in
+  non-migration integration modules, as Pollen Levels quality standards. Do not
+  interpret them as evidence of a pending direct Core port.
+- Prefer supported public Home Assistant APIs and current idioms when they
+  improve maintainability and compatibility for Pollen Levels itself.
+- Do not extract `GooglePollenApiClient`, change manifest/translation/branding
+  structure, remove HACS features, or otherwise reshape Pollen Levels solely to
+  satisfy hypothetical future Core requirements. Such changes need an
+  independent HACS benefit or requirement.
+- Core-specific findings from historical audits, including external-library,
+  `quality_scale.yaml`, `strings.json`, docs/brands, or initial-PR requirements,
+  are learning material for the separate Core project, not Pollen Levels backlog
+  unless a focused issue explicitly reframes them as HACS work.
+- Treat issue #325 and earlier `Core-readiness` wording in this repository as
+  historical quality/reference context, not as a roadmap to port this codebase.
+- If the separate Core project starts, audit it from scratch against then-current
+  upstream requirements in that project's own repository.
 
 ## v3 architecture invariants
 
