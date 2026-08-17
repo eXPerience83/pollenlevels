@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.1.1] - 2026-08-17
+
+### Changed
+
+- Raised the minimum supported Home Assistant version to 2026.5.0 and added a
+  blocking compatibility lane that runs the full test suite against the declared
+  minimum version using a reproducible, hash-verified environment.
+
+### Fixed
+
+- Redacted API keys and precise configured coordinates from Home Assistant Repair
+  placeholders and related setup-failure context.
+
 ## [3.1.0] - 2026-08-17
 
 ### Changed
