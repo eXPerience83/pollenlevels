@@ -3,16 +3,62 @@
 from __future__ import annotations
 
 from collections.abc import Collection
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
-from .const import DEFAULT_ENTRY_TITLE, DOMAIN
+from .const import (
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    DEFAULT_ENTRY_TITLE,
+    DOMAIN,
+)
+from .util import entry_api_key, redact_sensitive_values
 
 PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID = "per_day_forecast_sensors_removed"
 LOCATION_SETUP_FAILED_TRANSLATION_KEY = "location_setup_failed"
 _LOCATION_REPAIR_ISSUES_DATA_KEY = "location_repair_issue_ids"
+
+
+def _redact_repair_placeholder(
+    value: Any,
+    *,
+    api_key: str | None,
+    coordinate_pairs: Collection[tuple[Any, Any]],
+) -> str:
+    """Redact sensitive values immediately before creating a Repair."""
+    redacted = redact_sensitive_values(value, api_key=api_key)
+    for latitude, longitude in coordinate_pairs:
+        redacted = redact_sensitive_values(
+            redacted,
+            latitude=latitude,
+            longitude=longitude,
+        )
+    return redacted
+
+
+def _entry_repair_privacy_context(
+    entry: ConfigEntry,
+) -> tuple[str | None, list[tuple[Any, Any]]]:
+    """Return the parent API key and stored coordinates for Repair redaction."""
+    data = dict(entry.data or {})
+    coordinate_pairs: list[tuple[Any, Any]] = []
+    if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+        coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
+
+    for subentry in (getattr(entry, "subentries", {}) or {}).values():
+        subentry_data = dict(getattr(subentry, "data", {}) or {})
+        if CONF_LATITUDE in subentry_data or CONF_LONGITUDE in subentry_data:
+            coordinate_pairs.append(
+                (
+                    subentry_data.get(CONF_LATITUDE),
+                    subentry_data.get(CONF_LONGITUDE),
+                )
+            )
+
+    return entry_api_key(entry), coordinate_pairs
 
 
 def _location_issue_prefixes(entry_id: str) -> tuple[str, str]:
@@ -93,12 +139,20 @@ def create_invalid_stored_location_issue(
     entry_id: str,
     entry_title: str | None,
     location_title: str | None,
+    api_key: str | None,
+    coordinate_pairs: Collection[tuple[Any, Any]],
     subentry_id: str | None = None,
 ) -> None:
     """Create a Repair issue for an invalid stored location."""
     issue_id = invalid_stored_location_issue_id(entry_id, subentry_id)
     entry_title = (entry_title or "").strip() or DEFAULT_ENTRY_TITLE
     location_title = (location_title or "").strip() or entry_title
+    entry_title = _redact_repair_placeholder(
+        entry_title, api_key=api_key, coordinate_pairs=coordinate_pairs
+    )
+    location_title = _redact_repair_placeholder(
+        location_title, api_key=api_key, coordinate_pairs=coordinate_pairs
+    )
     ir.async_create_issue(
         hass,
         DOMAIN,
@@ -178,6 +232,8 @@ def create_location_setup_failed_issue(
     subentry_id: str,
     error_type: str,
     reason: str,
+    api_key: str | None,
+    coordinate_pairs: Collection[tuple[Any, Any]],
 ) -> None:
     """Create a Repair issue for an isolated location setup failure."""
     issue_id = location_setup_failed_issue_id(entry_id, subentry_id)
@@ -185,6 +241,20 @@ def create_location_setup_failed_issue(
     location_title = (location_title or "").strip() or entry_title
     error_type = (error_type or "").strip() or "UnknownError"
     reason = (reason or "").strip() or "Location setup failed"
+    placeholders = {
+        "entry_title": entry_title,
+        "location_title": location_title,
+        "error_type": error_type,
+        "reason": reason,
+    }
+    placeholders = {
+        key: _redact_repair_placeholder(
+            value,
+            api_key=api_key,
+            coordinate_pairs=coordinate_pairs,
+        )
+        for key, value in placeholders.items()
+    }
     ir.async_create_issue(
         hass,
         DOMAIN,
@@ -193,12 +263,7 @@ def create_location_setup_failed_issue(
         is_persistent=True,
         severity=ir.IssueSeverity.WARNING,
         translation_key=LOCATION_SETUP_FAILED_TRANSLATION_KEY,
-        translation_placeholders={
-            "entry_title": entry_title,
-            "location_title": location_title,
-            "error_type": error_type,
-            "reason": reason,
-        },
+        translation_placeholders=placeholders,
     )
     _remember_location_issue(hass, entry_id, issue_id)
 
@@ -208,12 +273,15 @@ def create_entry_invalid_stored_location_issue(
     entry: ConfigEntry,
 ) -> None:
     """Create a Repair issue for an invalid stored location on a config entry."""
+    api_key, coordinate_pairs = _entry_repair_privacy_context(entry)
     create_invalid_stored_location_issue(
         hass,
         entry_id=entry.entry_id,
         entry_title=entry.title,
         location_title=entry.title,
         subentry_id=None,
+        api_key=api_key,
+        coordinate_pairs=coordinate_pairs,
     )
 
 
