@@ -8,7 +8,7 @@
 Track **grass**, **tree**, and **weed** pollen, regional plant species, daily summaries, and up to **5 days of forecast data** across multiple locations.
 
 [![GitHub Release](https://img.shields.io/github/v/release/eXPerience83/pollenlevels)](https://github.com/eXPerience83/pollenlevels/releases)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.3%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.5%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
 [![Latest Home Assistant Compatibility](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml/badge.svg?branch=main)](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml)
 [![hassfest validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml)
 [![HACS validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
@@ -23,7 +23,7 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 
 ## Requirements
 
-- Home Assistant 2026.3.0 or newer.
+- Home Assistant 2026.5.0 or newer.
 - HACS 2.0.0 or newer when installing through HACS.
 - A Google Cloud API key with the Maps Pollen API enabled.
 

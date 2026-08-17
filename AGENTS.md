@@ -178,7 +178,7 @@ Use the repository's current locked toolchain rather than remembered versions
 from older releases.
 
 - Use the exact Python patch from `.python-version` for local development and
-  modern CI parity. Home Assistant 2026.3 requires Python >=3.14.2. The package
+  modern CI parity. Home Assistant 2026.5 requires Python >=3.14.2. The package
   metadata keeps `requires-python` at `>=3.14`; do not infer runtime support for
   earlier 3.14 patch releases when the pinned Home Assistant harness requires a
   newer patch.

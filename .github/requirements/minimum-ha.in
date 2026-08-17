@@ -1,0 +1,4 @@
+pytest-homeassistant-custom-component==0.13.329
+homeassistant==2026.5.0
+aiointercept==0.1.9
+packaging==26.3
