@@ -7,7 +7,9 @@
 - Removed `SensorStateClass.MEASUREMENT` from current-day pollen forecast sensors
   and the overall pollen risk today sensor so forecast-derived values no longer
   claim present-time measurement semantics or generate new long-term statistics.
-  Existing long-term statistics are not removed, and normal Recorder history
+  Existing long-term statistics are not removed automatically. Users upgrading
+  from an earlier version should remove the obsolete forecast-derived statistics
+  from **Settings → Developer Tools → Statistics**. Normal Recorder history
   continues to follow the user's Recorder retention settings.
 
 ### Fixed

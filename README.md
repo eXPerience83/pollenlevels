@@ -101,6 +101,25 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
 ---
 
+## Upgrading to 3.1.0: remove obsolete long-term statistics
+
+Pollen Levels 3.1.0 stops generating Home Assistant long-term statistics for
+current-day pollen type and plant forecast sensors and for the
+`overall_pollen_risk_today` sensor.
+
+Earlier versions exposed these forecast-derived values with
+`SensorStateClass.MEASUREMENT`, so Home Assistant may still retain long-term
+statistics created before the upgrade. These values represent forecasts rather
+than actual measurements and should not be kept as historical measurements.
+
+After upgrading to 3.1.0, open **Settings → Developer Tools → Statistics** and
+remove the obsolete statistics for the affected Pollen Levels sensors.
+
+This cleanup only removes the previously generated long-term statistics. Normal
+Recorder history is separate and continues to follow your Recorder retention
+configuration. Pollen Levels 3.1.0 and later will not generate new long-term
+statistics for these forecast-derived sensors.
+
 ## Migrating from per-day forecast sensors
 
 Pollen Levels no longer creates separate per-day pollen type forecast sensors
