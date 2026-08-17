@@ -1,0 +1,137 @@
+name: Minimum Home Assistant Compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  minimum-ha:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version-file: .python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: pyproject.toml
+          enable-cache: true
+          cache-dependency-glob: |
+            .python-version
+            pyproject.toml
+            .github/requirements/minimum-ha.txt
+          cache-suffix: minimum-ha
+
+      - name: Create minimum Home Assistant environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          minimum_venv="$RUNNER_TEMP/ha-minimum-compatibility-venv"
+          uv venv --python "$(command -v python)" "$minimum_venv"
+          uv pip sync --python "$minimum_venv/bin/python" --require-hashes \
+            .github/requirements/minimum-ha.txt
+          printf 'MINIMUM_PYTHON=%s\n' "$minimum_venv/bin/python" >> "$GITHUB_ENV"
+
+      - name: Verify and report minimum environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$MINIMUM_PYTHON" - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import importlib.metadata
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          minimum_input = {}
+          for line in Path(".github/requirements/minimum-ha.in").read_text(
+              encoding="utf-8"
+          ).splitlines():
+              line = line.strip()
+              if not line or line.startswith("#"):
+                  continue
+              name, version = line.split("==", maxsplit=1)
+              minimum_input[name] = version
+
+          expected_names = {
+              "pytest-homeassistant-custom-component",
+              "homeassistant",
+              "aiointercept",
+              "packaging",
+          }
+          if minimum_input.keys() != expected_names:
+              raise SystemExit(
+                  "Minimum input must contain exactly "
+                  f"{sorted(expected_names)}; found {sorted(minimum_input)}"
+              )
+
+          hacs_minimum = json.loads(
+              Path("hacs.json").read_text(encoding="utf-8")
+          )["homeassistant"]
+          if hacs_minimum != minimum_input["homeassistant"]:
+              raise SystemExit(
+                  "hacs.json Home Assistant minimum does not match minimum-ha.in: "
+                  f"{hacs_minimum} != {minimum_input['homeassistant']}"
+              )
+
+          installed = {
+              name: importlib.metadata.version(name)
+              for name in (
+                  *sorted(expected_names),
+                  "pytest",
+                  "pytest-asyncio",
+                  "pytest-cov",
+                  "aiohttp",
+                  "yarl",
+              )
+          }
+          for name, expected in minimum_input.items():
+              if installed[name] != expected:
+                  raise SystemExit(
+                      f"Installed {name} does not match minimum-ha.in: "
+                      f"{installed[name]} != {expected}"
+                  )
+
+          python_version = subprocess.check_output(
+              [os.environ["MINIMUM_PYTHON"], "--version"], text=True
+          ).strip()
+          uv_version = subprocess.check_output(["uv", "--version"], text=True).strip()
+          print("## Minimum Home Assistant compatibility")
+          print()
+          print(f"Declared HACS minimum: `{hacs_minimum}`")
+          print()
+          print("| Component | Installed version |")
+          print("| --- | --- |")
+          for name, version in installed.items():
+              print(f"| {name} | `{version}` |")
+          print(f"| Python | `{python_version}` |")
+          print(f"| uv | `{uv_version}` |")
+          PY
+
+      - name: Run full test suite
+        shell: bash
+        env:
+          HA_MINIMUM_COMPATIBILITY: "1"
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          "$MINIMUM_PYTHON" -m pytest -q -ra -p no:cacheprovider

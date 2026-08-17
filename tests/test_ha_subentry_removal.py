@@ -19,6 +19,7 @@ from custom_components.pollenlevels.const import (
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
+from custom_components.pollenlevels.util import device_subentry_ids
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
     async_setup_config_entry,
@@ -44,7 +45,7 @@ def _devices_for_subentry(
     return [
         device
         for device in dr.async_entries_for_config_entry(registry, entry_id)
-        if device.config_subentry_id == subentry_id
+        if subentry_id in (device_subentry_ids(device, entry_id) or set())
     ]
 
 

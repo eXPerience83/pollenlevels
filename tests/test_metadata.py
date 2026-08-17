@@ -17,6 +17,7 @@ from packaging.version import Version
 ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 MANIFEST_PATH = ROOT / "custom_components" / "pollenlevels" / "manifest.json"
+HACS_PATH = ROOT / "hacs.json"
 README_PATH = ROOT / "README.md"
 FAQ_PATH = ROOT / "FAQ.md"
 TERMS_PATH = ROOT / "TERMS.md"
@@ -25,6 +26,8 @@ PYTHON_VERSION_PATH = ROOT / ".python-version"
 LOCK_PATH = ROOT / "uv.lock"
 RENOVATE_PATH = ROOT / "renovate.json"
 WORKFLOWS_PATH = ROOT / ".github" / "workflows"
+MINIMUM_HA_REQUIREMENTS_PATH = ROOT / ".github" / "requirements" / "minimum-ha.in"
+MINIMUM_HA_WORKFLOW_PATH = WORKFLOWS_PATH / "ha-minimum-compatibility.yml"
 
 
 def _read_text(path: Path) -> str:
@@ -38,6 +41,11 @@ def _load_pyproject() -> dict:
 
 def _load_manifest() -> dict:
     with MANIFEST_PATH.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _load_hacs() -> dict:
+    with HACS_PATH.open("r", encoding="utf-8") as file:
         return json.load(file)
 
 
@@ -96,6 +104,21 @@ def _exact_group_requirements(group: str) -> dict[str, Requirement]:
         requirement = Requirement(requirement_text)
         name = canonicalize_name(requirement.name)
         assert name not in parsed, f"{group} duplicates {name}"
+        _exact_requirement_version(requirement)
+        parsed[name] = requirement
+    return parsed
+
+
+def _exact_requirements_file(path: Path) -> dict[str, Requirement]:
+    """Return exact requirements from a line-oriented input file."""
+    parsed: dict[str, Requirement] = {}
+    for line in _read_text(path).splitlines():
+        requirement_text = line.strip()
+        if not requirement_text or requirement_text.startswith("#"):
+            continue
+        requirement = Requirement(requirement_text)
+        name = canonicalize_name(requirement.name)
+        assert name not in parsed, f"{path.name} duplicates {name}"
         _exact_requirement_version(requirement)
         parsed[name] = requirement
     return parsed
@@ -249,6 +272,20 @@ def test_direct_declarations_and_lock_agree() -> None:
         )
 
 
+def test_minimum_ha_input_matches_hacs_support_contract() -> None:
+    """Keep the minimum compatibility input aligned with HACS metadata."""
+    minimum = _exact_requirements_file(MINIMUM_HA_REQUIREMENTS_PATH)
+    assert set(minimum) == {
+        "pytest-homeassistant-custom-component",
+        "homeassistant",
+        "aiointercept",
+        "packaging",
+    }
+    assert _exact_requirement_version(minimum["homeassistant"]) == Version(
+        _load_hacs()["homeassistant"]
+    )
+
+
 def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> None:
     """Require direct compatibility pins to match the selected HA harness."""
     test = _exact_group_requirements("test")
@@ -276,6 +313,34 @@ def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> Non
         # The advisory canary deliberately installs the newest harness instead
         # of the committed locked environment, so only installed-version
         # comparisons are skipped while static policy checks still run.
+        return
+    if os.environ.get("HA_MINIMUM_COMPATIBILITY") == "1":
+        minimum = _exact_requirements_file(MINIMUM_HA_REQUIREMENTS_PATH)
+        assert set(minimum) == {
+            harness_name,
+            "homeassistant",
+            "aiointercept",
+            "packaging",
+        }
+        harness = metadata.distribution(harness_name)
+        assert Version(harness.version) == _exact_requirement_version(
+            minimum[harness_name]
+        )
+        harness_requirements = {
+            canonicalize_name(requirement.name): requirement
+            for requirement_text in harness.requires or []
+            if (requirement := Requirement(requirement_text)).name.lower()
+            in {"homeassistant", "pytest", "pytest-asyncio"}
+        }
+        for name in ("homeassistant", "pytest", "pytest-asyncio"):
+            harness_version = _exact_requirement_version(harness_requirements[name])
+            assert Version(metadata.version(name)) == harness_version
+            if name == "homeassistant":
+                assert harness_version == _exact_requirement_version(minimum[name])
+        for name in (harness_name, "aiointercept", "packaging"):
+            assert Version(metadata.version(name)) == _exact_requirement_version(
+                minimum[name]
+            )
         return
     harness = metadata.distribution(harness_name)
     assert Version(harness.version) == declared_versions[harness_name]
@@ -405,6 +470,29 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "action-gh-release" not in canary
     release = _read_text(WORKFLOWS_PATH / "release.yml")
     assert "ha-compatibility-canary" not in release
+
+
+def test_minimum_ha_workflow_is_blocking_and_hash_verified() -> None:
+    """Protect the minimum compatibility lane's reproducible contract."""
+    workflow = _read_text(MINIMUM_HA_WORKFLOW_PATH)
+    assert "name: Minimum Home Assistant Compatibility" in workflow
+    assert "push:" in workflow
+    assert "pull_request:" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "contents: read" in workflow
+    assert "cancel-in-progress: true" in workflow
+    assert "persist-credentials: false" in workflow
+    assert "python-version-file: .python-version" in workflow
+    assert "version-file: pyproject.toml" in workflow
+    assert "$RUNNER_TEMP/ha-minimum-compatibility-venv" in workflow
+    assert "uv pip sync" in workflow
+    assert "--require-hashes" in workflow
+    assert ".github/requirements/minimum-ha.txt" in workflow
+    assert "HA_MINIMUM_COMPATIBILITY" in workflow
+    assert "PYTHONDONTWRITEBYTECODE" in workflow
+    assert '"$MINIMUM_PYTHON" -m pytest -q -ra -p no:cacheprovider' in workflow
+    assert "continue-on-error" not in workflow
+    assert "uv pip compile" not in workflow
 
 
 def test_release_binds_trusted_and_default_snapshots_to_event_shas() -> None:
