@@ -1492,7 +1492,7 @@ wheels = [
 
 [[package]]
 name = "pollenlevels"
-version = "3.0.2"
+version = "3.1.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]

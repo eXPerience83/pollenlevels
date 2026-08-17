@@ -1,3 +1,21 @@
+## [3.1.0] - 2026-08-17
+
+### Changed
+
+- Removed `SensorStateClass.MEASUREMENT` from current-day pollen forecast sensors
+  and the overall pollen risk today sensor so forecast-derived values no longer
+  claim present-time measurement semantics or generate new long-term statistics.
+  Existing long-term statistics are not removed, and normal Recorder history
+  continues to follow the user's Recorder retention settings.
+
+### Fixed
+
+- Bounded repeated location startup transport failures so multiple unavailable
+  locations under one parent do not accumulate excessive sequential setup delays;
+  Home Assistant retries the parent after repeated transport failures.
+- Prevented defensive options-flow exception logging from exposing raw exception
+  details that could include sensitive API-key or precise-location data.
+
 ## [3.0.2] - 2026-08-12
 
 ### Changed
