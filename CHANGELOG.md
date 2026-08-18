@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.0.0] - 2026-08-18
+
+### Breaking Changes
+
+- **Breaking change:** Raised the minimum supported Home Assistant version from
+  2026.3.0 to 2026.5.0. Upgrade Home Assistant to 2026.5.0 or newer before
+  updating Pollen Levels. Users remaining on Home Assistant 2026.3.x or 2026.4.x
+  should remain on Pollen Levels 3.1.0.
+
+### Changed
+
+- Added a blocking compatibility lane that runs the full test suite against the
+  declared minimum Home Assistant version using a reproducible, hash-verified
+  environment.
+
+### Fixed
+
+- Redacted API keys and precise configured coordinates from Home Assistant Repair
+  placeholders and related setup-failure context.
+
 ## [3.1.0] - 2026-08-17
 
 ### Changed
