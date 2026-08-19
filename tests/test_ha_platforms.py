@@ -7,9 +7,16 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 from aiointercept import aiointercept
-from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.components.recorder import statistics
+from homeassistant.components.sensor import SensorStateClass
+from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.components.recorder.common import (
+    async_wait_recording_done,
+    do_adhoc_statistics,
+)
 
 from custom_components.pollenlevels import (
     button as button_platform,
@@ -72,14 +79,14 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
         )
 
 
-async def test_ha_forecast_derived_current_day_sensors_have_no_state_class(
+async def test_ha_current_day_pollen_sensors_restore_measurement_state_class(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
     ha_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
-    """Current-day forecast values should not claim measurement semantics."""
+    """Current-day pollen values should preserve HACS statistics compatibility."""
     clear_integration_modules()
     entry = ha_config_entry
     entry.add_to_hass(hass)
@@ -98,11 +105,94 @@ async def test_ha_forecast_derived_current_day_sensors_have_no_state_class(
 
     for unique_id in (
         f"{identity_id}_type_grass",
+        f"{identity_id}_plants_birch",
         f"{identity_id}_overall_pollen_risk_today",
     ):
         state = hass.states.get(entity_ids_by_unique_id[unique_id])
         assert state is not None
+        assert state.attributes["state_class"] == SensorStateClass.MEASUREMENT
+
+    for unique_id in (
+        f"{identity_id}_plants_in_season_today",
+        f"{identity_id}_top_pollen_types_today",
+        f"{identity_id}_region",
+    ):
+        state = hass.states.get(entity_ids_by_unique_id[unique_id])
+        assert state is not None
         assert "state_class" not in state.attributes
+
+
+async def test_ha_restored_state_class_reconciles_existing_statistics(
+    recorder_mock,
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    ha_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+) -> None:
+    """Restored measurement metadata should reuse existing statistics identity."""
+    clear_integration_modules()
+    entry = ha_config_entry
+    entry.add_to_hass(hass)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    registry = er.async_get(hass)
+    identity_id = f"{entry.entry_id}_location-madrid"
+    unique_id = f"{identity_id}_type_grass"
+    registry_entry = next(
+        entity
+        for entity in er.async_entries_for_config_entry(registry, entry.entry_id)
+        if entity.unique_id == unique_id
+    )
+    entity_id = registry_entry.entity_id
+    restored_state = hass.states.get(entity_id)
+    assert restored_state is not None
+    assert restored_state.attributes["state_class"] == SensorStateClass.MEASUREMENT
+
+    await async_wait_recording_done(hass)
+    now = dt_util.utcnow()
+    statistics_start = now.replace(
+        minute=now.minute - now.minute % 5,
+        second=0,
+        microsecond=0,
+    )
+    do_adhoc_statistics(hass, start=statistics_start)
+    await async_wait_recording_done(hass)
+
+    metadata_before = statistics.get_metadata(hass, statistic_ids={entity_id})
+    assert entity_id in metadata_before
+    metadata_id, metadata = metadata_before[entity_id]
+    assert metadata["statistic_id"] == entity_id
+    assert metadata["has_mean"] is True
+    assert metadata["has_sum"] is False
+    assert metadata["unit_of_measurement"] is None
+
+    state_31_attributes = dict(restored_state.attributes)
+    state_31_attributes.pop("state_class")
+    hass.states.async_set(entity_id, restored_state.state, state_31_attributes)
+    await hass.async_add_executor_job(statistics.update_statistics_issues, hass)
+    await hass.async_block_till_done()
+
+    issue_id = f"state_class_removed_{entity_id}"
+    issue_registry = ir.async_get(hass)
+    assert issue_registry.async_get_issue("sensor", issue_id) is not None
+
+    hass.states.async_set(entity_id, restored_state.state, restored_state.attributes)
+    await hass.async_add_executor_job(statistics.update_statistics_issues, hass)
+    await hass.async_block_till_done()
+
+    assert issue_registry.async_get_issue("sensor", issue_id) is None
+    metadata_after = statistics.get_metadata(hass, statistic_ids={entity_id})
+    assert metadata_after == metadata_before
+    assert metadata_after[entity_id][0] == metadata_id
+
+    current_state = hass.states.get(entity_id)
+    assert current_state is not None
+    assert current_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+    assert current_state.attributes["state_class"] == SensorStateClass.MEASUREMENT
 
 
 async def test_ha_button_press_refreshes_only_location_coordinator(
