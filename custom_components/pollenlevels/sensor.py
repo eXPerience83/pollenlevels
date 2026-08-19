@@ -437,6 +437,14 @@ class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
 
         return self._summary_cache[key]
 
+    def _handle_coordinator_update(self) -> None:
+        """Release memoized data before writing an unavailable state."""
+        data = self.coordinator.data
+        if data is not self._summary_data_ref:
+            self._summary_data_ref = data
+            self._summary_cache = _daily_summary(data or {})
+        super()._handle_coordinator_update()
+
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Expose public attribution on all daily summary sensors."""

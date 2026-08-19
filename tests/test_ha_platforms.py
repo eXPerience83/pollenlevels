@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -11,7 +12,11 @@ from homeassistant.components.recorder import statistics
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.helpers import (
+    entity_platform,
+    entity_registry as er,
+    issue_registry as ir,
+)
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.components.recorder.common import (
     async_wait_recording_done,
@@ -193,6 +198,77 @@ async def test_ha_restored_state_class_reconciles_existing_statistics(
     assert current_state is not None
     assert current_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
     assert current_state.attributes["state_class"] == SensorStateClass.MEASUREMENT
+
+
+async def test_ha_expired_snapshot_notifies_entities_and_releases_summary_cache(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    ha_two_location_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch,
+) -> None:
+    """Snapshot expiry should make one location unavailable and release summaries."""
+    clear_integration_modules()
+    entry = ha_two_location_config_entry
+    entry.add_to_hass(hass)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    madrid = entry.runtime_data.locations["location-madrid"].coordinator
+    barcelona = entry.runtime_data.locations["location-barcelona"].coordinator
+    old_madrid_data = madrid.data
+    old_barcelona_data = barcelona.data
+    summary = next(
+        entity
+        for platform in entity_platform.async_get_platforms(hass, DOMAIN)
+        for entity in platform.entities.values()
+        if type(entity).__name__ == "PlantsInSeasonTodaySensor"
+        and entity.coordinator is madrid
+    )
+    assert summary.native_value is not None
+    assert summary._summary_data_ref is old_madrid_data
+
+    expires_at = madrid.last_updated + madrid._stale_data_ttl()
+    monkeypatch.setattr(madrid, "_utcnow", lambda: expires_at)
+    madrid._cache_expiry_handle.cancel()
+    madrid._cache_expiry_handle = None
+    madrid._handle_cache_expiry(madrid.last_updated)
+    await hass.async_block_till_done()
+
+    assert madrid.data == {}
+    assert madrid.last_updated is None
+    assert madrid.using_stale_data is False
+    assert madrid.last_update_success is False
+    assert hass.states.get(summary.entity_id).state == STATE_UNAVAILABLE
+    assert summary._summary_data_ref is madrid.data
+    assert summary._summary_data_ref is not old_madrid_data
+    assert barcelona.data is old_barcelona_data
+    assert barcelona.last_update_success is True
+
+    recovery_time = expires_at + timedelta(minutes=1)
+    monkeypatch.setattr(madrid, "_utcnow", lambda: recovery_time)
+
+    async def _valid_response(**_kwargs: Any) -> dict[str, Any]:
+        return google_pollen_5_day_payload
+
+    monkeypatch.setattr(madrid._client, "async_fetch_pollen_data", _valid_response)
+    await madrid.async_refresh()
+    await hass.async_block_till_done()
+
+    assert madrid.data
+    assert madrid.last_updated == recovery_time
+    assert madrid.using_stale_data is False
+    assert madrid.last_update_success is True
+    assert hass.states.get(summary.entity_id).state != STATE_UNAVAILABLE
+
+    expiry_handles = (madrid._cache_expiry_handle, barcelona._cache_expiry_handle)
+    assert all(handle is not None for handle in expiry_handles)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert all(handle.cancelled() for handle in expiry_handles if handle is not None)
 
 
 async def test_ha_button_press_refreshes_only_location_coordinator(

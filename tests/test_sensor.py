@@ -1434,16 +1434,18 @@ def test_coordinator_stale_cached_data_raises_after_ttl(
     finally:
         loop.close()
 
-    assert coordinator.data == first_data
+    assert first_data
+    assert coordinator.data == {}
+    assert coordinator.last_updated is None
     assert coordinator.using_stale_data is False
     assert coordinator.last_payload_valid is False
 
 
-def test_coordinator_stale_cached_data_accepted_at_exactly_24_hours(
+def test_coordinator_stale_cached_data_expires_at_exactly_24_hours(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Cached data at exactly the 24-hour TTL boundary is still accepted."""
+    """Cached data expires at the exact 24-hour TTL boundary."""
 
     start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
     now = start
@@ -1462,11 +1464,50 @@ def test_coordinator_stale_cached_data_accepted_at_exactly_24_hours(
     try:
         first_data = loop.run_until_complete(coordinator._async_update_data())
         now = start + datetime.timedelta(hours=24)
+        with pytest.raises(
+            sensor_modules.client_mod.UpdateFailed, match="cached data expired"
+        ):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert first_data
+    assert coordinator.data == {}
+    assert coordinator.last_updated is None
+    assert coordinator.using_stale_data is False
+    assert coordinator.last_payload_valid is False
+
+
+def test_coordinator_stale_cached_data_is_fresh_just_before_ttl(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cached data remains reusable immediately before the TTL boundary."""
+
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=_minimal_valid_payload()),
+            ResponseSpec(status=200, payload={}),
+        ]
+    )
+    client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client, hours=24)
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        first_updated = coordinator.last_updated
+        now = start + datetime.timedelta(hours=24) - datetime.timedelta(microseconds=1)
         second_data = loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
 
-    assert second_data == first_data
+    assert second_data is first_data
+    assert coordinator.data is first_data
+    assert coordinator.last_updated == first_updated
     assert coordinator.using_stale_data is True
     assert coordinator.last_payload_valid is False
 
@@ -1596,18 +1637,21 @@ def test_coordinator_preserves_stale_provenance_after_later_processing_failure(
 
 
 @pytest.mark.parametrize("exception_name", ["update_failed", "auth_failed"])
-def test_coordinator_transport_failures_leave_payload_state_unchanged(
+def test_coordinator_transport_failures_discard_expired_payload(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
     exception_name: str,
 ) -> None:
-    """Failures before dailyInfo validation must keep the retained-data state."""
+    """Failures before dailyInfo validation must not retain expired data."""
 
-    client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "test")
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    client = sensor_modules.client_mod.GooglePollenApiClient(
+        FakeSession(_minimal_valid_payload()), "test"
+    )
     loop = asyncio.new_event_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-    coordinator.using_stale_data = True
-    coordinator.last_payload_valid = False
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
 
     exception_type = (
         sensor_modules.client_mod.UpdateFailed
@@ -1618,15 +1662,141 @@ def test_coordinator_transport_failures_leave_payload_state_unchanged(
     async def _raise_before_validation(**_kwargs: Any) -> dict[str, Any]:
         raise exception_type("request failed")
 
-    monkeypatch.setattr(client, "async_fetch_pollen_data", _raise_before_validation)
-
     try:
+        loop.run_until_complete(coordinator._async_update_data())
+        monkeypatch.setattr(client, "async_fetch_pollen_data", _raise_before_validation)
+        now = start + datetime.timedelta(hours=24)
         with pytest.raises(exception_type, match="request failed"):
             loop.run_until_complete(coordinator._async_update_data())
     finally:
         loop.close()
 
-    assert coordinator.using_stale_data is True
+    assert coordinator.data == {}
+    assert coordinator.last_updated is None
+    assert coordinator.using_stale_data is False
+    assert coordinator.last_payload_valid is False
+
+
+def test_coordinator_transport_failure_before_ttl_preserves_snapshot(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A transport failure before expiry should leave the snapshot scheduled."""
+
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    client = sensor_modules.client_mod.GooglePollenApiClient(
+        FakeSession(_minimal_valid_payload()), "test"
+    )
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    async def _raise_before_validation(**_kwargs: Any) -> dict[str, Any]:
+        raise sensor_modules.client_mod.UpdateFailed("request failed")
+
+    try:
+        first_data = loop.run_until_complete(coordinator._async_update_data())
+        first_updated = coordinator.last_updated
+        monkeypatch.setattr(client, "async_fetch_pollen_data", _raise_before_validation)
+        now = start + datetime.timedelta(hours=23)
+        with pytest.raises(
+            sensor_modules.client_mod.UpdateFailed, match="request failed"
+        ):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert coordinator.data is first_data
+    assert coordinator.last_updated == first_updated
+
+
+@pytest.mark.parametrize("exception_name", ["unexpected", "cancelled"])
+def test_coordinator_other_failures_discard_expired_payload(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+    exception_name: str,
+) -> None:
+    """Unexpected errors and cancellation keep their classification after expiry."""
+
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    client = sensor_modules.client_mod.GooglePollenApiClient(
+        FakeSession(_minimal_valid_payload()), "test"
+    )
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    async def _raise_before_validation(**_kwargs: Any) -> dict[str, Any]:
+        if exception_name == "cancelled":
+            raise asyncio.CancelledError
+        raise RuntimeError("unexpected request failure")
+
+    expected_exception = (
+        asyncio.CancelledError
+        if exception_name == "cancelled"
+        else sensor_modules.client_mod.UpdateFailed
+    )
+
+    try:
+        loop.run_until_complete(coordinator._async_update_data())
+        monkeypatch.setattr(client, "async_fetch_pollen_data", _raise_before_validation)
+        now = start + datetime.timedelta(hours=24)
+        with pytest.raises(expected_exception):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert coordinator.data == {}
+    assert coordinator.last_updated is None
+    assert coordinator.using_stale_data is False
+    assert coordinator.last_payload_valid is False
+
+
+@pytest.mark.parametrize("status", [429, 500])
+def test_coordinator_exhausted_retry_discards_expired_payload(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+) -> None:
+    """An exhausted HTTP retry path must not retain an expired snapshot."""
+
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    error_payload = {"error": {"message": "request failed"}}
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=_minimal_valid_payload()),
+            ResponseSpec(status=status, payload=error_payload),
+            ResponseSpec(status=status, payload=error_payload),
+        ]
+    )
+
+    async def _fast_sleep(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr(sensor_modules.client_mod.asyncio, "sleep", _fast_sleep)
+    monkeypatch.setattr(
+        sensor_modules.client_mod.random, "uniform", lambda *_args, **_kwargs: 0.0
+    )
+    client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    try:
+        loop.run_until_complete(coordinator._async_update_data())
+        now = start + datetime.timedelta(hours=24)
+        with pytest.raises(sensor_modules.client_mod.UpdateFailed):
+            loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert session.calls == 3
+    assert coordinator.data == {}
+    assert coordinator.last_updated is None
+    assert coordinator.using_stale_data is False
     assert coordinator.last_payload_valid is False
 
 
