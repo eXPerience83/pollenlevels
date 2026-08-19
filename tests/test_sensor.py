@@ -1512,6 +1512,40 @@ def test_coordinator_stale_cached_data_is_fresh_just_before_ttl(
     assert coordinator.last_payload_valid is False
 
 
+def test_coordinator_expiry_preserves_previous_malformed_payload_status(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Expiry should preserve the previous malformed-payload status."""
+
+    start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
+    now = start
+    session = SequenceSession(
+        [
+            ResponseSpec(status=200, payload=_minimal_valid_payload()),
+            ResponseSpec(status=200, payload={}),
+        ]
+    )
+    client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    monkeypatch.setattr(coordinator, "_utcnow", lambda: now)
+
+    try:
+        loop.run_until_complete(coordinator._async_update_data())
+        now = start + datetime.timedelta(hours=1)
+        loop.run_until_complete(coordinator._async_update_data())
+        assert coordinator.last_payload_valid is False
+        now = start + datetime.timedelta(hours=24)
+        assert coordinator._discard_expired_cache() is True
+    finally:
+        loop.close()
+
+    assert coordinator.data == {}
+    assert coordinator.last_updated is None
+    assert coordinator.last_payload_valid is False
+
+
 def test_coordinator_stale_data_ttl_is_fixed_24_hours(
     sensor_modules: SensorModules,
 ) -> None:
@@ -1674,7 +1708,7 @@ def test_coordinator_transport_failures_discard_expired_payload(
     assert coordinator.data == {}
     assert coordinator.last_updated is None
     assert coordinator.using_stale_data is False
-    assert coordinator.last_payload_valid is False
+    assert coordinator.last_payload_valid is True
 
 
 def test_coordinator_transport_failure_before_ttl_preserves_snapshot(
@@ -1751,7 +1785,7 @@ def test_coordinator_other_failures_discard_expired_payload(
     assert coordinator.data == {}
     assert coordinator.last_updated is None
     assert coordinator.using_stale_data is False
-    assert coordinator.last_payload_valid is False
+    assert coordinator.last_payload_valid is True
 
 
 @pytest.mark.parametrize("status", [429, 500])
@@ -1797,7 +1831,7 @@ def test_coordinator_exhausted_retry_discards_expired_payload(
     assert coordinator.data == {}
     assert coordinator.last_updated is None
     assert coordinator.using_stale_data is False
-    assert coordinator.last_payload_valid is False
+    assert coordinator.last_payload_valid is True
 
 
 def test_coordinator_rejects_removed_forecast_day_arguments(

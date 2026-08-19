@@ -17,6 +17,7 @@ from homeassistant.helpers import (
     entity_registry as er,
     issue_registry as ir,
 )
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.components.recorder.common import (
     async_wait_recording_done,
@@ -241,6 +242,7 @@ async def test_ha_expired_snapshot_notifies_entities_and_releases_summary_cache(
     assert madrid.data == {}
     assert madrid.last_updated is None
     assert madrid.using_stale_data is False
+    assert madrid.last_payload_valid is True
     assert madrid.last_update_success is False
     assert hass.states.get(summary.entity_id).state == STATE_UNAVAILABLE
     assert summary._summary_data_ref is madrid.data
@@ -264,8 +266,25 @@ async def test_ha_expired_snapshot_notifies_entities_and_releases_summary_cache(
     assert madrid.last_update_success is True
     assert hass.states.get(summary.entity_id).state != STATE_UNAVAILABLE
 
+    existing_failure = UpdateFailed("existing transport failure")
+    barcelona.async_set_update_error(existing_failure)
+    assert barcelona.last_update_success is False
+    assert barcelona.last_exception is existing_failure
+
+    barcelona_expires_at = barcelona.last_updated + barcelona._stale_data_ttl()
+    monkeypatch.setattr(barcelona, "_utcnow", lambda: barcelona_expires_at)
+    barcelona._cache_expiry_handle.cancel()
+    barcelona._cache_expiry_handle = None
+    barcelona._handle_cache_expiry(barcelona.last_updated)
+    await hass.async_block_till_done()
+
+    assert barcelona.data == {}
+    assert barcelona.last_updated is None
+    assert barcelona.last_payload_valid is True
+    assert barcelona.last_exception is existing_failure
+
     expiry_handles = (madrid._cache_expiry_handle, barcelona._cache_expiry_handle)
-    assert all(handle is not None for handle in expiry_handles)
+    assert madrid._cache_expiry_handle is not None
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert all(handle.cancelled() for handle in expiry_handles if handle is not None)

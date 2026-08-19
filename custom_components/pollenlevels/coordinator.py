@@ -240,7 +240,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data = {}
         self.last_updated = None
         self.using_stale_data = False
-        self.last_payload_valid = False
         return True
 
     def _schedule_cache_expiry(self) -> None:
@@ -268,9 +267,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
             self._schedule_cache_expiry()
             return
 
-        was_successful = self.last_update_success
-        self.async_set_update_error(UpdateFailed("Cached pollen data expired"))
-        if not was_successful:
+        if self.last_update_success:
+            self.async_set_update_error(UpdateFailed("Cached pollen data expired"))
+        else:
             self.async_update_listeners()
 
     async def async_shutdown(self) -> None:
