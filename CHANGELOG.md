@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.0.0] - 2026-08-18
+## [4.0.0] - 2026-08-20
 
 ### Changed
 
@@ -12,11 +12,24 @@
 - Added a blocking compatibility lane that runs the full test suite against the
   declared minimum Home Assistant version using a reproducible, hash-verified
   environment.
+- Clarified the README, FAQ, Terms, and Privacy guidance to distinguish Google
+  Maps Content caching, Pollen Levels' fixed 24-hour runtime cache, Home
+  Assistant Recorder history, and Home Assistant-generated long-term statistics.
+  Replaced the obsolete 3.1.0 statistics-removal guidance with 4.0.0 continuity
+  guidance.
 
 ### Fixed
 
 - Redacted API keys and precise configured coordinates from Home Assistant Repair
   placeholders and related setup-failure context.
+- Restored long-term-statistics eligibility for current-day pollen type and plant
+  sensors and `overall_pollen_risk_today`, returning the HACS compatibility
+  behavior available before 3.1.0. Values remain Google's current-day forecasts.
+  Retained statistics continue under the same identity, with a possible 3.1.0
+  gap; manually deleted statistics cannot be reconstructed automatically.
+- Discarded stale coordinator pollen snapshots after the fixed 24-hour runtime
+  cache lifetime. Expired data is no longer kept indefinitely, so entities may
+  become unavailable until a successful refresh restores fresh data.
 
 ## [3.1.0] - 2026-08-17
 
