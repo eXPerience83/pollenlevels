@@ -1,6 +1,6 @@
 # Terms of Use
 
-Last updated: July 10, 2026
+Last updated: August 20, 2026
 
 These terms are provided for the Pollen Levels Home Assistant custom integration.
 They are not legal advice and do not state that the project has received legal
@@ -15,10 +15,12 @@ sponsored by, or endorsed by Google or the Home Assistant project.
 
 ## Google Maps features and content
 
-Pollen Levels includes Google Maps features and content supplied through the
-Google Maps Pollen API. Use of those features and content is subject to the
-current [Google Maps End User Additional Terms](https://maps.google.com/help/terms_maps/)
-and the [Google Privacy Policy](https://policies.google.com/privacy).
+By using Pollen Levels and Google Maps features and content exposed through the
+integration, you acknowledge that such use is subject to the applicable
+[Google Maps End User Additional Terms](https://maps.google.com/help/terms_maps/)
+and [Google Privacy Policy](https://policies.google.com/privacy). The owner of
+the Google Cloud project and API key is responsible for complying with the
+Google Maps Platform agreement applicable to that account.
 
 Google Maps Platform terms and service-specific terms may also apply to your
 Google Cloud account and use of the API, including:
@@ -29,9 +31,10 @@ Google Cloud account and use of the API, including:
 - [Google Maps Platform EEA Terms](https://cloud.google.com/terms/maps-platform/eea)
 - [Google Maps Platform EEA Service Specific Terms](https://cloud.google.com/terms/maps-platform/eea/maps-service-terms)
 
-The Google agreement applicable to you can depend on your Google Cloud account,
-billing address, and relationship with Google. These terms do not replace or
-reinterpret Google's terms.
+The applicable Google agreement can depend on the Google Cloud account, billing
+address, and relationship with Google. Installing Pollen Levels is not itself
+presented as acceptance of a Google Maps Platform customer agreement. These
+terms do not replace or reinterpret Google's terms.
 
 ## Attribution
 
@@ -71,11 +74,35 @@ Under the current Pollen API service-specific caching terms:
 
 Pollen Levels does not use Pollen API heatmap tiles.
 
-Pollen Levels excludes future forecast-derived attributes from Home Assistant
-Recorder persistence, but it does not automatically purge Home Assistant
-Recorder history. Users configuring Home Assistant Recorder retention beyond 365
-days must exclude Pollen Levels entities or otherwise prevent current pollen data
-from being retained beyond the applicable limit.
+Pollen Levels does not retain its own stale Pollen API coordinator snapshot
+beyond the fixed 24-hour runtime cache lifetime. This integration-owned cache is
+separate from Home Assistant's local storage.
+
+Pollen Levels excludes future `forecast`, `tomorrow_*`, `d2_*`, `trend`, and
+`expected_peak` attributes from Home Assistant Recorder persistence. Recorder
+may store current states and other non-excluded attributes according to the
+user's configuration.
+
+Home Assistant may independently generate long-term statistics, including
+minimum, maximum, and mean aggregates, from eligible numeric entity states.
+These locally derived statistics are not stored raw Pollen API response
+payloads. The cited Google terms specify caching periods for Google Maps
+Content, but they do not expressly classify these Home Assistant-generated
+aggregates for retention purposes. This documentation therefore makes no legal
+conclusion that such aggregates are either permitted indefinitely or prohibited
+after 365 days. The Google Cloud project and API-key owner remains responsible
+for the agreement applicable to that account.
+
+Normal Recorder state history follows the user's configured retention and
+purging. Home Assistant's hourly long-term-statistics aggregates are stored
+separately and are not automatically purged by normal Recorder retention. Users
+seeking a conservative interpretation can exclude the affected entities from
+Recorder to prevent future history and statistics, then manage any existing
+long-term statistics separately under **Developer Tools → Statistics**.
+Excluding an entity does not remove statistics already stored for it.
+
+Pollen Levels does not automatically purge Home Assistant Recorder history or
+long-term statistics and cannot control the user's local database.
 
 You must not use the integration to scrape, bulk-export, rehost, resell, or
 create an independent historical pollen database from Google Maps Content.

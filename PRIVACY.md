@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: July 10, 2026
+Last updated: August 20, 2026
 
 This policy describes how the Pollen Levels Home Assistant custom integration
 handles data. It is not legal advice and does not state that the project has
@@ -55,7 +55,7 @@ Google's handling of this data is governed by the
 [Google Privacy Policy](https://policies.google.com/privacy) and applicable
 Google Maps Platform terms.
 
-## Home Assistant Recorder and retention
+## Runtime cache, Recorder, and long-term statistics
 
 Future forecast-derived attributes such as `forecast`, `tomorrow_*`, `d2_*`,
 `trend`, and `expected_peak` remain available in the live Home Assistant entity
@@ -65,15 +65,29 @@ Pollen Levels marks those attributes as excluded from Recorder persistence.
 Current states and other non-excluded attributes may still be stored by Home
 Assistant Recorder according to your Recorder configuration.
 
-Stale Google Pollen forecast payload reuse by the integration is capped at 24
-hours.
+Pollen Levels does not retain its own stale Pollen API coordinator snapshot
+beyond the fixed 24-hour runtime cache lifetime. This integration-owned runtime
+cache is separate from Home Assistant Recorder history and long-term statistics.
 
-You are responsible for configuring Recorder so today's pollen values are not
-retained for more than 365 days where the applicable Google terms require that
-limit. If your Recorder retention is longer than 365 days, exclude Pollen Levels
-entities or use an equivalent retention strategy.
+Home Assistant may generate long-term-statistics aggregates for the numeric
+Pollen Levels sensors that use `SensorStateClass.MEASUREMENT`. These minimum,
+maximum, and mean values are derived locally from entity states rather than
+stored raw Pollen API response payloads. The cited Google terms specify caching
+periods for Google Maps Content but do not expressly resolve how these
+Home Assistant-derived aggregates should be classified for retention purposes.
+Users remain responsible for the Google agreement applicable to their Google
+Cloud project and API key and control their local Home Assistant storage.
 
-Pollen Levels cannot centrally delete or control your Recorder database.
+Normal Recorder state history follows the user's configured retention and
+purging. Home Assistant's hourly long-term-statistics aggregates are stored
+separately and are not automatically purged by normal Recorder retention. Users
+seeking a conservative interpretation can exclude the affected entities from
+Recorder to prevent future history and statistics, then manage any existing
+long-term statistics separately under **Developer Tools → Statistics**.
+Excluding an entity does not remove statistics already stored for it.
+
+Pollen Levels does not automatically purge and cannot centrally delete or
+control a user's Recorder history or long-term-statistics database.
 
 ## Logs and diagnostics
 

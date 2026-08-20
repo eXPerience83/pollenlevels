@@ -240,7 +240,7 @@ entities such as `sensor.example_grass_d1` or `sensor.example_grass_d2`.
 
 ---
 
-## 15. Does Home Assistant Recorder store pollen forecast data?
+## 15. How are pollen data, Recorder history, and long-term statistics retained?
 
 Live forecast attributes remain available in Home Assistant for dashboards,
 templates, automations, and compatible custom cards. Future forecast-derived
@@ -250,13 +250,33 @@ attributes such as `forecast`, `tomorrow_*`, `d2_*`, `trend`, and
 Current states and non-forecast attributes may still be recorded according to
 your Home Assistant Recorder configuration.
 
-Under the current Pollen API service-specific terms, today's forecast values may
-be cached for up to 365 consecutive calendar days, and future forecast values may
-be cached for no more than 24 hours. Users with Recorder retention above 365
-days should exclude Pollen Levels entities or otherwise ensure compliant
-retention.
+Pollen Levels does not retain its own stale Pollen API coordinator snapshot
+beyond its fixed 24-hour runtime cache lifetime. This runtime cache is separate
+from Home Assistant Recorder.
 
-Pollen Levels does not automatically purge existing Recorder history.
+Under the current Pollen API service-specific terms, Today's Forecast Google
+Maps Content may be cached for up to 365 consecutive calendar days, while
+Forecast values may be cached for no more than 24 hours.
+
+Home Assistant may also generate long-term statistics such as hourly minimum,
+maximum, and mean values from eligible numeric entity states. These are locally
+generated aggregates, not retained raw Pollen API response payloads. The Google
+terms reviewed do not expressly classify these Home Assistant-derived aggregates
+for retention purposes, so this project does not claim that they are either
+permitted indefinitely or prohibited after 365 days. The Google Cloud project
+and API-key owner remains responsible for the agreement applicable to that
+account.
+
+Normal Recorder state history follows the user's configured retention and
+purging. Home Assistant's hourly long-term-statistics aggregates are stored
+separately and are not automatically purged by normal Recorder retention. Users
+seeking a conservative interpretation can exclude the affected entities from
+Recorder to prevent future history and statistics, then manage any existing
+long-term statistics separately under **Developer Tools → Statistics**.
+Excluding an entity does not remove statistics already stored for it.
+
+Pollen Levels does not automatically purge a user's Recorder history or
+long-term-statistics database. See [PRIVACY.md](PRIVACY.md) for more detail.
 
 ---
 
