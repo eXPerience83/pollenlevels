@@ -583,6 +583,20 @@ def test_google_maps_retention_limits_are_documented() -> None:
     ) in terms
 
 
+def test_readme_documents_4_0_statistics_restoration_and_runtime_cache() -> None:
+    """Keep the README upgrade and runtime-cache guidance current."""
+    readme = " ".join(_read_text(README_PATH).split())
+
+    assert "fixed 24-hour runtime cache lifetime" in readme
+    assert "Upgrading to 4.0.0: long-term statistics restored" in readme
+    assert "same entity and statistic identity" in readme
+    assert (
+        "Statistics manually deleted after upgrading to 3.1.0 cannot be "
+        "reconstructed automatically"
+    ) in readme
+    assert "Upgrading to 3.1.0: remove obsolete long-term statistics" not in readme
+
+
 def test_documentation_distinguishes_runtime_cache_and_home_assistant_storage() -> None:
     """Keep runtime cache, Recorder, and derived statistics clearly separated."""
     documents = {
