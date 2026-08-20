@@ -91,8 +91,15 @@ Content, but they do not expressly classify these Home Assistant-generated
 aggregates for retention purposes. This documentation therefore makes no legal
 conclusion that such aggregates are either permitted indefinitely or prohibited
 after 365 days. The Google Cloud project and API-key owner remains responsible
-for the agreement applicable to that account. Users seeking a conservative
-interpretation can configure Recorder and statistics retention accordingly.
+for the agreement applicable to that account.
+
+Normal Recorder state history follows the user's configured retention and
+purging. Home Assistant's hourly long-term-statistics aggregates are stored
+separately and are not automatically purged by normal Recorder retention. Users
+seeking a conservative interpretation can exclude the affected entities from
+Recorder to prevent future history and statistics, then manage any existing
+long-term statistics separately under **Developer Tools → Statistics**.
+Excluding an entity does not remove statistics already stored for it.
 
 Pollen Levels does not automatically purge Home Assistant Recorder history or
 long-term statistics and cannot control the user's local database.

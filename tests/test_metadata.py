@@ -595,11 +595,20 @@ def test_documentation_distinguishes_runtime_cache_and_home_assistant_storage() 
         assert "Recorder" in document, name
         assert "long-term statistics" in document, name
         assert "locally" in document and "derived" in document, name
+        assert "not automatically purged by normal Recorder retention" in document, name
+        assert "Developer Tools → Statistics" in document, name
+        assert (
+            "Excluding an entity does not remove statistics already stored" in document
+        ), name
 
     old_blanket_guidance = (
         "Recorder retention beyond 365 days must exclude Pollen Levels entities"
     )
     assert all(old_blanket_guidance not in document for document in documents.values())
+    misleading_retention_guidance = "configure Recorder and statistics retention"
+    assert all(
+        misleading_retention_guidance not in document for document in documents.values()
+    )
 
 
 def test_faq_documents_privacy_and_retention_guidance() -> None:

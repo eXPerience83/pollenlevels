@@ -76,9 +76,15 @@ stored raw Pollen API response payloads. The cited Google terms specify caching
 periods for Google Maps Content but do not expressly resolve how these
 Home Assistant-derived aggregates should be classified for retention purposes.
 Users remain responsible for the Google agreement applicable to their Google
-Cloud project and API key and control their local Recorder and statistics
-storage. Users seeking a conservative interpretation can configure that local
-retention accordingly.
+Cloud project and API key and control their local Home Assistant storage.
+
+Normal Recorder state history follows the user's configured retention and
+purging. Home Assistant's hourly long-term-statistics aggregates are stored
+separately and are not automatically purged by normal Recorder retention. Users
+seeking a conservative interpretation can exclude the affected entities from
+Recorder to prevent future history and statistics, then manage any existing
+long-term statistics separately under **Developer Tools → Statistics**.
+Excluding an entity does not remove statistics already stored for it.
 
 Pollen Levels does not automatically purge and cannot centrally delete or
 control a user's Recorder history or long-term-statistics database.
