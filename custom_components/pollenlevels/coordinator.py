@@ -205,6 +205,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.last_updated: datetime | None = None
         self.using_stale_data: bool = False
         self.last_payload_valid: bool | None = None
+        self._cache_expiry_handle: asyncio.TimerHandle | None = None
 
     def _utcnow(self) -> datetime:
         """Return the current UTC time."""
@@ -218,10 +219,70 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         """Return whether cached data is still within the stale-data tolerance."""
         if not self.data or self.last_updated is None:
             return False
-        return self._utcnow() - self.last_updated <= self._stale_data_ttl()
+        return self._utcnow() - self.last_updated < self._stale_data_ttl()
+
+    def _cancel_cache_expiry(self) -> None:
+        """Cancel the scheduled cache expiry callback."""
+        if self._cache_expiry_handle is not None:
+            self._cache_expiry_handle.cancel()
+            self._cache_expiry_handle = None
+
+    def _discard_expired_cache(self) -> bool:
+        """Discard the integration-owned snapshot once its TTL is reached."""
+        if (
+            not self.data
+            or self.last_updated is None
+            or self._utcnow() - self.last_updated < self._stale_data_ttl()
+        ):
+            return False
+
+        self._cancel_cache_expiry()
+        self.data = {}
+        self.last_updated = None
+        self.using_stale_data = False
+        return True
+
+    def _schedule_cache_expiry(self) -> None:
+        """Schedule removal of the current snapshot at the fixed TTL boundary."""
+        self._cancel_cache_expiry()
+        if not self.data:
+            self.last_updated = None
+            return
+        if self.last_updated is None or getattr(self, "config_entry", None) is None:
+            return
+
+        delay = max(
+            0.0,
+            (
+                self.last_updated + self._stale_data_ttl() - self._utcnow()
+            ).total_seconds(),
+        )
+        self._cache_expiry_handle = self.hass.loop.call_later(
+            delay, self._handle_cache_expiry, self.last_updated
+        )
+
+    def _handle_cache_expiry(self, expected_last_updated: datetime) -> None:
+        """Expire a snapshot without reporting an empty successful update."""
+        self._cache_expiry_handle = None
+        if self.last_updated != expected_last_updated:
+            return
+        if not self._discard_expired_cache():
+            self._schedule_cache_expiry()
+            return
+
+        if self.last_update_success:
+            self.async_set_update_error(UpdateFailed("Cached pollen data expired"))
+        else:
+            self.async_update_listeners()
+
+    async def async_shutdown(self) -> None:
+        """Cancel snapshot expiry and shut down coordinator scheduling."""
+        self._cancel_cache_expiry()
+        await super().async_shutdown()
 
     async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         """Fetch pollen data and extract sensors for current day and forecast."""
+        cache_expired = self._discard_expired_cache()
         try:
             payload = await self._client.async_fetch_pollen_data(
                 latitude=self.lat,
@@ -274,7 +335,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
                     self._missing_dailyinfo_warned = True
                 return self.data
             self.using_stale_data = False
-            if self.data:
+            if self.data or cache_expired:
                 if not self._stale_dailyinfo_warned:
                     _LOGGER.warning(
                         "API response missing or invalid dailyInfo; cached data expired"
@@ -432,6 +493,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.data = new_data
         self.last_updated = self._utcnow()
         self.using_stale_data = False
+        self._schedule_cache_expiry()
         if _LOGGER.isEnabledFor(logging.DEBUG):
             total = len(new_data)
             types = 0
