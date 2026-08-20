@@ -245,6 +245,9 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     def _schedule_cache_expiry(self) -> None:
         """Schedule removal of the current snapshot at the fixed TTL boundary."""
         self._cancel_cache_expiry()
+        if not self.data:
+            self.last_updated = None
+            return
         if self.last_updated is None or getattr(self, "config_entry", None) is None:
             return
 

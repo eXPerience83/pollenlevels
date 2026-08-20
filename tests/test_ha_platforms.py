@@ -283,11 +283,12 @@ async def test_ha_expired_snapshot_notifies_entities_and_releases_summary_cache(
     assert barcelona.last_payload_valid is True
     assert barcelona.last_exception is existing_failure
 
-    expiry_handles = (madrid._cache_expiry_handle, barcelona._cache_expiry_handle)
-    assert madrid._cache_expiry_handle is not None
+    madrid_handle = madrid._cache_expiry_handle
+    assert madrid_handle is not None
+    assert barcelona._cache_expiry_handle is None
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
-    assert all(handle.cancelled() for handle in expiry_handles if handle is not None)
+    assert madrid_handle.cancelled()
 
 
 async def test_ha_button_press_refreshes_only_location_coordinator(

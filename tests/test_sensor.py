@@ -1583,6 +1583,29 @@ def test_coordinator_stale_data_ttl_is_fixed_24_hours(
     assert twenty_four_hour._stale_data_ttl() == datetime.timedelta(hours=24)
 
 
+def test_coordinator_empty_valid_payload_does_not_schedule_expiry(
+    sensor_modules: SensorModules,
+) -> None:
+    """An empty valid payload should not retain a timestamp or arm a timer."""
+
+    session = FakeSession({"dailyInfo": [{}]})
+    client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    coordinator.config_entry = object()
+
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert data == {}
+    assert coordinator.data == {}
+    assert coordinator.last_updated is None
+    assert coordinator.last_payload_valid is True
+    assert coordinator._cache_expiry_handle is None
+
+
 def test_coordinator_success_after_malformed_response_updates_last_updated(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
@@ -1715,7 +1738,7 @@ def test_coordinator_transport_failure_before_ttl_preserves_snapshot(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A transport failure before expiry should leave the snapshot scheduled."""
+    """A transport failure before the TTL should preserve the cached snapshot."""
 
     start = datetime.datetime(2025, 5, 9, 12, tzinfo=datetime.UTC)
     now = start
