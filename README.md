@@ -78,7 +78,10 @@ Live forecast attributes remain available to dashboards, templates, automations,
 and compatible custom cards. Pollen Levels excludes `forecast`, `tomorrow_*`,
 `d2_*`, `trend`, and `expected_peak` from Home Assistant Recorder persistence,
 while current states and non-excluded attributes remain subject to your Recorder
-configuration.
+configuration. Its own stale Pollen API coordinator snapshot has a fixed 24-hour
+runtime cache lifetime. Recorder history and Home Assistant-generated long-term
+statistics are separate local storage layers; see [PRIVACY.md](PRIVACY.md) for
+details.
 
 ---
 
@@ -101,24 +104,20 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
 ---
 
-## Upgrading to 3.1.0: remove obsolete long-term statistics
+## Upgrading to 4.0.0: long-term statistics restored
 
-Pollen Levels 3.1.0 stops generating Home Assistant long-term statistics for
-current-day pollen type and plant forecast sensors and for the
-`overall_pollen_risk_today` sensor.
+Pollen Levels 4.0.0 restores long-term-statistics eligibility for current-day
+pollen type and plant sensors and `overall_pollen_risk_today`, matching the HACS
+integration behavior available before 3.1.0. If you kept earlier statistics,
+Home Assistant can continue them under the same entity and statistic identity,
+although the period on 3.1.0 may contain a gap. Statistics manually deleted
+after upgrading to 3.1.0 cannot be reconstructed automatically; new statistics
+start after upgrading to 4.0.0.
 
-Earlier versions exposed these forecast-derived values with
-`SensorStateClass.MEASUREMENT`, so Home Assistant may still retain long-term
-statistics created before the upgrade. These values represent forecasts rather
-than actual measurements and should not be kept as historical measurements.
-
-After upgrading to 3.1.0, open **Settings → Developer Tools → Statistics** and
-remove the obsolete statistics for the affected Pollen Levels sensors.
-
-This cleanup only removes the previously generated long-term statistics. Normal
-Recorder history is separate and continues to follow your Recorder retention
-configuration. Pollen Levels 3.1.0 and later will not generate new long-term
-statistics for these forecast-derived sensors.
+No entity ID, unique ID, or device identity changes are involved. These numeric
+states remain based on Google's current-day forecast rather than direct physical
+observations. Future `forecast`, `tomorrow_*`, `d2_*`, `trend`, and
+`expected_peak` attributes remain excluded from Recorder persistence.
 
 ## Migrating from per-day forecast sensors
 

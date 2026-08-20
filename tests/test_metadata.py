@@ -583,12 +583,32 @@ def test_google_maps_retention_limits_are_documented() -> None:
     ) in terms
 
 
+def test_documentation_distinguishes_runtime_cache_and_home_assistant_storage() -> None:
+    """Keep runtime cache, Recorder, and derived statistics clearly separated."""
+    documents = {
+        path.name: " ".join(_read_text(path).split())
+        for path in (FAQ_PATH, TERMS_PATH, PRIVACY_PATH)
+    }
+
+    for name, document in documents.items():
+        assert "fixed 24-hour runtime cache" in document, name
+        assert "Recorder" in document, name
+        assert "long-term statistics" in document, name
+        assert "locally" in document and "derived" in document, name
+
+    old_blanket_guidance = (
+        "Recorder retention beyond 365 days must exclude Pollen Levels entities"
+    )
+    assert all(old_blanket_guidance not in document for document in documents.values())
+
+
 def test_faq_documents_privacy_and_retention_guidance() -> None:
     """Ensure FAQ keeps its privacy and retention guidance."""
     faq = " ".join(_read_text(FAQ_PATH).split())
 
     assert "[PRIVACY.md](PRIVACY.md)" in faq
     assert (
-        "today's forecast values may be cached for up to 365 consecutive calendar days"
+        "Today's Forecast Google Maps Content may be cached for up to "
+        "365 consecutive calendar days"
     ) in faq
-    assert "future forecast values may be cached for no more than 24 hours" in faq
+    assert "Forecast values may be cached for no more than 24 hours" in faq
