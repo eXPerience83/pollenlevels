@@ -428,7 +428,7 @@ def test_workflows_do_not_duplicate_python_or_uv_executable_pins() -> None:
 def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     """Protect the latest-HA canary's isolated, non-blocking contract."""
     canary = _read_text(WORKFLOWS_PATH / "ha-compatibility-canary.yml")
-    assert 'cron: "17 5 * * *"' in canary
+    assert 'cron: "17 */6 * * *"' in canary
     assert "workflow_dispatch:" in canary
     assert "contents: read" in canary
     assert "group: ha-compatibility-canary" in canary
@@ -445,6 +445,12 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "$RUNNER_TEMP/ha-compatibility-canary-venv" in canary
     assert "uv lock" not in canary
     assert "uv sync" not in canary
+    resolver = _workflow_step(canary, "Resolve latest stable Home Assistant harness")
+    assert canary.count("UV_EXCLUDE_NEWER") == 1
+    assert 'UV_EXCLUDE_NEWER: "false"' in resolver
+    assert "UV_EXCLUDE_NEWER" not in canary.split("jobs:", maxsplit=1)[0]
+    project = _read_text(PYPROJECT_PATH)
+    assert 'exclude-newer = "3 days"' in project
     assert "pytest-homeassistant-custom-component" in canary
     assert "pytest-homeassistant-custom-component==" not in canary
     assert '"$AIOINTERCEPT_REQUIREMENT"' in canary
@@ -463,6 +469,25 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
         "uv",
     ):
         assert name in canary
+    for evidence in (
+        "Latest stable HA",
+        "Resolved PHACC",
+        "HA resolved by PHACC",
+        "Status",
+        "Home Assistant harness lag",
+    ):
+        assert evidence in canary
+    report = _workflow_step(canary, "Report resolved compatibility versions")
+    for schema_check in (
+        "isinstance(payload, dict)",
+        "isinstance(releases, dict)",
+        "isinstance(release, str)",
+        "isinstance(files, list)",
+        "isinstance(file, dict)",
+        'isinstance(file.get("yanked", False), bool)',
+    ):
+        assert schema_check in report
+    assert "ValueError," in report
     assert '"$CANARY_PYTHON" -m pytest -q -p no:cacheprovider' in canary
     assert 'HA_COMPATIBILITY_CANARY: "1"' in canary
     assert "continue-on-error" not in canary
