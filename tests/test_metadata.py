@@ -477,6 +477,16 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
         "Home Assistant harness lag",
     ):
         assert evidence in canary
+    report = _workflow_step(canary, "Report resolved compatibility versions")
+    for schema_check in (
+        "isinstance(payload, dict)",
+        "isinstance(releases, dict)",
+        "isinstance(release, str)",
+        "isinstance(files, list)",
+        "isinstance(file, dict)",
+    ):
+        assert schema_check in report
+    assert "ValueError," in report
     assert '"$CANARY_PYTHON" -m pytest -q -p no:cacheprovider' in canary
     assert 'HA_COMPATIBILITY_CANARY: "1"' in canary
     assert "continue-on-error" not in canary

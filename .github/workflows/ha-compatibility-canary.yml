@@ -116,12 +116,23 @@ jobs:
                       headers={"User-Agent": "pollenlevels-ha-compatibility-canary"},
                   )
                   with urllib.request.urlopen(request, timeout=15) as response:
-                      releases = json.load(response)["releases"]
+                      payload = json.load(response)
+                  if not isinstance(payload, dict):
+                      raise ValueError("PyPI response is not a mapping")
+                  releases = payload.get("releases")
+                  if not isinstance(releases, dict):
+                      raise ValueError("PyPI releases are not a mapping")
+                  if any(
+                      not isinstance(release, str)
+                      or not isinstance(files, list)
+                      or any(not isinstance(file, dict) for file in files)
+                      for release, files in releases.items()
+                  ):
+                      raise ValueError("PyPI release entries have an invalid shape")
                   break
               except (
-                  json.JSONDecodeError,
-                  KeyError,
                   TimeoutError,
+                  ValueError,
                   urllib.error.URLError,
               ) as err:
                   if attempt == 3:
