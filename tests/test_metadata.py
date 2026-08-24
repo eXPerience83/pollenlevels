@@ -484,6 +484,7 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
         "isinstance(release, str)",
         "isinstance(files, list)",
         "isinstance(file, dict)",
+        'isinstance(file.get("yanked", False), bool)',
     ):
         assert schema_check in report
     assert "ValueError," in report

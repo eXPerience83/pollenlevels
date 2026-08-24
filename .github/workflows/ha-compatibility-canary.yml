@@ -125,7 +125,11 @@ jobs:
                   if any(
                       not isinstance(release, str)
                       or not isinstance(files, list)
-                      or any(not isinstance(file, dict) for file in files)
+                      or any(
+                          not isinstance(file, dict)
+                          or not isinstance(file.get("yanked", False), bool)
+                          for file in files
+                      )
                       for release, files in releases.items()
                   ):
                       raise ValueError("PyPI release entries have an invalid shape")
