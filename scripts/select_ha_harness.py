@@ -44,23 +44,27 @@ def _stable_releases(
 
     stable_releases: list[tuple[Version, str]] = []
     for release, artifacts in releases.items():
-        if not isinstance(release, str) or not isinstance(artifacts, Sequence):
+        if not isinstance(release, str) or not isinstance(artifacts, list):
             raise SelectionError(
                 f"PyPI metadata for {package} has an invalid release entry"
             )
+        for artifact in artifacts:
+            if not isinstance(artifact, Mapping):
+                raise SelectionError(
+                    f"PyPI metadata for {package} has an invalid artifact"
+                )
+            if not isinstance(artifact.get("yanked"), bool):
+                raise SelectionError(
+                    f"PyPI metadata for {package} has an invalid artifact yanked value"
+                )
         try:
             version = Version(release)
         except InvalidVersion:
             continue
         if version.is_prerelease or version.is_devrelease:
             continue
-        if any(
-            isinstance(artifact, Mapping) and artifact.get("yanked") is False
-            for artifact in artifacts
-        ):
+        if any(artifact["yanked"] is False for artifact in artifacts):
             stable_releases.append((version, release))
-        elif any(not isinstance(artifact, Mapping) for artifact in artifacts):
-            raise SelectionError(f"PyPI metadata for {package} has an invalid artifact")
     return stable_releases
 
 

@@ -7,6 +7,7 @@ import pytest
 from scripts.select_ha_harness import (
     SelectionError,
     exact_homeassistant_requirement,
+    latest_stable_release,
     select_stable_harness,
 )
 
@@ -104,6 +105,33 @@ def test_yanked_phacc_release_is_ignored() -> None:
 
     assert selection.latest_phacc == "0.13.357"
     assert selection.selected_phacc == "0.13.357"
+
+
+def test_mixed_valid_and_malformed_artifacts_fail() -> None:
+    """One malformed artifact invalidates an otherwise usable release."""
+    with pytest.raises(SelectionError, match="invalid artifact"):
+        latest_stable_release(
+            {"releases": {"2026.8.3": [{"yanked": False}, "invalid artifact"]}},
+            "Home Assistant",
+        )
+
+
+def test_non_boolean_artifact_yanked_value_fails() -> None:
+    """PyPI artifact yanked values must be booleans."""
+    with pytest.raises(SelectionError, match="invalid artifact yanked value"):
+        latest_stable_release(
+            {"releases": {"2026.8.3": [{"yanked": "false"}]}},
+            "Home Assistant",
+        )
+
+
+def test_non_list_artifacts_collection_fails() -> None:
+    """PyPI release artifact collections must be lists."""
+    with pytest.raises(SelectionError, match="invalid release entry"):
+        latest_stable_release(
+            {"releases": {"2026.8.3": {"yanked": False}}},
+            "Home Assistant",
+        )
 
 
 @pytest.mark.parametrize("homeassistant_releases", [(), (("2026.8.3", True),)])
