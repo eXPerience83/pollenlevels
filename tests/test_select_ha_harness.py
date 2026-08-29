@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from scripts.select_ha_harness import (
+    HarnessSelection,
     SelectionError,
     exact_homeassistant_requirement,
     latest_stable_release,
@@ -24,7 +25,7 @@ def _select(
     homeassistant_releases: tuple[tuple[str, bool], ...],
     phacc_releases: tuple[tuple[str, bool], ...],
     requirements: dict[str, list[str]],
-):
+) -> HarnessSelection:
     return select_stable_harness(
         _project(*homeassistant_releases),
         _project(*phacc_releases),

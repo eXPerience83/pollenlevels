@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -209,7 +210,7 @@ def main() -> None:
             "pytest-homeassistant-custom-component", version
         ),
     )
-    print(json.dumps(asdict(selection), sort_keys=True))
+    sys.stdout.write(json.dumps(asdict(selection), sort_keys=True) + "\n")
 
 
 if __name__ == "__main__":
