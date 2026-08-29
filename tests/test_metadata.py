@@ -433,7 +433,8 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "contents: read" in canary
     assert "group: ha-compatibility-canary" in canary
     assert "cancel-in-progress: true" in canary
-    assert "ref: main" in canary
+    checkout = _workflow_step(canary, "Check out workflow revision")
+    assert "ref: main" not in checkout
     setup_python = _workflow_step(canary, "Set up Python")
     assert "python-version-file: .python-version" in setup_python
     assert re.search(r"(?m)^\s+cache\s*:", setup_python) is None
@@ -445,17 +446,29 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "$RUNNER_TEMP/ha-compatibility-canary-venv" in canary
     assert "uv lock" not in canary
     assert "uv sync" not in canary
-    resolver = _workflow_step(canary, "Resolve latest stable Home Assistant harness")
+    selector_requirements = _workflow_step(
+        canary, "Install stable-harness selection helper requirement"
+    )
+    selector = _workflow_step(
+        canary, "Select latest stable Home Assistant harness pair"
+    )
+    harness = _workflow_step(
+        canary, "Install selected stable Home Assistant harness pair"
+    )
     assert canary.count("UV_EXCLUDE_NEWER") == 1
-    assert 'UV_EXCLUDE_NEWER: "false"' in resolver
+    assert 'UV_EXCLUDE_NEWER: "false"' in harness
     assert "UV_EXCLUDE_NEWER" not in canary.split("jobs:", maxsplit=1)[0]
     project = _read_text(PYPROJECT_PATH)
     assert 'exclude-newer = "3 days"' in project
+    assert "contents: write" not in canary
+    assert "pull-requests: write" not in canary
+    assert '"$PACKAGING_REQUIREMENT"' in selector_requirements
+    assert "scripts/select_ha_harness.py" in selector
+    assert '"pytest-homeassistant-custom-component==$SELECTED_PHACC"' in harness
+    assert "homeassistant==" not in harness
     assert "pytest-homeassistant-custom-component" in canary
-    assert "pytest-homeassistant-custom-component==" not in canary
     assert '"$AIOINTERCEPT_REQUIREMENT"' in canary
     assert '"$PACKAGING_REQUIREMENT"' in canary
-    assert "homeassistant==" not in canary
     assert "pytest==" not in canary
     assert "pytest-asyncio==" not in canary
     for name in (
@@ -471,28 +484,27 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
         assert name in canary
     for evidence in (
         "Latest stable HA",
-        "Resolved PHACC",
-        "HA resolved by PHACC",
+        "Latest stable-versioned PHACC",
+        "Selected stable-pair PHACC",
+        "HA selected by PHACC",
+        "Newer PHACC releases skipped",
         "Status",
         "Home Assistant harness lag",
     ):
         assert evidence in canary
     report = _workflow_step(canary, "Report resolved compatibility versions")
-    for schema_check in (
-        "isinstance(payload, dict)",
-        "isinstance(releases, dict)",
-        "isinstance(release, str)",
-        "isinstance(files, list)",
-        "isinstance(file, dict)",
-        'isinstance(file.get("yanked", False), bool)',
-    ):
-        assert schema_check in report
-    assert "ValueError," in report
+    assert "exact_homeassistant_requirement" in report
+    assert "SELECTED_PHACC" in report
+    assert "SELECTED_HA" in report
+    assert "does not match selected" in report
+    assert "exact installed version" in report
     assert '"$CANARY_PYTHON" -m pytest -q -p no:cacheprovider' in canary
     assert 'HA_COMPATIBILITY_CANARY: "1"' in canary
     assert "continue-on-error" not in canary
     assert "upload-artifact" not in canary
     assert "action-gh-release" not in canary
+    assert "git push" not in canary
+    assert "gh pr create" not in canary
     release = _read_text(WORKFLOWS_PATH / "release.yml")
     assert "ha-compatibility-canary" not in release
 

@@ -20,10 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Check out current main
+      - name: Check out workflow revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: main
           fetch-depth: 1
           persist-credentials: false
 
@@ -69,16 +68,46 @@ jobs:
               print(f"{name.upper()}_REQUIREMENT={requirement}")
           PY
 
-      - name: Resolve latest stable Home Assistant harness
+      - name: Install stable-harness selection helper requirement
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv pip install --python "$CANARY_PYTHON" "$PACKAGING_REQUIREMENT"
+
+      - name: Select latest stable Home Assistant harness pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          selection_file="$RUNNER_TEMP/ha-harness-selection.json"
+          "$CANARY_PYTHON" scripts/select_ha_harness.py > "$selection_file"
+          "$CANARY_PYTHON" - "$selection_file" <<'PY' >> "$GITHUB_ENV"
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as file:
+              selection = json.load(file)
+          fields = {
+              "LATEST_HA": selection["latest_homeassistant"],
+              "LATEST_PHACC": selection["latest_phacc"],
+              "SELECTED_HA": selection["selected_homeassistant"],
+              "SELECTED_PHACC": selection["selected_phacc"],
+              "SKIPPED_PRERELEASE_PHACC": ",".join(
+                  selection["skipped_prerelease_phacc"]
+              ),
+          }
+          for name, value in fields.items():
+              print(f"{name}={value}")
+          PY
+
+      - name: Install selected stable Home Assistant harness pair
         shell: bash
         env:
           UV_EXCLUDE_NEWER: "false"
         run: |
           set -euo pipefail
           uv pip install --python "$CANARY_PYTHON" \
-            pytest-homeassistant-custom-component \
-            "$AIOINTERCEPT_REQUIREMENT" \
-            "$PACKAGING_REQUIREMENT"
+            "pytest-homeassistant-custom-component==$SELECTED_PHACC" \
+            "$AIOINTERCEPT_REQUIREMENT"
 
       - name: Report resolved compatibility versions
         shell: bash
@@ -86,15 +115,12 @@ jobs:
           set -euo pipefail
           "$CANARY_PYTHON" - <<'PY'
           import importlib.metadata
-          import json
           import os
           import subprocess
-          import time
-          import urllib.error
-          import urllib.request
 
-          from packaging.requirements import Requirement
-          from packaging.version import InvalidVersion, Version
+          from packaging.version import Version
+
+          from scripts.select_ha_harness import exact_homeassistant_requirement
 
           names = (
               "pytest-homeassistant-custom-component",
@@ -108,81 +134,29 @@ jobs:
               name: importlib.metadata.version(name)
               for name in names
           }
-          metadata_url = "https://pypi.org/pypi/homeassistant/json"
-          for attempt in range(1, 4):
-              try:
-                  request = urllib.request.Request(
-                      metadata_url,
-                      headers={"User-Agent": "pollenlevels-ha-compatibility-canary"},
-                  )
-                  with urllib.request.urlopen(request, timeout=15) as response:
-                      payload = json.load(response)
-                  if not isinstance(payload, dict):
-                      raise ValueError("PyPI response is not a mapping")
-                  releases = payload.get("releases")
-                  if not isinstance(releases, dict):
-                      raise ValueError("PyPI releases are not a mapping")
-                  if any(
-                      not isinstance(release, str)
-                      or not isinstance(files, list)
-                      or any(
-                          not isinstance(file, dict)
-                          or not isinstance(file.get("yanked", False), bool)
-                          for file in files
-                      )
-                      for release, files in releases.items()
-                  ):
-                      raise ValueError("PyPI release entries have an invalid shape")
-                  break
-              except (
-                  TimeoutError,
-                  ValueError,
-                  urllib.error.URLError,
-              ) as err:
-                  if attempt == 3:
-                      raise SystemExit(
-                          "Unable to determine latest stable Home Assistant from PyPI"
-                      ) from err
-                  time.sleep(5)
-
-          stable_releases = []
-          for release, files in releases.items():
-              try:
-                  version = Version(release)
-              except InvalidVersion:
-                  continue
-              if (
-                  not version.is_prerelease
-                  and not version.is_devrelease
-                  and any(not file.get("yanked", False) for file in files)
-              ):
-                  stable_releases.append((version, release))
-          if not stable_releases:
-              raise SystemExit("PyPI returned no stable Home Assistant releases")
-          latest_ha = max(stable_releases)[1]
-
-          phacc_requirements = [
-              Requirement(requirement)
-              for requirement in importlib.metadata.requires(
-                  "pytest-homeassistant-custom-component"
-              ) or ()
-          ]
-          ha_requirements = [
-              requirement
-              for requirement in phacc_requirements
-              if requirement.name == "homeassistant"
-          ]
-          if len(ha_requirements) != 1:
-              raise SystemExit("PHACC must declare exactly one Home Assistant requirement")
-          ha_requirement = ha_requirements[0]
-          expected_ha_specifier = f"=={versions['homeassistant']}"
-          if str(ha_requirement.specifier) != expected_ha_specifier:
+          installed_phacc = versions["pytest-homeassistant-custom-component"]
+          installed_homeassistant = versions["homeassistant"]
+          if installed_phacc != os.environ["SELECTED_PHACC"]:
               raise SystemExit(
-                  "PHACC Home Assistant requirement is not the exact resolved version: "
-                  f"{ha_requirement.specifier} != {expected_ha_specifier}"
+                  f"Installed PHACC {installed_phacc} does not match selected "
+                  f"{os.environ['SELECTED_PHACC']}"
+              )
+          if installed_homeassistant != os.environ["SELECTED_HA"]:
+              raise SystemExit(
+                  f"Installed Home Assistant {installed_homeassistant} does not match "
+                  f"selected {os.environ['SELECTED_HA']}"
+              )
+          required_homeassistant = exact_homeassistant_requirement(
+              importlib.metadata.requires("pytest-homeassistant-custom-component")
+          )
+          if required_homeassistant != installed_homeassistant:
+              raise SystemExit(
+                  "PHACC Home Assistant requirement is not the exact installed version: "
+                  f"{required_homeassistant} != {installed_homeassistant}"
               )
 
-          aligned = Version(versions["homeassistant"]) == Version(latest_ha)
+          latest_ha = os.environ["LATEST_HA"]
+          aligned = Version(installed_homeassistant) == Version(latest_ha)
           if aligned:
               status = "latest stable Home Assistant is covered by the canary"
           else:
@@ -192,9 +166,13 @@ jobs:
               print(
                   "::warning title=Home Assistant harness lag::"
                   f"Latest stable Home Assistant is {latest_ha}, but PHACC "
-                  f"{versions['pytest-homeassistant-custom-component']} resolves "
-                  f"Home Assistant {versions['homeassistant']}"
+                  f"{installed_phacc} selects Home Assistant {installed_homeassistant}"
               )
+
+          skipped = os.environ["SKIPPED_PRERELEASE_PHACC"]
+          skipped_summary = (
+              f"`{skipped}` (target HA prerelease)" if skipped else "None"
+          )
 
           python_version = subprocess.check_output(
               [os.environ["CANARY_PYTHON"], "--version"], text=True
@@ -204,9 +182,10 @@ jobs:
               "## Latest Home Assistant compatibility canary",
               "",
               f"- Latest stable HA: `{latest_ha}`",
-              "- Resolved PHACC: "
-              f"`{versions['pytest-homeassistant-custom-component']}`",
-              f"- HA resolved by PHACC: `{versions['homeassistant']}`",
+              f"- Latest stable-versioned PHACC: `{os.environ['LATEST_PHACC']}`",
+              f"- Selected stable-pair PHACC: `{installed_phacc}`",
+              f"- HA selected by PHACC: `{installed_homeassistant}`",
+              f"- Newer PHACC releases skipped: {skipped_summary}",
               f"- Status: {status}",
               "",
               "| Component | Resolved version |",
@@ -214,7 +193,10 @@ jobs:
           ]
           for name in names:
               summary.append(f"| {name} | `{versions[name]}` |")
-          summary.append(f"| PHACC Home Assistant requirement | `{ha_requirement}` |")
+          summary.append(
+              "| PHACC Home Assistant requirement | "
+              f"`homeassistant=={required_homeassistant}` |"
+          )
           summary.append(f"| Python | `{python_version}` |")
           summary.append(f"| uv | `{uv_version}` |")
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as file:
