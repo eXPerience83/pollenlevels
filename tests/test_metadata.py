@@ -433,7 +433,8 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "contents: read" in canary
     assert "group: ha-compatibility-canary" in canary
     assert "cancel-in-progress: true" in canary
-    assert "ref: main" in canary
+    checkout = _workflow_step(canary, "Check out workflow revision")
+    assert "ref: main" not in checkout
     setup_python = _workflow_step(canary, "Set up Python")
     assert "python-version-file: .python-version" in setup_python
     assert re.search(r"(?m)^\s+cache\s*:", setup_python) is None
