@@ -64,8 +64,33 @@ jobs:
         run: |
           set -euo pipefail
           planner_venv="$RUNNER_TEMP/ha-test-baseline-planner"
-          packaging_requirement="$(rg -o 'packaging==[^\"]+' pyproject.toml)"
-          test -n "$packaging_requirement"
+          packaging_requirement="$(python -c '
+          from pathlib import Path
+          import sys
+          import tomllib
+
+          with Path("pyproject.toml").open("rb") as file:
+              dependency_groups = tomllib.load(file).get("dependency-groups")
+
+          if not isinstance(dependency_groups, dict):
+              raise SystemExit("[dependency-groups] section is missing")
+
+          test_dependencies = dependency_groups.get("test")
+          if not isinstance(test_dependencies, list):
+              raise SystemExit("test dependency group is missing or is not a list")
+
+          packaging_requirements = [
+              requirement
+              for requirement in test_dependencies
+              if isinstance(requirement, str) and requirement.startswith("packaging==")
+          ]
+          if len(packaging_requirements) != 1:
+              raise SystemExit(
+                  "test dependency group must contain exactly one packaging== requirement"
+              )
+
+          sys.stdout.write(packaging_requirements[0])
+          ')"
           uv venv --python "$(command -v python)" "$planner_venv"
           uv pip install --python "$planner_venv/bin/python" "$packaging_requirement"
           printf 'PLANNER_PYTHON=%s\n' "$planner_venv/bin/python" >> "$GITHUB_ENV"
