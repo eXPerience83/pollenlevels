@@ -509,6 +509,80 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "ha-compatibility-canary" not in release
 
 
+def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() -> None:
+    """Protect the weekly updater's narrow generated-PR security contract."""
+    workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
+    validation = _workflow_step(workflow, "Plan stable baseline update")
+    seal = _workflow_step(workflow, "Seal validated publication artifact")
+    upload = _workflow_step(workflow, "Upload sealed publication artifact")
+    pytest_step = _workflow_step(workflow, "Run full normal test suite")
+    publication = _workflow_step(workflow, "Publish validated pull request")
+    artifact_check = _workflow_step(workflow, "Verify validated artifact")
+
+    assert 'cron: "41 6 * * 1"' in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "publish:" in workflow
+    assert "default: false" in workflow
+    assert "group: ha-test-baseline-updater" in workflow
+    assert workflow.count("contents: read") >= 2
+    assert "contents: write" in workflow
+    assert "pull-requests: write" in workflow
+    assert "actions/checkout@" in workflow
+    assert "persist-credentials: false" in workflow
+    assert "UV_EXCLUDE_NEWER=false" not in workflow
+    assert 'UV_EXCLUDE_NEWER: "false"' not in workflow
+    assert "uv lock --upgrade-package homeassistant" in workflow
+    assert "--upgrade-package pytest-homeassistant-custom-component" in workflow
+    assert "uv lock --upgrade" not in workflow.replace("uv lock --upgrade-package", "")
+    assert "gh pr merge" not in workflow
+    assert "enablePullRequestAutoMerge" not in workflow
+    assert "automerge: true" not in workflow.lower()
+    assert "git push --force" not in workflow
+    assert "github.ref != 'refs/heads/main'" in workflow
+    assert "git check-ref-format" in publication
+    assert "gh pr list" in publication
+    assert "git ls-remote origin refs/heads/main" in publication
+    assert "Remote branch $branch exists without a pull request" in publication
+    assert "gh pr create" in publication
+    assert "github-actions[bot]" in publication
+    assert "sha256sum --check SHA256SUMS" in artifact_check
+    assert "plan.json" in artifact_check
+    assert "pr-body.md" in artifact_check
+    assert "pyproject.toml" in artifact_check and "uv.lock" in artifact_check
+    assert "scripts/ha_test_baseline_updater.py plan" in validation
+    assert workflow.index("Seal validated publication artifact") < workflow.index(
+        "Install locked test environment"
+    )
+    assert workflow.index("Upload sealed publication artifact") < workflow.index(
+        "Install locked test environment"
+    )
+    assert workflow.index("Upload sealed publication artifact") < workflow.index(
+        "Run full normal test suite"
+    )
+    assert "id: seal" in seal
+    assert "pyproject_sha256" in seal
+    assert "uv_lock_sha256" in seal
+    assert "plan_sha256" in seal
+    assert "actions/upload-artifact" in upload
+    assert "id: tests" in pytest_step
+    assert "pytest_result" in pytest_step
+    assert "EXPECTED_PYPROJECT_SHA256" in artifact_check
+    assert "EXPECTED_UV_LOCK_SHA256" in artifact_check
+    assert "EXPECTED_PLAN_SHA256" in artifact_check
+    assert 'sha256sum "$artifact_dir/pyproject.toml"' in artifact_check
+    assert 'sha256sum "$artifact_dir/uv.lock"' in artifact_check
+    assert "needs: validation" in workflow
+
+    forbidden_commands = (
+        "python ",
+        "uv ",
+        "pip ",
+        "pytest ",
+    )
+    assert all(command not in publication.lower() for command in forbidden_commands)
+    assert ".github/requirements/minimum-ha" not in workflow
+
+
 def test_minimum_ha_workflow_is_blocking_and_hash_verified() -> None:
     """Protect the minimum compatibility lane's reproducible contract."""
     workflow = _read_text(MINIMUM_HA_WORKFLOW_PATH)

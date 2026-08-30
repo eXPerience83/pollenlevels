@@ -1,0 +1,296 @@
+name: Home Assistant Test Baseline Updater
+
+on:
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Create a baseline update pull request after validation"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ha-test-baseline-updater
+  cancel-in-progress: false
+
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      status: ${{ steps.plan.outputs.status }}
+      base_sha: ${{ steps.plan.outputs.base_sha }}
+      homeassistant: ${{ steps.plan.outputs.homeassistant }}
+      phacc: ${{ steps.plan.outputs.phacc }}
+      pyproject_sha256: ${{ steps.seal.outputs.pyproject_sha256 }}
+      uv_lock_sha256: ${{ steps.seal.outputs.uv_lock_sha256 }}
+      plan_sha256: ${{ steps.seal.outputs.plan_sha256 }}
+      pytest_result: ${{ steps.tests.outputs.pytest_result }}
+    steps:
+      - name: Reject unsafe manual publication ref
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish && github.ref != 'refs/heads/main' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Manual publication is allowed only from main." >&2
+          exit 1
+
+      - name: Check out workflow revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version-file: .python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: pyproject.toml
+          enable-cache: false
+
+      - name: Create planner environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          planner_venv="$RUNNER_TEMP/ha-test-baseline-planner"
+          packaging_requirement="$(rg -o 'packaging==[^\"]+' pyproject.toml)"
+          test -n "$packaging_requirement"
+          uv venv --python "$(command -v python)" "$planner_venv"
+          uv pip install --python "$planner_venv/bin/python" "$packaging_requirement"
+          printf 'PLANNER_PYTHON=%s\n' "$planner_venv/bin/python" >> "$GITHUB_ENV"
+
+      - name: Plan stable baseline update
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan_path="$RUNNER_TEMP/ha-test-baseline-plan.json"
+          "$PLANNER_PYTHON" scripts/ha_test_baseline_updater.py plan > "$plan_path"
+          status="$(jq -r '.status' "$plan_path")"
+          homeassistant="$(jq -r '.selected_homeassistant' "$plan_path")"
+          phacc="$(jq -r '.selected_phacc' "$plan_path")"
+          base_sha="$(git rev-parse HEAD)"
+          {
+            printf 'status=%s\n' "$status"
+            printf 'homeassistant=%s\n' "$homeassistant"
+            printf 'phacc=%s\n' "$phacc"
+            printf 'base_sha=%s\n' "$base_sha"
+          } >> "$GITHUB_OUTPUT"
+          cp "$plan_path" "$RUNNER_TEMP/plan.json"
+
+      - name: Preserve original lock
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp uv.lock "$RUNNER_TEMP/uv.lock.before"
+
+      - name: Update exact test pins
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PLANNER_PYTHON" scripts/ha_test_baseline_updater.py update-pyproject \
+            --plan "$RUNNER_TEMP/plan.json"
+
+      - name: Generate targeted lock update
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv lock --upgrade-package homeassistant \
+            --upgrade-package pytest-homeassistant-custom-component
+
+      - name: Validate generated lock delta
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PLANNER_PYTHON" scripts/ha_test_baseline_updater.py validate-lock \
+            --before "$RUNNER_TEMP/uv.lock.before" \
+            --after uv.lock \
+            --homeassistant "${{ steps.plan.outputs.homeassistant }}" \
+            --phacc "${{ steps.plan.outputs.phacc }}"
+
+      - name: Check generated working tree scope
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=$'pyproject.toml\nuv.lock'
+          actual="$(git diff --name-only | LC_ALL=C sort)"
+          test "$actual" = "$expected"
+          test -z "$(git status --porcelain --untracked-files=no | \
+            awk '$2 != "pyproject.toml" && $2 != "uv.lock"')"
+
+      - name: Check generated lock
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv lock --check
+
+      - name: Seal validated publication artifact
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        id: seal
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/ha-test-baseline-artifact"
+          mkdir "$artifact_dir"
+          jq -r '
+            [
+              "Generated by the Home Assistant test baseline updater.", "",
+              "- Old pair: `homeassistant==" + .current_homeassistant + "`, `pytest-homeassistant-custom-component==" + .current_phacc + "`",
+              "- New pair: `homeassistant==" + .selected_homeassistant + "`, `pytest-homeassistant-custom-component==" + .selected_phacc + "`",
+              "- Home Assistant mature at: `" + .homeassistant_mature_at + "`",
+              "- PHACC mature at: `" + .phacc_mature_at + "`",
+              "- Configured cooldown: `" + (.cooldown_days | tostring) + " days`",
+              "- Lock command: `uv lock --upgrade-package homeassistant --upgrade-package pytest-homeassistant-custom-component`",
+              "- Lock-delta validation: passed; only Home Assistant, PHACC, and allowed local dependency specifiers changed.",
+              "- Full pytest: `__PYTEST_RESULT__`", "- Minimum-HA files were untouched.",
+              "- No automerge is enabled.",
+              "- This PR was created with the repository `GITHUB_TOKEN`; a repository writer must select **Approve workflows to run** for CI."
+            ] | join("\\n")
+          ' "$RUNNER_TEMP/plan.json" > "$artifact_dir/pr-body.md"
+          cp pyproject.toml uv.lock "$RUNNER_TEMP/plan.json" "$artifact_dir/"
+          (cd "$artifact_dir" && sha256sum plan.json pr-body.md pyproject.toml uv.lock > SHA256SUMS)
+          {
+            printf 'pyproject_sha256=%s\n' "$(sha256sum pyproject.toml | awk '{print $1}')"
+            printf 'uv_lock_sha256=%s\n' "$(sha256sum uv.lock | awk '{print $1}')"
+            printf 'plan_sha256=%s\n' "$(sha256sum "$RUNNER_TEMP/plan.json" | awk '{print $1}')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload sealed publication artifact
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ha-test-baseline-${{ github.run_id }}
+          path: ${{ runner.temp }}/ha-test-baseline-artifact
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Install locked test environment
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --locked --only-group test
+
+      - name: Run full normal test suite
+        if: ${{ steps.plan.outputs.status == 'update' }}
+        id: tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(PYTHONPATH=. uv run --locked --no-sync python -m pytest -q | tail -n 1)"
+          [[ "$result" =~ ^[0-9]+\ (passed|failed|skipped|xfailed|xpassed)(,\ [0-9]+\ (passed|failed|skipped|xfailed|xpassed))*\ in\ [0-9.]+s$ ]]
+          printf 'pytest_result=%s\n' "$result" >> "$GITHUB_OUTPUT"
+
+  publication:
+    needs: validation
+    if: >-
+      needs.validation.outputs.status == 'update' &&
+      (github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish &&
+      github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out validated base revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.validation.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download validated publication artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ha-test-baseline-${{ github.run_id }}
+          path: ${{ runner.temp }}/ha-test-baseline-artifact
+
+      - name: Verify validated artifact
+        shell: bash
+        env:
+          EXPECTED_PYPROJECT_SHA256: ${{ needs.validation.outputs.pyproject_sha256 }}
+          EXPECTED_UV_LOCK_SHA256: ${{ needs.validation.outputs.uv_lock_sha256 }}
+          EXPECTED_PLAN_SHA256: ${{ needs.validation.outputs.plan_sha256 }}
+          PYTEST_RESULT: ${{ needs.validation.outputs.pytest_result }}
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/ha-test-baseline-artifact"
+          test -z "$(find "$artifact_dir" -mindepth 1 -maxdepth 1 ! -type f -print -quit)"
+          expected=$'SHA256SUMS\nplan.json\npr-body.md\npyproject.toml\nuv.lock'
+          actual="$(find "$artifact_dir" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort)"
+          test "$actual" = "$expected"
+          manifest="$(awk '{print $2}' "$artifact_dir/SHA256SUMS" | sed 's/^\\*//' | LC_ALL=C sort)"
+          test "$manifest" = $'plan.json\npr-body.md\npyproject.toml\nuv.lock'
+          (
+            cd "$artifact_dir"
+            sha256sum --check SHA256SUMS
+          )
+          test "$(sha256sum "$artifact_dir/pyproject.toml" | awk '{print $1}')" = "$EXPECTED_PYPROJECT_SHA256"
+          test "$(sha256sum "$artifact_dir/uv.lock" | awk '{print $1}')" = "$EXPECTED_UV_LOCK_SHA256"
+          test "$(sha256sum "$artifact_dir/plan.json" | awk '{print $1}')" = "$EXPECTED_PLAN_SHA256"
+          cp "$artifact_dir/pyproject.toml" "$artifact_dir/uv.lock" .
+          expected_changes=$'pyproject.toml\nuv.lock'
+          actual_changes="$(git diff --name-only | LC_ALL=C sort)"
+          test "$actual_changes" = "$expected_changes"
+          [[ "$PYTEST_RESULT" =~ ^[0-9]+\ (passed|failed|skipped|xfailed|xpassed)(,\ [0-9]+\ (passed|failed|skipped|xfailed|xpassed))*\ in\ [0-9.]+s$ ]]
+          sed "s/__PYTEST_RESULT__/$PYTEST_RESULT/" "$artifact_dir/pr-body.md" > "$RUNNER_TEMP/pr-body-final.md"
+
+      - name: Publish validated pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ needs.validation.outputs.base_sha }}
+          HOMEASSISTANT_VERSION: ${{ needs.validation.outputs.homeassistant }}
+          PHACC_VERSION: ${{ needs.validation.outputs.phacc }}
+        run: |
+          set -euo pipefail
+          sanitize_ref() {
+            tr -c '[:alnum:]._- ' '-' | tr -d ' '
+          }
+          ha="$(printf '%s' "$HOMEASSISTANT_VERSION" | sanitize_ref)"
+          phacc="$(printf '%s' "$PHACC_VERSION" | sanitize_ref)"
+          branch="automation/ha-test-baseline-${ha}-phacc-${phacc}"
+          git check-ref-format "refs/heads/$branch"
+          existing="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" \
+            --state all --json url,state --jq '.[] | "\(.state) \(.url)"')"
+          if [[ -n "$existing" ]]; then
+            echo "Existing baseline pull request: $existing"
+            exit 0
+          fi
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+            echo "Remote branch $branch exists without a pull request." >&2
+            exit 1
+          fi
+          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$remote_main" = "$BASE_SHA" || {
+            echo "main moved from validated base $BASE_SHA to $remote_main." >&2
+            exit 1
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock
+          git commit -m "chore(deps): update Home Assistant test baseline"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "chore(deps): update Home Assistant test baseline" \
+            --body-file "$RUNNER_TEMP/pr-body-final.md"
