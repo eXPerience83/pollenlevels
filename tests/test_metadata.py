@@ -513,6 +513,9 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     """Protect the weekly updater's narrow generated-PR security contract."""
     workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
     validation = _workflow_step(workflow, "Plan stable baseline update")
+    seal = _workflow_step(workflow, "Seal validated publication artifact")
+    upload = _workflow_step(workflow, "Upload sealed publication artifact")
+    pytest_step = _workflow_step(workflow, "Run full normal test suite")
     publication = _workflow_step(workflow, "Publish validated pull request")
     artifact_check = _workflow_step(workflow, "Verify validated artifact")
 
@@ -547,6 +550,28 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "pr-body.md" in artifact_check
     assert "pyproject.toml" in artifact_check and "uv.lock" in artifact_check
     assert "scripts/ha_test_baseline_updater.py plan" in validation
+    assert workflow.index("Seal validated publication artifact") < workflow.index(
+        "Install locked test environment"
+    )
+    assert workflow.index("Upload sealed publication artifact") < workflow.index(
+        "Install locked test environment"
+    )
+    assert workflow.index("Upload sealed publication artifact") < workflow.index(
+        "Run full normal test suite"
+    )
+    assert "id: seal" in seal
+    assert "pyproject_sha256" in seal
+    assert "uv_lock_sha256" in seal
+    assert "plan_sha256" in seal
+    assert "actions/upload-artifact" in upload
+    assert "id: tests" in pytest_step
+    assert "pytest_result" in pytest_step
+    assert "EXPECTED_PYPROJECT_SHA256" in artifact_check
+    assert "EXPECTED_UV_LOCK_SHA256" in artifact_check
+    assert "EXPECTED_PLAN_SHA256" in artifact_check
+    assert 'sha256sum "$artifact_dir/pyproject.toml"' in artifact_check
+    assert 'sha256sum "$artifact_dir/uv.lock"' in artifact_check
+    assert "needs: validation" in workflow
 
     forbidden_commands = (
         "python ",
