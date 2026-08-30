@@ -512,6 +512,7 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
 def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() -> None:
     """Protect the weekly updater's narrow generated-PR security contract."""
     workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
+    planner_environment = _workflow_step(workflow, "Create planner environment")
     validation = _workflow_step(workflow, "Plan stable baseline update")
     seal = _workflow_step(workflow, "Seal validated publication artifact")
     upload = _workflow_step(workflow, "Upload sealed publication artifact")
@@ -531,6 +532,13 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "persist-credentials: false" in workflow
     assert "UV_EXCLUDE_NEWER=false" not in workflow
     assert 'UV_EXCLUDE_NEWER: "false"' not in workflow
+    assert "rg " not in workflow
+    assert "import tomllib" in planner_environment
+    assert 'get("test")' in planner_environment
+    assert (
+        'uv pip install --python "$planner_venv/bin/python" "$packaging_requirement"'
+        in (planner_environment)
+    )
     assert "uv lock --upgrade-package homeassistant" in workflow
     assert "--upgrade-package pytest-homeassistant-custom-component" in workflow
     assert "uv lock --upgrade" not in workflow.replace("uv lock --upgrade-package", "")
