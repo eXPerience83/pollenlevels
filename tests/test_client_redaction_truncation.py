@@ -48,6 +48,35 @@ async def test_http_error_redacts_key_before_truncation(
 
 
 @pytest.mark.asyncio
+async def test_http_error_redacts_coordinate_crossing_truncation_boundary(
+    client_module: ModuleType,
+) -> None:
+    """A standalone coordinate crossing the boundary must not leak a fragment."""
+
+    latitude = 12.3456
+    raw_message = f"{'x' * 296}{latitude} trailing context"
+    response = client_tests.FakeResponse(
+        status=400,
+        json_results=[{"error": {"message": raw_message}}],
+    )
+
+    with pytest.raises(client_module.UpdateFailed) as exc_info:
+        await client_tests._fetch_with_response(
+            client_module,
+            response,
+            latitude=latitude,
+        )
+
+    surfaced = str(exc_info.value)
+    detail = surfaced.removeprefix("HTTP 400: ")
+    coordinate_fragment = str(latitude)[:4]
+    assert str(latitude) not in surfaced
+    assert coordinate_fragment not in surfaced
+    assert "***" in surfaced
+    assert len(detail) <= client_module._MAX_HTTP_ERROR_MESSAGE_LENGTH
+
+
+@pytest.mark.asyncio
 async def test_http_error_redacts_url_and_coordinates_before_truncation(
     client_module: ModuleType,
 ) -> None:
