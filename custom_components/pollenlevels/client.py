@@ -19,6 +19,7 @@ from .util import extract_error_message, redact_sensitive_values
 _LOGGER = logging.getLogger(__name__)
 _DEFAULT_429_RETRY_DELAY = 2.0
 _MAX_INLINE_RETRY_AFTER = 5.0
+_MAX_HTTP_ERROR_MESSAGE_LENGTH = 300
 
 
 def _format_http_message(status: int, raw_message: str | None) -> str:
@@ -154,13 +155,13 @@ class GooglePollenApiClient:
         latitude: float | str | None,
         longitude: float | str | None,
     ) -> tuple[str, str]:
-        """Extract, redact, and format an HTTP error response message."""
+        """Extract, redact, truncate, and format an HTTP error response message."""
 
         raw_message = self._redact_sensitive_message(
-            await extract_error_message(resp, default=default),
+            await extract_error_message(resp, default=default, max_length=None),
             latitude=latitude,
             longitude=longitude,
-        )
+        )[:_MAX_HTTP_ERROR_MESSAGE_LENGTH]
         return raw_message, _format_http_message(resp.status, raw_message or None)
 
     async def async_fetch_pollen_data(

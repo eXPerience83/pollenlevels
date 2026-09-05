@@ -171,8 +171,13 @@ def normalize_language_code(value: object) -> str | None:
     return normalized
 
 
-async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
-    """Extract and normalize an HTTP error message without secrets."""
+async def extract_error_message(
+    resp: ClientResponse,
+    default: str = "",
+    *,
+    max_length: int | None = 300,
+) -> str:
+    """Extract and normalize an HTTP error message, bounded by default."""
 
     message: str | None = None
     try:
@@ -201,8 +206,8 @@ async def extract_error_message(resp: ClientResponse, default: str = "") -> str:
         (message or "").replace("\r", " ").replace("\n", " ").split()
     ).strip()
 
-    if len(normalized) > 300:
-        normalized = normalized[:300]
+    if max_length is not None and len(normalized) > max_length:
+        normalized = normalized[:max_length]
 
     return normalized or default
 
