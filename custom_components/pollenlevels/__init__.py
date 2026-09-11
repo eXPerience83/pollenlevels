@@ -330,6 +330,10 @@ async def _refresh_force_update_target(
     entry: ConfigEntry, subentry_id: str, coordinator: Any
 ) -> None:
     """Refresh one force_update target and log local failures."""
+    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(entry)
+    if filter_stale_locations and subentry_id not in active_subentry_ids:
+        return
+
     try:
         await coordinator.async_request_refresh()
     except asyncio.CancelledError:
