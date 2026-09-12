@@ -1,0 +1,111 @@
+name: Temporary PR 381 parent-only coverage patch
+
+on:
+  push:
+    branches:
+      - chore/374-runtime-fallback-followup
+    paths:
+      - .github/workflows/tmp-381-parent-only-coverage.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: chore/374-runtime-fallback-followup
+          persist-credentials: true
+
+      - name: Patch parent-only setup coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tests/test_init.py")
+          text = path.read_text(encoding="utf-8")
+
+          old = '''def test_setup_entry_without_location_subentries_loads_empty_runtime(
+              integration_modules: _InitModules,
+          ) -> None:
+              """A parent entry with no locations should load and forward platforms."""
+              integration = integration_modules.integration
+
+              hass = _FakeHass()
+              entry = _FakeEntry(
+                  integration,
+                  data={integration.CONF_API_KEY: "key"},
+                  subentries={},
+              )
+
+              assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+              assert entry.runtime_data is not None
+              assert entry.runtime_data.locations == {}
+              assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+          '''
+
+          new = '''@pytest.mark.parametrize(
+              "include_parent_coordinates",
+              [False, True],
+              ids=["api-key-only", "parent-coordinates"],
+          )
+          def test_setup_entry_without_location_subentries_loads_empty_runtime(
+              integration_modules: _InitModules,
+              include_parent_coordinates: bool,
+          ) -> None:
+              """A parent entry with no locations should load and forward platforms."""
+              integration = integration_modules.integration
+
+              data = {integration.CONF_API_KEY: "key"}
+              if include_parent_coordinates:
+                  data.update(
+                      {
+                          integration.CONF_LATITUDE: 1.0,
+                          integration.CONF_LONGITUDE: 2.0,
+                      }
+                  )
+
+              hass = _FakeHass()
+              entry = _FakeEntry(
+                  integration,
+                  data=data,
+                  subentries={},
+              )
+
+              assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
+
+              assert entry.runtime_data is not None
+              assert entry.runtime_data.locations == {}
+              assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
+          '''
+
+          import textwrap
+          old = textwrap.dedent(old)
+          new = textwrap.dedent(new)
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f"expected exactly one target test, found {count}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+
+          python -m py_compile tests/test_init.py
+          git diff --check
+          git diff -- tests/test_init.py
+
+      - name: Commit test and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-381-parent-only-coverage.yml
+          git add tests/test_init.py
+          git diff --cached --check
+          git commit -m "test: cover parent-only setup coordinates"
+          git push origin HEAD:chore/374-runtime-fallback-followup
