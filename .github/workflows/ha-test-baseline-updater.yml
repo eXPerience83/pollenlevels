@@ -187,7 +187,7 @@ jobs:
               "- Full pytest: `__PYTEST_RESULT__`", "- Minimum-HA files were untouched.",
               "- No automerge is enabled.",
               "- This PR was created with the repository `GITHUB_TOKEN`; a repository writer must select **Approve workflows to run** for CI."
-            ] | join("\\n")
+            ] | join("\n")
           ' "$RUNNER_TEMP/plan.json" > "$artifact_dir/pr-body.md"
           cp pyproject.toml uv.lock "$RUNNER_TEMP/plan.json" "$artifact_dir/"
           (cd "$artifact_dir" && sha256sum plan.json pr-body.md pyproject.toml uv.lock > SHA256SUMS)
