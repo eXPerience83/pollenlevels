@@ -276,8 +276,7 @@ jobs:
           expected_changes=$'pyproject.toml\nuv.lock'
           actual_changes="$(git diff --name-only | LC_ALL=C sort)"
           test "$actual_changes" = "$expected_changes"
-          jq -Rrs --arg result "$PYTEST_RESULT" \
-            'split("__PYTEST_RESULT__") | join($result)' \
+          jq -Rrs 'split("__PYTEST_RESULT__") | join(env.PYTEST_RESULT)' \
             "$artifact_dir/pr-body.md" > "$RUNNER_TEMP/pr-body-final.md"
 
       - name: Publish validated pull request
