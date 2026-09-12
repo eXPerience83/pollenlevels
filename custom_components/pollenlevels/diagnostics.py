@@ -34,7 +34,6 @@ from .summary import daily_summary as _daily_summary
 from .util import (
     active_location_subentry_ids,
     device_subentry_ids,
-    has_legacy_location_data,
     normalize_language_code,
     redact_api_key,
     redact_sensitive_values,
@@ -289,9 +288,7 @@ async def async_get_config_entry_diagnostics(
     coordinate_pairs.extend(_coordinate_pairs_from_location_subentries(entry))
     if runtime is not None:
         active_subentry_ids = active_location_subentry_ids(entry)
-        filter_stale_locations = bool(
-            active_subentry_ids
-        ) or not has_legacy_location_data(entry)
+        filter_stale_locations = True
         # Pre-collect all runtime coordinate pairs before redacting any titles.
         # This ensures a user-controlled title for one location can have all
         # configured location coordinates redacted.
