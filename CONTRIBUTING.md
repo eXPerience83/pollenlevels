@@ -1,71 +1,55 @@
 # Contributing
 
-## Home Assistant Core readiness
+## Home Assistant upstream alignment and project direction
 
-Pollen Levels is currently a custom integration distributed through HACS, but the
-long-term project goal is to prepare it for a future contribution to Home
-Assistant Core.
-
-Development in this repository should therefore improve **Core readiness** while
-preserving the complete and stable HACS integration that users run today. The
-current Home Assistant developer documentation and Integration Quality Scale are
-the upstream reference for that work:
+Pollen Levels is maintained in this repository as a Home Assistant custom
+integration distributed through HACS. The current Home Assistant developer
+documentation and Integration Quality Scale remain useful upstream quality
+references when they improve supported HACS behavior:
 
 - [Contributing an integration to Core](https://developers.home-assistant.io/docs/core/integration/contributing_to_core/)
 - [Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 - [Full config-flow test coverage](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/config-flow-test-coverage/)
-- [Above 95% test coverage for all integration modules](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/test-coverage/)
+- [Above 95% test coverage](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/test-coverage/)
 
-New Core integrations currently need to meet the Bronze quality tier. Bronze
-includes full config-flow test coverage and dependency transparency. Above 95%
-test coverage for all integration modules is a Silver rule; this repository
-adopts that stricter target proactively as part of its Core-readiness work.
+This repository is **not** a staging tree for a future Home Assistant Core
+submission. If a future Google Pollen integration for Home Assistant Core is
+pursued, it will be designed in a separate clean project/repository against the
+then-current upstream requirements. Knowledge, evidence, behavioral lessons, and
+useful test ideas from Pollen Levels may be reused there, but its code, storage
+architecture, IDs, migrations, entity contracts, helper layout, or HACS
+compatibility should not be assumed to transfer directly.
 
 For this repository:
 
-- `config_flow.py` should reach literal 100% statement coverage, including error
+- `config_flow.py` must reach literal 100% statement coverage, including error
   recovery and all supported user, reauth, reconfigure, subentry, and options
   behavior;
-- every integration module should exceed 95% statement coverage, measured per
-  module rather than only as a repository-wide total;
+- every non-migration integration module must be strictly above 95% statement
+  coverage, measured per module rather than only as a repository-wide total;
+- `migration.py` is measured and reported but is not subject to the percentage
+  coverage gate; migration tests should be driven by demonstrated behavior and
+  identity risk rather than percentage padding;
 - tests should protect real behavior, identity, privacy, lifecycle, retry, and
   failure semantics rather than merely execute lines to improve a percentage;
 - code proven unreachable on supported Home Assistant should be reviewed for a
   dedicated cleanup/refactor rather than covered by artificial tests or silently
   excluded from the target;
 - supported public Home Assistant APIs, async patterns, typing conventions, and
-  Home Assistant harness tests are preferred whenever they represent the real
-  integration surface.
+  Home Assistant harness tests are preferred whenever they improve the supported
+  HACS integration.
 
-The project may adopt higher-tier Quality Scale practices when they improve the
-current HACS integration or reduce future upstream work, but that must not make a
-future initial Core pull request unnecessarily large.
-
-Core readiness does **not** mean reducing the HACS integration to the size of a
-future initial Core pull request. Home Assistant recommends that a new Core
-integration start with a small, focused contribution, normally one platform and
-without non-essential features such as diagnostics, custom actions, reauth, or
-reconfigure. Those upstream scoping rules will be applied when a dedicated Core
-port is prepared; they are not a reason to remove working HACS functionality now.
-
-Home Assistant Core also expects communication with the external service to live
-in a separate Python library. The current in-repository API client remains part
-of the HACS architecture until a dedicated, reviewed library-extraction effort
-is undertaken. Do not split it out opportunistically as collateral work.
-
-Likewise, this custom repository keeps
-`custom_components/pollenlevels/translations/en.json` as its translation source
-of truth. A future Core contribution will adapt to Core repository translation
-conventions at that boundary; do not introduce `strings.json` here prematurely.
-
-Before any upstream Core submission, perform a dedicated Core-readiness audit
-against the then-current Home Assistant requirements, including the Quality
-Scale checklist, dependency transparency/library requirements, manifest and
-branding requirements, documentation, test coverage, and initial-PR scope.
+Do not reshape the current HACS runtime architecture, migration behavior, IDs,
+compatibility helpers, translations, packaging, public contracts, or API-client
+layout solely to satisfy hypothetical future Core submission requirements. Such
+changes require an independent benefit or requirement for Pollen Levels itself.
+Core-specific findings and upstream conventions remain useful learning material,
+but they do not create backlog work for this repository unless a focused issue
+explicitly reframes them as HACS work.
 
 ## Development environment
 
-- Home Assistant 2026.3 requires Python >=3.14.2. Use the exact patch in
+- Home Assistant 2026.5 requires Python >=3.14.2. Use the exact patch in
   `.python-version` for local development and CI parity. The project metadata
   remains `requires-python = ">=3.14"`, but the locked Home Assistant test
   environment is constrained to Python 3.14.2+; do not infer runtime support for
