@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.0.1] - 2026-09-12
+
+### Changed
+
+- Removed the obsolete parent-coordinate runtime fallback so normal runtime
+  operation relies only on configured location subentries, while preserving the
+  pre-migration config-flow validation fallback used for legacy recovery.
+
+### Fixed
+
+- Redacted sensitive HTTP error data before truncation so bounded upstream error
+  messages cannot retain fragments of API keys or precise configured
+  coordinates.
+- Revalidated captured `pollenlevels.force_update` targets immediately before
+  refresh so locations removed while a global service call is already running
+  are skipped safely.
+
 ## [4.0.0] - 2026-08-20
 
 ### Changed
