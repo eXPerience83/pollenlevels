@@ -585,16 +585,31 @@ def test_setup_entry_whitespace_api_key_raises_auth_failed(
         asyncio.run(integration.async_setup_entry(hass, entry))
 
 
+@pytest.mark.parametrize(
+    "include_parent_coordinates",
+    [False, True],
+    ids=["api-key-only", "parent-coordinates"],
+)
 def test_setup_entry_without_location_subentries_loads_empty_runtime(
     integration_modules: _InitModules,
+    include_parent_coordinates: bool,
 ) -> None:
     """A parent entry with no locations should load and forward platforms."""
     integration = integration_modules.integration
 
+    data = {integration.CONF_API_KEY: "key"}
+    if include_parent_coordinates:
+        data.update(
+            {
+                integration.CONF_LATITUDE: 1.0,
+                integration.CONF_LONGITUDE: 2.0,
+            }
+        )
+
     hass = _FakeHass()
     entry = _FakeEntry(
         integration,
-        data={integration.CONF_API_KEY: "key"},
+        data=data,
         subentries={},
     )
 
