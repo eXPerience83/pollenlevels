@@ -263,7 +263,7 @@ class DummyHass:
 
 
 class FakeConfigEntry:
-    """ConfigEntry stub exposing data/options/entry_id."""
+    """ConfigEntry stub exposing data/options/entry_id/subentries."""
 
     def __init__(
         self,
@@ -271,10 +271,26 @@ class FakeConfigEntry:
         data: dict[str, Any],
         options: dict[str, Any] | None = None,
         entry_id: str = "entry",
+        subentries: dict[str, Any] | None = None,
     ) -> None:
         self.data = data
         self.options = options or {}
         self.entry_id = entry_id
+        if subentries is not None:
+            self.subentries = subentries
+        elif "latitude" in data and "longitude" in data:
+            self.subentries = {
+                entry_id: types.SimpleNamespace(
+                    subentry_id=entry_id,
+                    subentry_type="location",
+                    data={
+                        "latitude": data["latitude"],
+                        "longitude": data["longitude"],
+                    },
+                )
+            }
+        else:
+            self.subentries = {}
         self.runtime_data = None
 
 
@@ -4200,14 +4216,14 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
         entry_title="Home",
         lat=1.0,
         lon=2.0,
-        subentry_id="legacy",
+        subentry_id="entry",
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
         client=object(),
         locations={
-            "legacy": types.SimpleNamespace(
-                subentry_id="legacy",
+            "entry": types.SimpleNamespace(
+                subentry_id="entry",
                 coordinator=coordinator,
             ),
         },
@@ -4260,14 +4276,14 @@ async def test_setup_entry_debug_logs_do_not_expose_coordinate_identity(
         entry_title="Home",
         lat=39.1234,
         lon=-0.1234,
-        subentry_id="legacy",
+        subentry_id="entry",
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
         client=object(),
         locations={
-            "legacy": types.SimpleNamespace(
-                subentry_id="legacy",
+            "entry": types.SimpleNamespace(
+                subentry_id="entry",
                 coordinator=coordinator,
             ),
         },

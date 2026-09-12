@@ -366,6 +366,9 @@ class _FakeConfigEntries:
         ]
 
 
+_DEFAULT_ENTRY_VERSION = object()
+
+
 class _FakeEntry:
     def __init__(
         self,
@@ -375,21 +378,55 @@ class _FakeEntry:
         title: str = "Pollen Levels",
         data: dict | None = None,
         options: dict | None = None,
-        version: int = 1,
+        version: object = _DEFAULT_ENTRY_VERSION,
         subentries: dict | None = None,
         unique_id: str | None = None,
     ):
+        uses_current_shape = version is _DEFAULT_ENTRY_VERSION
         self.entry_id = entry_id
         self.title = title
         self.domain = integration.DOMAIN
-        self.data = data or {
-            integration.CONF_API_KEY: "key",
-            integration.CONF_LATITUDE: 1.0,
-            integration.CONF_LONGITUDE: 2.0,
-        }
+        if data is None:
+            self.data = (
+                {integration.CONF_API_KEY: "key"}
+                if uses_current_shape
+                else {
+                    integration.CONF_API_KEY: "key",
+                    integration.CONF_LATITUDE: 1.0,
+                    integration.CONF_LONGITUDE: 2.0,
+                }
+            )
+        else:
+            self.data = data
         self.options = options or {}
-        self.version = version
-        self.subentries = subentries or {}
+        self.version = (
+            integration.TARGET_ENTRY_VERSION if uses_current_shape else version
+        )
+        if subentries is not None:
+            self.subentries = subentries
+        elif uses_current_shape:
+            latitude = self.data.get(
+                integration.CONF_LATITUDE, 1.0 if data is None else None
+            )
+            longitude = self.data.get(
+                integration.CONF_LONGITUDE, 2.0 if data is None else None
+            )
+            self.subentries = (
+                {
+                    entry_id: integration.ConfigSubentry(
+                        data={
+                            integration.CONF_LATITUDE: latitude,
+                            integration.CONF_LONGITUDE: longitude,
+                        },
+                        subentry_id=entry_id,
+                        title=title,
+                    )
+                }
+                if latitude is not None and longitude is not None
+                else {}
+            )
+        else:
+            self.subentries = {}
         self.unique_id = unique_id
         self.runtime_data = None
 
@@ -1956,8 +1993,18 @@ def test_force_update_refreshes_different_parents_concurrently(
 
     coordinator1 = _Coordinator()
     coordinator2 = _Coordinator()
-    entry1 = _FakeEntry(integration, entry_id="entry-1")
-    entry2 = _FakeEntry(integration, entry_id="entry-2")
+    entry1 = _FakeEntry(
+        integration,
+        entry_id="entry-1",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loc-1"),
+    )
+    entry2 = _FakeEntry(
+        integration,
+        entry_id="entry-2",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loc-2"),
+    )
 
     asyncio.run(
         integration._refresh_force_update_targets(
@@ -1973,10 +2020,10 @@ def test_force_update_refreshes_different_parents_concurrently(
     assert coordinator2.calls == 1
 
 
-def test_force_update_refreshes_fallback_location_without_subentries(
+def test_force_update_skips_parent_only_runtime_location_without_subentries(
     integration_modules: _InitModules, caplog
 ) -> None:
-    """force_update should still refresh legacy fallback runtime locations."""
+    """force_update should skip parent-only runtime locations without subentries."""
     integration = integration_modules.integration
 
     class _Coordinator:
@@ -2010,8 +2057,11 @@ def test_force_update_refreshes_fallback_location_without_subentries(
     with caplog.at_level("DEBUG"):
         asyncio.run(hass.services.async_call(integration.DOMAIN, "force_update"))
 
-    assert coordinator.calls == 1
-    assert "Skipping stale Pollen Levels runtime location" not in caplog.text
+    assert coordinator.calls == 0
+    assert (
+        "Skipping stale Pollen Levels runtime location entry-legacy "
+        "for entry entry-legacy"
+    ) in caplog.text
 
 
 def test_force_update_skips_runtime_locations_when_parent_has_no_locations(
@@ -2130,8 +2180,18 @@ def test_force_update_continues_after_different_parent_failure(
 
     failing = _FailCoordinator()
     ok = _OkCoordinator()
-    entry1 = _FakeEntry(integration, entry_id="entry-failing")
-    entry2 = _FakeEntry(integration, entry_id="entry-ok")
+    entry1 = _FakeEntry(
+        integration,
+        entry_id="entry-failing",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loc-failing"),
+    )
+    entry2 = _FakeEntry(
+        integration,
+        entry_id="entry-ok",
+        data={integration.CONF_API_KEY: "key"},
+        subentries=_location_subentries(integration, "loc-ok"),
+    )
 
     asyncio.run(
         integration._refresh_force_update_targets(
