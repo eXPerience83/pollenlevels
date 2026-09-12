@@ -220,7 +220,7 @@ jobs:
         run: |
           set -euo pipefail
           result="$(PYTHONPATH=. uv run --locked --no-sync python -m pytest -q | tail -n 1)"
-          [[ "$result" =~ ^[0-9]+\ (passed|failed|skipped|xfailed|xpassed)(,\ [0-9]+\ (passed|failed|skipped|xfailed|xpassed))*\ in\ [0-9.]+s$ ]]
+          result="${result:-pytest exited successfully; summary unavailable}"
           printf 'pytest_result=%s\n' "$result" >> "$GITHUB_OUTPUT"
 
   publication:
@@ -276,8 +276,8 @@ jobs:
           expected_changes=$'pyproject.toml\nuv.lock'
           actual_changes="$(git diff --name-only | LC_ALL=C sort)"
           test "$actual_changes" = "$expected_changes"
-          [[ "$PYTEST_RESULT" =~ ^[0-9]+\ (passed|failed|skipped|xfailed|xpassed)(,\ [0-9]+\ (passed|failed|skipped|xfailed|xpassed))*\ in\ [0-9.]+s$ ]]
-          sed "s/__PYTEST_RESULT__/$PYTEST_RESULT/" "$artifact_dir/pr-body.md" > "$RUNNER_TEMP/pr-body-final.md"
+          jq -Rrs 'split("__PYTEST_RESULT__") | join(env.PYTEST_RESULT)' \
+            "$artifact_dir/pr-body.md" > "$RUNNER_TEMP/pr-body-final.md"
 
       - name: Publish validated pull request
         shell: bash
