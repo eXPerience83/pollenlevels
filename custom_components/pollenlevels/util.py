@@ -12,8 +12,6 @@ from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
     SUBENTRY_TYPE_LOCATION,
 )
 
@@ -105,24 +103,9 @@ def active_location_subentry_ids(entry: Any) -> set[str]:
     return active_ids
 
 
-def has_legacy_location_data(entry: Any) -> bool:
-    """Return True when entry data contains a valid legacy fallback location."""
-    data = getattr(entry, "data", {}) or {}
-    if CONF_LATITUDE not in data or CONF_LONGITUDE not in data:
-        return False
-    return (
-        validate_location_pair(data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE))
-        is not None
-    )
-
-
 def stale_runtime_location_filter(entry: Any) -> tuple[set[str], bool]:
-    """Return active location ids and whether stale runtime locations should skip."""
-    active_subentry_ids = active_location_subentry_ids(entry)
-    filter_stale_locations = bool(active_subentry_ids) or not has_legacy_location_data(
-        entry
-    )
-    return active_subentry_ids, filter_stale_locations
+    """Return active location ids and require stale runtime locations to skip."""
+    return active_location_subentry_ids(entry), True
 
 
 def normalize_subentry_ids(value: Any) -> set[str | None]:

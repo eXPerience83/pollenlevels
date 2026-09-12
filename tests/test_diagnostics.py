@@ -45,6 +45,16 @@ class _ConfigEntry:
         self.entry_id = entry_id
         self.title = title
         self.runtime_data = None
+        self.subentries: dict[str, Any] = {}
+        if "latitude" in data and "longitude" in data:
+            self.subentries[entry_id] = SimpleNamespace(
+                subentry_id=entry_id,
+                subentry_type="location",
+                data={
+                    "latitude": data["latitude"],
+                    "longitude": data["longitude"],
+                },
+            )
 
 
 def _install_diagnostics_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -414,10 +424,10 @@ async def test_diagnostics_redacts_multi_location_titles(
 
 
 @pytest.mark.asyncio
-async def test_diagnostics_includes_fallback_location_without_subentries(
+async def test_diagnostics_filters_parent_only_runtime_location_without_subentries(
     diagnostics_modules: DiagnosticsModules,
 ) -> None:
-    """Diagnostics should keep fallback runtime locations when no subentries exist."""
+    """Diagnostics should classify parent-only runtime locations as stale."""
 
     data = {
         diagnostics_modules.CONF_API_KEY: "secret-token",
@@ -430,6 +440,7 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
         entry_id="entry",
         title="Home secret-token 12.345678",
     )
+    entry.subentries = {}
     coordinator = SimpleNamespace(
         entry_id="entry",
         subentry_id="entry",
@@ -453,11 +464,10 @@ async def test_diagnostics_includes_fallback_location_without_subentries(
         None, entry
     )
 
-    assert set(diagnostics["locations"]) == {"entry"}
-    assert diagnostics["runtime_summary"]["stale_location_count"] == 0
-    assert diagnostics["runtime_summary"]["stale_location_ids"] == []
+    assert diagnostics["locations"] == {}
+    assert diagnostics["runtime_summary"]["stale_location_count"] == 1
+    assert diagnostics["runtime_summary"]["stale_location_ids"] == ["entry"]
     assert diagnostics["entry"]["title"] == "Home *** ***"
-    assert diagnostics["locations"]["entry"]["title"] == "Home *** ***"
     serialized = json.dumps(diagnostics, sort_keys=True)
     assert "secret-token" not in serialized
     assert "12.345678" not in serialized
@@ -480,6 +490,7 @@ async def test_diagnostics_redacts_legacy_title_without_runtime_data(
         entry_id="entry",
         title="Home secret-token 12.345678 -98.765432",
     )
+    entry.subentries = {}
 
     diagnostics = await diagnostics_modules.diag.async_get_config_entry_diagnostics(
         None, entry

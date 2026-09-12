@@ -121,20 +121,6 @@ def _iter_location_subentries(
             )
         )
 
-    if locations:
-        return locations
-
-    # Compatibility fallback for not-yet-migrated or test entries.
-    data = dict(entry.data or {})
-    if CONF_LATITUDE in data and CONF_LONGITUDE in data:
-        locations.append(
-            (
-                entry.entry_id,
-                (entry.title or "").strip() or DEFAULT_ENTRY_TITLE,
-                data,
-                entry.entry_id,
-            )
-        )
     return locations
 
 
