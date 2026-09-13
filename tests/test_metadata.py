@@ -589,7 +589,9 @@ def test_shell_command_detection_uses_command_boundaries() -> None:
 
     assert _shell_invokes_command(historical, "rg")
     assert _shell_invokes_command("rg -o 'packaging==x' pyproject.toml\n", "rg")
-    assert _shell_invokes_command("LC_ALL=C rg -o 'packaging==x' pyproject.toml\n", "rg")
+    assert _shell_invokes_command(
+        "LC_ALL=C rg -o 'packaging==x' pyproject.toml\n", "rg"
+    )
     assert not _shell_invokes_command("jq --arg result value .\n", "rg")
 
 
