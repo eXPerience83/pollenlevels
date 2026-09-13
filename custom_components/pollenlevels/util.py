@@ -385,7 +385,6 @@ def safe_parse_int(value: Any) -> int | None:
 
 
 __all__ = [
-    "active_location_subentry_ids",
     "api_key_unique_id",
     "coordinator_device_id",
     "coordinator_identity_id",
