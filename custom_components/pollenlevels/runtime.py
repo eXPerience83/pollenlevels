@@ -32,7 +32,9 @@ class PollenLevelsRuntimeData:
     """Runtime container for a Pollen Levels parent config entry."""
 
     locations: dict[str, PollenLocationRuntime] = field(default_factory=dict)
-    failed_locations: dict[str, PollenLocationSetupFailure] = field(default_factory=dict)
+    failed_locations: dict[str, PollenLocationSetupFailure] = field(
+        default_factory=dict
+    )
 
 
 if TYPE_CHECKING:
