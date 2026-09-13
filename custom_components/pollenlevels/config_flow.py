@@ -82,11 +82,8 @@ def is_valid_language_code(value: str) -> str:
     return normalized
 
 
-def _language_error_to_form_key(error: vol.Invalid) -> str:
-    """Convert voluptuous validation errors into form error keys."""
-    message = getattr(error, "error_message", "")
-    if message == "invalid_language":
-        return "invalid_language_format"
+def _language_error_to_form_key(_error: vol.Invalid) -> str:
+    """Return the language validation form error key."""
     return "invalid_language_format"
 
 
