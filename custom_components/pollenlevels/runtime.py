@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
@@ -15,6 +15,9 @@ class PollenLocationRuntime:
 
     subentry_id: str
     coordinator: PollenDataUpdateCoordinator
+    # Constructor-only compatibility input for older internal/test call sites.
+    # The legacy identity is owned by the coordinator and is not stored here.
+    legacy_entry_id: InitVar[str | None] = None
 
 
 @dataclass(slots=True)
@@ -31,6 +34,9 @@ class PollenLocationSetupFailure:
 class PollenLevelsRuntimeData:
     """Runtime container for a Pollen Levels parent config entry."""
 
+    # Constructor-only compatibility input for older internal/test call sites.
+    # Coordinators own the client reference; the runtime container does not.
+    client: InitVar[object | None] = None
     locations: dict[str, PollenLocationRuntime] = field(default_factory=dict)
     failed_locations: dict[str, PollenLocationSetupFailure] = field(
         default_factory=dict
