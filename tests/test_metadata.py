@@ -581,7 +581,9 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
 
 def test_shell_command_detection_uses_command_boundaries() -> None:
     """Detect the historical rg command without matching jq --arg text."""
-    historical = 'packaging_requirement="$(rg -o \'packaging==[^\"]+\' pyproject.toml)"\n'
+    historical = (
+        'packaging_requirement="$(rg -o \'packaging==[^"]+\' pyproject.toml)"\n'
+    )
 
     assert _shell_invokes_command(historical, "rg")
     assert _shell_invokes_command("rg -o 'packaging==x' pyproject.toml\n", "rg")
@@ -683,7 +685,7 @@ def test_ha_test_baseline_updater_pytest_shell_behavior(tmp_path: Path) -> None:
     shim.write_text(
         "#!/usr/bin/env bash\n"
         "printf '%s' \"${FAKE_UV_STDOUT-}\"\n"
-        "exit \"${FAKE_UV_EXIT:-0}\"\n",
+        'exit "${FAKE_UV_EXIT:-0}"\n',
         encoding="utf-8",
     )
     shim.chmod(0o755)
@@ -755,9 +757,7 @@ def test_ha_test_baseline_updater_inserts_pytest_result_literally(
     repository = tmp_path / "repository"
     repository.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
-    (repository / "pyproject.toml").write_text(
-        "before-pyproject\n", encoding="utf-8"
-    )
+    (repository / "pyproject.toml").write_text("before-pyproject\n", encoding="utf-8")
     (repository / "uv.lock").write_text("before-lock\n", encoding="utf-8")
     subprocess.run(
         ["git", "add", "pyproject.toml", "uv.lock"],
@@ -782,14 +782,10 @@ def test_ha_test_baseline_updater_inserts_pytest_result_literally(
     runner_temp = tmp_path / "runner"
     artifact_dir = runner_temp / "ha-test-baseline-artifact"
     artifact_dir.mkdir(parents=True)
-    (artifact_dir / "plan.json").write_text(
-        '{"status":"update"}\n', encoding="utf-8"
-    )
+    (artifact_dir / "plan.json").write_text('{"status":"update"}\n', encoding="utf-8")
     pr_body = "Generated body\n\n- Full pytest: `__PYTEST_RESULT__`\n- Done"
     (artifact_dir / "pr-body.md").write_text(pr_body, encoding="utf-8")
-    (artifact_dir / "pyproject.toml").write_text(
-        "after-pyproject\n", encoding="utf-8"
-    )
+    (artifact_dir / "pyproject.toml").write_text("after-pyproject\n", encoding="utf-8")
     (artifact_dir / "uv.lock").write_text("after-lock\n", encoding="utf-8")
     artifact_names = ("plan.json", "pr-body.md", "pyproject.toml", "uv.lock")
     manifest = "".join(
@@ -802,9 +798,7 @@ def test_ha_test_baseline_updater_inserts_pytest_result_literally(
     env.update(
         {
             "RUNNER_TEMP": str(runner_temp),
-            "EXPECTED_PYPROJECT_SHA256": _sha256_file(
-                artifact_dir / "pyproject.toml"
-            ),
+            "EXPECTED_PYPROJECT_SHA256": _sha256_file(artifact_dir / "pyproject.toml"),
             "EXPECTED_UV_LOCK_SHA256": _sha256_file(artifact_dir / "uv.lock"),
             "EXPECTED_PLAN_SHA256": _sha256_file(artifact_dir / "plan.json"),
             "PYTEST_RESULT": pytest_result,
@@ -812,9 +806,7 @@ def test_ha_test_baseline_updater_inserts_pytest_result_literally(
     )
     result = _run_bash(script, repository, env)
 
-    assert result.returncode == 0, (
-        f"stdout={result.stdout!r} stderr={result.stderr!r}"
-    )
+    assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
     expected = pr_body.replace("__PYTEST_RESULT__", pytest_result) + "\n"
     assert (runner_temp / "pr-body-final.md").read_text(encoding="utf-8") == expected
 
