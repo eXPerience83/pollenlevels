@@ -52,9 +52,9 @@ from .issue_helpers import create_per_day_forecast_sensors_removed_issue
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
 from .util import (
+    active_location_subentry_ids,
     coordinator_device_id,
     coordinator_identity_id,
-    stale_runtime_location_filter,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -192,9 +192,7 @@ async def async_setup_entry(
         )
         return
 
-    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
-        config_entry
-    )
+    active_subentry_ids = active_location_subentry_ids(config_entry)
     legacy_entities_found = False
     for location in runtime.locations.values():
         identity_id = coordinator_identity_id(location.coordinator)
@@ -212,7 +210,7 @@ async def async_setup_entry(
         create_per_day_forecast_sensors_removed_issue(hass)
 
     for location in runtime.locations.values():
-        if filter_stale_locations and location.subentry_id not in active_subentry_ids:
+        if location.subentry_id not in active_subentry_ids:
             _LOGGER.debug(
                 "Skipping stale Pollen Levels sensor runtime location %s for entry %s",
                 location.subentry_id,
@@ -336,8 +334,6 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             "advice",
             "color_hex",
             "color_rgb",
-            "date",
-            "has_index",
         ):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
