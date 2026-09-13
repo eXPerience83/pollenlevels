@@ -215,10 +215,7 @@ def _workflow_run_script(workflow: str, name: str) -> str:
 def _shell_invokes_command(script: str, command: str) -> bool:
     """Return whether shell text invokes a command at a command boundary."""
     command_token = re.escape(command)
-    assignment = (
-        r"[A-Za-z_][A-Za-z0-9_]*="
-        r'(?:"(?:\\.|[^"\\])*"|\'(?:[^\']*)\'|[^\s;&|()<>]+)'
-    )
+    assignment = r"[A-Za-z_][A-Za-z0-9_]*=[^\s;&|()<>]+"
     return (
         re.search(
             rf"(?m)(?:^[ \t]*|(?:\$\(|[;&|()])[ \t]*)"
