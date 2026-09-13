@@ -213,15 +213,11 @@ def _workflow_run_script(workflow: str, name: str) -> str:
 
 
 def _shell_invokes_command(script: str, command: str) -> bool:
-    """Return whether shell text invokes a command at a command boundary."""
+    """Return whether shell text contains the command as a standalone token."""
     command_token = re.escape(command)
-    value = r"""(?:[^\s;&|()<>'"]+|'[^']*'|"[^"]*")+"""
-    assignment = rf"[A-Za-z_][A-Za-z0-9_]*={value}"
     return (
         re.search(
-            rf"(?m)(?:^[ \t]*|(?:\$\(|[;&|()])[ \t]*)"
-            rf"(?:{assignment}[ \t]+)*(?:(?:env|command)[ \t]+(?:{assignment}[ \t]+)*)?"
-            rf"{command_token}(?=[ \t\n;&|()<>]|$)",
+            rf"(?<![A-Za-z0-9_-]){command_token}(?![A-Za-z0-9_-])",
             script,
         )
         is not None
@@ -583,7 +579,7 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
 
 
 def test_shell_command_detection_uses_command_boundaries() -> None:
-    """Detect the historical rg command without matching jq --arg text."""
+    """Detect standalone rg tokens without matching jq --arg text."""
     historical = (
         'packaging_requirement="$(rg -o \'packaging==[^"]+\' pyproject.toml)"\n'
     )
@@ -598,6 +594,10 @@ def test_shell_command_detection_uses_command_boundaries() -> None:
     assert _shell_invokes_command(
         "LC_ALL=\"C locale\" rg -o 'packaging==x' pyproject.toml\n", "rg"
     )
+    assert _shell_invokes_command("env -i rg -o x file\n", "rg")
+    assert _shell_invokes_command("env -u NAME rg -o x file\n", "rg")
+    assert _shell_invokes_command("command -p rg -o x file\n", "rg")
+    assert _shell_invokes_command("/usr/bin/rg -o x file\n", "rg")
     assert not _shell_invokes_command("jq --arg result value .\n", "rg")
 
 
