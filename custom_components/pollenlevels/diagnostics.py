@@ -288,13 +288,12 @@ async def async_get_config_entry_diagnostics(
     coordinate_pairs.extend(_coordinate_pairs_from_location_subentries(entry))
     if runtime is not None:
         active_subentry_ids = active_location_subentry_ids(entry)
-        filter_stale_locations = True
         # Pre-collect all runtime coordinate pairs before redacting any titles.
         # This ensures a user-controlled title for one location can have all
         # configured location coordinates redacted.
         runtime_coords: dict[str, tuple[Any, Any]] = {}
         for subentry_id, location in runtime.locations.items():
-            if filter_stale_locations and subentry_id not in active_subentry_ids:
+            if subentry_id not in active_subentry_ids:
                 continue
             coordinator = location.coordinator
             lat = _coordinate_from_coordinator_or_data(coordinator, data, CONF_LATITUDE)
@@ -306,7 +305,7 @@ async def async_get_config_entry_diagnostics(
                 coordinate_pairs.append((lat, lon))
 
         for subentry_id, location in runtime.locations.items():
-            if filter_stale_locations and subentry_id not in active_subentry_ids:
+            if subentry_id not in active_subentry_ids:
                 stale_location_ids.append(subentry_id)
                 continue
             coordinator = location.coordinator
@@ -335,7 +334,7 @@ async def async_get_config_entry_diagnostics(
 
         runtime_failed_locations = getattr(runtime, "failed_locations", {}) or {}
         for subentry_id, failure in runtime_failed_locations.items():
-            if filter_stale_locations and subentry_id not in active_subentry_ids:
+            if subentry_id not in active_subentry_ids:
                 continue
             failed_location_ids.append(subentry_id)
             failed_locations[subentry_id] = _failed_location_diagnostics(
