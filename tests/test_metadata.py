@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
+import textwrap
 import tomllib
 from importlib import metadata
 from pathlib import Path
 
+import pytest
 from packaging.markers import Marker
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -180,6 +185,71 @@ def _workflow_step(workflow: str, name: str) -> str:
     )
     assert match, f"Workflow step {name!r} is missing"
     return match.group(0)
+
+
+def _workflow_run_script(workflow: str, name: str) -> str:
+    """Return the dedented shell script from one literal workflow run block."""
+    step = _workflow_step(workflow, name)
+    lines = step.splitlines()
+    run_lines = [
+        index
+        for index, line in enumerate(lines)
+        if re.fullmatch(r"[ \t]+run:[ \t]*\|[ \t]*", line)
+    ]
+    assert len(run_lines) == 1, (
+        f"Workflow step {name!r} must contain exactly one literal run block"
+    )
+    run_index = run_lines[0]
+    run_indent = len(lines[run_index]) - len(lines[run_index].lstrip())
+    script_lines: list[str] = []
+    for line in lines[run_index + 1 :]:
+        indent = len(line) - len(line.lstrip())
+        if line.strip() and indent <= run_indent:
+            break
+        script_lines.append(line)
+    script = textwrap.dedent("\n".join(script_lines)).strip("\n")
+    assert script, f"Workflow step {name!r} has an empty run block"
+    return f"{script}\n"
+
+
+def _shell_invokes_command(script: str, command: str) -> bool:
+    """Return whether shell text invokes a command at a command boundary."""
+    command_token = re.escape(command)
+    return (
+        re.search(
+            rf"(?m)(?:^[ \t]*|(?:\$\(|[;&|()])[ \t]*)"
+            rf"{command_token}(?=[ \t\n;&|()<>]|$)",
+            script,
+        )
+        is not None
+    )
+
+
+def _require_commands(*commands: str) -> None:
+    """Skip a shell regression when its required local tools are unavailable."""
+    missing = [command for command in commands if shutil.which(command) is None]
+    if missing:
+        pytest.skip(f"Required command(s) unavailable: {', '.join(missing)}")
+
+
+def _run_bash(
+    script: str, cwd: Path, env: dict[str, str]
+) -> subprocess.CompletedProcess[str]:
+    """Run one extracted workflow shell script without raising on failure."""
+    _require_commands("bash")
+    return subprocess.run(
+        ["bash", "-c", script],
+        cwd=cwd,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def _sha256_file(path: Path) -> str:
+    """Return the SHA-256 digest for a fixture file."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _workflow_paths(directory: Path = WORKFLOWS_PATH) -> list[Path]:
@@ -509,10 +579,20 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "ha-compatibility-canary" not in release
 
 
+def test_shell_command_detection_uses_command_boundaries() -> None:
+    """Detect the historical rg command without matching jq --arg text."""
+    historical = 'packaging_requirement="$(rg -o \'packaging==[^\"]+\' pyproject.toml)"\n'
+
+    assert _shell_invokes_command(historical, "rg")
+    assert _shell_invokes_command("rg -o 'packaging==x' pyproject.toml\n", "rg")
+    assert not _shell_invokes_command("jq --arg result value .\n", "rg")
+
+
 def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() -> None:
     """Protect the weekly updater's narrow generated-PR security contract."""
     workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
     planner_environment = _workflow_step(workflow, "Create planner environment")
+    planner_script = _workflow_run_script(workflow, "Create planner environment")
     validation = _workflow_step(workflow, "Plan stable baseline update")
     seal = _workflow_step(workflow, "Seal validated publication artifact")
     upload = _workflow_step(workflow, "Upload sealed publication artifact")
@@ -532,7 +612,7 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "persist-credentials: false" in workflow
     assert "UV_EXCLUDE_NEWER=false" not in workflow
     assert 'UV_EXCLUDE_NEWER: "false"' not in workflow
-    assert "rg " not in workflow
+    assert not _shell_invokes_command(planner_script, "rg")
     assert "import tomllib" in planner_environment
     assert 'get("test")' in planner_environment
     assert (
@@ -589,6 +669,154 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     )
     assert all(command not in publication.lower() for command in forbidden_commands)
     assert ".github/requirements/minimum-ha" not in workflow
+
+
+def test_ha_test_baseline_updater_pytest_shell_behavior(tmp_path: Path) -> None:
+    """Execute the real pytest workflow shell for success and failure cases."""
+    workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
+    script = _workflow_run_script(workflow, "Run full normal test suite")
+    _require_commands("bash", "tail")
+
+    shim_dir = tmp_path / "bin"
+    shim_dir.mkdir()
+    shim = shim_dir / "uv"
+    shim.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf '%s' \"${FAKE_UV_STDOUT-}\"\n"
+        "exit \"${FAKE_UV_EXIT:-0}\"\n",
+        encoding="utf-8",
+    )
+    shim.chmod(0o755)
+    output = tmp_path / "github-output"
+
+    success_cases = (
+        ("739 passed in 42.10s\n", "739 passed in 42.10s"),
+        (
+            "739 passed, 2 warnings in 42.10s\n",
+            "739 passed, 2 warnings in 42.10s",
+        ),
+        (
+            "739 passed in 61.00s (0:01:01)\n",
+            "739 passed in 61.00s (0:01:01)",
+        ),
+        ("", "pytest exited successfully; summary unavailable"),
+    )
+    for stdout, expected in success_cases:
+        output.write_text("", encoding="utf-8")
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{shim_dir}{os.pathsep}{env.get('PATH', '')}",
+                "GITHUB_OUTPUT": str(output),
+                "FAKE_UV_STDOUT": stdout,
+                "FAKE_UV_EXIT": "0",
+            }
+        )
+        result = _run_bash(script, tmp_path, env)
+
+        assert result.returncode == 0, result.stderr
+        assert output.read_text(encoding="utf-8") == f"pytest_result={expected}\n"
+
+    for exit_code in range(1, 6):
+        output.write_text("", encoding="utf-8")
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{shim_dir}{os.pathsep}{env.get('PATH', '')}",
+                "GITHUB_OUTPUT": str(output),
+                "FAKE_UV_STDOUT": "739 passed in 42.10s\n",
+                "FAKE_UV_EXIT": str(exit_code),
+            }
+        )
+        result = _run_bash(script, tmp_path, env)
+
+        assert result.returncode != 0
+        assert output.read_text(encoding="utf-8") == ""
+
+
+def test_ha_test_baseline_updater_inserts_pytest_result_literally(
+    tmp_path: Path,
+) -> None:
+    """Execute the real artifact verification shell with literal pytest text."""
+    _require_commands(
+        "bash",
+        "git",
+        "jq",
+        "sha256sum",
+        "find",
+        "awk",
+        "sed",
+        "sort",
+        "cp",
+    )
+    workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
+    script = _workflow_run_script(workflow, "Verify validated artifact")
+
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+    (repository / "pyproject.toml").write_text(
+        "before-pyproject\n", encoding="utf-8"
+    )
+    (repository / "uv.lock").write_text("before-lock\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "pyproject.toml", "uv.lock"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-qm",
+            "baseline",
+        ],
+        cwd=repository,
+        check=True,
+    )
+
+    runner_temp = tmp_path / "runner"
+    artifact_dir = runner_temp / "ha-test-baseline-artifact"
+    artifact_dir.mkdir(parents=True)
+    (artifact_dir / "plan.json").write_text(
+        '{"status":"update"}\n', encoding="utf-8"
+    )
+    pr_body = "Generated body\n\n- Full pytest: `__PYTEST_RESULT__`\n- Done"
+    (artifact_dir / "pr-body.md").write_text(pr_body, encoding="utf-8")
+    (artifact_dir / "pyproject.toml").write_text(
+        "after-pyproject\n", encoding="utf-8"
+    )
+    (artifact_dir / "uv.lock").write_text("after-lock\n", encoding="utf-8")
+    artifact_names = ("plan.json", "pr-body.md", "pyproject.toml", "uv.lock")
+    manifest = "".join(
+        f"{_sha256_file(artifact_dir / name)}  {name}\n" for name in artifact_names
+    )
+    (artifact_dir / "SHA256SUMS").write_text(manifest, encoding="utf-8")
+
+    pytest_result = r"739 passed / tmp/path & literal \ backslash"
+    env = os.environ.copy()
+    env.update(
+        {
+            "RUNNER_TEMP": str(runner_temp),
+            "EXPECTED_PYPROJECT_SHA256": _sha256_file(
+                artifact_dir / "pyproject.toml"
+            ),
+            "EXPECTED_UV_LOCK_SHA256": _sha256_file(artifact_dir / "uv.lock"),
+            "EXPECTED_PLAN_SHA256": _sha256_file(artifact_dir / "plan.json"),
+            "PYTEST_RESULT": pytest_result,
+        }
+    )
+    result = _run_bash(script, repository, env)
+
+    assert result.returncode == 0, (
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+    expected = pr_body.replace("__PYTEST_RESULT__", pytest_result) + "\n"
+    assert (runner_temp / "pr-body-final.md").read_text(encoding="utf-8") == expected
 
 
 def test_minimum_ha_workflow_is_blocking_and_hash_verified() -> None:
