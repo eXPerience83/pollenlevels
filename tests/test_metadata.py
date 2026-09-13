@@ -215,9 +215,14 @@ def _workflow_run_script(workflow: str, name: str) -> str:
 def _shell_invokes_command(script: str, command: str) -> bool:
     """Return whether shell text invokes a command at a command boundary."""
     command_token = re.escape(command)
+    assignment = (
+        r"[A-Za-z_][A-Za-z0-9_]*="
+        r'(?:"(?:\\.|[^"\\])*"|\'(?:[^\']*)\'|[^\s;&|()<>]+)'
+    )
     return (
         re.search(
             rf"(?m)(?:^[ \t]*|(?:\$\(|[;&|()])[ \t]*)"
+            rf"(?:{assignment}[ \t]+)*"
             rf"{command_token}(?=[ \t\n;&|()<>]|$)",
             script,
         )
@@ -587,6 +592,7 @@ def test_shell_command_detection_uses_command_boundaries() -> None:
 
     assert _shell_invokes_command(historical, "rg")
     assert _shell_invokes_command("rg -o 'packaging==x' pyproject.toml\n", "rg")
+    assert _shell_invokes_command("LC_ALL=C rg -o 'packaging==x' pyproject.toml\n", "rg")
     assert not _shell_invokes_command("jq --arg result value .\n", "rg")
 
 
