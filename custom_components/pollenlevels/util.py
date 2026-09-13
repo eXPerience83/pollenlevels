@@ -103,11 +103,6 @@ def active_location_subentry_ids(entry: Any) -> set[str]:
     return active_ids
 
 
-def stale_runtime_location_filter(entry: Any) -> tuple[set[str], bool]:
-    """Return active location ids and require stale runtime locations to skip."""
-    return active_location_subentry_ids(entry), True
-
-
 def normalize_subentry_ids(value: Any) -> set[str | None]:
     """Return normalized subentry IDs while preserving legacy None links."""
     if value is None:
@@ -389,10 +384,8 @@ def safe_parse_int(value: Any) -> int | None:
     return int(parsed_float)
 
 
-# Backwards-compatible alias for modules that still import the private helper name.
-_redact_api_key = redact_api_key
-
 __all__ = [
+    "active_location_subentry_ids",
     "api_key_unique_id",
     "coordinator_device_id",
     "coordinator_identity_id",
@@ -409,10 +402,8 @@ __all__ = [
     "redact_api_key",
     "redact_sensitive_values",
     "safe_parse_int",
-    "stale_runtime_location_filter",
     "strip_legacy_forecast_options",
     "validate_latitude",
     "validate_location_pair",
     "validate_longitude",
-    "_redact_api_key",
 ]
