@@ -995,7 +995,7 @@ def test_attribution_exact_value(
 
     assert (
         entity.extra_state_attributes[sensor_modules.sensor.ATTR_ATTRIBUTION]
-        == "Google Maps — Source: Includes pollen data from Google"
+        == "Google Maps \u2014 Source: Includes pollen data from Google"
     )
 
 
