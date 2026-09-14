@@ -63,7 +63,6 @@ from .util import (
     has_legacy_per_day_option,
     redact_sensitive_values,
     safe_parse_int,
-    stale_runtime_location_filter,
     strip_legacy_forecast_options,
     validate_location_pair,
 )
@@ -316,8 +315,8 @@ async def _refresh_force_update_target(
     entry: ConfigEntry, subentry_id: str, coordinator: Any
 ) -> None:
     """Refresh one force_update target and log local failures."""
-    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(entry)
-    if filter_stale_locations and subentry_id not in active_subentry_ids:
+    active_subentry_ids = active_location_subentry_ids(entry)
+    if subentry_id not in active_subentry_ids:
         return
 
     try:
@@ -388,12 +387,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 )
                 continue
 
-            active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
-                entry
-            )
+            active_subentry_ids = active_location_subentry_ids(entry)
             for location in locations.values():
                 subentry_id = location.subentry_id
-                if filter_stale_locations and subentry_id not in active_subentry_ids:
+                if subentry_id not in active_subentry_ids:
                     _LOGGER.debug(
                         "Skipping stale Pollen Levels runtime location %s for entry %s",
                         subentry_id,
@@ -629,7 +626,6 @@ async def async_setup_entry(
         locations[subentry_id] = PollenLocationRuntime(
             subentry_id=subentry_id,
             coordinator=coordinator,
-            legacy_entry_id=legacy_entry_id,
         )
         delete_location_setup_failed_issue(
             hass,
@@ -647,7 +643,6 @@ async def async_setup_entry(
         ) from None
 
     entry.runtime_data = PollenLevelsRuntimeData(
-        client=client,
         locations=locations,
         failed_locations=failed_locations,
     )

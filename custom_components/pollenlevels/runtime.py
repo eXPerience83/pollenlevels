@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 
 if TYPE_CHECKING:
-    from .client import GooglePollenApiClient
     from .coordinator import PollenDataUpdateCoordinator
 
 
@@ -16,7 +15,6 @@ class PollenLocationRuntime:
 
     subentry_id: str
     coordinator: PollenDataUpdateCoordinator
-    legacy_entry_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -29,25 +27,14 @@ class PollenLocationSetupFailure:
     error_type: str
 
 
-@dataclass(slots=True, init=False)
+@dataclass(slots=True)
 class PollenLevelsRuntimeData:
     """Runtime container for a Pollen Levels parent config entry."""
 
-    client: GooglePollenApiClient
-    locations: dict[str, PollenLocationRuntime]
-    failed_locations: dict[str, PollenLocationSetupFailure]
-
-    def __init__(
-        self,
-        *,
-        client: GooglePollenApiClient,
-        locations: dict[str, PollenLocationRuntime] | None = None,
-        failed_locations: dict[str, PollenLocationSetupFailure] | None = None,
-    ) -> None:
-        """Initialize runtime data for configured pollen locations."""
-        self.client = client
-        self.failed_locations = failed_locations or {}
-        self.locations = locations if locations is not None else {}
+    locations: dict[str, PollenLocationRuntime] = field(default_factory=dict)
+    failed_locations: dict[str, PollenLocationSetupFailure] = field(
+        default_factory=dict
+    )
 
 
 if TYPE_CHECKING:

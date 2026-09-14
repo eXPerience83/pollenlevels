@@ -156,7 +156,6 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
         data={f"type_{idx}": {} for idx in range(60)},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator
@@ -237,17 +236,14 @@ async def test_diagnostics_includes_all_locations_without_top_level_duplicates(
         data={"type_tree": {"source": "type", "code": "TREE", "value": 4}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "subentry-1": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="subentry-1",
                 coordinator=first_coordinator,
-                legacy_entry_id="legacy-entry",
             ),
             "subentry-2": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="subentry-2",
                 coordinator=second_coordinator,
-                legacy_entry_id=None,
             ),
         },
     )
@@ -323,12 +319,10 @@ async def test_diagnostics_do_not_expose_coordinate_derived_identity_strings(
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "subentry-1": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="subentry-1",
                 coordinator=coordinator,
-                legacy_entry_id=coordinate_identity,
             )
         },
     )
@@ -393,17 +387,14 @@ async def test_diagnostics_redacts_multi_location_titles(
         data={"type_tree": {"source": "type", "code": "TREE", "value": 4}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "casa": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="casa",
                 coordinator=casa_coordinator,
-                legacy_entry_id=None,
             ),
             "trabajo": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="trabajo",
                 coordinator=trabajo_coordinator,
-                legacy_entry_id=None,
             ),
         },
     )
@@ -452,7 +443,6 @@ async def test_diagnostics_filters_parent_only_runtime_location_without_subentri
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             entry.entry_id: diagnostics_modules.PollenLocationRuntime(
                 subentry_id=entry.entry_id, coordinator=coordinator
@@ -557,7 +547,6 @@ async def test_diagnostics_summarizes_runtime_locations_when_parent_has_no_locat
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "deleted-location": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="deleted-location", coordinator=coordinator
@@ -611,7 +600,6 @@ async def test_diagnostics_summarizes_stale_runtime_locations(
         )
 
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "casa": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="casa",
@@ -691,7 +679,6 @@ async def test_diagnostics_reports_failed_locations_separately_from_stale(
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "loaded": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="loaded",
@@ -753,7 +740,6 @@ async def test_diagnostics_marks_invalid_stored_location_as_not_reload_retryable
         "invalid": SimpleNamespace(subentry_id="invalid", subentry_type="location")
     }
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={},
         failed_locations={
             "invalid": diagnostics_modules.PollenLocationSetupFailure(
@@ -796,7 +782,6 @@ async def test_diagnostics_request_days_are_fixed(
         data={"type_grass": {"source": "type"}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator
@@ -847,7 +832,6 @@ async def test_diagnostics_normalizes_request_example_language_code(
         data={"type_grass": {"source": "type"}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator
@@ -892,7 +876,6 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
         data={"type_grass": {"source": "type"}},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator
@@ -978,7 +961,6 @@ async def test_diagnostics_includes_daily_summary_sensor_snapshot(
         },
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator
@@ -1039,7 +1021,6 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data(
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator
@@ -1123,7 +1104,6 @@ async def test_diagnostics_includes_registry_summary_without_sensitive_values(
         data={},
     )
     entry.runtime_data = diagnostics_modules.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": diagnostics_modules.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator

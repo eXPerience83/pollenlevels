@@ -16,9 +16,9 @@ from .const import DOMAIN
 from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
 from .runtime import PollenLevelsConfigEntry
 from .util import (
+    active_location_subentry_ids,
     coordinator_device_id,
     coordinator_identity_id,
-    stale_runtime_location_filter,
 )
 
 if TYPE_CHECKING:
@@ -44,11 +44,9 @@ async def async_setup_entry(
         _LOGGER.debug("No location subentries configured; no update buttons to add")
         return
 
-    active_subentry_ids, filter_stale_locations = stale_runtime_location_filter(
-        config_entry
-    )
+    active_subentry_ids = active_location_subentry_ids(config_entry)
     for location in locations.values():
-        if filter_stale_locations and location.subentry_id not in active_subentry_ids:
+        if location.subentry_id not in active_subentry_ids:
             _LOGGER.debug(
                 "Skipping stale Pollen Levels button runtime location %s",
                 location.subentry_id,
