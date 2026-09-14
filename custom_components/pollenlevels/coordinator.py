@@ -437,7 +437,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         for tcode in sorted(type_codes):
             type_key = f"type_{tcode.lower()}"
             existing = new_data.get(type_key)
-            needs_skeleton = not existing or (
+            needs_skeleton = (
                 existing.get("source") == "type"
                 and existing.get("value") is None
                 and existing.get("category") is None
@@ -478,9 +478,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         for key in plant_keys:
             base = new_data.get(key) or {}
             pcode = _normalize_plant_code(base.get("code"))
-            if not pcode:
-                # Safety: skip if for some reason code is missing
-                continue
 
             forecast_list = _build_forecast_list(
                 daily, plant_by_day_code, pcode, self.forecast_days
