@@ -1824,7 +1824,6 @@ def test_force_update_requests_refresh_per_entry(
         subentries=_location_subentries(integration, "location-1"),
     )
     entry1.runtime_data = integration.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "location-1": integration.PollenLocationRuntime(
                 subentry_id="location-1", coordinator=coordinator1
@@ -1839,7 +1838,6 @@ def test_force_update_requests_refresh_per_entry(
         subentries=_location_subentries(integration, "location-2"),
     )
     entry2.runtime_data = integration.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "location-2": integration.PollenLocationRuntime(
                 subentry_id="location-2", coordinator=coordinator2
@@ -1906,7 +1904,6 @@ def test_force_update_logs_do_not_expose_secrets(
         subentries=_location_subentries(integration, subentry_id),
     )
     entry.runtime_data = integration.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             subentry_id: integration.PollenLocationRuntime(
                 subentry_id=subentry_id, coordinator=_FailCoordinator()
