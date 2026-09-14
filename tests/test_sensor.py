@@ -995,7 +995,7 @@ def test_attribution_exact_value(
 
     assert (
         entity.extra_state_attributes[sensor_modules.sensor.ATTR_ATTRIBUTION]
-        == "Google Maps \u2014 Source: Includes pollen data from Google"
+        == "Google Maps — Source: Includes pollen data from Google"
     )
 
 
@@ -3480,7 +3480,7 @@ async def test_async_setup_entry_without_locations_adds_no_entities(
         entry_id="entry",
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(), locations={}
+        locations={}
     )
     captured: list[Any] = []
 
@@ -3529,12 +3529,10 @@ async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
         "type_grass_d2": {"source": "type", "name": "Grass D+2"},
     }
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=client,
         locations={
             coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
                 subentry_id=coordinator.subentry_id,
                 coordinator=coordinator,
-                legacy_entry_id=coordinator.legacy_entry_id,
             )
         },
     )
@@ -3620,12 +3618,10 @@ async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
         "type_grass": {"source": "type", "name": "Grass"},
     }
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=client,
         locations={
             coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
                 subentry_id=coordinator.subentry_id,
                 coordinator=coordinator,
-                legacy_entry_id=coordinator.legacy_entry_id,
             )
         },
     )
@@ -3687,7 +3683,6 @@ async def test_async_setup_entry_cleans_legacy_entities_for_stale_locations(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "deleted-location": types.SimpleNamespace(
                 subentry_id="deleted-location",
@@ -3756,7 +3751,6 @@ async def test_async_setup_entry_cleans_legacy_entities_before_no_data_error(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "active-location": types.SimpleNamespace(
                 subentry_id="active-location",
@@ -3823,7 +3817,6 @@ async def test_async_setup_entry_skips_stale_runtime_locations(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "deleted-location": types.SimpleNamespace(
                 subentry_id="deleted-location",
@@ -3881,7 +3874,6 @@ async def test_async_setup_entry_ignores_failed_locations(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "loaded-location": types.SimpleNamespace(
                 subentry_id="loaded-location",
@@ -3945,7 +3937,6 @@ async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": sensor_modules.runtime_mod.PollenLocationRuntime(
                 subentry_id="entry", coordinator=coordinator
@@ -4020,7 +4011,6 @@ async def test_async_setup_entry_adds_daily_summary_sensors(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             entry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
                 subentry_id=entry_id, coordinator=coordinator
@@ -4087,12 +4077,10 @@ async def test_device_info_uses_default_title_when_blank(
     )
     coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=client,
         locations={
             coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
                 subentry_id=coordinator.subentry_id,
                 coordinator=coordinator,
-                legacy_entry_id=coordinator.legacy_entry_id,
             )
         },
     )
@@ -4153,12 +4141,10 @@ async def test_device_info_trims_custom_title(
     )
     coordinator.data = {"date": {"source": "meta"}, "region": {"source": "meta"}}
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=client,
         locations={
             coordinator.subentry_id: sensor_modules.runtime_mod.PollenLocationRuntime(
                 subentry_id=coordinator.subentry_id,
                 coordinator=coordinator,
-                legacy_entry_id=coordinator.legacy_entry_id,
             )
         },
     )
@@ -4220,7 +4206,6 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": types.SimpleNamespace(
                 subentry_id="entry",
@@ -4280,7 +4265,6 @@ async def test_setup_entry_debug_logs_do_not_expose_coordinate_identity(
         last_updated=None,
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
-        client=object(),
         locations={
             "entry": types.SimpleNamespace(
                 subentry_id="entry",
