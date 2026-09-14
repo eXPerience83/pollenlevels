@@ -44,7 +44,6 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
-    FORECAST_DAYS,
 )
 from .coordinator import PollenDataUpdateCoordinator
 from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
@@ -338,17 +337,13 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
-        # Forecast attributes are fixed by the integration-wide Google API horizon.
-        include_forecast = FORECAST_DAYS > 1
-
         # Forecast-related attributes:
         # - For TYPE sensors: include on base sensors
         # - For PLANT sensors: include as attributes (no per-day plant sensors)
         if info.get("source") == "type":
-            if include_forecast:
-                for key in _FORECAST_ATTRIBUTE_NAMES:
-                    if info.get(key) is not None:
-                        attrs[key] = info.get(key)
+            for key in _FORECAST_ATTRIBUTE_NAMES:
+                if info.get(key) is not None:
+                    attrs[key] = info.get(key)
 
         if info.get("source") == "plant":
             # Plant-specific metadata
@@ -366,10 +361,9 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
                     attrs[k] = v
 
             # Plant forecast attributes (attributes-only, no per-day plant sensors)
-            if include_forecast:
-                for key in _FORECAST_ATTRIBUTE_NAMES:
-                    if info.get(key) is not None:
-                        attrs[key] = info.get(key)
+            for key in _FORECAST_ATTRIBUTE_NAMES:
+                if info.get(key) is not None:
+                    attrs[key] = info.get(key)
 
         return attrs
 

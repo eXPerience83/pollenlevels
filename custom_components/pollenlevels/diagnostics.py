@@ -150,7 +150,7 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     plants_with_trend = [v for v in plant_items if v.get("trend") is not None]
 
     forecast_summary["plant"] = {
-        "enabled": FORECAST_DAYS >= 2,
+        "enabled": True,
         "days": FORECAST_DAYS,
         "total": len(plant_items),
         "with_attr": len(plants_with_attr),
