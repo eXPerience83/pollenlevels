@@ -2,7 +2,7 @@ name: Latest Home Assistant Compatibility Canary
 
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 4 * * *"
   workflow_dispatch:
 
 permissions:
