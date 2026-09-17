@@ -497,7 +497,7 @@ def test_workflows_do_not_duplicate_python_or_uv_executable_pins() -> None:
 def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     """Protect the latest-HA canary's isolated, non-blocking contract."""
     canary = _read_text(WORKFLOWS_PATH / "ha-compatibility-canary.yml")
-    assert 'cron: "17 */6 * * *"' in canary
+    assert 'cron: "17 4 * * *"' in canary
     assert "workflow_dispatch:" in canary
     assert "contents: read" in canary
     assert "group: ha-compatibility-canary" in canary
