@@ -362,6 +362,7 @@ class ConfigFlowStubs:
     StubConfigEntry: type[_StubConfigEntry]
     ConfigEntryAuthFailed: type[Exception]
     UpdateFailed: type[Exception]
+    PollenTransportError: type[Exception]
     CONF_LATITUDE: str
     CONF_LOCATION: str
     CONF_LONGITUDE: str
@@ -389,6 +390,7 @@ def config_flow_stubs_fixture(monkeypatch: pytest.MonkeyPatch) -> ConfigFlowStub
         "homeassistant.helpers.update_coordinator"
     )
     cf_module = importlib.import_module("custom_components.pollenlevels.config_flow")
+    client_module = importlib.import_module("custom_components.pollenlevels.client")
     const = importlib.import_module("custom_components.pollenlevels.const")
 
     stubs = ConfigFlowStubs(
@@ -398,6 +400,7 @@ def config_flow_stubs_fixture(monkeypatch: pytest.MonkeyPatch) -> ConfigFlowStub
         StubConfigEntry=_StubConfigEntry,
         ConfigEntryAuthFailed=ha_exceptions.ConfigEntryAuthFailed,
         UpdateFailed=ha_update_coordinator.UpdateFailed,
+        PollenTransportError=client_module.PollenTransportError,
         CONF_LATITUDE=ha_const.CONF_LATITUDE,
         CONF_LOCATION=ha_const.CONF_LOCATION,
         CONF_LONGITUDE=ha_const.CONF_LONGITUDE,
@@ -1626,41 +1629,25 @@ def test_validate_input_http_429_empty_redacted_uses_quota_fallback(
     assert placeholders.get("error_message") == "Quota exceeded."
 
 
-def test_validate_input_timeout_sets_fallback_error_message(
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Timeout: Google Pollen API call timed out",
+        "Network error while calling the Google Pollen API",
+        "",
+    ],
+)
+def test_validate_input_transport_error_maps_to_cannot_connect(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
+    message: str,
 ) -> None:
-    """TimeoutError without a message should still provide a user-friendly fallback."""
-
-    calls = _patch_client_fetch(config_flow_stubs, monkeypatch, error=TimeoutError())
-
-    flow = config_flow_stubs.PollenLevelsConfigFlow()
-    flow.hass = SimpleNamespace()
-    placeholders: dict[str, str] = {}
-
-    errors, normalized = asyncio.run(
-        flow._async_validate_input(
-            _base_user_input(config_flow_stubs),
-            description_placeholders=placeholders,
-        )
-    )
-
-    assert calls
-    assert errors == {"base": "cannot_connect"}
-    assert normalized is None
-    assert placeholders.get("error_message") == "Validation request timed out."
-
-
-def test_validate_input_client_error_sets_fallback_error_message(
-    config_flow_stubs: ConfigFlowStubs,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """ClientError without details should still provide a network fallback message."""
+    """Transport errors from the public client should map to cannot_connect."""
 
     calls = _patch_client_fetch(
         config_flow_stubs,
         monkeypatch,
-        error=config_flow_stubs.config_flow.aiohttp.ClientError(),
+        error=config_flow_stubs.PollenTransportError(message),
     )
 
     flow = config_flow_stubs.PollenLevelsConfigFlow()
@@ -1678,7 +1665,7 @@ def test_validate_input_client_error_sets_fallback_error_message(
     assert errors == {"base": "cannot_connect"}
     assert normalized is None
     assert placeholders.get("error_message") == (
-        "Network error while connecting to the pollen service."
+        message or "Failed to connect to the pollen service."
     )
 
 
@@ -2607,14 +2594,16 @@ def test_location_subentry_user_step_rejects_invalid_api_payload(
     assert recorder.reload_calls == []
 
 
-def test_location_subentry_user_step_rejects_timeout_before_create(
+def test_location_subentry_user_step_rejects_transport_error_before_create(
     config_flow_stubs: ConfigFlowStubs,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Adding a location should map validation timeouts to cannot_connect."""
+    """Adding a location should map transport failures to cannot_connect."""
 
     calls = _patch_client_fetch(
-        config_flow_stubs, monkeypatch, error=TimeoutError("timed out")
+        config_flow_stubs,
+        monkeypatch,
+        error=config_flow_stubs.PollenTransportError("timed out"),
     )
     entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={config_flow_stubs.CONF_API_KEY: "key"},
