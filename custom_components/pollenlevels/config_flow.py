@@ -3,8 +3,6 @@
 Notes:
 - Allows empty language (omit languageCode). Trims language whitespace on save.
 - Redacts API keys in debug logs.
-- Timeout handling: on Python 3.14, built-in `TimeoutError` also covers `asyncio.TimeoutError`,
-  so catching `TimeoutError` is sufficient and preferred.
 
 IMPORTANT:
 - Keep schema construction centralized so defaults are applied consistently.
@@ -17,7 +15,6 @@ import logging
 import re
 from typing import Any
 
-import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_NAME
@@ -219,26 +216,6 @@ async def _async_validate_api_location(
             redacted = ""
         description_placeholders["error_message"] = _safe_error_message(
             redacted, "Failed to connect to the pollen service."
-        )
-    except TimeoutError as err:
-        _LOGGER.warning(
-            "Validation timeout: %s",
-            _redact_validation_error(err, api_key, latitude, longitude),
-        )
-        errors["base"] = "cannot_connect"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
-        description_placeholders["error_message"] = _safe_error_message(
-            redacted, "Validation request timed out."
-        )
-    except aiohttp.ClientError as err:
-        _LOGGER.error(
-            "Connection error: %s",
-            _redact_validation_error(err, api_key, latitude, longitude),
-        )
-        errors["base"] = "cannot_connect"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
-        description_placeholders["error_message"] = _safe_error_message(
-            redacted, "Network error while connecting to the pollen service."
         )
     except Exception as err:  # defensive
         _LOGGER.error(
