@@ -6,7 +6,7 @@ from types import MappingProxyType
 from typing import Any
 
 import pytest
-from aiointercept import aiointercept
+from aiointercept import CallbackResult, aiointercept
 from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_RECONFIGURE, SOURCE_USER
 from homeassistant.const import CONF_LOCATION, CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -29,6 +29,7 @@ from custom_components.pollenlevels.const import (
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
+    POLLEN_API_URL_RE,
     assert_fixed_forecast_days,
     async_setup_config_entry,
     mock_pollen_api,
@@ -129,6 +130,64 @@ async def test_ha_user_flow_creates_parent_entry_with_location_subentry(
         CONF_LATITUDE: 40.4168,
         CONF_LONGITUDE: -3.7038,
     }
+
+
+async def test_ha_user_flow_retries_payload_read_failure(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    fake_api_key: str,
+    monkeypatch,
+) -> None:
+    """User flow should retry transport failures while reading a successful body."""
+    clear_integration_modules()
+    request_count = 0
+    backoff_attempts: list[int] = []
+
+    async def _skip_backoff(_self, *, attempt: int, **_kwargs) -> None:
+        backoff_attempts.append(attempt)
+
+    monkeypatch.setattr(
+        "custom_components.pollenlevels.client.GooglePollenApiClient._async_backoff",
+        _skip_backoff,
+    )
+
+    async def _broken_body():
+        yield b'{"dailyInfo":'
+        raise ConnectionResetError("synthetic stream reset")
+
+    def _callback(_url, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return CallbackResult(status=200, body=_broken_body())
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=_callback, repeat=True)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_API_KEY: fake_api_key,
+                CONF_LANGUAGE_CODE: "en",
+                CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
+                **_location_input(),
+            },
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert request_count == 2
+    assert backoff_attempts == [0]
+    assert hass.config_entries.async_entries(DOMAIN) == []
+    error_message = result["description_placeholders"]["error_message"]
+    assert error_message
+    assert "invalid JSON" not in error_message
 
 
 async def test_ha_user_flow_rejects_duplicate_parent_api_key(
