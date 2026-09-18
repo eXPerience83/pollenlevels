@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.0.2] - 2026-09-18
+
+### Changed
+
+- Simplified internal runtime, validation, and supported Home Assistant/aiohttp
+  compatibility paths without changing migration behavior, entity identities,
+  or public sensor and forecast contracts.
+
+### Fixed
+
+- Prevented the 24-hour cache-expiry timer from being re-armed after coordinator
+  shutdown when an in-flight `pollenlevels.force_update` refresh completes after
+  unload.
+
 ## [4.0.1] - 2026-09-12
 
 ### Changed
