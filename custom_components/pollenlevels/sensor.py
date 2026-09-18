@@ -11,10 +11,7 @@ Key points:
 
 from __future__ import annotations
 
-import asyncio
-import inspect
 import logging
-from collections.abc import Awaitable
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
@@ -116,53 +113,26 @@ async def _remove_legacy_per_day_entities(
             return False
         return uid.endswith(("_d1", "_d2"))
 
-    removals: list[tuple[str, str, Awaitable[Any]]] = []
-
-    def _queue_removal(entity_id: str, unique_id: str) -> None:
-        """Remove an entity immediately or queue an awaitable registry removal."""
-        nonlocal removed
-        try:
-            removal = registry.async_remove(entity_id)
-        except Exception:
-            _LOGGER.exception(
-                "Failed to remove legacy per-day entity from registry: %s",
-                entity_id,
-            )
-            return
-
-        if inspect.isawaitable(removal):
-            removals.append((entity_id, unique_id, removal))
-        else:
-            removed += 1
-
     for ent in entries:
         if ent.domain != "sensor" or ent.platform != DOMAIN:
             continue
-        if _matches(ent.unique_id):
-            found += 1
-            _LOGGER.debug(
-                "Removing legacy per-day entity from registry: %s",
+        if not _matches(ent.unique_id):
+            continue
+
+        found += 1
+        _LOGGER.debug(
+            "Removing legacy per-day entity from registry: %s",
+            ent.entity_id,
+        )
+        try:
+            registry.async_remove(ent.entity_id)
+        except Exception:
+            _LOGGER.exception(
+                "Failed to remove legacy per-day entity from registry: %s",
                 ent.entity_id,
             )
-            _queue_removal(ent.entity_id, ent.unique_id)
-
-    if removals:
-        results = await asyncio.gather(
-            *(removal for _, _, removal in removals), return_exceptions=True
-        )
-        for (entity_id, _unique_id, _removal), result in zip(
-            removals, results, strict=True
-        ):
-            if isinstance(result, asyncio.CancelledError):
-                raise result
-            if isinstance(result, Exception):
-                _LOGGER.error(
-                    "Failed to remove legacy per-day entity from registry: %s",
-                    entity_id,
-                    exc_info=(type(result), result, result.__traceback__),
-                )
-                continue
-            removed += 1
+            continue
+        removed += 1
 
     if removed:
         _LOGGER.info(
