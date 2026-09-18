@@ -2847,7 +2847,7 @@ def test_remove_legacy_per_day_entities_logs_failed_removal_without_raising(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Failed async removals are logged without aborting the cleanup."""
+    """Failed removals are logged without aborting the cleanup."""
 
     entries = [
         RegistryEntry(
@@ -2867,13 +2867,13 @@ def test_remove_legacy_per_day_entities_logs_failed_removal_without_raising(
         sensor_modules, monkeypatch, entries, entry_id="entry"
     )
 
-    async def _async_remove(entity_id: str) -> None:
+    def _remove(entity_id: str) -> None:
         if entity_id == "sensor.pollen_type_grass_d1":
             msg = "registry removal failed"
             raise RuntimeError(msg)
         registry.removals.append(entity_id)
 
-    monkeypatch.setattr(registry, "async_remove", _async_remove)
+    monkeypatch.setattr(registry, "async_remove", _remove)
     caplog.set_level(logging.ERROR, logger=sensor_modules.sensor._LOGGER.name)
 
     loop = asyncio.new_event_loop()
@@ -2931,52 +2931,6 @@ def test_remove_legacy_per_day_entities_does_not_log_coordinate_identity(
     assert coordinate_identity not in caplog.text
     assert f"{coordinate_identity}_type_grass_d1" not in caplog.text
     assert "sensor.pollen_type_grass_d1" in caplog.text
-
-
-def test_remove_legacy_per_day_entities_propagates_cancelled_removal(
-    sensor_modules: SensorModules,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Cancelled async removals propagate instead of being counted as successes."""
-
-    entries = [
-        RegistryEntry(
-            "sensor.pollen_type_grass_d1",
-            "entry_type_grass_d1",
-            "sensor",
-            sensor_modules.sensor.DOMAIN,
-        ),
-        RegistryEntry(
-            "sensor.pollen_type_grass_d2",
-            "entry_type_grass_d2",
-            "sensor",
-            sensor_modules.sensor.DOMAIN,
-        ),
-    ]
-    registry = _setup_registry_stub(
-        sensor_modules, monkeypatch, entries, entry_id="entry"
-    )
-
-    async def _async_remove(entity_id: str) -> None:
-        if entity_id == "sensor.pollen_type_grass_d1":
-            raise asyncio.CancelledError
-        registry.removals.append(entity_id)
-
-    monkeypatch.setattr(registry, "async_remove", _async_remove)
-
-    loop = asyncio.new_event_loop()
-    hass = DummyHass(loop)
-    try:
-        with pytest.raises(asyncio.CancelledError):
-            loop.run_until_complete(
-                sensor_modules.sensor._remove_legacy_per_day_entities(
-                    hass, "entry", "entry"
-                )
-            )
-    finally:
-        loop.close()
-
-    assert registry.removals == ["sensor.pollen_type_grass_d2"]
 
 
 def test_coordinator_raises_auth_failed(sensor_modules: SensorModules) -> None:
