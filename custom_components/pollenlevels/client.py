@@ -323,10 +323,7 @@ class GooglePollenApiClient:
 
                     else:
                         try:
-                            try:
-                                payload = await resp.json(content_type=None)
-                            except TypeError:
-                                payload = await resp.json()
+                            payload = await resp.json(content_type=None)
                         except (ContentTypeError, TypeError, ValueError) as err:
                             raise UpdateFailed(
                                 "Unexpected API response: invalid JSON"

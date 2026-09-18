@@ -198,25 +198,70 @@ async def _fetch_with_response(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "json_results",
+    "error",
     [
-        [ValueError("invalid JSON")],
-        [TypeError("content_type unsupported"), ValueError("invalid JSON")],
+        ValueError("invalid JSON"),
+        TypeError("invalid JSON"),
     ],
 )
 async def test_client_invalid_json_raises_update_failed(
     client_module: ModuleType,
-    json_results: list[Exception],
+    error: Exception,
 ) -> None:
     """Invalid JSON responses should raise the expected UpdateFailed message."""
 
-    response = FakeResponse(json_results=json_results)
+    response = FakeResponse(json_results=[error])
 
     with pytest.raises(
         client_module.UpdateFailed,
         match="Unexpected API response: invalid JSON",
     ):
         await _fetch_with_response(client_module, response)
+
+
+@pytest.mark.asyncio
+async def test_client_json_type_error_is_not_retried_with_a_second_signature(
+    client_module: ModuleType,
+) -> None:
+    """Decoder TypeError should be classified without retrying response.json()."""
+
+    response = FakeResponse(
+        json_results=[TypeError("decoder failed"), {"unexpected": True}]
+    )
+
+    with pytest.raises(
+        client_module.UpdateFailed,
+        match="Unexpected API response: invalid JSON",
+    ):
+        await _fetch_with_response(client_module, response)
+
+    assert response._json_results == [{"unexpected": True}]
+
+
+@pytest.mark.asyncio
+async def test_http_error_json_type_error_falls_back_to_text_without_retry(
+    client_module: ModuleType,
+) -> None:
+    """HTTP error extraction should fall back to text after one JSON attempt."""
+
+    response = FakeResponse(
+        status=400,
+        json_results=[
+            TypeError("decoder failed"),
+            {"error": {"message": "unexpected second JSON attempt"}},
+        ],
+        text_body="fallback error detail",
+    )
+
+    with pytest.raises(client_module.UpdateFailed) as exc_info:
+        await _fetch_with_response(client_module, response)
+
+    message = str(exc_info.value)
+    assert "fallback error detail" in message
+    assert "unexpected second JSON attempt" not in message
+    assert response._json_results == [
+        {"error": {"message": "unexpected second JSON attempt"}}
+    ]
 
 
 @pytest.mark.asyncio

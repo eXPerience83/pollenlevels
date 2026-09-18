@@ -159,10 +159,7 @@ async def extract_error_message(
 
     message: str | None = None
     try:
-        try:
-            json_obj = await resp.json(content_type=None)
-        except TypeError:
-            json_obj = await resp.json()
+        json_obj = await resp.json(content_type=None)
         if isinstance(json_obj, dict):
             error = json_obj.get("error")
             if isinstance(error, dict):

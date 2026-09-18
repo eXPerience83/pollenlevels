@@ -433,7 +433,7 @@ class _StubResponse:
     async def read(self) -> bytes:
         return self._body
 
-    async def json(self):
+    async def json(self, *_args, **_kwargs):
         import json as _json
 
         return _json.loads(self._body.decode())
