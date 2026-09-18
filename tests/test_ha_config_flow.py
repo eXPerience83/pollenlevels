@@ -96,6 +96,11 @@ async def test_ha_user_flow_creates_parent_entry_with_location_subentry(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
 
+    monkeypatch.setattr(
+        "custom_components.pollenlevels.client.GooglePollenApiClient._async_backoff",
+        _skip_backoff,
+    )
+
     async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload, captured_params)
         result = await hass.config_entries.flow.async_configure(
@@ -146,11 +151,6 @@ async def test_ha_user_flow_retries_payload_read_failure(
 
     async def _skip_backoff(_self, *, attempt: int, **_kwargs) -> None:
         backoff_attempts.append(attempt)
-
-    monkeypatch.setattr(
-        "custom_components.pollenlevels.client.GooglePollenApiClient._async_backoff",
-        _skip_backoff,
-    )
 
     async def _broken_body():
         yield b'{"dailyInfo":'
