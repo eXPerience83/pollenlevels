@@ -122,3 +122,64 @@ async def test_ha_force_update_skips_removed_captured_target_and_continues(
             await service_task
 
     assert calls == ["madrid:start", "madrid:end", "valencia"]
+
+
+async def test_ha_force_update_does_not_rearm_cache_expiry_after_unload(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    ha_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch,
+) -> None:
+    """A refresh finishing after unload must not schedule a new cache timer."""
+    clear_integration_modules()
+    entry = ha_config_entry
+    entry.add_to_hass(hass)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    coordinator = entry.runtime_data.locations["location-madrid"].coordinator
+    initial_handle = coordinator._cache_expiry_handle
+    assert initial_handle is not None
+
+    refresh_started = asyncio.Event()
+    release_refresh = asyncio.Event()
+
+    async def _delayed_fetch(**_kwargs: Any) -> dict[str, Any]:
+        refresh_started.set()
+        await release_refresh.wait()
+        return google_pollen_5_day_payload
+
+    monkeypatch.setattr(
+        coordinator._client,
+        "async_fetch_pollen_data",
+        _delayed_fetch,
+    )
+
+    service_task = asyncio.create_task(
+        hass.services.async_call(DOMAIN, "force_update", {}, blocking=True)
+    )
+    try:
+        await asyncio.wait_for(refresh_started.wait(), timeout=1)
+
+        assert await hass.config_entries.async_unload(entry.entry_id)
+
+        assert initial_handle.cancelled()
+        assert coordinator._cache_expiry_handle is None
+    finally:
+        release_refresh.set()
+        await service_task
+
+    await hass.async_block_till_done()
+    assert coordinator._cache_expiry_handle is None
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    reloaded = entry.runtime_data.locations["location-madrid"].coordinator
+    assert reloaded is not coordinator
+    assert reloaded._cache_expiry_handle is not None

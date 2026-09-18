@@ -206,6 +206,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
         self.using_stale_data: bool = False
         self.last_payload_valid: bool | None = None
         self._cache_expiry_handle: asyncio.TimerHandle | None = None
+        self._cache_expiry_shutdown = False
 
     def _utcnow(self) -> datetime:
         """Return the current UTC time."""
@@ -245,6 +246,8 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
     def _schedule_cache_expiry(self) -> None:
         """Schedule removal of the current snapshot at the fixed TTL boundary."""
         self._cancel_cache_expiry()
+        if self._cache_expiry_shutdown:
+            return
         if not self.data:
             self.last_updated = None
             return
@@ -277,6 +280,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def async_shutdown(self) -> None:
         """Cancel snapshot expiry and shut down coordinator scheduling."""
+        self._cache_expiry_shutdown = True
         self._cancel_cache_expiry()
         await super().async_shutdown()
 
