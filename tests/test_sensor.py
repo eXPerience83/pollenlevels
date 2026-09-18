@@ -308,7 +308,7 @@ class FakeResponse:
         self.status = status
         self.headers: dict[str, str] = headers or {}
 
-    async def json(self) -> dict[str, Any]:
+    async def json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
         return self._payload
 
     async def __aenter__(self) -> FakeResponse:
