@@ -36,7 +36,7 @@ def _lock(
         for name, version, dependencies in packages
     )
     records.append(
-        f'''[[package]]
+        f"""[[package]]
 name = "pollenlevels"
 version = "4.0.3"
 source = {{ virtual = "." }}
@@ -62,13 +62,13 @@ test = [
     {{ name = "homeassistant", specifier = "=={ha}" }},
     {{ name = "pytest-homeassistant-custom-component", specifier = "=={phacc}" }},
 ]
-'''
+"""
     )
-    header = '''version = 1
+    header = """version = 1
 revision = 1
 requires-python = ">=3.14"
 
-'''
+"""
     return header + "\n".join(records)
 
 
