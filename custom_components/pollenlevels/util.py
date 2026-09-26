@@ -19,8 +19,6 @@ if TYPE_CHECKING:  # pragma: no cover - typing-only import
     from aiohttp import ClientResponse
 
     from .coordinator import PollenDataUpdateCoordinator
-else:  # pragma: no cover - runtime fallback for test environments without aiohttp
-    ClientResponse = Any
 
 
 LEGACY_FORECAST_OPTION_KEYS = frozenset(

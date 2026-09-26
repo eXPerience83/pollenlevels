@@ -12,7 +12,7 @@ from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol  # Service schema validation
-from homeassistant.config_entries import ConfigEntry, ConfigSubentry as ConfigSubentry
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -20,8 +20,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .client import GooglePollenApiClient, PollenTransportError
 from .const import (
     CONF_API_KEY,
-    CONF_CREATE_FORECAST_SENSORS as CONF_CREATE_FORECAST_SENSORS,
-    CONF_FORECAST_DAYS as CONF_FORECAST_DAYS,
     CONF_LANGUAGE_CODE,
     CONF_LATITUDE,
     CONF_LEGACY_ENTRY_ID,
@@ -44,7 +42,6 @@ from .issue_helpers import (
     delete_invalid_stored_location_issue,
     delete_location_setup_failed_issue,
     delete_stale_location_subentry_issues,
-    invalid_stored_location_issue_id as invalid_stored_location_issue_id,
 )
 from .migration import (
     CONF_MERGED_INTO_ENTRY_ID,
@@ -59,7 +56,6 @@ from .runtime import (
 )
 from .util import (
     active_location_subentry_ids,
-    api_key_unique_id as api_key_unique_id,
     has_legacy_per_day_option,
     redact_sensitive_values,
     safe_parse_int,

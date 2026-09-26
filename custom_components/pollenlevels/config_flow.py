@@ -79,11 +79,6 @@ def is_valid_language_code(value: str) -> str:
     return normalized
 
 
-def _language_error_to_form_key(_error: vol.Invalid) -> str:
-    """Return the language validation form error key."""
-    return "invalid_language_format"
-
-
 def _safe_coord(value: Any, *, lat: bool) -> float | None:
     """Return a validated latitude/longitude or None if unset/invalid."""
     if lat:
@@ -338,11 +333,6 @@ def _validate_location_dict(
     return validate_location_pair(lat_val, lon_val)
 
 
-def _api_key_unique_id(api_key: str) -> str:
-    """Return a stable, non-secret unique ID for one shared API key."""
-    return api_key_unique_id(api_key)
-
-
 def _location_subentry_data(
     *,
     title: str,
@@ -588,12 +578,12 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             normalized[CONF_LANGUAGE_CODE] = lang
             return errors, normalized
 
-        except vol.Invalid as ve:
+        except vol.Invalid:
             _LOGGER.warning(
                 "Language code validation failed: %s",
-                _language_error_to_form_key(ve),
+                "invalid_language_format",
             )
-            errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
+            errors[CONF_LANGUAGE_CODE] = "invalid_language_format"
             placeholders.pop("error_message", None)
 
         return errors, None
@@ -617,11 +607,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             if not errors and normalized is not None:
                 await self.async_set_unique_id(
-                    _api_key_unique_id(normalized[CONF_API_KEY]),
+                    api_key_unique_id(normalized[CONF_API_KEY]),
                     raise_on_progress=False,
                 )
                 existing_entry = _entry_for_parent_unique_id(
-                    self.hass, _api_key_unique_id(normalized[CONF_API_KEY])
+                    self.hass, api_key_unique_id(normalized[CONF_API_KEY])
                 )
                 if existing_entry is not None:
                     return self.async_abort(reason="api_key_already_configured")
@@ -681,7 +671,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not updated_api_key:
                     errors[CONF_API_KEY] = "empty"
                 else:
-                    updated_unique_id = _api_key_unique_id(updated_api_key)
+                    updated_unique_id = api_key_unique_id(updated_api_key)
                     existing_entry = _entry_for_parent_unique_id(
                         self.hass, updated_unique_id
                     )
@@ -720,7 +710,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 if not errors and normalized is not None:
                     updated_api_key = str(normalized.get(CONF_API_KEY, "")).strip()
-                    updated_unique_id = _api_key_unique_id(updated_api_key)
+                    updated_unique_id = api_key_unique_id(updated_api_key)
                     existing_entry = _entry_for_parent_unique_id(
                         self.hass, updated_unique_id
                     )
@@ -994,12 +984,12 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
                     lang = is_valid_language_code(lang)
                 normalized_input[CONF_LANGUAGE_CODE] = lang
 
-            except vol.Invalid as ve:
+            except vol.Invalid:
                 _LOGGER.warning(
                     "Options language validation failed: %s",
-                    _language_error_to_form_key(ve),
+                    "invalid_language_format",
                 )
-                errors[CONF_LANGUAGE_CODE] = _language_error_to_form_key(ve)
+                errors[CONF_LANGUAGE_CODE] = "invalid_language_format"
             except Exception as err:  # defensive
                 _LOGGER.error(
                     "Options validation error (%s): %s",

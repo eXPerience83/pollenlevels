@@ -30,7 +30,10 @@ ROOT = Path(__file__).resolve().parents[1]
 @dataclass(frozen=True)
 class _InitModules:
     integration: types.ModuleType
+    config_entries: types.ModuleType
+    util: types.ModuleType
     const: types.ModuleType
+    issue_helpers: types.ModuleType
     base_data_update_coordinator: type[_StubDataUpdateCoordinator]
 
 
@@ -287,7 +290,12 @@ def integration_modules(
     integration = importlib.import_module("custom_components.pollenlevels")
     return _InitModules(
         integration=integration,
+        config_entries=importlib.import_module("homeassistant.config_entries"),
+        util=importlib.import_module("custom_components.pollenlevels.util"),
         const=const,
+        issue_helpers=importlib.import_module(
+            "custom_components.pollenlevels.issue_helpers"
+        ),
         base_data_update_coordinator=_StubDataUpdateCoordinator,
     )
 
@@ -382,6 +390,8 @@ class _FakeEntry:
         subentries: dict | None = None,
         unique_id: str | None = None,
     ):
+        from homeassistant.config_entries import ConfigSubentry
+
         uses_current_shape = version is _DEFAULT_ENTRY_VERSION
         self.entry_id = entry_id
         self.title = title
@@ -413,7 +423,7 @@ class _FakeEntry:
             )
             self.subentries = (
                 {
-                    entry_id: integration.ConfigSubentry(
+                    entry_id: ConfigSubentry(
                         data={
                             integration.CONF_LATITUDE: latitude,
                             integration.CONF_LONGITUDE: longitude,
@@ -435,8 +445,10 @@ def _location_subentries(
     integration: types.ModuleType, *subentry_ids: str
 ) -> dict[str, Any]:
     """Return active location subentries keyed by subentry id."""
+    from homeassistant.config_entries import ConfigSubentry
+
     return {
-        subentry_id: integration.ConfigSubentry(
+        subentry_id: ConfigSubentry(
             data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
             subentry_id=subentry_id,
             title=subentry_id,
@@ -788,7 +800,7 @@ def test_setup_entry_loads_healthy_subentries_when_one_subentry_fails(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    bad_subentry = integration.ConfigSubentry(
+    bad_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 3.123456,
             integration.CONF_LONGITUDE: -4.654321,
@@ -796,7 +808,7 @@ def test_setup_entry_loads_healthy_subentries_when_one_subentry_fails(
         subentry_id="bad-location",
         title="Bad",
     )
-    good_subentry = integration.ConfigSubentry(
+    good_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="good-location",
         title="Good",
@@ -863,7 +875,7 @@ def test_setup_entry_skips_invalid_subentry_coordinates_when_others_load(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    bad_subentry = integration.ConfigSubentry(
+    bad_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 91.123456,
             integration.CONF_LONGITUDE: 2.654321,
@@ -871,7 +883,7 @@ def test_setup_entry_skips_invalid_subentry_coordinates_when_others_load(
         subentry_id="bad-location",
         title="Bad",
     )
-    good_subentry = integration.ConfigSubentry(
+    good_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="good-location",
         title="Good",
@@ -896,8 +908,10 @@ def test_setup_entry_skips_invalid_subentry_coordinates_when_others_load(
     assert failure.error_type == "InvalidStoredLocation"
     assert hass.config_entries.forward_calls == [(entry, ["sensor", "button"])]
     assert hass.config_entries.reload_calls == []
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id="bad-location"
+    expected_issue_id = (
+        integration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id="bad-location"
+        )
     )
     assert expected_issue_id in registry.issues
     log_text = caplog.text
@@ -918,12 +932,12 @@ def test_setup_entry_skips_location_without_usable_initial_data(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    empty = integration.ConfigSubentry(
+    empty = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="empty-location",
         title="Empty",
     )
-    good = integration.ConfigSubentry(
+    good = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
         subentry_id="good-location",
         title="Good",
@@ -972,11 +986,11 @@ def test_setup_entry_keeps_first_subentry_when_later_subentry_is_not_ready(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    first = integration.ConfigSubentry(
+    first = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="first-location",
     )
-    second = integration.ConfigSubentry(
+    second = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
         subentry_id="second-location",
     )
@@ -1232,7 +1246,7 @@ async def test_setup_entry_invalid_location_does_not_reset_transport_failure_cou
     """A skipped invalid location should not break consecutive request failures."""
     integration = integration_modules.integration
     subentries = _location_subentries(integration, "first-transport")
-    subentries["invalid-location"] = integration.ConfigSubentry(
+    subentries["invalid-location"] = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 91.0,
             integration.CONF_LONGITUDE: 2.0,
@@ -1345,14 +1359,14 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    first = integration.ConfigSubentry(
+    first = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="first-location",
     )
     synthetic_key = "SYNTHETIC-REPAIR-KEY"
     second_latitude = 3.123456
     second_longitude = 4.654321
-    second = integration.ConfigSubentry(
+    second = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: second_latitude,
             integration.CONF_LONGITUDE: second_longitude,
@@ -1457,11 +1471,11 @@ def test_setup_entry_raises_not_ready_when_all_subentries_fail(
     """The parent should retry when no configured location can initialize."""
     integration = integration_modules.integration
 
-    first = integration.ConfigSubentry(
+    first = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="first-location",
     )
-    second = integration.ConfigSubentry(
+    second = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
         subentry_id="second-location",
     )
@@ -1504,11 +1518,11 @@ def test_setup_entry_auth_failure_still_fails_parent(
     """Shared credential failures should keep failing the whole parent entry."""
     integration = integration_modules.integration
 
-    first = integration.ConfigSubentry(
+    first = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="first-location",
     )
-    second = integration.ConfigSubentry(
+    second = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 3.0, integration.CONF_LONGITUDE: 4.0},
         subentry_id="second-location",
     )
@@ -1556,7 +1570,7 @@ def test_setup_entry_decimal_update_interval_falls_back_and_drops_forecast_days(
         },
         options={
             integration.CONF_UPDATE_INTERVAL: 2.5,
-            integration.CONF_FORECAST_DAYS: 3.1,
+            integration_modules.const.CONF_FORECAST_DAYS: 3.1,
         },
     )
 
@@ -1577,7 +1591,7 @@ def test_setup_entry_decimal_update_interval_falls_back_and_drops_forecast_days(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert seen["hours"] == integration.DEFAULT_UPDATE_INTERVAL
-    assert integration.CONF_FORECAST_DAYS not in entry.options
+    assert integration_modules.const.CONF_FORECAST_DAYS not in entry.options
     assert (
         integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
         not in integration.issue_helpers.ir.registry.issues
@@ -1670,11 +1684,11 @@ def test_setup_entry_drops_legacy_per_day_option_and_creates_repair_issue(
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1",
         },
         options={
-            integration.CONF_FORECAST_DAYS: 3,
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+            integration_modules.const.CONF_FORECAST_DAYS: 3,
+            integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
         },
     )
 
@@ -1706,9 +1720,9 @@ def test_setup_entry_drops_legacy_per_day_option_and_creates_repair_issue(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert entry.runtime_data is not None
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert integration.CONF_FORECAST_DAYS not in entry.options
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration_modules.const.CONF_FORECAST_DAYS not in entry.options
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.options
     issue = integration.issue_helpers.ir.registry.issues[
         integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
     ]
@@ -1732,10 +1746,10 @@ def test_setup_entry_drops_inactive_legacy_forecast_options_without_issue(
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_FORECAST_DAYS: 1,
-            integration.CONF_CREATE_FORECAST_SENSORS: "none",
+            integration_modules.const.CONF_FORECAST_DAYS: 1,
+            integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none",
         },
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "none"},
+        options={integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none"},
     )
 
     class _StubClient:
@@ -1766,9 +1780,9 @@ def test_setup_entry_drops_inactive_legacy_forecast_options_without_issue(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
     assert entry.runtime_data is not None
-    assert integration.CONF_FORECAST_DAYS not in entry.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert integration_modules.const.CONF_FORECAST_DAYS not in entry.data
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert (
         integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
         not in integration.issue_helpers.ir.registry.issues
@@ -2309,7 +2323,7 @@ def test_migrate_entry_removes_legacy_mode_and_creates_issue(
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1",
             "http_referer": "https://legacy.example.com",
         },
         options={"http_referer": "https://legacy.example.com"},
@@ -2318,8 +2332,8 @@ def test_migrate_entry_removes_legacy_mode_and_creates_issue(
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert "http_referer" not in entry.data
     assert "http_referer" not in entry.options
     assert entry.version == integration.TARGET_ENTRY_VERSION
@@ -2335,7 +2349,7 @@ def test_migrate_mixed_parent_direct_legacy_location_attaches_registries(
     """Direct legacy data should migrate even when the parent already has subentries."""
     integration = integration_modules.integration
 
-    existing_subentry = integration.ConfigSubentry(
+    existing_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 10.0, integration.CONF_LONGITUDE: 20.0},
         subentry_id="existing-location",
         title="Existing",
@@ -2679,7 +2693,7 @@ def test_migrate_entry_with_invalid_legacy_subentry_is_left_unchanged(
     """Alpha-state location subentries with corrupt coordinates should fail safely."""
     integration = integration_modules.integration
 
-    existing_subentry = integration.ConfigSubentry(
+    existing_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: "123.456789",
             integration.CONF_LONGITUDE: "-222.987654",
@@ -2697,7 +2711,7 @@ def test_migrate_entry_with_invalid_legacy_subentry_is_left_unchanged(
         options={},
         version=integration.TARGET_ENTRY_VERSION - 1,
         subentries={existing_subentry.subentry_id: existing_subentry},
-        unique_id=integration.api_key_unique_id("secret-api-key"),
+        unique_id=integration_modules.util.api_key_unique_id("secret-api-key"),
     )
     hass = _FakeHass(entries=[entry])
 
@@ -2743,7 +2757,7 @@ def test_migrate_current_entry_updates_parent_unique_id_to_api_key_identity(
     assert entry.data == {integration.CONF_API_KEY: "key"}
     assert entry.options == {}
     assert entry.version == integration.TARGET_ENTRY_VERSION
-    assert entry.unique_id == integration.api_key_unique_id("key")
+    assert entry.unique_id == integration_modules.util.api_key_unique_id("key")
 
 
 def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
@@ -2752,7 +2766,7 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
     """A source with several subentries should move each registry link by subentry."""
     integration = integration_modules.integration
 
-    existing_subentry = integration.ConfigSubentry(
+    existing_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 10.0, integration.CONF_LONGITUDE: 20.0},
         subentry_id="existing-location",
         title="Existing",
@@ -2764,9 +2778,9 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
         data={integration.CONF_API_KEY: "shared-key"},
         version=integration.TARGET_ENTRY_VERSION,
         subentries={existing_subentry.subentry_id: existing_subentry},
-        unique_id=integration.api_key_unique_id("shared-key"),
+        unique_id=integration_modules.util.api_key_unique_id("shared-key"),
     )
-    home_subentry = integration.ConfigSubentry(
+    home_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
@@ -2776,7 +2790,7 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
         title="Home",
         unique_id="1.0000_2.0000",
     )
-    office_subentry = integration.ConfigSubentry(
+    office_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 3.0,
             integration.CONF_LONGITUDE: 4.0,
@@ -2911,7 +2925,7 @@ def test_migrate_grouped_source_mixed_none_and_subentry_skips_leftover_none(
     """A grouped source device should ignore stale None if a valid subentry exists."""
     integration = integration_modules.integration
 
-    parent_subentry = integration.ConfigSubentry(
+    parent_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
@@ -2927,9 +2941,9 @@ def test_migrate_grouped_source_mixed_none_and_subentry_skips_leftover_none(
         data={integration.CONF_API_KEY: "shared-key"},
         version=integration.TARGET_ENTRY_VERSION,
         subentries={parent_subentry.subentry_id: parent_subentry},
-        unique_id=integration.api_key_unique_id("shared-key"),
+        unique_id=integration_modules.util.api_key_unique_id("shared-key"),
     )
-    source_subentry = integration.ConfigSubentry(
+    source_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 3.0,
             integration.CONF_LONGITUDE: 4.0,
@@ -3010,7 +3024,7 @@ def test_migrate_grouped_source_only_none_device_association_keeps_source(
     """A grouped source with only an unmapped None device link stays retryable."""
     integration = integration_modules.integration
 
-    parent_subentry = integration.ConfigSubentry(
+    parent_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
@@ -3026,9 +3040,9 @@ def test_migrate_grouped_source_only_none_device_association_keeps_source(
         data={integration.CONF_API_KEY: "shared-key"},
         version=integration.TARGET_ENTRY_VERSION,
         subentries={parent_subentry.subentry_id: parent_subentry},
-        unique_id=integration.api_key_unique_id("shared-key"),
+        unique_id=integration_modules.util.api_key_unique_id("shared-key"),
     )
-    source_subentry = integration.ConfigSubentry(
+    source_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 3.0,
             integration.CONF_LONGITUDE: 4.0,
@@ -3093,7 +3107,7 @@ def test_migrate_grouped_entry_keeps_clean_v3_source_with_unmigratable_subentry(
     """A clean v3 source subentry without legacy identity must not be removed."""
     integration = integration_modules.integration
 
-    parent_subentry = integration.ConfigSubentry(
+    parent_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 10.0, integration.CONF_LONGITUDE: 20.0},
         subentry_id="parent-location",
         title="Parent",
@@ -3105,9 +3119,9 @@ def test_migrate_grouped_entry_keeps_clean_v3_source_with_unmigratable_subentry(
         data={integration.CONF_API_KEY: "shared-key"},
         version=integration.TARGET_ENTRY_VERSION,
         subentries={parent_subentry.subentry_id: parent_subentry},
-        unique_id=integration.api_key_unique_id("shared-key"),
+        unique_id=integration_modules.util.api_key_unique_id("shared-key"),
     )
-    source_subentry = integration.ConfigSubentry(
+    source_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="clean-source-location",
         title="Clean source",
@@ -3147,7 +3161,7 @@ def test_migrate_grouped_entry_keeps_source_with_corrupt_location_subentry(
         data={integration.CONF_API_KEY: "shared-key"},
         version=integration.TARGET_ENTRY_VERSION,
         subentries={
-            "parent-location": integration.ConfigSubentry(
+            "parent-location": integration_modules.config_entries.ConfigSubentry(
                 data={
                     integration.CONF_LATITUDE: 10.0,
                     integration.CONF_LONGITUDE: 20.0,
@@ -3157,9 +3171,9 @@ def test_migrate_grouped_entry_keeps_source_with_corrupt_location_subentry(
                 unique_id="10.0000_20.0000",
             )
         },
-        unique_id=integration.api_key_unique_id("shared-key"),
+        unique_id=integration_modules.util.api_key_unique_id("shared-key"),
     )
-    corrupt_subentry = integration.ConfigSubentry(
+    corrupt_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LEGACY_ENTRY_ID: "legacy-source"},
         subentry_id="corrupt-location",
         title="Corrupt source",
@@ -3533,7 +3547,7 @@ def test_migrate_a1_state_repairs_registry_without_duplicate_subentries(
     """A previous alpha state should repair registry links without duplicates."""
     integration = integration_modules.integration
 
-    existing_subentry = integration.ConfigSubentry(
+    existing_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
@@ -3550,7 +3564,7 @@ def test_migrate_a1_state_repairs_registry_without_duplicate_subentries(
         data={integration.CONF_API_KEY: "shared-key"},
         version=integration.TARGET_ENTRY_VERSION - 1,
         subentries={existing_subentry.subentry_id: existing_subentry},
-        unique_id=integration.api_key_unique_id("shared-key"),
+        unique_id=integration_modules.util.api_key_unique_id("shared-key"),
     )
     hass = _FakeHass(entries=[entry])
 
@@ -3626,7 +3640,7 @@ def test_migrate_mixed_device_registry_state_removes_leftover_none_association(
     """Migration should remove stale legacy main-entry device links."""
     integration = integration_modules.integration
 
-    existing_subentry = integration.ConfigSubentry(
+    existing_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
@@ -3643,7 +3657,7 @@ def test_migrate_mixed_device_registry_state_removes_leftover_none_association(
         data={integration.CONF_API_KEY: "shared-key"},
         version=integration.TARGET_ENTRY_VERSION - 1,
         subentries={existing_subentry.subentry_id: existing_subentry},
-        unique_id=integration.api_key_unique_id("shared-key"),
+        unique_id=integration_modules.util.api_key_unique_id("shared-key"),
     )
     hass = _FakeHass(entries=[entry])
 
@@ -3803,7 +3817,7 @@ def test_migrate_grouped_parent_retry_after_parent_registry_failure_is_idempoten
     assert hass.config_entries.added_subentries == added_subentries
     assert len(parent.subentries) == 2
     assert parent.data == {integration.CONF_API_KEY: "shared-key"}
-    assert parent.unique_id == integration.api_key_unique_id("shared-key")
+    assert parent.unique_id == integration_modules.util.api_key_unique_id("shared-key")
     assert parent.version == integration.TARGET_ENTRY_VERSION
     assert duplicate.data == {
         integration.CONF_API_KEY: "shared-key",
@@ -4164,7 +4178,7 @@ def test_migrate_entry_cleans_legacy_keys_when_version_current(
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1",
             "http_referer": "https://legacy.example.com",
         },
         options={"http_referer": "https://legacy.example.com"},
@@ -4175,8 +4189,8 @@ def test_migrate_entry_cleans_legacy_keys_when_version_current(
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
     assert "http_referer" not in entry.data
     assert "http_referer" not in entry.options
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert entry.version == integration.TARGET_ENTRY_VERSION
 
 
@@ -4192,16 +4206,16 @@ def test_migrate_entry_removes_mode_from_data_and_options(
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1",
         },
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1"},
+        options={integration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1"},
         version=1,
     )
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert integration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert (
         integration.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
         in integration.issue_helpers.ir.registry.issues
@@ -4233,7 +4247,7 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
     synthetic_key = "SYNTHETIC-INVALID-LOCATION-KEY"
-    bad_subentry = integration.ConfigSubentry(
+    bad_subentry = integration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LATITUDE: 91.123456,
             integration.CONF_LONGITUDE: 2.654321,
@@ -4258,8 +4272,10 @@ def test_setup_entry_creates_repair_issue_for_invalid_location_coordinates(
     assert entry.runtime_data is None
     assert hass.config_entries.forward_calls == []
 
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id="bad-location"
+    expected_issue_id = (
+        integration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id="bad-location"
+        )
     )
     assert expected_issue_id in registry.issues
     issue = registry.issues[expected_issue_id]
@@ -4289,12 +4305,12 @@ def test_setup_entry_loads_valid_location_when_later_subentry_is_invalid(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    first_subentry = integration.ConfigSubentry(
+    first_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="first-location",
         title="First",
     )
-    bad_subentry = integration.ConfigSubentry(
+    bad_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 91.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="bad-location",
         title="Bad",
@@ -4332,8 +4348,10 @@ def test_setup_entry_loads_valid_location_when_later_subentry_is_invalid(
 
     assert asyncio.run(integration.async_setup_entry(hass, entry)) is True
 
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id="bad-location"
+    expected_issue_id = (
+        integration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id="bad-location"
+        )
     )
     assert expected_issue_id in registry.issues
     assert (hass, integration.DOMAIN, expected_issue_id) not in registry.deleted
@@ -4354,7 +4372,7 @@ def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    good_subentry = integration.ConfigSubentry(
+    good_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="good-location",
         title="Good",
@@ -4367,8 +4385,10 @@ def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are
         subentries={good_subentry.subentry_id: good_subentry},
     )
     hass = _FakeHass()
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id=good_subentry.subentry_id
+    expected_issue_id = (
+        integration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id=good_subentry.subentry_id
+        )
     )
     registry.async_create_issue(
         None,
@@ -4426,8 +4446,10 @@ def test_setup_entry_removes_entry_level_repair_issue_when_no_invalid_subentries
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    existing_issue_id = integration.invalid_stored_location_issue_id(
-        "entry-clean", subentry_id=None
+    existing_issue_id = (
+        integration_modules.issue_helpers.invalid_stored_location_issue_id(
+            "entry-clean", subentry_id=None
+        )
     )
     registry.async_create_issue(
         None,
@@ -4441,7 +4463,7 @@ def test_setup_entry_removes_entry_level_repair_issue_when_no_invalid_subentries
     )
     assert existing_issue_id in registry.issues
 
-    good_subentry = integration.ConfigSubentry(
+    good_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="good-location",
         title="Good",
@@ -4493,7 +4515,7 @@ def test_setup_entry_clears_location_repairs_for_deleted_subentries(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    active_subentry = integration.ConfigSubentry(
+    active_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="active-location",
         title="Active",
@@ -4511,8 +4533,10 @@ def test_setup_entry_clears_location_repairs_for_deleted_subentries(
             entry.entry_id: {"active-location", "deleted-location"}
         }
     }
-    stale_invalid_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id="deleted-location"
+    stale_invalid_issue_id = (
+        integration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id="deleted-location"
+        )
     )
     stale_setup_issue_id = integration.issue_helpers.location_setup_failed_issue_id(
         entry.entry_id, "deleted-location"
@@ -4570,7 +4594,7 @@ def test_setup_entry_clears_location_setup_failed_repair_on_success(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    subentry = integration.ConfigSubentry(
+    subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="recovered-location",
         title="Recovered",
@@ -4641,7 +4665,7 @@ def test_setup_entry_does_not_create_repair_issue_for_temporal_refresh_failure(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    good_subentry = integration.ConfigSubentry(
+    good_subentry = integration_modules.config_entries.ConfigSubentry(
         data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
         subentry_id="temp-location",
         title="Temp",

@@ -1,12 +1,8 @@
-"""Pollen Levels sensors with multi-day forecast (types & plants).
+"""Location-scoped pollen sensors with forecast attributes.
 
-Key points:
-- Cleans up legacy per-day sensors (D+1/D+2) in Entity Registry on reload.
-- Normalizes language (trim/omit when empty) before calling the API.
-- Redacts API keys in debug logs.
-- Minimal safe backoff: single retry on transient errors (Timeout/5xx/429).
-- Timeout handling: on Python 3.14, built-in `TimeoutError` also covers
-  `asyncio.TimeoutError`, so catching `TimeoutError` is sufficient and preferred.
+Register current pollen type and plant sensors, daily summary and metadata
+entities, and group them into location devices. Remove legacy per-day sensors
+(D+1/D+2) from the Entity Registry on reload.
 """
 
 from __future__ import annotations
@@ -33,15 +29,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import (
-    ATTRIBUTION,
-    CONF_API_KEY,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
-    DOMAIN,
-)
+from .const import ATTRIBUTION, DOMAIN
 from .coordinator import PollenDataUpdateCoordinator
 from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
 from .issue_helpers import create_per_day_forecast_sensors_removed_issue
@@ -73,14 +61,6 @@ _FORECAST_ATTRIBUTE_NAMES = (
 )
 
 _FORECAST_UNRECORDED_ATTRIBUTES = frozenset(_FORECAST_ATTRIBUTE_NAMES)
-
-__all__ = [
-    "CONF_API_KEY",
-    "CONF_LATITUDE",
-    "CONF_LONGITUDE",
-    "CONF_UPDATE_INTERVAL",
-    "DEFAULT_UPDATE_INTERVAL",
-]
 
 # ---- Icons ---------------------------------------------------------------
 
@@ -148,7 +128,7 @@ async def async_setup_entry(
     config_entry: PollenLevelsConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Create coordinator and build sensors."""
+    """Register location sensors using coordinators created by integration setup."""
     runtime = cast(
         PollenLevelsRuntimeData | None, getattr(config_entry, "runtime_data", None)
     )

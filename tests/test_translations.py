@@ -917,32 +917,10 @@ def _extract_config_flow_keys() -> set[str]:
     # Helper functions can return error keys indirectly (e.g., interval_error/days_error).
     helper_error_keys = _extract_helper_error_keys(config_tree)
 
-    language_error_returns: set[str] = set()
-
-    class _LanguageErrorVisitor(ast.NodeVisitor):
-        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
-            if node.name != "_language_error_to_form_key":
-                return
-            for child in ast.walk(node):
-                if (
-                    isinstance(child, ast.Return)
-                    and isinstance(child.value, ast.Constant)
-                    and isinstance(child.value.value, str)
-                ):
-                    language_error_returns.add(child.value.value)
-
-    _LanguageErrorVisitor().visit(config_tree)
-
     def _extract_error_values(value: ast.AST) -> set[str]:
         values: set[str] = set()
         if isinstance(value, ast.Constant) and isinstance(value.value, str):
             values.add(value.value)
-        elif (
-            isinstance(value, ast.Call)
-            and isinstance(value.func, ast.Name)
-            and value.func.id == "_language_error_to_form_key"
-        ):
-            values.update(language_error_returns)
         return values
 
     def _extract_error_key_kw(call: ast.Call) -> str | None:

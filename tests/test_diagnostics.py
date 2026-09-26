@@ -150,6 +150,8 @@ async def test_diagnostics_rounds_coordinates_and_truncates_keys(
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
     coordinator = SimpleNamespace(
+        lat=12.345678,
+        lon=78.987654,
         entry_id="entry",
         language="en",
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
@@ -776,6 +778,8 @@ async def test_diagnostics_request_days_are_fixed(
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
     coordinator = SimpleNamespace(
+        lat=12.3,
+        lon=45.6,
         entry_id="entry",
         language="en",
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
@@ -826,6 +830,8 @@ async def test_diagnostics_normalizes_request_example_language_code(
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
     coordinator = SimpleNamespace(
+        lat=12.3,
+        lon=45.6,
         entry_id="entry",
         language=expected_language,
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
@@ -851,10 +857,10 @@ async def test_diagnostics_normalizes_request_example_language_code(
 
 
 @pytest.mark.asyncio
-async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
+async def test_diagnostics_uses_active_coordinator_coordinates_over_stored_data(
     diagnostics_modules: DiagnosticsModules,
 ) -> None:
-    """Rounded coordinate helpers should drop non-finite values."""
+    """Active examples use validated coordinator coordinates, not stored data."""
 
     data = {
         diagnostics_modules.CONF_LATITUDE: "nan",
@@ -869,6 +875,8 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
     }
 
     coordinator = SimpleNamespace(
+        lat=12.3,
+        lon=45.6,
         entry_id="entry",
         subentry_id="entry",
         language="en",
@@ -888,10 +896,18 @@ async def test_diagnostics_nonfinite_coordinates_are_omitted_in_examples(
     )
 
     location_payload = diagnostics["locations"]["entry"]
-    assert location_payload["approximate_location"]["latitude_rounded"] is None
-    assert location_payload["approximate_location"]["longitude_rounded"] is None
-    assert location_payload["request_params_example"]["location.latitude"] is None
-    assert location_payload["request_params_example"]["location.longitude"] is None
+    assert location_payload["approximate_location"]["latitude_rounded"] == 12.3
+    assert location_payload["approximate_location"]["longitude_rounded"] == 45.6
+    assert location_payload["request_params_example"]["location.latitude"] == 12.3
+    assert location_payload["request_params_example"]["location.longitude"] == 45.6
+
+
+def test_rounded_omits_nonfinite_coordinates(
+    diagnostics_modules: DiagnosticsModules,
+) -> None:
+    """Historical non-finite coordinates remain unsuitable for rounded examples."""
+    assert diagnostics_modules.diag._rounded("nan") is None
+    assert diagnostics_modules.diag._rounded(float("inf")) is None
 
 
 @pytest.mark.asyncio
@@ -910,6 +926,8 @@ async def test_diagnostics_includes_daily_summary_sensor_snapshot(
     entry = _ConfigEntry(data=data, options=options, entry_id="entry", title="Home")
 
     coordinator = SimpleNamespace(
+        lat=12.3,
+        lon=45.6,
         entry_id="entry",
         language="en",
         last_updated=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
@@ -1014,6 +1032,8 @@ async def test_diagnostics_daily_summary_uses_empty_states_without_data(
         "entry": SimpleNamespace(subentry_id="entry", subentry_type="location")
     }
     coordinator = SimpleNamespace(
+        lat=12.3,
+        lon=45.6,
         entry_id="entry",
         subentry_id="entry",
         language=None,

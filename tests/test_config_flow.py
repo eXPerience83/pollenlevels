@@ -460,33 +460,12 @@ def _collect_error_keys_from_config_flow() -> set[str]:
     )
     tree = ast.parse(source)
 
-    language_error_returns: set[str] = set()
-
-    class _LanguageErrorVisitor(ast.NodeVisitor):
-        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
-            if node.name == "_language_error_to_form_key":
-                for child in ast.walk(node):
-                    if (
-                        isinstance(child, ast.Return)
-                        and isinstance(child.value, ast.Constant)
-                        and isinstance(child.value.value, str)
-                    ):
-                        language_error_returns.add(child.value.value)
-
-    _LanguageErrorVisitor().visit(tree)
-
     error_keys: set[str] = set()
 
     def _extract_error_values(value: ast.AST) -> set[str]:
         values: set[str] = set()
         if isinstance(value, ast.Constant) and isinstance(value.value, str):
             values.add(value.value)
-        elif (
-            isinstance(value, ast.Call)
-            and isinstance(value.func, ast.Name)
-            and value.func.id == "_language_error_to_form_key"
-        ):
-            values.update(language_error_returns)
         return values
 
     class _ErrorsVisitor(ast.NodeVisitor):
@@ -598,21 +577,9 @@ def test_validate_input_empty_api_key(
     assert session_called is False
 
 
-def test_language_error_to_form_key_mapping(config_flow_stubs: ConfigFlowStubs) -> None:
-    """voluptuous error messages map to localized form keys."""
-
-    assert (
-        config_flow_stubs.config_flow._language_error_to_form_key(
-            config_flow_stubs.config_flow.vol.Invalid("empty")
-        )
-        == "invalid_language_format"
-    )
-    assert (
-        config_flow_stubs.config_flow._language_error_to_form_key(
-            config_flow_stubs.config_flow.vol.Invalid("invalid_language")
-        )
-        == "invalid_language_format"
-    )
+def test_error_collector_discovers_invalid_language_format() -> None:
+    """Language form errors must remain visible to the source AST collector."""
+    assert "invalid_language_format" in _collect_error_keys_from_config_flow()
 
 
 def test_validate_input_invalid_coordinates(config_flow_stubs: ConfigFlowStubs) -> None:
@@ -1914,14 +1881,14 @@ def test_api_key_confirm_without_locations(
     entry = config_flow_stubs.config_flow.config_entries.ConfigEntry(
         data={config_flow_stubs.CONF_API_KEY: "old-key"},
         entry_id="entry-id",
-        unique_id=config_flow_stubs.config_flow._api_key_unique_id("old-key"),
+        unique_id=config_flow_stubs.config_flow.api_key_unique_id("old-key"),
         subentries={},
     )
     duplicate = (
         config_flow_stubs.config_flow.config_entries.ConfigEntry(
             data={config_flow_stubs.CONF_API_KEY: duplicate_key},
             entry_id="duplicate-entry-id",
-            unique_id=config_flow_stubs.config_flow._api_key_unique_id(duplicate_key),
+            unique_id=config_flow_stubs.config_flow.api_key_unique_id(duplicate_key),
         )
         if duplicate_key is not None
         else None
@@ -1968,7 +1935,7 @@ def test_api_key_confirm_without_locations(
     if expected_error is not None:
         assert result == {"step_id": step_id, "errors": expected_error}
         assert entry.data == {config_flow_stubs.CONF_API_KEY: "old-key"}
-        assert entry.unique_id == config_flow_stubs.config_flow._api_key_unique_id(
+        assert entry.unique_id == config_flow_stubs.config_flow.api_key_unique_id(
             "old-key"
         )
         assert recorder.updated is None
@@ -1976,7 +1943,7 @@ def test_api_key_confirm_without_locations(
     else:
         assert result == {"type": "abort", "reason": success_reason}
         assert entry.data == {config_flow_stubs.CONF_API_KEY: "new-key"}
-        assert entry.unique_id == config_flow_stubs.config_flow._api_key_unique_id(
+        assert entry.unique_id == config_flow_stubs.config_flow.api_key_unique_id(
             "new-key"
         )
         assert recorder.updated == (entry, entry.data)
@@ -2407,7 +2374,7 @@ def test_async_step_user_checks_api_key_unique_id(
             self.unique_ids.append(uid)
             return None
 
-    duplicate_unique_id = config_flow_stubs.config_flow._api_key_unique_id("shared-key")
+    duplicate_unique_id = config_flow_stubs.config_flow.api_key_unique_id("shared-key")
     lookup_calls: list[tuple[str, str]] = []
 
     def _lookup_parent(domain: str, unique_id: str):

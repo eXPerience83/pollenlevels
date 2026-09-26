@@ -3402,9 +3402,9 @@ def test_async_setup_entry_raises_not_ready_if_runtime_data_missing(
     hass = DummyHass(loop)
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         }
     )
 
@@ -3430,7 +3430,7 @@ async def test_async_setup_entry_without_locations_adds_no_entities(
 
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
-        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        data={sensor_modules.const.CONF_API_KEY: "key"},
         entry_id="entry",
     )
     config_entry.runtime_data = sensor_modules.sensor.PollenLevelsRuntimeData(
@@ -3455,10 +3455,10 @@ async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         },
         entry_id="entry",
     )
@@ -3469,7 +3469,7 @@ async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
         api_key="key",
         lat=1.0,
         lon=2.0,
-        hours=sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
         entry_title=sensor_modules.const.DEFAULT_ENTRY_TITLE,
@@ -3524,10 +3524,10 @@ async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         },
         entry_id="entry",
     )
@@ -3560,7 +3560,7 @@ async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
         api_key="key",
         lat=1.0,
         lon=2.0,
-        hours=sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
         entry_title=sensor_modules.const.DEFAULT_ENTRY_TITLE,
@@ -3610,7 +3610,7 @@ async def test_async_setup_entry_cleans_legacy_entities_for_stale_locations(
     coordinate_identity = "39.1234_-0.1234"
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
-        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        data={sensor_modules.const.CONF_API_KEY: "key"},
         entry_id="entry",
     )
     config_entry.subentries = {
@@ -3685,7 +3685,7 @@ async def test_async_setup_entry_cleans_legacy_entities_before_no_data_error(
 
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
-        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        data={sensor_modules.const.CONF_API_KEY: "key"},
         entry_id="entry",
     )
     config_entry.subentries = {
@@ -3751,7 +3751,7 @@ async def test_async_setup_entry_skips_stale_runtime_locations(
 
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
-        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        data={sensor_modules.const.CONF_API_KEY: "key"},
         entry_id="entry",
     )
     coordinator = types.SimpleNamespace(
@@ -3796,7 +3796,7 @@ async def test_async_setup_entry_ignores_failed_locations(
 
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
-        data={sensor_modules.sensor.CONF_API_KEY: "key"},
+        data={sensor_modules.const.CONF_API_KEY: "key"},
         entry_id="entry",
     )
     config_entry.subentries = {
@@ -3865,10 +3865,10 @@ async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         },
         entry_id="entry",
     )
@@ -3933,10 +3933,10 @@ async def test_async_setup_entry_adds_daily_summary_sensors(
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         },
         entry_id=entry_id,
     )
@@ -4007,10 +4007,10 @@ async def test_device_info_uses_default_title_when_blank(
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         },
         entry_id="entry",
     )
@@ -4023,7 +4023,7 @@ async def test_device_info_uses_default_title_when_blank(
         api_key="key",
         lat=1.0,
         lon=2.0,
-        hours=sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
         entry_title=clean_title,
@@ -4071,10 +4071,10 @@ async def test_device_info_trims_custom_title(
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         },
         entry_id="entry",
     )
@@ -4087,7 +4087,7 @@ async def test_device_info_trims_custom_title(
         api_key="key",
         lat=1.0,
         lon=2.0,
-        hours=sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL,
+        hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
         entry_title=clean_title,
@@ -4133,11 +4133,11 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 1.0,
-            sensor_modules.sensor.CONF_LONGITUDE: 2.0,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: (
-                sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 1.0,
+            sensor_modules.const.CONF_LONGITUDE: 2.0,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: (
+                sensor_modules.const.DEFAULT_UPDATE_INTERVAL
             ),
         },
         entry_id="entry",
@@ -4193,11 +4193,11 @@ async def test_setup_entry_debug_logs_do_not_expose_coordinate_identity(
     hass = DummyHass(asyncio.get_running_loop())
     config_entry = FakeConfigEntry(
         data={
-            sensor_modules.sensor.CONF_API_KEY: "key",
-            sensor_modules.sensor.CONF_LATITUDE: 39.1234,
-            sensor_modules.sensor.CONF_LONGITUDE: -0.1234,
-            sensor_modules.sensor.CONF_UPDATE_INTERVAL: (
-                sensor_modules.sensor.DEFAULT_UPDATE_INTERVAL
+            sensor_modules.const.CONF_API_KEY: "key",
+            sensor_modules.const.CONF_LATITUDE: 39.1234,
+            sensor_modules.const.CONF_LONGITUDE: -0.1234,
+            sensor_modules.const.CONF_UPDATE_INTERVAL: (
+                sensor_modules.const.DEFAULT_UPDATE_INTERVAL
             ),
         },
         entry_id="entry",
