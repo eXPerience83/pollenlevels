@@ -2,7 +2,7 @@ name: Home Assistant Test Baseline Updater
 
 on:
   schedule:
-    - cron: "41 6 * * 1"
+    - cron: "41 6 * * *"
   workflow_dispatch:
     inputs:
       publish:
