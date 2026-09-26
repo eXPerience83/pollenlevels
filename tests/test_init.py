@@ -1819,6 +1819,9 @@ def test_force_update_requests_refresh_per_entry(
     integration = integration_modules.integration
 
     class _StubCoordinator:
+        last_update_success = True
+        last_exception = None
+
         def __init__(self):
             self.calls: list[str] = []
             self.done = asyncio.Event()
@@ -1861,7 +1864,7 @@ def test_force_update_requests_refresh_per_entry(
     entry3 = _FakeEntry(integration, entry_id="entry-3")
     entry3.runtime_data = None
     entry4 = _FakeEntry(integration, entry_id="entry-4")
-    entry4.runtime_data = types.SimpleNamespace()
+    entry4.runtime_data = integration.PollenLevelsRuntimeData()
 
     hass = _FakeHass(entries=[entry1, entry2, entry3, entry4])
 
@@ -1898,6 +1901,9 @@ def test_force_update_logs_do_not_expose_secrets(
     integration = integration_modules.integration
 
     class _FailCoordinator:
+        lat = 12.345678
+        lon = -98.765432
+
         async def async_request_refresh(self):
             raise RuntimeError(
                 "api_key=secret-123 lat=12.345678 lon=-98.765432 "
@@ -1959,6 +1965,9 @@ def test_force_update_refreshes_location_subentries_sequentially(
     order: list[str] = []
 
     class _Coordinator:
+        last_update_success = True
+        last_exception = None
+
         def __init__(self, name: str) -> None:
             self.name = name
 
@@ -2006,6 +2015,9 @@ def test_force_update_refreshes_different_parents_concurrently(
     max_active = 0
 
     class _Coordinator:
+        last_update_success = True
+        last_exception = None
+
         def __init__(self) -> None:
             self.calls = 0
 
@@ -2137,6 +2149,9 @@ def test_force_update_continues_after_one_location_failure(
     integration = integration_modules.integration
 
     class _OkCoordinator:
+        last_update_success = True
+        last_exception = None
+
         def __init__(self) -> None:
             self.calls = 0
 
@@ -2190,6 +2205,9 @@ def test_force_update_continues_after_different_parent_failure(
     integration = integration_modules.integration
 
     class _FailCoordinator:
+        lat = 1.0
+        lon = 2.0
+
         def __init__(self) -> None:
             self.calls = 0
 
@@ -2198,6 +2216,9 @@ def test_force_update_continues_after_different_parent_failure(
             raise RuntimeError("refresh failed")
 
     class _OkCoordinator:
+        last_update_success = True
+        last_exception = None
+
         def __init__(self) -> None:
             self.calls = 0
 
@@ -2275,6 +2296,9 @@ def test_force_update_skips_failed_locations_without_coordinators(
     integration = integration_modules.integration
 
     class _Coordinator:
+        last_update_success = True
+        last_exception = None
+
         def __init__(self) -> None:
             self.calls = 0
 

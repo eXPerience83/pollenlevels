@@ -48,8 +48,8 @@ def _entry_repair_privacy_context(
     if CONF_LATITUDE in data or CONF_LONGITUDE in data:
         coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
 
-    for subentry in (getattr(entry, "subentries", {}) or {}).values():
-        subentry_data = dict(getattr(subentry, "data", {}) or {})
+    for subentry in entry.subentries.values():
+        subentry_data = dict(subentry.data)
         if CONF_LATITUDE in subentry_data or CONF_LONGITUDE in subentry_data:
             coordinate_pairs.append(
                 (

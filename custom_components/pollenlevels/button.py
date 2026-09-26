@@ -39,7 +39,7 @@ async def async_setup_entry(
     runtime = getattr(config_entry, "runtime_data", None)
     if runtime is None:
         raise ConfigEntryNotReady("Runtime data not ready")
-    locations = getattr(runtime, "locations", None) or {}
+    locations = runtime.locations
     if not locations:
         _LOGGER.debug("No location subentries configured; no update buttons to add")
         return
@@ -106,7 +106,7 @@ class PollenLevelsUpdateButton(
         if self.coordinator.last_update_success:
             return
 
-        last_exception = getattr(self.coordinator, "last_exception", None)
+        last_exception = self.coordinator.last_exception
         error_type = type(last_exception).__name__ if last_exception else "UnknownError"
         _LOGGER.warning(
             "Manual update button refresh failed for entry %s (%s)",

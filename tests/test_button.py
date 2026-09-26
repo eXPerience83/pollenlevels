@@ -234,10 +234,14 @@ async def test_button_press_raises_when_refresh_reports_failure(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("runtime_present", [True, False], ids=["none", "absent"])
 async def test_setup_entry_raises_if_runtime_data_missing(
     button_platform: SimpleNamespace,
+    runtime_present: bool,
 ) -> None:
-    entry = types.SimpleNamespace(runtime_data=None)
+    entry = types.SimpleNamespace()
+    if runtime_present:
+        entry.runtime_data = None
 
     with pytest.raises(button_platform.exceptions.ConfigEntryNotReady):
         await button_platform.module.async_setup_entry(

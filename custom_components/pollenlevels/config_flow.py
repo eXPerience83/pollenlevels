@@ -236,17 +236,15 @@ def _build_step_user_schema(
     user_input = user_input or {}
 
     default_name = str(
-        user_input.get(CONF_NAME)
-        or getattr(hass.config, "location_name", "")
-        or DEFAULT_ENTRY_TITLE
+        user_input.get(CONF_NAME) or hass.config.location_name or DEFAULT_ENTRY_TITLE
     )
 
     location_default = None
     if isinstance(user_input.get(CONF_LOCATION), dict):
         location_default = user_input[CONF_LOCATION]
     else:
-        lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
-        lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+        lat = _safe_coord(hass.config.latitude, lat=True)
+        lon = _safe_coord(hass.config.longitude, lat=False)
         if lat is not None and lon is not None:
             location_default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
 
@@ -279,9 +277,7 @@ def _build_step_user_schema(
             ),
             vol.Optional(
                 CONF_LANGUAGE_CODE,
-                default=user_input.get(
-                    CONF_LANGUAGE_CODE, getattr(hass.config, "language", "")
-                ),
+                default=user_input.get(CONF_LANGUAGE_CODE, hass.config.language),
             ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
         }
     )
@@ -300,15 +296,15 @@ def _build_location_subentry_schema(
     default_name = str(
         user_input.get(CONF_NAME)
         or name_default
-        or getattr(hass.config, "location_name", "")
+        or hass.config.location_name
         or DEFAULT_ENTRY_TITLE
     )
 
     if isinstance(user_input.get(CONF_LOCATION), dict):
         location_default = user_input[CONF_LOCATION]
     elif location_default is None:
-        lat = _safe_coord(getattr(hass.config, "latitude", None), lat=True)
-        lon = _safe_coord(getattr(hass.config, "longitude", None), lat=False)
+        lat = _safe_coord(hass.config.latitude, lat=True)
+        lon = _safe_coord(hass.config.longitude, lat=False)
         if lat is not None and lon is not None:
             location_default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
 
@@ -395,8 +391,8 @@ def _location_data_for_validation(
 ) -> list[dict[str, Any]]:
     """Return all configured location data candidates for API-key validation."""
     locations: list[dict[str, Any]] = []
-    for subentry in (getattr(entry, "subentries", {}) or {}).values():
-        if getattr(subentry, "subentry_type", None) == SUBENTRY_TYPE_LOCATION:
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type == SUBENTRY_TYPE_LOCATION:
             locations.append(dict(subentry.data or {}))
     if locations:
         return locations
@@ -420,12 +416,12 @@ def _has_duplicate_location(
     current_subentry_id: str | None = None,
 ) -> bool:
     """Return whether a location unique id already exists in this parent entry."""
-    for subentry in (getattr(entry, "subentries", {}) or {}).values():
-        if getattr(subentry, "subentry_type", None) != SUBENTRY_TYPE_LOCATION:
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type != SUBENTRY_TYPE_LOCATION:
             continue
         if current_subentry_id and subentry.subentry_id == current_subentry_id:
             continue
-        if getattr(subentry, "unique_id", None) == unique_id:
+        if subentry.unique_id == unique_id:
             return True
     return False
 
@@ -682,9 +678,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     existing_entry = _entry_for_parent_unique_id(
                         self.hass, updated_unique_id
                     )
-                    if existing_entry is not None and getattr(
-                        existing_entry, "entry_id", None
-                    ) != getattr(entry, "entry_id", None):
+                    if (
+                        existing_entry is not None
+                        and existing_entry.entry_id != entry.entry_id
+                    ):
                         errors = {"base": "api_key_already_configured"}
                     else:
                         return self.async_update_reload_and_abort(
@@ -721,9 +718,10 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     existing_entry = _entry_for_parent_unique_id(
                         self.hass, updated_unique_id
                     )
-                    if existing_entry is not None and getattr(
-                        existing_entry, "entry_id", None
-                    ) != getattr(entry, "entry_id", None):
+                    if (
+                        existing_entry is not None
+                        and existing_entry.entry_id != entry.entry_id
+                    ):
                         errors = {"base": "api_key_already_configured"}
                         display_errors = errors
                         display_placeholders = candidate_placeholders

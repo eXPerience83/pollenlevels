@@ -3393,8 +3393,10 @@ def test_coordinator_redacts_coordinates_in_unexpected_api_errors(
     assert "-98.765432" not in caplog.text
 
 
+@pytest.mark.parametrize("runtime_present", [True, False], ids=["none", "absent"])
 def test_async_setup_entry_raises_not_ready_if_runtime_data_missing(
     sensor_modules: SensorModules,
+    runtime_present: bool,
 ) -> None:
     """Missing runtime data causes setup to raise ConfigEntryNotReady."""
 
@@ -3407,6 +3409,9 @@ def test_async_setup_entry_raises_not_ready_if_runtime_data_missing(
             sensor_modules.const.CONF_UPDATE_INTERVAL: sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         }
     )
+
+    if not runtime_present:
+        del config_entry.runtime_data
 
     async def _noop_add_entities(_entities, _update_before_add=False):
         return None
