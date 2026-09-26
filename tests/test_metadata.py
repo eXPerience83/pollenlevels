@@ -602,7 +602,7 @@ def test_shell_command_detection_uses_command_boundaries() -> None:
 
 
 def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() -> None:
-    """Protect the weekly updater's narrow generated-PR security contract."""
+    """Protect the daily updater's narrow generated-PR security contract."""
     workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
     planner_environment = _workflow_step(workflow, "Create planner environment")
     planner_script = _workflow_run_script(workflow, "Create planner environment")
@@ -613,7 +613,7 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     publication = _workflow_step(workflow, "Publish validated pull request")
     artifact_check = _workflow_step(workflow, "Verify validated artifact")
 
-    assert 'cron: "41 6 * * 1"' in workflow
+    assert 'cron: "41 6 * * *"' in workflow
     assert "workflow_dispatch:" in workflow
     assert "publish:" in workflow
     assert "default: false" in workflow
