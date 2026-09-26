@@ -98,12 +98,12 @@ def _iter_location_subentries(
     entry: ConfigEntry,
 ) -> list[tuple[str, str, dict[str, Any], str | None]]:
     """Return location configuration tuples for setup."""
-    subentries = getattr(entry, "subentries", {}) or {}
+    subentries = entry.subentries
     locations: list[tuple[str, str, dict[str, Any], str | None]] = []
     for subentry in subentries.values():
-        if getattr(subentry, "subentry_type", None) != SUBENTRY_TYPE_LOCATION:
+        if subentry.subentry_type != SUBENTRY_TYPE_LOCATION:
             continue
-        data = dict(getattr(subentry, "data", {}) or {})
+        data = dict(subentry.data)
         legacy_entry_id = data.get(CONF_LEGACY_ENTRY_ID)
         if not isinstance(legacy_entry_id, str) or not legacy_entry_id:
             legacy_entry_id = None
@@ -121,7 +121,7 @@ def _iter_location_subentries(
 
 def _location_issue_subentry_id(entry: ConfigEntry, subentry_id: str) -> str | None:
     """Return the Repair subentry id for a setup location."""
-    subentries = getattr(entry, "subentries", {}) or {}
+    subentries = entry.subentries
     return subentry_id if subentry_id in subentries else None
 
 
@@ -156,7 +156,7 @@ def _safe_setup_failure_text(
 
 def _coordinator_has_usable_initial_data(coordinator: Any) -> bool:
     """Return whether a first refresh produced enough data to build sensors."""
-    data = getattr(coordinator, "data", None) or {}
+    data = coordinator.data or {}
     if not isinstance(data, dict):
         return False
     return ("date" in data) or any(
@@ -268,16 +268,8 @@ def _log_force_update_failure(
 ) -> None:
     """Log one redacted force_update location failure."""
     api_key = (entry.data or {}).get(CONF_API_KEY)
-    latitude = getattr(
-        coordinator,
-        "lat",
-        (entry.data or {}).get(CONF_LATITUDE),
-    )
-    longitude = getattr(
-        coordinator,
-        "lon",
-        (entry.data or {}).get(CONF_LONGITUDE),
-    )
+    latitude = coordinator.lat
+    longitude = coordinator.lon
     if result is not None:
         safe_message = redact_sensitive_values(
             result,
@@ -328,9 +320,9 @@ async def _refresh_force_update_target(
         _log_force_update_failure(entry, subentry_id, coordinator, result)
         return
 
-    if getattr(coordinator, "last_update_success", True) is not False:
+    if coordinator.last_update_success is not False:
         return
-    last_exception = getattr(coordinator, "last_exception", None)
+    last_exception = coordinator.last_exception
     if not isinstance(last_exception, BaseException):
         last_exception = None
     _log_force_update_failure(entry, subentry_id, coordinator, last_exception)
@@ -375,7 +367,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         targets: list[tuple[ConfigEntry, str, Any]] = []
         for entry in entries:
             runtime = getattr(entry, "runtime_data", None)
-            locations = getattr(runtime, "locations", None) or {}
+            locations = runtime.locations if runtime is not None else {}
             if not locations:
                 _LOGGER.debug(
                     "Skipping force_update for entry %s (no location coordinators)",
@@ -393,9 +385,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                         entry.entry_id,
                     )
                     continue
-                coordinator = getattr(location, "coordinator", None)
-                if not coordinator:
-                    continue
+                coordinator = location.coordinator
                 targets.append((entry, subentry_id, coordinator))
 
         if not targets:
@@ -458,8 +448,8 @@ async def async_setup_entry(
         coordinate_pairs.append(
             (parent_data.get(CONF_LATITUDE), parent_data.get(CONF_LONGITUDE))
         )
-    for subentry in (getattr(entry, "subentries", {}) or {}).values():
-        subentry_data = dict(getattr(subentry, "data", {}) or {})
+    for subentry in entry.subentries.values():
+        subentry_data = dict(subentry.data)
         if CONF_LATITUDE in subentry_data or CONF_LONGITUDE in subentry_data:
             coordinate_pairs.append(
                 (

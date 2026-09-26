@@ -572,3 +572,126 @@ async def test_ha_remove_entry_clears_only_owned_location_repairs(
     assert hass.data[DOMAIN]["setup_retry_failures"] == {
         "entry-other": {"other-location"}
     }
+
+
+@pytest.mark.parametrize("valid_coordinates", [False, True], ids=["invalid", "valid"])
+async def test_ha_subentry_removed_during_setup_keeps_lifecycle_guards(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    valid_coordinates: bool,
+) -> None:
+    """Removal during a fetch must preserve Repair and platform stale guards."""
+    clear_integration_modules()
+    from custom_components.pollenlevels import _location_issue_subentry_id
+    from custom_components.pollenlevels.client import GooglePollenApiClient
+    from custom_components.pollenlevels.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
+    from custom_components.pollenlevels.issue_helpers import (
+        invalid_stored_location_issue_id,
+    )
+    from custom_components.pollenlevels.util import device_subentry_ids
+
+    removed_id = "location-removed"
+    removed_data = location_subentry_data(
+        subentry_id=removed_id, title="Removed", latitude=3.0, longitude=4.0
+    )
+    if not valid_coordinates:
+        removed_data["data"][CONF_LATITUDE] = None
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="setup-removal-parent",
+        title="Pollen Levels",
+        data={CONF_API_KEY: "synthetic-setup-removal-key"},
+        subentries_data=[
+            location_subentry_data(
+                subentry_id="location-kept", title="Kept", latitude=1.0, longitude=2.0
+            ),
+            removed_data,
+        ],
+        version=6,
+    )
+    entry.add_to_hass(hass)
+    fetch_started = asyncio.Event()
+    release_fetch = asyncio.Event()
+    original_fetch = GooglePollenApiClient.async_fetch_pollen_data
+
+    async def _delayed_fetch(client, **kwargs):
+        fetch_started.set()
+        await release_fetch.wait()
+        return await original_fetch(client, **kwargs)
+
+    monkeypatch.setattr(
+        GooglePollenApiClient, "async_fetch_pollen_data", _delayed_fetch
+    )
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        setup_task = asyncio.create_task(
+            hass.config_entries.async_setup(entry.entry_id)
+        )
+        try:
+            await asyncio.wait_for(fetch_started.wait(), timeout=5)
+            assert hass.config_entries.async_remove_subentry(entry, removed_id)
+        finally:
+            release_fetch.set()
+            setup_result = await setup_task
+        assert setup_result
+        await hass.async_block_till_done()
+
+        assert removed_id not in entry.subentries
+        assert _location_issue_subentry_id(entry, removed_id) is None
+        if valid_coordinates:
+            assert removed_id in entry.runtime_data.locations
+        else:
+            assert removed_id in entry.runtime_data.failed_locations
+            issue_id = invalid_stored_location_issue_id(entry.entry_id)
+            assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
+
+        entity_registry = er.async_get(hass)
+        entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+        assert entities
+        assert {entity.domain for entity in entities} == {"sensor", "button"}
+        assert all(entity.config_subentry_id == "location-kept" for entity in entities)
+        entity_identity = {
+            entity.entity_id: (entity.unique_id, entity.config_subentry_id)
+            for entity in entities
+        }
+        assert any(
+            entity.unique_id == "setup-removal-parent_location-kept_update_now"
+            for entity in entities
+        )
+        device_registry = dr.async_get(hass)
+        devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+        assert devices
+        assert all(
+            device_subentry_ids(device, entry.entry_id) == {"location-kept"}
+            for device in devices
+        )
+        device_identity = {device.id: device.identifiers for device in devices}
+
+        diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+        assert set(diagnostics["locations"]) == {"location-kept"}
+        assert removed_id not in diagnostics["failed_locations"]
+        assert diagnostics["runtime_summary"]["stale_location_ids"] == (
+            [removed_id] if valid_coordinates else []
+        )
+
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+        assert set(entry.subentries) == {"location-kept"}
+        assert set(entry.runtime_data.locations) == {"location-kept"}
+        assert {
+            entity.entity_id: (entity.unique_id, entity.config_subentry_id)
+            for entity in er.async_entries_for_config_entry(
+                entity_registry, entry.entry_id
+            )
+        } == entity_identity
+        assert {
+            device.id: device.identifiers
+            for device in dr.async_entries_for_config_entry(
+                device_registry, entry.entry_id
+            )
+        } == device_identity

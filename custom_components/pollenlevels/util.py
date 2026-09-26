@@ -90,12 +90,12 @@ def format_location_unique_id(lat: float, lon: float) -> str:
 
 def active_location_subentry_ids(entry: Any) -> set[str]:
     """Return active location subentry ids for a config entry."""
-    subentries = getattr(entry, "subentries", {}) or {}
+    subentries = entry.subentries
     active_ids: set[str] = set()
     for subentry in subentries.values():
-        if getattr(subentry, "subentry_type", None) != SUBENTRY_TYPE_LOCATION:
+        if subentry.subentry_type != SUBENTRY_TYPE_LOCATION:
             continue
-        subentry_id = getattr(subentry, "subentry_id", None)
+        subentry_id = subentry.subentry_id
         if isinstance(subentry_id, str) and subentry_id:
             active_ids.add(subentry_id)
     return active_ids

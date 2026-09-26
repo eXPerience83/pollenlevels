@@ -826,7 +826,9 @@ def test_setup_schema_update_interval_default_is_sanitized(
     )
 
     hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+        config=SimpleNamespace(
+            latitude=1.0, longitude=2.0, language="en", location_name="Home"
+        )
     )
     config_flow_stubs.config_flow._build_step_user_schema(
         hass, {config_flow_stubs.CONF_UPDATE_INTERVAL: raw_value}
@@ -841,7 +843,9 @@ def test_setup_schema_omits_removed_forecast_options(
     """Initial setup no longer exposes forecast days or per-day sensors."""
 
     hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+        config=SimpleNamespace(
+            latitude=1.0, longitude=2.0, language="en", location_name="Home"
+        )
     )
     schema = config_flow_stubs.config_flow._build_step_user_schema(hass, {})
     keys = {str(getattr(key, "schema", key)) for key in schema.schema}
@@ -856,7 +860,9 @@ def test_step_user_schema_masks_api_key_field(
     """Initial setup form should render API key as a password selector."""
 
     hass = SimpleNamespace(
-        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en")
+        config=SimpleNamespace(
+            latitude=1.0, longitude=2.0, language="en", location_name="Home"
+        )
     )
 
     schema = config_flow_stubs.config_flow._build_step_user_schema(hass, {})
@@ -2854,3 +2860,24 @@ def test_parse_int_option_decimal_returns_error(
 
     assert parsed == config_flow_stubs.config_flow.DEFAULT_UPDATE_INTERVAL
     assert err == "invalid_update_interval"
+
+
+def test_duplicate_location_scan_preserves_none_unique_id(
+    config_flow_stubs: ConfigFlowStubs,
+) -> None:
+    """A location without a unique ID must not stop duplicate detection."""
+    module = config_flow_stubs.config_flow
+    subentry = module.config_entries.ConfigSubentry
+    target_unique_id = "1.0000_2.0000"
+    entry = module.config_entries.ConfigEntry(
+        subentries={
+            "without-id": subentry(subentry_id="without-id", unique_id=None),
+            "matching": subentry(subentry_id="matching", unique_id=target_unique_id),
+        }
+    )
+
+    assert module._has_duplicate_location(entry, target_unique_id)
+    assert not module._has_duplicate_location(
+        entry, target_unique_id, current_subentry_id="matching"
+    )
+    assert entry.subentries["without-id"].unique_id is None
