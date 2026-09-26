@@ -116,6 +116,8 @@ def button_platform(
 class _FakeCoordinator:
     def __init__(self) -> None:
         self.entry_id = "entry-123"
+        self.entity_identity_id = "entry-123"
+        self.device_identity_id = "entry-123"
         self.entry_title = "Test Location"
         self.lat = 40.7128
         self.lon = -74.0060

@@ -62,14 +62,12 @@ def has_legacy_per_day_option(*mappings: Mapping[str, Any] | None) -> bool:
 
 def coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
     """Return the stable identity used for entity unique IDs."""
-    return getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
+    return coordinator.entity_identity_id
 
 
 def coordinator_device_id(coordinator: PollenDataUpdateCoordinator, group: str) -> str:
     """Return the stable device identifier for a location/group pair."""
-    identity_id = getattr(coordinator, "device_identity_id", None) or (
-        getattr(coordinator, "entity_identity_id", None) or coordinator.entry_id
-    )
+    identity_id = coordinator.device_identity_id
     return f"{identity_id}_{group}"
 
 

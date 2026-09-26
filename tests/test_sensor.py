@@ -166,8 +166,9 @@ def _install_sensor_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
         pass
 
     class _StubDataUpdateCoordinator:
-        def __init__(self, hass, logger, *, name: str, update_interval):
+        def __init__(self, hass, logger, *, name: str, update_interval, config_entry):
             self.hass = hass
+            self.config_entry = config_entry
             self.logger = logger
             self.name = name
             self.update_interval = update_interval
@@ -397,7 +398,7 @@ def _make_coordinator(
     *,
     hours: int = 12,
 ) -> Any:
-    """Build a coordinator with stable defaults for refresh tests."""
+    """Build a migrated-location coordinator with stable refresh defaults."""
 
     return sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
         hass=DummyHass(loop),
@@ -407,6 +408,11 @@ def _make_coordinator(
         hours=hours,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -475,10 +481,77 @@ def _summary_coordinator(data: dict[str, Any]):
     return types.SimpleNamespace(
         data=data,
         entry_id="entry",
+        entity_identity_id="entry",
+        device_identity_id="entry",
         entry_title="Home",
         lat=1.0,
         lon=2.0,
     )
+
+
+@pytest.mark.parametrize("entry_id", ["parent-entry", "legacy-parent", "01JREALPARENT"])
+@pytest.mark.parametrize("subentry_id", ["location-home", "01JREALSUBENTRY"])
+@pytest.mark.parametrize(
+    "legacy_entry_id",
+    [None, "legacy-home", "legacy-office", "39.1234_-0.1234", " spaced-id ", "café"],
+)
+def test_coordinator_preserves_exact_location_identity(
+    sensor_modules: SensorModules,
+    entry_id: str,
+    subentry_id: str,
+    legacy_entry_id: str | None,
+) -> None:
+    """Constructor context must preserve new and historical identity bytes."""
+    loop = asyncio.new_event_loop()
+    parent = FakeConfigEntry(
+        entry_id=entry_id,
+        data={"api_key": "synthetic-identity-key"},
+        subentries={
+            subentry_id: types.SimpleNamespace(
+                subentry_id=subentry_id,
+                subentry_type="location",
+                data={
+                    "latitude": 1.0,
+                    "longitude": 2.0,
+                    "legacy_entry_id": legacy_entry_id,
+                },
+            )
+        },
+    )
+    try:
+        coordinator = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
+            hass=DummyHass(loop),
+            api_key="synthetic-identity-key",
+            lat=1.0,
+            lon=2.0,
+            hours=12,
+            language=None,
+            entry_id=entry_id,
+            subentry_id=subentry_id,
+            legacy_entry_id=legacy_entry_id,
+            config_entry=parent,
+            client=sensor_modules.client_mod.GooglePollenApiClient(
+                FakeSession({}), "synthetic-identity-key"
+            ),
+        )
+        expected = (
+            legacy_entry_id
+            if legacy_entry_id is not None
+            else f"{entry_id}_{subentry_id}"
+        )
+        assert coordinator.config_entry is parent
+        assert coordinator.subentry_id == subentry_id
+        assert coordinator.entity_identity_id.encode("utf-8") == expected.encode(
+            "utf-8"
+        )
+        assert coordinator.device_identity_id == expected
+        entity = sensor_modules.sensor.PollenSensor(coordinator, "type_grass")
+        assert entity.unique_id == f"{expected}_type_grass"
+        assert entity.device_info["identifiers"] == {
+            (sensor_modules.const.DOMAIN, f"{expected}_type")
+        }
+    finally:
+        loop.close()
 
 
 def test_sensor_unique_ids_and_devices_use_legacy_identity(
@@ -1229,6 +1302,11 @@ def test_coordinator_uses_fixed_forecast_days(sensor_modules: SensorModules) -> 
             hours=12,
             language=None,
             entry_id="entry",
+            subentry_id="entry",
+            legacy_entry_id="entry",
+            config_entry=FakeConfigEntry(
+                data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+            ),
             client=client,
         )
     finally:
@@ -1255,6 +1333,11 @@ def test_coordinator_normalizes_and_ignores_invalid_runtime_language(
             hours=12,
             language=" es ",
             entry_id="entry",
+            subentry_id="entry",
+            legacy_entry_id="entry",
+            config_entry=FakeConfigEntry(
+                data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+            ),
             client=client,
         )
         with caplog.at_level("WARNING", logger=sensor_modules.coordinator_mod.__name__):
@@ -1266,6 +1349,11 @@ def test_coordinator_normalizes_and_ignores_invalid_runtime_language(
                 hours=12,
                 language="bad code",
                 entry_id="entry",
+                subentry_id="entry",
+                legacy_entry_id="entry",
+                config_entry=FakeConfigEntry(
+                    data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+                ),
                 client=client,
             )
     finally:
@@ -1580,6 +1668,11 @@ def test_coordinator_stale_data_ttl_is_fixed_24_hours(
             hours=6,
             language=None,
             entry_id="entry-6h",
+            subentry_id="entry-6h",
+            legacy_entry_id="entry-6h",
+            config_entry=FakeConfigEntry(
+                data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry-6h"
+            ),
             client=client,
         )
         twenty_four_hour = sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
@@ -1590,6 +1683,11 @@ def test_coordinator_stale_data_ttl_is_fixed_24_hours(
             hours=24,
             language=None,
             entry_id="entry-24h",
+            subentry_id="entry-24h",
+            legacy_entry_id="entry-24h",
+            config_entry=FakeConfigEntry(
+                data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry-24h"
+            ),
             client=client,
         )
     finally:
@@ -1608,7 +1706,6 @@ def test_coordinator_empty_valid_payload_does_not_schedule_expiry(
     client = sensor_modules.client_mod.GooglePollenApiClient(session, "test")
     loop = asyncio.new_event_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-    coordinator.config_entry = object()
 
     try:
         data = loop.run_until_complete(coordinator._async_update_data())
@@ -1883,7 +1980,9 @@ def test_coordinator_rejects_removed_forecast_day_arguments(
     client = sensor_modules.client_mod.GooglePollenApiClient(FakeSession({}), "test")
 
     try:
-        with pytest.raises(TypeError):
+        with pytest.raises(
+            TypeError, match="unexpected keyword argument 'forecast_days'"
+        ):
             sensor_modules.coordinator_mod.PollenDataUpdateCoordinator(
                 hass=hass,
                 api_key="test",
@@ -1892,6 +1991,11 @@ def test_coordinator_rejects_removed_forecast_day_arguments(
                 hours=12,
                 language=None,
                 entry_id="entry",
+                subentry_id="entry",
+                legacy_entry_id="entry",
+                config_entry=FakeConfigEntry(
+                    data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+                ),
                 forecast_days=1,
                 create_d1=False,
                 create_d2=False,
@@ -1964,6 +2068,11 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -2069,6 +2178,11 @@ def test_plant_sensor_includes_forecast_attributes(
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -2579,6 +2693,11 @@ def test_plant_forecast_matches_codes_case_insensitively(
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -2949,6 +3068,11 @@ def test_coordinator_raises_auth_failed(sensor_modules: SensorModules) -> None:
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -2975,6 +3099,11 @@ def test_coordinator_handles_forbidden(sensor_modules: SensorModules) -> None:
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -3004,6 +3133,11 @@ def test_coordinator_invalid_key_message_triggers_reauth(
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -3336,6 +3470,11 @@ def test_coordinator_retries_then_wraps_client_error(
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 1.0, "longitude": 2.0}, entry_id="entry"
+        ),
         client=client,
     )
 
@@ -3374,6 +3513,11 @@ def test_coordinator_redacts_coordinates_in_unexpected_api_errors(
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=FakeConfigEntry(
+            data={"latitude": 12.345678, "longitude": -98.765432}, entry_id="entry"
+        ),
         client=_FailingClient(),
     )
     caplog.set_level(logging.ERROR, logger=sensor_modules.coordinator_mod._LOGGER.name)
@@ -3477,6 +3621,9 @@ async def test_async_setup_entry_skips_legacy_d1_d2_data_keys(
         hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=config_entry,
         entry_title=sensor_modules.const.DEFAULT_ENTRY_TITLE,
         client=client,
     )
@@ -3568,6 +3715,9 @@ async def test_async_setup_entry_creates_repair_when_legacy_removal_fails(
         hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=config_entry,
         entry_title=sensor_modules.const.DEFAULT_ENTRY_TITLE,
         client=client,
     )
@@ -3769,6 +3919,8 @@ async def test_async_setup_entry_skips_stale_runtime_locations(
             },
         },
         entry_id="entry",
+        entity_identity_id="entry",
+        device_identity_id="entry",
         subentry_id="deleted-location",
         entry_title="Deleted",
         lat=1.0,
@@ -3890,6 +4042,8 @@ async def test_async_setup_entry_uses_refreshed_coordinator_data_without_forced_
             },
         },
         entry_id="entry",
+        entity_identity_id="entry",
+        device_identity_id="entry",
         entry_title="Home",
         lat=1.0,
         lon=2.0,
@@ -3964,6 +4118,8 @@ async def test_async_setup_entry_adds_daily_summary_sensors(
             },
         },
         entry_id=entry_id,
+        entity_identity_id=entry_id,
+        device_identity_id=entry_id,
         entry_title="Home",
         lat=1.0,
         lon=2.0,
@@ -4031,6 +4187,9 @@ async def test_device_info_uses_default_title_when_blank(
         hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=config_entry,
         entry_title=clean_title,
         client=client,
     )
@@ -4095,6 +4254,9 @@ async def test_device_info_trims_custom_title(
         hours=sensor_modules.const.DEFAULT_UPDATE_INTERVAL,
         language=None,
         entry_id="entry",
+        subentry_id="entry",
+        legacy_entry_id="entry",
+        config_entry=config_entry,
         entry_title=clean_title,
         client=client,
     )
@@ -4158,6 +4320,7 @@ async def test_setup_entry_accepts_current_day_plant_prefix_without_date(
         },
         entry_id="entry",
         entity_identity_id="entry",
+        device_identity_id="entry",
         entry_title="Home",
         lat=1.0,
         lon=2.0,
@@ -4217,6 +4380,7 @@ async def test_setup_entry_debug_logs_do_not_expose_coordinate_identity(
         },
         entry_id="entry",
         entity_identity_id=coordinate_identity,
+        device_identity_id=coordinate_identity,
         entry_title="Home",
         lat=39.1234,
         lon=-0.1234,

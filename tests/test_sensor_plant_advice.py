@@ -50,13 +50,19 @@ def _install_coordinator_import_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
         pass
 
     class _StubDataUpdateCoordinator:
-        def __init__(self, hass, logger, *, name: str, update_interval) -> None:
+        def __init__(
+            self, hass, logger, *, name: str, update_interval, config_entry
+        ) -> None:
             self.hass = hass
+            self.config_entry = config_entry
             self.logger = logger
             self.name = name
             self.update_interval = update_interval
             self.data = None
             self.last_updated = None
+
+        async def async_shutdown(self) -> None:
+            """Represent the base coordinator shutdown lifecycle."""
 
     class _StubCoordinatorEntity:
         def __init__(self, coordinator) -> None:
@@ -158,6 +164,17 @@ def _make_coordinator(
         hours=12,
         language=None,
         entry_id="entry",
+        subentry_id="location-home",
+        config_entry=types.SimpleNamespace(
+            entry_id="entry",
+            subentries={
+                "location-home": types.SimpleNamespace(
+                    subentry_id="location-home",
+                    subentry_type="location",
+                    data={"latitude": 1.0, "longitude": 2.0},
+                )
+            },
+        ),
         client=client,
     )
 
@@ -204,10 +221,13 @@ async def test_plant_sensor_does_not_inherit_type_health_recommendations(
 
     loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-    data = await coordinator._async_update_data()
+    try:
+        data = await coordinator._async_update_data()
 
-    assert data["type_weed"]["advice"] == ["Keep windows closed"]
-    assert data["plants_ragweed"]["advice"] is None
+        assert data["type_weed"]["advice"] == ["Keep windows closed"]
+        assert data["plants_ragweed"]["advice"] is None
+    finally:
+        await coordinator.async_shutdown()
 
 
 async def test_plant_without_index_info(
@@ -255,26 +275,29 @@ async def test_plant_without_index_info(
 
     loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-    data = await coordinator._async_update_data()
+    try:
+        data = await coordinator._async_update_data()
 
-    assert "plants_hazel" in data
-    hazel = data["plants_hazel"]
+        assert "plants_hazel" in data
+        hazel = data["plants_hazel"]
 
-    assert hazel["source"] == "plant"
-    assert hazel["code"] == "hazel"
-    assert hazel["displayName"] == "Hazel"
-    assert hazel["value"] is None
-    assert hazel["category"] is None
-    assert hazel["description"] is None
-    assert hazel["color_hex"] is None
-    assert hazel["color_rgb"] is None
-    assert hazel["advice"] is None
+        assert hazel["source"] == "plant"
+        assert hazel["code"] == "hazel"
+        assert hazel["displayName"] == "Hazel"
+        assert hazel["value"] is None
+        assert hazel["category"] is None
+        assert hazel["description"] is None
+        assert hazel["color_hex"] is None
+        assert hazel["color_rgb"] is None
+        assert hazel["advice"] is None
 
-    assert "plants_oak" in data
-    assert data["plants_oak"]["value"] == 3
-    assert "type_tree" in data
-    assert data["type_tree"]["value"] == 2
-    assert data["type_tree"]["advice"] == ["Avoid outdoor activity"]
+        assert "plants_oak" in data
+        assert data["plants_oak"]["value"] == 3
+        assert "type_tree" in data
+        assert data["type_tree"]["value"] == 2
+        assert data["type_tree"]["advice"] == ["Avoid outdoor activity"]
+    finally:
+        await coordinator.async_shutdown()
 
 
 async def test_plant_missing_optional_metadata(
@@ -327,37 +350,40 @@ async def test_plant_missing_optional_metadata(
 
     loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-    data = await coordinator._async_update_data()
+    try:
+        data = await coordinator._async_update_data()
 
-    alder = data["plants_alder"]
-    assert alder["displayName"] == "alder"
-    assert alder["inSeason"] is None
-    assert alder["type"] is None
-    assert alder["family"] is None
-    assert alder["season"] is None
-    assert alder["cross_reaction"] is None
-    assert alder["picture"] is None
-    assert alder["picture_closeup"] is None
+        alder = data["plants_alder"]
+        assert alder["displayName"] == "alder"
+        assert alder["inSeason"] is None
+        assert alder["type"] is None
+        assert alder["family"] is None
+        assert alder["season"] is None
+        assert alder["cross_reaction"] is None
+        assert alder["picture"] is None
+        assert alder["picture_closeup"] is None
 
-    birch = data["plants_birch"]
-    assert birch["displayName"] == "Birch"
-    assert birch["inSeason"] is True
-    assert birch["type"] is None
-    assert birch["family"] is None
-    assert birch["season"] is None
-    assert birch["cross_reaction"] is None
-    assert birch["picture"] is None
-    assert birch["picture_closeup"] is None
+        birch = data["plants_birch"]
+        assert birch["displayName"] == "Birch"
+        assert birch["inSeason"] is True
+        assert birch["type"] is None
+        assert birch["family"] is None
+        assert birch["season"] is None
+        assert birch["cross_reaction"] is None
+        assert birch["picture"] is None
+        assert birch["picture_closeup"] is None
 
-    oak = data["plants_oak"]
-    assert oak["displayName"] == "Oak"
-    assert oak["inSeason"] is True
-    assert oak["type"] == "TREE"
-    assert oak["family"] == "Fagaceae"
-    assert oak["season"] == "Spring"
-    assert oak["cross_reaction"] == ["Birch"]
-    assert oak["picture"] == "https://example.com/oak.jpg"
-    assert oak["picture_closeup"] == "https://example.com/oak-close.jpg"
+        oak = data["plants_oak"]
+        assert oak["displayName"] == "Oak"
+        assert oak["inSeason"] is True
+        assert oak["type"] == "TREE"
+        assert oak["family"] == "Fagaceae"
+        assert oak["season"] == "Spring"
+        assert oak["cross_reaction"] == ["Birch"]
+        assert oak["picture"] == "https://example.com/oak.jpg"
+        assert oak["picture_closeup"] == "https://example.com/oak-close.jpg"
+    finally:
+        await coordinator.async_shutdown()
 
 
 async def test_plant_missing_and_partial_colors(
@@ -415,16 +441,19 @@ async def test_plant_missing_and_partial_colors(
 
     loop = asyncio.get_running_loop()
     coordinator = _make_coordinator(sensor_modules, loop, client)
-    data = await coordinator._async_update_data()
+    try:
+        data = await coordinator._async_update_data()
 
-    assert data["plants_alder"]["color_hex"] is None
-    assert data["plants_alder"]["color_rgb"] is None
+        assert data["plants_alder"]["color_hex"] is None
+        assert data["plants_alder"]["color_rgb"] is None
 
-    assert data["plants_birch"]["color_hex"] is None
-    assert data["plants_birch"]["color_rgb"] is None
+        assert data["plants_birch"]["color_hex"] is None
+        assert data["plants_birch"]["color_rgb"] is None
 
-    assert data["plants_hazel"]["color_rgb"] == [0, 128, 64]
-    assert data["plants_hazel"]["color_hex"] == "#008040"
+        assert data["plants_hazel"]["color_rgb"] == [0, 128, 64]
+        assert data["plants_hazel"]["color_hex"] == "#008040"
 
-    assert data["plants_oak"]["color_rgb"] == [0, 0, 0]
-    assert data["plants_oak"]["color_hex"] == "#000000"
+        assert data["plants_oak"]["color_rgb"] == [0, 0, 0]
+        assert data["plants_oak"]["color_hex"] == "#000000"
+    finally:
+        await coordinator.async_shutdown()

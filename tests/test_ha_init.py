@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import timedelta
 from typing import Any
 
@@ -34,7 +35,9 @@ from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
     POLLEN_API_URL_RE,
     assert_fixed_forecast_days,
+    async_migrate_config_entry,
     async_setup_config_entry,
+    legacy_config_entry,
     location_subentry_data,
     mock_pollen_api,
 )
@@ -695,3 +698,245 @@ async def test_ha_subentry_removed_during_setup_keeps_lifecycle_guards(
                 device_registry, entry.entry_id
             )
         } == device_identity
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["new_single", "new_multiple", "migrated_single", "migrated_multiple", "mixed"],
+)
+async def test_ha_location_identity_survives_migration_reload_and_restart(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    google_pollen_5_day_payload: dict[str, Any],
+    scenario: str,
+) -> None:
+    """Persisted entity/device records must stay exact across location lifecycle."""
+    clear_integration_modules()
+    from custom_components.pollenlevels.const import CONF_LEGACY_ENTRY_ID
+    from custom_components.pollenlevels.util import device_subentry_ids
+
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+    historical_entities: dict[str, tuple[str, str, str]] = {}
+    historical_devices: dict[str, set[tuple[str, str]]] = {}
+    expected_identities: set[str] = set()
+    synthetic_key = "synthetic-identity-lifecycle-key"
+
+    def _add_legacy_location(entry_id: str, latitude: float, longitude: float):
+        entry = legacy_config_entry(
+            entry_id=entry_id,
+            title="Home" if entry_id == "legacy-home" else "Office",
+            api_key=synthetic_key,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        entry.add_to_hass(hass)
+        expected_identities.add(entry_id)
+        for domain, suffix, group in (
+            ("sensor", "type_grass", "type"),
+            ("button", "update_now", "meta"),
+        ):
+            device = device_registry.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                identifiers={(DOMAIN, f"{entry_id}_{group}")},
+            )
+            entity = entity_registry.async_get_or_create(
+                domain,
+                DOMAIN,
+                f"{entry_id}_{suffix}",
+                config_entry=entry,
+                device_id=device.id,
+                suggested_object_id=f"{entry_id}_preserved_{suffix}",
+            )
+            historical_entities[entity.entity_id] = (
+                entity.id,
+                entity.unique_id,
+                device.id,
+            )
+            historical_devices[device.id] = set(device.identifiers)
+        return entry
+
+    if scenario in {"new_single", "new_multiple", "mixed"}:
+        locations = [("location-home", "Home", 1.0, 2.0)]
+        expected_identities.add("audit-parent_location-home")
+        if scenario == "new_multiple":
+            locations.append(("location-office", "Office", 3.0, 4.0))
+            expected_identities.add("audit-parent_location-office")
+        parent = _parent_entry(
+            entry_id="audit-parent", api_key=synthetic_key, locations=locations
+        )
+        parent.add_to_hass(hass)
+        if scenario == "mixed":
+            legacy = _add_legacy_location("legacy-office", 3.0, 4.0)
+            assert await async_migrate_config_entry(hass, legacy)
+    else:
+        parent = _add_legacy_location("legacy-home", 1.0, 2.0)
+        if scenario == "migrated_multiple":
+            _add_legacy_location("legacy-office", 3.0, 4.0)
+        assert await async_migrate_config_entry(hass, parent)
+
+    # Exact suffixes of all entities created from this supported API fixture.
+    expected_groups = {
+        "type": {
+            "type_grass",
+            "type_tree",
+            "type_weed",
+            "overall_pollen_risk_today",
+            "top_pollen_types_today",
+        },
+        "plant": {
+            "plants_alder",
+            "plants_ash",
+            "plants_birch",
+            "plants_cottonwood",
+            "plants_graminales",
+            "plants_hazel",
+            "plants_mugwort",
+            "plants_oak",
+            "plants_olive",
+            "plants_pine",
+            "plants_ragweed",
+            "plants_in_season_today",
+        },
+        "meta": {"region", "date", "last_updated", "update_now"},
+    }
+
+    def _assert_identity_and_snapshot(entry):
+        entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+        devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+        devices_by_id = {device.id: device for device in devices}
+        actual_entities = {entity.unique_id: entity for entity in entities}
+        expected_entities: dict[str, tuple[str, str, str]] = {}
+        identities: set[str] = set()
+        for subentry in entry.subentries.values():
+            legacy_identity = subentry.data.get(CONF_LEGACY_ENTRY_ID)
+            identity = (
+                legacy_identity
+                if legacy_identity is not None
+                else f"{entry.entry_id}_{subentry.subentry_id}"
+            )
+            identities.add(identity)
+            coordinator = entry.runtime_data.locations[subentry.subentry_id].coordinator
+            assert coordinator.config_entry is entry
+            assert coordinator.subentry_id == subentry.subentry_id
+            assert coordinator.entity_identity_id == identity
+            assert coordinator.device_identity_id == identity
+            for group, suffixes in expected_groups.items():
+                group_device_ids: set[str] = set()
+                for suffix in suffixes:
+                    unique_id = f"{identity}_{suffix}"
+                    expected_entities[unique_id] = (
+                        "button" if suffix == "update_now" else "sensor",
+                        subentry.subentry_id,
+                        f"{identity}_{group}",
+                    )
+                    entity = actual_entities[unique_id]
+                    assert entity.config_entry_id == entry.entry_id
+                    assert entity.config_subentry_id == subentry.subentry_id
+                    device = devices_by_id[entity.device_id]
+                    assert device.identifiers == {(DOMAIN, f"{identity}_{group}")}
+                    assert device.config_entries == {entry.entry_id}
+                    assert device_subentry_ids(device, entry.entry_id) == {
+                        subentry.subentry_id
+                    }
+                    group_device_ids.add(device.id)
+                assert len(group_device_ids) == 1
+        assert identities == expected_identities
+        assert {
+            unique_id: (
+                entity.domain,
+                entity.config_subentry_id,
+                next(iter(devices_by_id[entity.device_id].identifiers))[1],
+            )
+            for unique_id, entity in actual_entities.items()
+        } == expected_entities
+        assert {
+            identifier for device in devices for identifier in device.identifiers
+        } == {
+            (DOMAIN, f"{identity}_{group}")
+            for identity in expected_identities
+            for group in expected_groups
+        }
+        for entity_id, (
+            registry_id,
+            unique_id,
+            device_id,
+        ) in historical_entities.items():
+            entity = entity_registry.async_get(entity_id)
+            assert entity is not None
+            assert (entity.id, entity.unique_id, entity.device_id) == (
+                registry_id,
+                unique_id,
+                device_id,
+            )
+        for device_id, identifiers in historical_devices.items():
+            assert device_registry.async_get(device_id).identifiers == identifiers
+        return (
+            {
+                entity.entity_id: (
+                    entity.id,
+                    entity.entity_id,
+                    entity.unique_id,
+                    entity.platform,
+                    entity.config_entry_id,
+                    entity.config_subentry_id,
+                    entity.device_id,
+                )
+                for entity in entities
+            },
+            {
+                device.id: (
+                    device.id,
+                    frozenset(device.identifiers),
+                    frozenset(device.config_entries),
+                    frozenset(
+                        (owner, frozenset(subentries))
+                        for owner, subentries in device.config_entries_subentries.items()
+                    ),
+                )
+                for device in devices
+            },
+        )
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, parent)
+        initial_snapshot = _assert_identity_and_snapshot(parent)
+
+        assert await hass.config_entries.async_unload(parent.entry_id)
+        await hass.async_block_till_done()
+        assert not hasattr(parent, "runtime_data")
+        await async_setup_config_entry(hass, parent)
+        assert _assert_identity_and_snapshot(parent) == initial_snapshot
+
+        assert await hass.config_entries.async_reload(parent.entry_id)
+        await hass.async_block_till_done()
+        assert _assert_identity_and_snapshot(parent) == initial_snapshot
+
+        assert await hass.config_entries.async_unload(parent.entry_id)
+        await hass.async_block_till_done()
+        # Rehydrate a fresh entry from persisted values while retaining its registries.
+        persisted = json.loads(
+            json.dumps(
+                {
+                    "domain": parent.domain,
+                    "entry_id": parent.entry_id,
+                    "title": parent.title,
+                    "data": dict(parent.data),
+                    "options": dict(parent.options),
+                    "unique_id": parent.unique_id,
+                    "version": parent.version,
+                    "minor_version": parent.minor_version,
+                    "subentries_data": [
+                        subentry.as_dict() for subentry in parent.subentries.values()
+                    ],
+                }
+            )
+        )
+        restored = MockConfigEntry(**persisted)
+        assert not hasattr(restored, "runtime_data")
+        del hass.config_entries._entries[parent.entry_id]
+        restored.add_to_hass(hass)
+        await async_setup_config_entry(hass, restored)
+        assert _assert_identity_and_snapshot(restored) == initial_snapshot
