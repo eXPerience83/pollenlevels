@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -31,6 +31,9 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 from homeassistant.helpers.update_coordinator import UpdateFailed
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 from .client import GooglePollenApiClient, PollenQuotaExceededError
 from .const import (
@@ -159,7 +162,7 @@ def _daily_info_is_valid(data: Any) -> bool:
 
 
 async def _async_validate_api_location(
-    hass: Any,
+    hass: HomeAssistant,
     *,
     api_key: str,
     latitude: float,
@@ -226,7 +229,9 @@ async def _async_validate_api_location(
     return False
 
 
-def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol.Schema:
+def _build_step_user_schema(
+    hass: HomeAssistant, user_input: dict[str, Any] | None
+) -> vol.Schema:
     """Build the full step user schema without flattening nested sections."""
     user_input = user_input or {}
 
@@ -284,7 +289,7 @@ def _build_step_user_schema(hass: Any, user_input: dict[str, Any] | None) -> vol
 
 
 def _build_location_subentry_schema(
-    hass: Any,
+    hass: HomeAssistant,
     user_input: dict[str, Any] | None,
     *,
     name_default: str | None = None,
@@ -426,13 +431,15 @@ def _has_duplicate_location(
 
 
 def _entry_for_parent_unique_id(
-    hass: Any, unique_id: str
+    hass: HomeAssistant, unique_id: str
 ) -> config_entries.ConfigEntry | None:
     """Return an existing parent entry with this API-key unique ID."""
     return hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
 
 
-async def _async_reload_parent_after_subentry_create(hass: Any, entry_id: str) -> None:
+async def _async_reload_parent_after_subentry_create(
+    hass: HomeAssistant, entry_id: str
+) -> None:
     """Reload the parent after Home Assistant persists the created subentry."""
     # Let Home Assistant finish attaching the newly-created subentry before reload.
     await asyncio.sleep(0)
