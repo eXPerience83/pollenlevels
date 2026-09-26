@@ -374,17 +374,16 @@ def validate_lock_delta(
         homeassistant,
         phacc,
     )
-    target_closure = _target_dependency_closure(before_groups) | _target_dependency_closure(
-        after_groups
-    )
+    target_closure = _target_dependency_closure(
+        before_groups
+    ) | _target_dependency_closure(after_groups)
     allowed_movement = target_closure | {LOCAL_PACKAGE}
     package_set_changes = set(before_groups) ^ set(after_groups)
     if package_set_changes - allowed_movement:
         raise UpdaterError("uv.lock package set changed")
     for name in set(before_groups) | set(after_groups):
-        if (
-            name not in allowed_movement
-            and before_groups.get(name) != after_groups.get(name)
+        if name not in allowed_movement and before_groups.get(name) != after_groups.get(
+            name
         ):
             raise UpdaterError(f"unexpected uv.lock movement for {name}")
 
