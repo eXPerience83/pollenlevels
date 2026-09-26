@@ -220,9 +220,7 @@ async def async_setup_entry(
         add_entities_for_subentry(async_add_entities, sensors, location.subentry_id)
 
 
-class PollenSensor(
-    CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity
-):
+class PollenSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity):
     """Represent a pollen sensor for a type or plant."""
 
     # Keep forecast attributes available in live state but exclude from Recorder.
@@ -347,9 +345,7 @@ class PollenSensor(
         }
 
 
-class _BaseSummarySensor(
-    CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity
-):
+class _BaseSummarySensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity):
     """Provide base behavior for daily summary sensors."""
 
     _attr_has_entity_name = True
@@ -485,9 +481,7 @@ class TopPollenTypesTodaySensor(_BaseSummarySensor):
         return attrs
 
 
-class _BaseMetaSensor(
-    CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity
-):
+class _BaseMetaSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity):
     """Provide base for metadata sensors."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:

@@ -347,7 +347,7 @@ class StubIssueSeverity:
 def stub_issue_registry_module(
     *, monkeypatch: pytest.MonkeyPatch | None = None
 ) -> ModuleType:
-    """Install a lightweight homeassistant.helpers.issue_registry stub module."""
+    """Install a lightweight homeassistant.helpers.issue_registry stub."""
     module = ModuleType("homeassistant.helpers.issue_registry")
     registry = StubIssueRegistry()
     module.registry = registry
