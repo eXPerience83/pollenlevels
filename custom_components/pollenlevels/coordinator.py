@@ -156,24 +156,19 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
         entry_id: str,
         client: GooglePollenApiClient,
         entry_title: str = DEFAULT_ENTRY_TITLE,
-        subentry_id: str | None = None,
+        *,
+        subentry_id: str,
         legacy_entry_id: str | None = None,
-        config_entry: ConfigEntry | None = None,
+        config_entry: ConfigEntry,
     ) -> None:
         """Initialize coordinator with configuration and interval."""
-        explicit_subentry = subentry_id is not None
-        subentry_id = subentry_id or entry_id
         update_interval = timedelta(hours=hours)
-        coordinator_kwargs: dict[str, Any] = {
-            "name": f"{DOMAIN}_{entry_id}_{subentry_id}",
-            "update_interval": update_interval,
-        }
-        if config_entry is not None:
-            coordinator_kwargs["config_entry"] = config_entry
         super().__init__(
             hass,
             _LOGGER,
-            **coordinator_kwargs,
+            name=f"{DOMAIN}_{entry_id}_{subentry_id}",
+            update_interval=update_interval,
+            config_entry=config_entry,
         )
         self.api_key = api_key
         self.lat = lat
@@ -191,9 +186,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
         self.entry_id = entry_id
         self.subentry_id = subentry_id
         self.legacy_entry_id = legacy_entry_id
-        self.entity_identity_id = legacy_entry_id or (
-            f"{entry_id}_{subentry_id}" if explicit_subentry else entry_id
-        )
+        self.entity_identity_id = legacy_entry_id or f"{entry_id}_{subentry_id}"
         self.device_identity_id = self.entity_identity_id
         self.entry_title = entry_title or DEFAULT_ENTRY_TITLE
         self.forecast_days = FORECAST_DAYS
@@ -251,7 +244,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
         if not self.data:
             self.last_updated = None
             return
-        if self.last_updated is None or getattr(self, "config_entry", None) is None:
+        if self.last_updated is None:
             return
 
         delay = max(
