@@ -2,17 +2,30 @@
 
 ## [4.0.3] - 2026-09-26
 
-This patch release completes the post-4.0.2 internal hardening work while preserving the public integration contract and existing entity/device identity.
+This patch release completes the post-4.0.2 internal hardening and repository
+validation work while preserving the public integration contract and existing
+entity/device identity.
 
 ### Changed
 
-- Tightened internal Home Assistant typing and runtime contracts and removed compatibility paths that only supported incomplete test doubles.
-- Required live pollen coordinators to use the real parent config entry and location subentry context while preserving the exact new and migrated identity formulas.
-- Preserved real Home Assistant lifecycle handling for unloaded runtime data, stale or deleted subentries, refresh failures, cache expiry, and recovery paths.
-- Refreshed locked development tooling dependencies used by repository validation.
-- Expanded regression coverage for subentry-removal races, new and migrated identity preservation, Registry associations, reload and restart-style setup, coordinator shutdown/timer cleanup, and minimum/current Home Assistant compatibility.
+- Tightened internal Home Assistant typing and runtime contracts and removed
+  compatibility paths that only supported incomplete test doubles.
+- Required live pollen coordinators to use the real parent config entry and
+  location subentry context while preserving the exact new and migrated identity
+  formulas.
+- Preserved real Home Assistant lifecycle handling for unloaded runtime data,
+  stale or deleted subentries, refresh failures, cache expiry, and recovery paths.
+- Refreshed locked repository tooling, hardened the automated Home Assistant test
+  baseline updater, and promoted locked current validation to Home Assistant
+  **2026.9.3** with `pytest-homeassistant-custom-component` **0.13.366**.
+- Expanded regression coverage for subentry-removal races, new and migrated
+  identity preservation, Registry associations, reload and restart-style setup,
+  coordinator shutdown/timer cleanup, and minimum/current Home Assistant
+  compatibility.
 - Minimum supported Home Assistant version remains **2026.5.0**.
-- No entity IDs, unique IDs, button IDs, device identifiers, Registry associations, service schemas, translations, migration behavior, or public sensor and forecast contracts change.
+- No entity IDs, unique IDs, button IDs, device identifiers, Registry
+  associations, service schemas, translations, migration behavior, or public
+  sensor and forecast contracts change.
 - Migration and Device Registry ownership modernization remains deferred to #226.
 
 ## [4.0.2] - 2026-09-18
