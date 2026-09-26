@@ -56,7 +56,7 @@ entity/device identity.
   messages cannot retain fragments of API keys or precise configured
   coordinates.
 - Revalidated captured `pollenlevels.force_update` targets immediately before
-  refresh so locations removed while a global refresh is already running
+  refresh so locations removed while a global service call is already running
   are skipped safely.
 
 ## [4.0.0] - 2026-08-20
