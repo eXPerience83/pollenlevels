@@ -296,7 +296,7 @@ jobs:
           branch="automation/ha-test-baseline-${ha}-phacc-${phacc}"
           git check-ref-format "refs/heads/$branch"
           existing="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" \
-            --state all --json url,state --jq '.[] | "\(.state) \\(.url)"')"
+            --state all --json url,state --jq '.[] | "\(.state) \(.url)"')"
           if [[ -n "$existing" ]]; then
             echo "Existing baseline pull request: $existing"
             exit 0
