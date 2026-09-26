@@ -190,17 +190,6 @@ def _failed_location_diagnostics(
     }
 
 
-def _coordinate_from_coordinator_or_data(
-    coordinator: Any, data: dict[str, Any], key: str
-) -> Any:
-    """Return coordinator coordinate with legacy entry-data fallback."""
-    attr = "lat" if key == CONF_LATITUDE else "lon"
-    value = getattr(coordinator, attr, None)
-    if value is not None:
-        return value
-    return data.get(key)
-
-
 def _empty_registry_summary() -> dict[str, Any]:
     """Return an empty registry summary payload."""
     return {
@@ -296,10 +285,8 @@ async def async_get_config_entry_diagnostics(
             if subentry_id not in active_subentry_ids:
                 continue
             coordinator = location.coordinator
-            lat = _coordinate_from_coordinator_or_data(coordinator, data, CONF_LATITUDE)
-            lon = _coordinate_from_coordinator_or_data(
-                coordinator, data, CONF_LONGITUDE
-            )
+            lat = coordinator.lat
+            lon = coordinator.lon
             runtime_coords[subentry_id] = (lat, lon)
             if lat is not None or lon is not None:
                 coordinate_pairs.append((lat, lon))

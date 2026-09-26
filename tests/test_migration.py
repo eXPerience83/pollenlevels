@@ -30,6 +30,8 @@ ROOT = Path(__file__).resolve().parents[1]
 @dataclass(frozen=True)
 class _MigrateModules:
     integration: types.ModuleType
+    config_entries: types.ModuleType
+    util: types.ModuleType
     const: types.ModuleType
     migration: types.ModuleType
     issue_helpers: types.ModuleType
@@ -322,6 +324,8 @@ def migration_modules(
     integration = importlib.import_module("custom_components.pollenlevels")
     return _MigrateModules(
         integration=integration,
+        config_entries=importlib.import_module("homeassistant.config_entries"),
+        util=importlib.import_module("custom_components.pollenlevels.util"),
         const=const,
         migration=migration,
         issue_helpers=issue_helpers,
@@ -341,22 +345,22 @@ def test_migration_removes_inactive_legacy_forecast_options_without_repair_issue
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_FORECAST_DAYS: 3,
-            integration.CONF_CREATE_FORECAST_SENSORS: "none",
+            migration_modules.const.CONF_FORECAST_DAYS: 3,
+            migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none",
         },
         options={
-            integration.CONF_FORECAST_DAYS: 3,
-            integration.CONF_CREATE_FORECAST_SENSORS: "none",
+            migration_modules.const.CONF_FORECAST_DAYS: 3,
+            migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none",
         },
         version=3,
     )
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert integration.CONF_FORECAST_DAYS not in entry.data
-    assert integration.CONF_FORECAST_DAYS not in entry.options
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert migration_modules.const.CONF_FORECAST_DAYS not in entry.data
+    assert migration_modules.const.CONF_FORECAST_DAYS not in entry.options
+    assert migration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert migration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.options
     assert (
         migration_modules.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
         not in registry.issues
@@ -376,20 +380,20 @@ def test_migration_removes_per_day_option_and_creates_repair_issue(
             integration.CONF_API_KEY: "key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1",
+            migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1",
         },
         options={
-            integration.CONF_FORECAST_DAYS: 3,
-            integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
+            migration_modules.const.CONF_FORECAST_DAYS: 3,
+            migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1+2",
         },
         version=3,
     )
     hass = _FakeHass(entries=[entry])
 
     assert asyncio.run(integration.async_migrate_entry(hass, entry)) is True
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in entry.options
-    assert integration.CONF_FORECAST_DAYS not in entry.options
+    assert migration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.data
+    assert migration_modules.const.CONF_CREATE_FORECAST_SENSORS not in entry.options
+    assert migration_modules.const.CONF_FORECAST_DAYS not in entry.options
     issue = registry.issues[
         migration_modules.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
     ]
@@ -415,9 +419,9 @@ def test_grouped_migration_removes_inactive_per_day_options_without_repair_issue
             integration.CONF_API_KEY: "shared-key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "none",
+            migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none",
         },
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "none"},
+        options={migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none"},
         version=3,
         subentries={},
     )
@@ -430,15 +434,15 @@ def test_grouped_migration_removes_inactive_per_day_options_without_repair_issue
             integration.CONF_LATITUDE: 3.0,
             integration.CONF_LONGITUDE: 4.0,
         },
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "none"},
+        options={migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none"},
         version=3,
         subentries={},
     )
     hass = _FakeHass(entries=[parent, duplicate])
 
     assert asyncio.run(integration.async_migrate_entry(hass, parent)) is True
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in parent.data
-    assert integration.CONF_CREATE_FORECAST_SENSORS not in parent.options
+    assert migration_modules.const.CONF_CREATE_FORECAST_SENSORS not in parent.data
+    assert migration_modules.const.CONF_CREATE_FORECAST_SENSORS not in parent.options
     assert (
         migration_modules.issue_helpers.PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID
         not in registry.issues
@@ -460,7 +464,7 @@ def test_grouped_migration_creates_repair_issue_for_active_per_day_option(
             integration.CONF_API_KEY: "shared-key",
             integration.CONF_LATITUDE: 1.0,
             integration.CONF_LONGITUDE: 2.0,
-            integration.CONF_CREATE_FORECAST_SENSORS: "none",
+            migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "none",
         },
         version=3,
         subentries={},
@@ -474,7 +478,7 @@ def test_grouped_migration_creates_repair_issue_for_active_per_day_option(
             integration.CONF_LATITUDE: 3.0,
             integration.CONF_LONGITUDE: 4.0,
         },
-        options={integration.CONF_CREATE_FORECAST_SENSORS: "D+1+2"},
+        options={migration_modules.const.CONF_CREATE_FORECAST_SENSORS: "D+1+2"},
         version=3,
         subentries={},
     )
@@ -521,8 +525,10 @@ def test_migration_creates_repair_issue_for_invalid_legacy_coordinates(
     assert entry.subentries == {}
     assert hass.config_entries.added_subentries == []
 
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id=None
+    expected_issue_id = (
+        migration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id=None
+        )
     )
     assert expected_issue_id in registry.issues
     issue = registry.issues[expected_issue_id]
@@ -545,7 +551,7 @@ def test_migration_creates_repair_issue_for_unmigratable_location_subentries(
     integration = migration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    corrupt_subentry = integration.ConfigSubentry(
+    corrupt_subentry = migration_modules.config_entries.ConfigSubentry(
         data={
             integration.CONF_LEGACY_ENTRY_ID: "legacy-corrupt",
         },
@@ -560,7 +566,7 @@ def test_migration_creates_repair_issue_for_unmigratable_location_subentries(
         options={},
         version=integration.TARGET_ENTRY_VERSION - 1,
         subentries={corrupt_subentry.subentry_id: corrupt_subentry},
-        unique_id=integration.api_key_unique_id("secret-key"),
+        unique_id=migration_modules.util.api_key_unique_id("secret-key"),
     )
     hass = _FakeHass(entries=[entry])
 
@@ -572,8 +578,10 @@ def test_migration_creates_repair_issue_for_unmigratable_location_subentries(
     assert entry.subentries == {corrupt_subentry.subentry_id: corrupt_subentry}
     assert hass.config_entries.added_subentries == []
 
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id=None
+    expected_issue_id = (
+        migration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id=None
+        )
     )
     assert expected_issue_id in registry.issues
     issue = registry.issues[expected_issue_id]
@@ -615,8 +623,10 @@ def test_migration_deletes_repair_issue_after_successful_migration(
 
     assert result is True
 
-    expected_issue_id = integration.invalid_stored_location_issue_id(
-        entry.entry_id, subentry_id=None
+    expected_issue_id = (
+        migration_modules.issue_helpers.invalid_stored_location_issue_id(
+            entry.entry_id, subentry_id=None
+        )
     )
     assert (hass, integration.DOMAIN, expected_issue_id) in registry.deleted
 
@@ -663,11 +673,15 @@ def test_migration_deletes_repair_issue_for_each_source_in_grouped_migration(
 
     assert result is True
 
-    expected_parent_issue_id = integration.invalid_stored_location_issue_id(
-        parent.entry_id, subentry_id=None
+    expected_parent_issue_id = (
+        migration_modules.issue_helpers.invalid_stored_location_issue_id(
+            parent.entry_id, subentry_id=None
+        )
     )
-    expected_office_issue_id = integration.invalid_stored_location_issue_id(
-        duplicate.entry_id, subentry_id=None
+    expected_office_issue_id = (
+        migration_modules.issue_helpers.invalid_stored_location_issue_id(
+            duplicate.entry_id, subentry_id=None
+        )
     )
     assert (hass, integration.DOMAIN, expected_parent_issue_id) in registry.deleted
     assert (hass, integration.DOMAIN, expected_office_issue_id) in registry.deleted
