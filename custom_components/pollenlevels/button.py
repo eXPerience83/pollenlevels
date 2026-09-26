@@ -13,7 +13,6 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import PollenDataUpdateCoordinator
 from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
 from .runtime import PollenLevelsConfigEntry
 from .util import (
@@ -24,6 +23,8 @@ from .util import (
 
 if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import PollenDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 1
@@ -59,7 +60,7 @@ async def async_setup_entry(
 
 
 class PollenLevelsUpdateButton(
-    CoordinatorEntity[PollenDataUpdateCoordinator], ButtonEntity
+    CoordinatorEntity["PollenDataUpdateCoordinator"], ButtonEntity
 ):
     """Button entity to manually refresh a single location."""
 
