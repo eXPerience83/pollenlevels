@@ -27,6 +27,7 @@ from homeassistant.helpers.update_coordinator import (
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceInfo
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import ATTRIBUTION, DOMAIN
@@ -180,7 +181,7 @@ async def async_setup_entry(
             _LOGGER.warning(message)
             raise ConfigEntryNotReady(message)
 
-        sensors: list[CoordinatorEntity] = []
+        sensors: list[CoordinatorEntity[PollenDataUpdateCoordinator]] = []
         for code in data:
             if code in ("region", "date"):
                 continue
@@ -219,7 +220,7 @@ async def async_setup_entry(
         add_entities_for_subentry(async_add_entities, sensors, location.subentry_id)
 
 
-class PollenSensor(CoordinatorEntity, SensorEntity):
+class PollenSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity):
     """Represent a pollen sensor for a type or plant."""
 
     # Keep forecast attributes available in live state but exclude from Recorder.
@@ -318,7 +319,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         return attrs
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info with translation support for the group."""
         info = self.coordinator.data.get(self.code, {}) or {}
         group = info.get("source")
@@ -344,7 +345,7 @@ class PollenSensor(CoordinatorEntity, SensorEntity):
         }
 
 
-class _BaseSummarySensor(CoordinatorEntity, SensorEntity):
+class _BaseSummarySensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity):
     """Provide base behavior for daily summary sensors."""
 
     _attr_has_entity_name = True
@@ -480,7 +481,7 @@ class TopPollenTypesTodaySensor(_BaseSummarySensor):
         return attrs
 
 
-class _BaseMetaSensor(CoordinatorEntity, SensorEntity):
+class _BaseMetaSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity):
     """Provide base for metadata sensors."""
 
     def __init__(self, coordinator: PollenDataUpdateCoordinator) -> None:

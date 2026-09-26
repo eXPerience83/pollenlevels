@@ -59,7 +59,9 @@ async def async_setup_entry(
         )
 
 
-class PollenLevelsUpdateButton(CoordinatorEntity, ButtonEntity):
+class PollenLevelsUpdateButton(
+    CoordinatorEntity["PollenDataUpdateCoordinator"], ButtonEntity
+):
     """Button entity to manually refresh a single location."""
 
     _attr_has_entity_name = True

@@ -37,7 +37,4 @@ class PollenLevelsRuntimeData:
     )
 
 
-if TYPE_CHECKING:
-    PollenLevelsConfigEntry = ConfigEntry[PollenLevelsRuntimeData]
-else:
-    PollenLevelsConfigEntry = ConfigEntry
+type PollenLevelsConfigEntry = ConfigEntry[PollenLevelsRuntimeData]

@@ -278,6 +278,19 @@ def stub_exceptions(
     return module
 
 
+def _generic_test_type(cls: type[object]) -> type[object]:
+    """Return a test double that supports runtime generic subscription."""
+    if hasattr(cls, "__class_getitem__"):
+        return cls
+
+    class _GenericStub(cls):
+        @classmethod
+        def __class_getitem__(subclass, _item):
+            return subclass
+
+    return _GenericStub
+
+
 def stub_update_coordinator_module(
     *,
     update_failed: type[Exception],
@@ -289,8 +302,8 @@ def stub_update_coordinator_module(
 
     module = ModuleType("homeassistant.helpers.update_coordinator")
     module.UpdateFailed = update_failed
-    module.DataUpdateCoordinator = data_update_coordinator
-    module.CoordinatorEntity = coordinator_entity
+    module.DataUpdateCoordinator = _generic_test_type(data_update_coordinator)
+    module.CoordinatorEntity = _generic_test_type(coordinator_entity)
     _set_module(
         "homeassistant.helpers.update_coordinator", module, monkeypatch=monkeypatch
     )

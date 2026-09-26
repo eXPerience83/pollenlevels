@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from homeassistant.helpers.entity import Entity
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from .coordinator import PollenDataUpdateCoordinator
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 
 def add_entities_for_subentry(
     async_add_entities: AddConfigEntryEntitiesCallback,
-    entities: Sequence[Any],
+    entities: Sequence[Entity],
     subentry_id: str,
 ) -> None:
     """Add entities with their location subentry association."""
