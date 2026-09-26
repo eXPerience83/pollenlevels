@@ -142,7 +142,9 @@ def _build_forecast_list(
     return forecast_list
 
 
-class PollenDataUpdateCoordinator(DataUpdateCoordinator):
+class PollenDataUpdateCoordinator(
+    DataUpdateCoordinator[dict[str, dict[str, Any]]]
+):
     """Coordinate pollen data fetch with forecast support for TYPES and PLANTS."""
 
     def __init__(
