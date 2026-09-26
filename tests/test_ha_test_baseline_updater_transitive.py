@@ -31,7 +31,10 @@ def _lock(
         _package("homeassistant", ha, *ha_dependencies),
         _package("pytest-homeassistant-custom-component", phacc, *phacc_dependencies),
     ]
-    records.extend(_package(name, version, *dependencies) for name, version, dependencies in packages)
+    records.extend(
+        _package(name, version, *dependencies)
+        for name, version, dependencies in packages
+    )
     records.append(
         f'''[[package]]
 name = "pollenlevels"
@@ -39,8 +42,14 @@ version = "4.0.3"
 source = {{ virtual = "." }}
 
 [package.dev-dependencies]
-release = [{{ name = "homeassistant" }}, {{ name = "pytest-homeassistant-custom-component" }}]
-test = [{{ name = "homeassistant" }}, {{ name = "pytest-homeassistant-custom-component" }}]
+release = [
+    {{ name = "homeassistant" }},
+    {{ name = "pytest-homeassistant-custom-component" }},
+]
+test = [
+    {{ name = "homeassistant" }},
+    {{ name = "pytest-homeassistant-custom-component" }},
+]
 
 [package.metadata]
 
@@ -55,7 +64,12 @@ test = [
 ]
 '''
     )
-    return 'version = 1\nrevision = 1\nrequires-python = ">=3.14"\n\n' + "\n".join(records)
+    header = '''version = 1
+revision = 1
+requires-python = ">=3.14"
+
+'''
+    return header + "\n".join(records)
 
 
 def _monthly_pair() -> tuple[str, str]:
