@@ -252,6 +252,32 @@ def _package_groups(lock: Mapping[str, object]) -> dict[str, list[dict[str, obje
     return dict(grouped)
 
 
+def _target_dependency_closure(
+    groups: Mapping[str, list[dict[str, object]]],
+) -> set[str]:
+    """Return package names reachable from the HA/PHACC records."""
+    closure: set[str] = set()
+    pending = list(TARGET_PACKAGES)
+    while pending:
+        name = pending.pop()
+        if name in closure:
+            continue
+        closure.add(name)
+        for record in groups.get(name, []):
+            dependencies = record.get("dependencies", [])
+            if not isinstance(dependencies, list):
+                raise UpdaterError(f"uv.lock dependencies for {name} are invalid")
+            for dependency in dependencies:
+                if not isinstance(dependency, dict) or not isinstance(
+                    dependency.get("name"), str
+                ):
+                    raise UpdaterError(f"uv.lock dependencies for {name} are invalid")
+                dependency_name = canonicalize_name(dependency["name"])
+                if dependency_name not in closure:
+                    pending.append(dependency_name)
+    return closure
+
+
 def _validate_target_group(
     groups: Mapping[str, list[dict[str, object]]], name: str, expected: str
 ) -> None:
@@ -331,7 +357,7 @@ def _validate_local_record(
 def validate_lock_delta(
     before_text: str, after_text: str, homeassistant: str, phacc: str
 ) -> None:
-    """Reject all lock movement except the selected harness records and pins."""
+    """Reject lock movement outside the selected harness dependency graph and pins."""
     before = tomllib.loads(before_text)
     after = tomllib.loads(after_text)
     before_top = {key: value for key, value in before.items() if key != "package"}
@@ -340,14 +366,6 @@ def validate_lock_delta(
         raise UpdaterError("uv.lock non-package metadata changed")
     before_groups = _package_groups(before)
     after_groups = _package_groups(after)
-    if set(before_groups) != set(after_groups):
-        raise UpdaterError("uv.lock package set changed")
-    for name in before_groups:
-        if (
-            name not in {*TARGET_PACKAGES, LOCAL_PACKAGE}
-            and before_groups[name] != after_groups[name]
-        ):
-            raise UpdaterError(f"unexpected uv.lock movement for {name}")
     _validate_target_group(after_groups, HOMEASSISTANT, homeassistant)
     _validate_target_group(after_groups, PHACC, phacc)
     _validate_local_record(
@@ -356,6 +374,18 @@ def validate_lock_delta(
         homeassistant,
         phacc,
     )
+    target_closure = _target_dependency_closure(
+        before_groups
+    ) | _target_dependency_closure(after_groups)
+    allowed_movement = target_closure | {LOCAL_PACKAGE}
+    package_set_changes = set(before_groups) ^ set(after_groups)
+    if package_set_changes - allowed_movement:
+        raise UpdaterError("uv.lock package set changed")
+    for name in set(before_groups) | set(after_groups):
+        if name not in allowed_movement and before_groups.get(name) != after_groups.get(
+            name
+        ):
+            raise UpdaterError(f"unexpected uv.lock movement for {name}")
 
 
 def _read_plan(path: Path) -> BaselinePlan:
