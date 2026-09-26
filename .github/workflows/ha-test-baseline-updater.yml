@@ -289,7 +289,7 @@ jobs:
         run: |
           set -euo pipefail
           sanitize_ref() {
-            tr -c '[:alnum:]._- ' '-' | tr -d ' '
+            LC_ALL=C tr -c '[:alnum:]_.-' '-'
           }
           ha="$(printf '%s' "$HOMEASSISTANT_VERSION" | sanitize_ref)"
           phacc="$(printf '%s' "$PHACC_VERSION" | sanitize_ref)"
