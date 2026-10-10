@@ -32,6 +32,7 @@ from tests.ha_helpers import (
     POLLEN_API_URL_RE,
     assert_fixed_forecast_days,
     async_setup_config_entry,
+    device_ownership,
     mock_pollen_api,
 )
 
@@ -379,13 +380,7 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
                 device.id: frozenset(device.identifiers) for device in device_entries
             },
             "device_subentries": {
-                device.id: {
-                    config_entry_id: frozenset(subentry_ids)
-                    for config_entry_id, subentry_ids in getattr(
-                        device, "config_entries_subentries", {}
-                    ).items()
-                }
-                for device in device_entries
+                device.id: device_ownership(device) for device in device_entries
             },
         }
 

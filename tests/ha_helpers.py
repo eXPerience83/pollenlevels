@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl
 
 from aiointercept import CallbackResult, aiointercept
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntry
 
 from custom_components.pollenlevels.const import (
     CONF_API_KEY,
@@ -115,3 +116,24 @@ def location_subentry_data(
             CONF_LONGITUDE: longitude,
         },
     }
+
+
+def device_ownership(
+    device: DeviceEntry,
+) -> tuple[frozenset[str], dict[str, frozenset[str | None]]]:
+    """Snapshot all ownership associations of an ordinary registry device."""
+    # HA 2026.8+ has public single-owner fields; probing config_entry_id is safe.
+    # Never probe legacy properties on that model: HA 2026.10 reports their use.
+    # HA 2026.5 instead stores both collections; preserve every association.
+    if hasattr(device, "config_entry_id"):
+        return (
+            frozenset({device.config_entry_id}),
+            {device.config_entry_id: frozenset({device.config_subentry_id})},
+        )
+    return (
+        frozenset(device.config_entries),
+        {
+            owner: frozenset(subentries)
+            for owner, subentries in device.config_entries_subentries.items()
+        },
+    )
