@@ -17,7 +17,7 @@ test = [
     "aiointercept==0.1.12",
     "packaging==26.3",
     "pytest-homeassistant-custom-component==0.13.367",
-    "homeassistant==2026.9.4",
+    "homeassistant==2026.10.0",
 ]
 release = [
     { include-group = "lint" },

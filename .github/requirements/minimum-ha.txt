@@ -169,7 +169,7 @@ aiohttp-fast-zlib==0.3.0 \
 aiointercept==0.1.9 \
     --hash=sha256:4f1996e0d4dc69024f48a408a4c9749e42821022241bc722203c3c84144d44f2 \
     --hash=sha256:ef89ea659e3c6aded2140cf4b66dd1ce2ceb4c3ada4f5df27696d613a1fc175c
-    # via -r .github/requirements/minimum-ha.in
+    # via -r minimum-ha.in
 aiooui==0.1.9 \
     --hash=sha256:64d904b43f14dd1d8d9fcf1684d9e2f558bc5e0bd68dc10023c93355c9027907 \
     --hash=sha256:737a5e62d8726540218c2b70e5f966d9912121e4644f3d490daf8f3c18b182e5 \
@@ -773,7 +773,7 @@ ciso8601==2.3.3 \
     # via
     #   hass-nabucasa
     #   homeassistant
-coverage==7.13.5 \
+coverage[toml]==7.13.5 \
     --hash=sha256:012d5319e66e9d5a218834642d6c35d265515a62f01157a45bcc036ecf947256 \
     --hash=sha256:02ca0eed225b2ff301c474aeeeae27d26e2537942aa0f87491d3e147e784a82b \
     --hash=sha256:03ccc709a17a1de074fb1d11f217342fb0d2b1582ed544f554fc9fc3f07e95f5 \
@@ -1401,7 +1401,7 @@ homeassistant==2026.5.0 \
     --hash=sha256:497b09a981131e9f76642fc8da34b66657ab515553ba015d6ce84b0b1a0b27d2 \
     --hash=sha256:f84f3a8225a70dae338f7067d24f648f8e740e2d75e5c69560b92ce9c1bb70d8
     # via
-    #   -r .github/requirements/minimum-ha.in
+    #   -r minimum-ha.in
     #   pytest-homeassistant-custom-component
 httpcore==1.0.9 \
     --hash=sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55 \
@@ -1971,7 +1971,7 @@ packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
     --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
     # via
-    #   -r .github/requirements/minimum-ha.in
+    #   -r minimum-ha.in
     #   homeassistant
     #   pipdeptree
     #   pytest
@@ -2072,10 +2072,6 @@ pillow==12.2.0 \
     --hash=sha256:fb043ee2f06b41473269765c2feae53fc2e2fbf96e5e22ca94fb5ad677856f06 \
     --hash=sha256:fc3d34d4a8fbec3e88a79b92e5465e0f9b842b628675850d860b8bd300b159f5
     # via homeassistant
-pip==26.2.1 \
-    --hash=sha256:71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e \
-    --hash=sha256:f6ad667e89a1fe78046c8f13232b247200f5258d7828f3f7883d660878e0813f
-    # via pipdeptree
 pipdeptree==2.26.1 \
     --hash=sha256:3849d62a2ed641256afac3058c4f9b85ac4a47e9d8c991ee17a8f3d230c5cffb \
     --hash=sha256:92a8f37ab79235dacb46af107e691a1309ca4a429315ba2a1df97d1cd56e27ac
@@ -2470,7 +2466,7 @@ pygments==2.20.0 \
     --hash=sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f \
     --hash=sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176
     # via pytest
-pyjwt==2.12.1 \
+pyjwt[crypto]==2.12.1 \
     --hash=sha256:28ca37c070cad8ba8cd9790cd940535d40274d22f80ab87f3ac6a713e6e8454c \
     --hash=sha256:c74a7a2adf861c04d002db713dd85f84beb242228e671280bf709d765b03672b
     # via
@@ -2566,7 +2562,7 @@ pytest-github-actions-annotate-failures==0.4.0 \
 pytest-homeassistant-custom-component==0.13.329 \
     --hash=sha256:4e709447d6dfd07619072ddb9b32fcb33e533819c4a4bb6c4001a21025ead9bb \
     --hash=sha256:9355a7ab10cad2e871f5141cdff4c56286687dd8f6f4443c807b14b484fc2ec8
-    # via -r .github/requirements/minimum-ha.in
+    # via -r minimum-ha.in
 pytest-picked==0.5.1 \
     --hash=sha256:6634c4356a560a5dc3dba35471865e6eb06bbd356b56b69c540593e9d5620ded \
     --hash=sha256:af65c4763b51dc095ae4bc5073a962406902422ad9629c26d8b01122b677d998
@@ -2998,9 +2994,9 @@ ulid-transform==2.2.0 \
     --hash=sha256:fc9f75265c8130ed60347cebbd24bb1c87703484f74d490fdd05670caa2a645c \
     --hash=sha256:ff55ba23866566e8964fadcca9f23adf88bbb97f574d8132de7b2adddff44415
     # via homeassistant
-urllib3==2.7.0 \
-    --hash=sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c \
-    --hash=sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897
+urllib3==2.8.0 \
+    --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 \
+    --hash=sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63
     # via
     #   botocore
     #   homeassistant
