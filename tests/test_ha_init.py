@@ -37,6 +37,7 @@ from tests.ha_helpers import (
     assert_fixed_forecast_days,
     async_migrate_config_entry,
     async_setup_config_entry,
+    device_ownership,
     legacy_config_entry,
     location_subentry_data,
     mock_pollen_api,
@@ -413,12 +414,7 @@ async def test_ha_expired_api_key_reload_preserves_registry_identity(
             "devices": {
                 device.id: {
                     "identifiers": frozenset(device.identifiers),
-                    "config_entries_subentries": {
-                        config_entry_id: frozenset(subentry_ids)
-                        for config_entry_id, subentry_ids in getattr(
-                            device, "config_entries_subentries", {}
-                        ).items()
-                    },
+                    "ownership": device_ownership(device),
                 }
                 for device in device_entries
             },
@@ -714,7 +710,6 @@ async def test_ha_location_identity_survives_migration_reload_and_restart(
     """Persisted entity/device records must stay exact across location lifecycle."""
     clear_integration_modules()
     from custom_components.pollenlevels.const import CONF_LEGACY_ENTRY_ID
-    from custom_components.pollenlevels.util import device_subentry_ids
 
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
@@ -836,10 +831,10 @@ async def test_ha_location_identity_survives_migration_reload_and_restart(
                     assert entity.config_subentry_id == subentry.subentry_id
                     device = devices_by_id[entity.device_id]
                     assert device.identifiers == {(DOMAIN, f"{identity}_{group}")}
-                    assert device.config_entries == {entry.entry_id}
-                    assert device_subentry_ids(device, entry.entry_id) == {
-                        subentry.subentry_id
-                    }
+                    assert device_ownership(device) == (
+                        {entry.entry_id},
+                        {entry.entry_id: {subentry.subentry_id}},
+                    )
                     group_device_ids.add(device.id)
                 assert len(group_device_ids) == 1
         assert identities == expected_identities
@@ -889,11 +884,7 @@ async def test_ha_location_identity_survives_migration_reload_and_restart(
                 device.id: (
                     device.id,
                     frozenset(device.identifiers),
-                    frozenset(device.config_entries),
-                    frozenset(
-                        (owner, frozenset(subentries))
-                        for owner, subentries in device.config_entries_subentries.items()
-                    ),
+                    device_ownership(device),
                 )
                 for device in devices
             },

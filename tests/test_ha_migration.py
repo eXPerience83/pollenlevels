@@ -29,6 +29,7 @@ from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
     async_migrate_config_entry,
+    device_ownership,
     legacy_config_entry,
     location_subentry_data,
 )
@@ -327,10 +328,10 @@ async def test_ha_migration_attaches_entity_and_device_registries_to_subentry(
 
     migrated_device = device_registry.async_get(device.id)
     assert migrated_device is not None
-    assert migrated_device.config_entries == {entry.entry_id}
-    assert migrated_device.config_entries_subentries == {
-        entry.entry_id: {subentry.subentry_id}
-    }
+    assert device_ownership(migrated_device) == (
+        {entry.entry_id},
+        {entry.entry_id: {subentry.subentry_id}},
+    )
 
 
 async def test_ha_migration_grouped_entry_attaches_registries_to_parent_subentry(
@@ -379,10 +380,10 @@ async def test_ha_migration_grouped_entry_attaches_registries_to_parent_subentry
 
     migrated_device = device_registry.async_get(device.id)
     assert migrated_device is not None
-    assert migrated_device.config_entries == {parent.entry_id}
-    assert migrated_device.config_entries_subentries == {
-        parent.entry_id: {office_subentry.subentry_id}
-    }
+    assert device_ownership(migrated_device) == (
+        {parent.entry_id},
+        {parent.entry_id: {office_subentry.subentry_id}},
+    )
 
 
 async def test_ha_migration_invalid_legacy_coordinates_abort_and_create_repair(
