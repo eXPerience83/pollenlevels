@@ -202,19 +202,19 @@ jobs:
 
       - name: Set up modern Python
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version-file: .python-version
 
       - name: Set up legacy Python
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'legacy'
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: ${{ steps.validation-mode.outputs.python_version }}
 
       - name: Set up modern uv
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version-file: pyproject.toml
           enable-cache: true
@@ -438,7 +438,7 @@ jobs:
 
       - name: Upload validated ZIP
         if: steps.event.outputs.skip_release != 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: pollenlevels-release-asset
           path: pollenlevels.zip
@@ -462,7 +462,7 @@ jobs:
           persist-credentials: false
 
       - name: Download validated ZIP
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: pollenlevels-release-asset
           path: .
