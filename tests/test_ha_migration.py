@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pytest
+from aiointercept import CallbackResult, aiointercept
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     device_registry as dr,
@@ -28,6 +31,7 @@ from custom_components.pollenlevels.issue_helpers import (
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
+    POLLEN_API_URL_RE,
     async_migrate_config_entry,
     device_ownership,
     legacy_config_entry,
@@ -462,3 +466,128 @@ async def test_ha_migration_retry_after_entity_registry_failure_is_idempotent(
     migrated_entity = entity_registry.async_get(entity.entity_id)
     assert migrated_entity is not None
     assert migrated_entity.config_subentry_id == first_subentry_id
+
+
+class _UnaccountedMigrationLocation(AssertionError):
+    """Only the known missing-runtime invariant may be expected to fail."""
+
+
+# Remove this marker when #226 implements automatic runtime reconciliation.
+@pytest.mark.xfail(
+    strict=True,
+    reason="Known migration race: #226",
+    raises=_UnaccountedMigrationLocation,
+)
+async def test_ha_migration_during_parent_refresh_accounts_for_every_location(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    ha_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+) -> None:
+    """A legacy merge during setup must converge without a manual reload."""
+    clear_integration_modules()
+    parent = ha_config_entry
+    parent.add_to_hass(hass)
+    original_subentry = next(iter(parent.subentries.values()))
+    original_unique_id = original_subentry.unique_id
+    request_started = asyncio.Event()
+    release_response = asyncio.Event()
+
+    async def controlled_response(_url, **_kwargs):
+        request_started.set()
+        await release_response.wait()
+        return CallbackResult(status=200, payload=google_pollen_5_day_payload)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=controlled_response, repeat=True)
+        setup_task = asyncio.create_task(
+            hass.config_entries.async_setup(parent.entry_id)
+        )
+        request_task = asyncio.create_task(request_started.wait())
+        try:
+            # Fail promptly if setup exits before reaching the HTTP boundary.
+            await asyncio.wait(
+                {setup_task, request_task}, return_when=asyncio.FIRST_COMPLETED
+            )
+            assert request_started.is_set()
+            assert not setup_task.done()
+            assert parent.state is ConfigEntryState.SETUP_IN_PROGRESS
+            legacy = legacy_config_entry(
+                entry_id="concurrent-legacy",
+                title="Synthetic legacy",
+                api_key=parent.data[CONF_API_KEY],
+                latitude=1.0,
+                longitude=2.0,
+            )
+            legacy.add_to_hass(hass)
+            device_registry = dr.async_get(hass)
+            entity_registry = er.async_get(hass)
+            device = device_registry.async_get_or_create(
+                config_entry_id=legacy.entry_id,
+                identifiers={(DOMAIN, "concurrent-legacy-device")},
+            )
+            entity = entity_registry.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                "concurrent-legacy-grass",
+                config_entry=legacy,
+                device_id=device.id,
+            )
+            assert await hass.config_entries.async_setup(legacy.entry_id)
+        finally:
+            release_response.set()
+            request_task.cancel()
+            await asyncio.gather(request_task, return_exceptions=True)
+            setup_result = await setup_task
+        assert setup_result
+        await hass.async_block_till_done()
+
+        assert parent.state is ConfigEntryState.LOADED
+        assert parent.disabled_by is None
+        assert hass.config_entries.async_get_entry(legacy.entry_id) is None
+        assert len(parent.subentries) == 2
+        assert (
+            parent.subentries[original_subentry.subentry_id].unique_id
+            == original_unique_id
+        )
+        target = _subentries_by_legacy_entry(parent)[legacy.entry_id]
+        migrated_entity = entity_registry.async_get(entity.entity_id)
+        assert migrated_entity is not None
+        assert migrated_entity.unique_id == entity.unique_id
+        assert migrated_entity.device_id == device.id
+        assert migrated_entity.config_entry_id == parent.entry_id
+        assert migrated_entity.config_subentry_id == target.subentry_id
+        migrated_device = device_registry.async_get(device.id)
+        assert migrated_device is not None
+        assert migrated_device.identifiers == device.identifiers
+        assert device_ownership(migrated_device) == (
+            {parent.entry_id},
+            {parent.entry_id: {target.subentry_id}},
+        )
+
+        runtime = parent.runtime_data
+        active = {
+            subentry.subentry_id
+            for subentry in parent.subentries.values()
+            if subentry.subentry_type == SUBENTRY_TYPE_LOCATION
+        }
+        assert not runtime.failed_locations  # Every mocked response is healthy.
+        assert not set(runtime.locations) & set(runtime.failed_locations)
+        assert len(
+            {id(location.coordinator) for location in runtime.locations.values()}
+        ) == len(runtime.locations)
+        for subentry_id, location in runtime.locations.items():
+            assert location.subentry_id == subentry_id
+            assert location.coordinator.entry_id == parent.entry_id
+            assert location.coordinator.subentry_id == subentry_id
+        if active != set(runtime.locations) | set(runtime.failed_locations):
+            raise _UnaccountedMigrationLocation(
+                f"Loaded parent has {len(active)} configured locations, "
+                f"{len(runtime.locations)} coordinators and "
+                f"{len(runtime.failed_locations)} recorded failures"
+            )
+        assert (
+            runtime.locations[target.subentry_id].coordinator.entity_identity_id
+            == legacy.entry_id
+        )
