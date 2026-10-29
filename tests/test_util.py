@@ -477,39 +477,50 @@ def test_device_subentry_ids_returns_none_without_supported_attributes(util_modu
 
 
 @pytest.mark.parametrize(
-    ("attr", "value", "expected"),
+    ("owner", "subentry", "expected"),
     [
-        ("config_entries_subentries", {"entry": {"abc", None}}, {"abc", None}),
-        ("config_entry_subentries", {"entry": {"abc", None}}, {"abc", None}),
-        ("config_subentry_ids", {"abc", None}, {"abc", None}),
-        ("config_subentries", {"abc", None}, {"abc", None}),
-        ("config_subentry_id", "abc", {"abc"}),
+        ("entry", "abc", {"abc"}),
+        ("entry", None, {None}),
+        ("other", "abc", set()),
+        ("other", None, set()),
+        (None, None, None),
     ],
 )
-def test_device_subentry_ids_reads_supported_home_assistant_attributes(
-    util_module, attr, value, expected
+def test_device_subentry_ids_reads_single_owner_without_deprecated_properties(
+    util_module, owner, subentry, expected
 ):
-    """Supported Home Assistant device attributes should use one normalization path."""
+    """Known main-entry links must differ from other or unknown owners."""
 
-    device = SimpleNamespace(**{attr: value})
+    class Device:
+        config_entry_id = owner
+        config_subentry_id = subentry
+        is_composite_device = False
 
-    assert util_module.device_subentry_ids(device, "entry") == expected
+        @property
+        def config_entries_subentries(self):
+            raise AssertionError("Deprecated property read")
+
+        @property
+        def config_entries(self):
+            raise AssertionError("Deprecated property read")
+
+    assert util_module.device_subentry_ids(Device(), "entry") == expected
 
 
-def test_device_subentry_ids_mapping_for_other_entry_returns_legacy_none(util_module):
-    """Entry-scoped mappings should preserve legacy None when entry is missing."""
-
-    device = SimpleNamespace(config_entries_subentries={"other": {"abc"}})
-
-    assert util_module.device_subentry_ids(device, "entry") == {None}
-
-
-def test_device_subentry_ids_mapping_for_matching_entry(util_module):
-    """Entry-scoped mappings should return IDs for the requested entry."""
-
-    device = SimpleNamespace(config_entries_subentries={"entry": {"abc"}})
-
-    assert util_module.device_subentry_ids(device, "entry") == {"abc"}
+def test_device_subentry_ids_rejects_composite_and_incomplete_ownership(util_module):
+    """Neither a synthesized composite nor missing metadata is a legacy link."""
+    assert (
+        util_module.device_subentry_ids(
+            SimpleNamespace(is_composite_device=True), "entry"
+        )
+        is None
+    )
+    assert (
+        util_module.device_subentry_ids(
+            SimpleNamespace(config_entry_id="entry"), "entry"
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize(

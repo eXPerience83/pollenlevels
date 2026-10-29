@@ -575,26 +575,18 @@ def _migrate_device_registry_for_merged_entry(
     moved = 0
     legacy_associations_removed = 0
     targets_by_source_subentry = _target_subentries_by_source_subentry(location_targets)
-    has_source_subentry_targets = any(
-        source_subentry_id is not None
-        for source_subentry_id in targets_by_source_subentry
-    )
     for device in dr.async_entries_for_config_entry(registry, source.entry_id):
         source_subentry_ids = _device_source_subentry_ids(device, source.entry_id)
-        if source_subentry_ids is None:
-            if has_source_subentry_targets:
-                _LOGGER.error(
-                    "Cannot move device %s from entry %s to parent %s: source "
-                    "subentry association is unavailable",
-                    getattr(device, "id", "unknown"),
-                    source.entry_id,
-                    parent.entry_id,
-                )
-                migrated = False
-                continue
-            source_subentry_ids = {None}
-        elif not source_subentry_ids:
-            source_subentry_ids = {None}
+        if not source_subentry_ids:
+            _LOGGER.error(
+                "Cannot move device %s from entry %s to parent %s: source "
+                "ownership is unavailable or does not match",
+                getattr(device, "id", "unknown"),
+                source.entry_id,
+                parent.entry_id,
+            )
+            migrated = False
+            continue
 
         valid_source_subentry_ids = {
             subentry_id

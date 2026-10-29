@@ -207,8 +207,18 @@ async def test_ha_diagnostics_registry_summary_uses_real_registries(
     fake_api_key: str,
     ha_two_location_config_entry,
     google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch,
 ) -> None:
     """Diagnostics should summarize real entity and device registry links."""
+    from homeassistant.helpers import device_registry as dr
+
+    def forbidden_read(_device):
+        raise AssertionError("Deprecated ordinary-device ownership read")
+
+    monkeypatch.setattr(
+        dr.DeviceEntry, "config_entries_subentries", property(forbidden_read)
+    )
+    monkeypatch.setattr(dr.DeviceEntry, "config_entries", property(forbidden_read))
     clear_integration_modules()
     entry = ha_two_location_config_entry
     entry.add_to_hass(hass)
