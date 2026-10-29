@@ -341,8 +341,8 @@ def test_direct_declarations_and_lock_agree() -> None:
         )
 
 
-def test_minimum_ha_input_matches_hacs_support_contract() -> None:
-    """Keep the minimum compatibility input aligned with HACS metadata."""
+def test_minimum_ha_input_matches_provisional_engineering_floor() -> None:
+    """Keep the future-5.0 engineering floor aligned with the locked harness."""
     minimum = _exact_requirements_file(MINIMUM_HA_REQUIREMENTS_PATH)
     assert set(minimum) == {
         "pytest-homeassistant-custom-component",
@@ -350,9 +350,11 @@ def test_minimum_ha_input_matches_hacs_support_contract() -> None:
         "aiointercept",
         "packaging",
     }
-    assert _exact_requirement_version(minimum["homeassistant"]) == Version(
-        _load_hacs()["homeassistant"]
-    )
+    test = _exact_group_requirements("test")
+    for name, requirement in minimum.items():
+        assert _exact_requirement_version(requirement) == _exact_requirement_version(
+            test[name]
+        )
 
 
 def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> None:

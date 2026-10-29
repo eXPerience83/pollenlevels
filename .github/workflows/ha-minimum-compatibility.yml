@@ -2,9 +2,9 @@ name: Minimum Home Assistant Compatibility
 
 on:
   push:
-    branches: [main]
+    branches: [main, prep/5.0-ha-2026.10.4]
   pull_request:
-    branches: [main]
+    branches: [main, prep/5.0-ha-2026.10.4]
   workflow_dispatch:
 
 permissions:
@@ -56,7 +56,7 @@ jobs:
           set -euo pipefail
           "$MINIMUM_PYTHON" - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import importlib.metadata
-          import json
+          import tomllib
           import os
           import subprocess
           from pathlib import Path
@@ -83,14 +83,12 @@ jobs:
                   f"{sorted(expected_names)}; found {sorted(minimum_input)}"
               )
 
-          hacs_minimum = json.loads(
-              Path("hacs.json").read_text(encoding="utf-8")
-          )["homeassistant"]
-          if hacs_minimum != minimum_input["homeassistant"]:
-              raise SystemExit(
-                  "hacs.json Home Assistant minimum does not match minimum-ha.in: "
-                  f"{hacs_minimum} != {minimum_input['homeassistant']}"
-              )
+          test_requirements = tomllib.loads(
+              Path("pyproject.toml").read_text(encoding="utf-8")
+          )["dependency-groups"]["test"]
+          for name, version in minimum_input.items():
+              if f"{name}=={version}" not in test_requirements:
+                  raise SystemExit(f"Provisional floor differs from locked tests: {name}")
 
           installed = {
               name: importlib.metadata.version(name)
@@ -116,7 +114,7 @@ jobs:
           uv_version = subprocess.check_output(["uv", "--version"], text=True).strip()
           print("## Minimum Home Assistant compatibility")
           print()
-          print(f"Declared HACS minimum: `{hacs_minimum}`")
+          print("Interim future-5.0 engineering floor; not the public HACS minimum.")
           print()
           print("| Component | Installed version |")
           print("| --- | --- |")

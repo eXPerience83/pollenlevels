@@ -1,4 +1,5 @@
-pytest-homeassistant-custom-component==0.13.329
-homeassistant==2026.5.0
-aiointercept==0.1.9
+# Interim future-5.0 engineering floor; not the public HACS minimum.
+pytest-homeassistant-custom-component==0.13.375
+homeassistant==2026.10.4
+aiointercept==0.1.12
 packaging==26.3
