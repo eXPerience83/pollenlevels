@@ -534,7 +534,9 @@ async def test_ha_migration_during_parent_refresh_accounts_for_every_location(
                 config_entry=legacy,
                 device_id=device.id,
             )
-            assert await hass.config_entries.async_setup(legacy.entry_id)
+            # Fail clearly if migration waits on the blocked parent setup.
+            async with asyncio.timeout(15):
+                assert await hass.config_entries.async_setup(legacy.entry_id)
         finally:
             release_response.set()
             request_task.cancel()
