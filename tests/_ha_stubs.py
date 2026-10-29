@@ -7,6 +7,7 @@ from pathlib import Path
 from types import ModuleType
 
 import pytest
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -260,6 +261,8 @@ def stub_config_entry_class(
 
     module = ModuleType("homeassistant.config_entries")
     module.ConfigEntry = cls
+    module.ConfigEntryState = ConfigEntryState
+    module.SOURCE_REAUTH = SOURCE_REAUTH
     _set_module("homeassistant.config_entries", module, monkeypatch=monkeypatch)
     return module
 

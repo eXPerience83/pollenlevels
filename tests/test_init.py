@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from homeassistant.config_entries import ConfigEntryState
 
 from tests._ha_stubs import (
     clear_integration_modules,
@@ -439,6 +440,8 @@ class _FakeEntry:
             self.subentries = {}
         self.unique_id = unique_id
         self.runtime_data = None
+        self.state = ConfigEntryState.NOT_LOADED
+        self.disabled_by = None
 
 
 def _location_subentries(

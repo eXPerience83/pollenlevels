@@ -28,6 +28,7 @@ from .issue_helpers import (
     create_per_day_forecast_sensors_removed_issue,
     delete_entry_invalid_stored_location_issue,
 )
+from .reconciliation import async_reconcile_migrated_locations
 from .util import (
     LEGACY_FORECAST_OPTION_KEYS,
     api_key_unique_id,
@@ -860,6 +861,16 @@ async def _async_migrate_grouped_entries(
             continue
         _mark_entry_merged(hass, source, parent, api_key, target_version)
         await _remove_or_schedule_merged_entry(hass, source, entry)
+
+    async_reconcile_migrated_locations(
+        hass,
+        parent,
+        {
+            subentry.subentry_id
+            for targets in registry_targets.values()
+            for _, subentry in targets
+        },
+    )
 
     for source in group:
         delete_entry_invalid_stored_location_issue(hass, source)

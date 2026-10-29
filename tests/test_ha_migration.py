@@ -468,16 +468,6 @@ async def test_ha_migration_retry_after_entity_registry_failure_is_idempotent(
     assert migrated_entity.config_subentry_id == first_subentry_id
 
 
-class _UnaccountedMigrationLocation(AssertionError):
-    """Only the known missing-runtime invariant may be expected to fail."""
-
-
-# Remove this marker when #226 implements automatic runtime reconciliation.
-@pytest.mark.xfail(
-    strict=True,
-    reason="Known migration race: #226",
-    raises=_UnaccountedMigrationLocation,
-)
 async def test_ha_migration_during_parent_refresh_accounts_for_every_location(
     hass: HomeAssistant,
     enable_custom_integrations: None,
@@ -541,8 +531,9 @@ async def test_ha_migration_during_parent_refresh_accounts_for_every_location(
             release_response.set()
             request_task.cancel()
             await asyncio.gather(request_task, return_exceptions=True)
-            setup_result = await setup_task
-        assert setup_result
+            await setup_task
+        # A scheduled reload can already be running when the outer setup call
+        # returns; assert the settled HA state after its tracked tasks finish.
         await hass.async_block_till_done()
 
         assert parent.state is ConfigEntryState.LOADED
@@ -583,12 +574,7 @@ async def test_ha_migration_during_parent_refresh_accounts_for_every_location(
             assert location.subentry_id == subentry_id
             assert location.coordinator.entry_id == parent.entry_id
             assert location.coordinator.subentry_id == subentry_id
-        if active != set(runtime.locations) | set(runtime.failed_locations):
-            raise _UnaccountedMigrationLocation(
-                f"Loaded parent has {len(active)} configured locations, "
-                f"{len(runtime.locations)} coordinators and "
-                f"{len(runtime.failed_locations)} recorded failures"
-            )
+        assert active == set(runtime.locations) | set(runtime.failed_locations)
         assert (
             runtime.locations[target.subentry_id].coordinator.entity_identity_id
             == legacy.entry_id
