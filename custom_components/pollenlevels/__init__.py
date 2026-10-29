@@ -628,6 +628,12 @@ async def async_setup_entry(
             "No Pollen Levels locations could be loaded"
         ) from None
 
+    # HA 2026.5 skips forwarding disabled entries. If disabled during refresh,
+    # fail setup so HA runs its unload callbacks instead of reporting LOADED
+    # with no platforms and leaving coordinator timers behind.
+    if entry.disabled_by is not None:
+        return False
+
     entry.runtime_data = PollenLevelsRuntimeData(
         locations=locations,
         failed_locations=failed_locations,
