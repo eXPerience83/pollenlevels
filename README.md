@@ -117,9 +117,17 @@ Before installing the alpha in an existing Home Assistant instance:
 1. Verify Home Assistant Core is **2026.10.4 or newer**. This alpha has only
    been validated against the locked HA 2026.10.4 development/test environment;
    compatibility with other versions is **not yet certified**.
-2. Create a **full Home Assistant backup**, including the Recorder/history
-   database, and **download the backup and encryption emergency kit** to a
-   separate device. If Recorder uses a remote database, back it up separately.
+2. Back up the **complete, persistent Home Assistant state** before the
+   upgrade, including `.storage`, configuration and the Recorder database:
+   - On **Home Assistant OS**, create a full backup with history included,
+     download it off-device and retain the encryption recovery key.
+   - On **Home Assistant Container / TrueNAS**, first stop the container for
+     a consistent ZFS snapshot or offline copy of the mounted configuration
+     dataset and its SQLite database. Retain a second, recoverable copy
+     off the NAS and record the container image/version and volume mounts.
+     A HACS download or an integration-only archive is not enough.
+   - If Recorder uses a **separate database**, make a consistent database
+     backup as well; HA's local configuration backup does not include it.
 3. Record the current Pollen Levels version, location count, API-key parent and
    location subentry associations, entity names/IDs, history/statistics, and
    automations that use them. Never share API keys or precise coordinates.
