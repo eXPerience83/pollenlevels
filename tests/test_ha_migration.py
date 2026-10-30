@@ -579,3 +579,241 @@ async def test_ha_migration_during_parent_refresh_accounts_for_every_location(
             runtime.locations[target.subentry_id].coordinator.entity_identity_id
             == legacy.entry_id
         )
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "missing_device",
+        "device_error",
+        "entity_error",
+        "device_cancel",
+        "entity_cancel",
+    ],
+)
+async def test_registry_unavailability_preserves_source_and_retry_identity(
+    hass, ha_config_entry, enable_custom_integrations, monkeypatch, caplog, failure
+):
+    """Unavailable registries never authorize removal, including after partial moves."""
+    from unittest.mock import Mock
+
+    clear_integration_modules()
+    from custom_components.pollenlevels import async_migrate_entry
+    from custom_components.pollenlevels.migration import is_entry_merged
+
+    parent = ha_config_entry
+    parent.add_to_hass(hass)
+    source = legacy_config_entry(
+        entry_id="unavailable-registry-source",
+        title="Synthetic legacy location",
+        api_key=parent.data[CONF_API_KEY],
+        latitude=1.0,
+        longitude=2.0,
+    )
+    source.add_to_hass(hass)
+    original_data = dict(source.data)
+    original_version = source.version
+    devices = dr.async_get(hass)
+    entities = er.async_get(hass)
+    device = devices.async_get_or_create(
+        config_entry_id=source.entry_id,
+        identifiers={(DOMAIN, "synthetic-legacy-device")},
+    )
+    device = devices.async_update_device(device.id, name_by_user="User device name")
+    entity = entities.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "synthetic-legacy-unique",
+        config_entry=source,
+        device_id=device.id,
+    )
+    with monkeypatch.context() as patch:
+        if failure == "missing_device":
+            # Exercise the real HA getter before registry setup, not a fake getter.
+            patch.delitem(hass.data, dr.DATA_REGISTRY)
+            with pytest.raises(RuntimeError, match="Device registry not set up"):
+                dr.async_get(hass)
+        else:
+            registry_module = er if failure.startswith("entity") else dr
+            error = (
+                asyncio.CancelledError()
+                if failure.endswith("cancel")
+                else RuntimeError("Synthetic registry initialization failure")
+            )
+            patch.setattr(registry_module, "async_get", Mock(side_effect=error))
+        if failure.endswith("cancel"):
+            with pytest.raises(asyncio.CancelledError):
+                await async_migrate_entry(hass, parent)
+        else:
+            assert not await async_migrate_entry(hass, parent)
+        # Restore registry access before draining HA's queued update events.
+    await hass.async_block_till_done()
+
+    assert hass.config_entries.async_get_entry(source.entry_id) is source
+    assert source.data == original_data
+    assert source.version == original_version
+    assert not is_entry_merged(source)
+    assert devices.async_get(device.id) is not None
+    assert entities.async_get(entity.entity_id) is not None
+    if failure.startswith("device") or failure == "missing_device":
+        # Entity reassociation precedes device access; retries must keep this success.
+        assert entities.async_get(entity.entity_id).config_entry_id == parent.entry_id
+        assert devices.async_get(device.id).config_entry_id == source.entry_id
+    if failure.endswith("error") or failure == "missing_device":
+        assert "registry is unavailable" in caplog.text
+        assert "Synthetic registry initialization failure" not in caplog.text
+    persisted = dict(parent.subentries)
+
+    assert await async_migrate_config_entry(hass, parent)
+    assert hass.config_entries.async_get_entry(source.entry_id) is None
+    assert parent.subentries == persisted
+    target = _subentries_by_legacy_entry(parent)[source.entry_id]
+    retained_entity = entities.async_get(entity.entity_id)
+    retained_device = devices.async_get(device.id)
+    assert retained_entity.id == entity.id
+    assert retained_entity.unique_id == entity.unique_id
+    assert retained_entity.device_id == device.id
+    assert retained_entity.config_entry_id == parent.entry_id
+    assert retained_entity.config_subentry_id == target.subentry_id
+    assert retained_device.id == device.id
+    assert retained_device.identifiers == device.identifiers
+    assert retained_device.name_by_user == device.name_by_user
+    assert retained_device.config_entry_id == parent.entry_id
+    assert retained_device.config_subentry_id == target.subentry_id
+    assert await async_migrate_config_entry(hass, parent)
+    assert parent.subentries == persisted
+
+
+@pytest.mark.parametrize("registry_module", [er, dr], ids=["entity", "device"])
+async def test_single_legacy_registry_acquisition_failure_is_retryable(
+    hass, enable_custom_integrations, monkeypatch, registry_module
+):
+    """A single legacy entry must retain its data/version until registries succeed."""
+    from unittest.mock import Mock
+
+    clear_integration_modules()
+    entry = legacy_config_entry(
+        entry_id="single-unavailable-registry",
+        title="Synthetic location",
+        api_key="synthetic-registry-key",
+        latitude=1.0,
+        longitude=2.0,
+    )
+    entry.add_to_hass(hass)
+    original_data, original_version = dict(entry.data), entry.version
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            registry_module,
+            "async_get",
+            Mock(side_effect=RuntimeError("Synthetic failure")),
+        )
+        assert not await async_migrate_config_entry(hass, entry)
+    assert entry.data == original_data
+    assert entry.version == original_version
+    persisted = dict(entry.subentries)
+    assert len(persisted) == 1
+    assert await async_migrate_config_entry(hass, entry)
+    assert entry.subentries == persisted
+
+
+@pytest.mark.parametrize("load_registries", [False])
+async def test_unloaded_entity_registry_cannot_complete_migration(
+    hass, enable_custom_integrations
+):
+    """The real lazy ER singleton is not an empty loaded registry before loading."""
+    clear_integration_modules()
+    entry = legacy_config_entry(
+        entry_id="unloaded-entity-registry",
+        title="Synthetic location",
+        api_key="synthetic-registry-key",
+        latitude=1.0,
+        longitude=2.0,
+    )
+    entry.add_to_hass(hass)
+    dr.async_setup(hass)
+    await dr.async_load(hass)
+    entities = er.async_get(hass)
+    with pytest.raises(AttributeError):
+        er.async_entries_for_config_entry(entities, entry.entry_id)
+    assert not await async_migrate_config_entry(hass, entry)
+    assert CONF_LATITUDE in entry.data
+    persisted = dict(entry.subentries)
+    await entities.async_load()
+    assert await async_migrate_config_entry(hass, entry)
+    assert entry.subentries == persisted
+
+
+@pytest.mark.parametrize("path", ["grouped", "single", "repair"])
+async def test_partial_entity_failure_defers_device_moves(
+    hass, ha_config_entry, enable_custom_integrations, monkeypatch, path
+):
+    """HA's device events must not delete entities left behind by a failed move."""
+    clear_integration_modules()
+    from custom_components.pollenlevels.migration import is_entry_merged
+
+    source = legacy_config_entry(
+        entry_id="partial-entity-source",
+        title="Synthetic location",
+        api_key=ha_config_entry.data[CONF_API_KEY],
+        latitude=1.0,
+        longitude=2.0,
+    )
+    if path == "grouped":
+        parent = ha_config_entry
+        parent.add_to_hass(hass)
+    else:
+        parent = source
+    source.add_to_hass(hass)
+    if path == "repair":
+        # Reproduce older prereleases: current storage, main-entry registry links.
+        assert await async_migrate_config_entry(hass, source)
+    original_data, original_version = dict(source.data), source.version
+    devices = dr.async_get(hass)
+    entities = er.async_get(hass)
+    device = devices.async_get_or_create(
+        config_entry_id=source.entry_id, identifiers={(DOMAIN, "partial-entity-device")}
+    )
+    originals = [
+        entities.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"partial-entity-{index}",
+            config_entry=source,
+            device_id=device.id,
+        )
+        for index in range(2)
+    ]
+    original_update = entities.async_update_entity
+
+    def fail_second(entity_id, **kwargs):
+        if entity_id == originals[1].entity_id:
+            raise RuntimeError("Synthetic entity move failure")
+        return original_update(entity_id, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(entities, "async_update_entity", fail_second)
+        assert not await async_migrate_config_entry(hass, parent)
+    assert hass.config_entries.async_get_entry(source.entry_id) is source
+    assert source.data == original_data
+    assert source.version == original_version
+    assert not is_entry_merged(source)
+    assert devices.async_get(device.id) == device
+    persisted = dict(parent.subentries)
+    target = _subentries_by_legacy_entry(parent)[source.entry_id]
+    assert (
+        entities.async_get(originals[0].entity_id).config_subentry_id
+        == target.subentry_id
+    )
+    assert entities.async_get(originals[1].entity_id).config_subentry_id is None
+    assert await async_migrate_config_entry(hass, parent)
+    assert parent.subentries == persisted
+    for original in originals:
+        retained = entities.async_get(original.entity_id)
+        assert retained.id == original.id
+        assert retained.unique_id == original.unique_id
+        assert retained.device_id == device.id
+        assert retained.config_entry_id == parent.entry_id
+        assert retained.config_subentry_id == target.subentry_id
+    assert devices.async_get(device.id).config_subentry_id == target.subentry_id
+    assert await async_migrate_config_entry(hass, parent)
+    assert parent.subentries == persisted

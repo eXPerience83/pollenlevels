@@ -260,6 +260,12 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         sys.modules, "homeassistant.helpers.entity_registry", entity_registry_mod
     )
+    device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
+    device_registry_mod.async_get = _stub_async_get
+    device_registry_mod.async_entries_for_config_entry = lambda *args, **kwargs: []
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
+    )
 
     entity_mod = types.ModuleType("homeassistant.helpers.entity")
     entity_mod.EntityCategory = _StubEntityCategory
