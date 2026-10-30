@@ -1,18 +1,24 @@
 # Pollen Levels 5.0 preparation and experimental alpha
 
-The development branch `prep/5.0-ha-2026.10.4` is an **unpublished,
-unversioned candidate** for #452 / #226. Its interim engineering floor is
-Home Assistant 2026.10.4 with
-pytest-homeassistant-custom-component 0.13.375, matching both locked test
-lanes. The minimum requirements are exported from the current `uv.lock`.
-Its version metadata still reads 4.0.3: **never install or release that
-unversioned preparation branch as 4.0.3**.
+The development branch `prep/5.0-ha-2026.10.4` tracks #452 / #226.
+Its provisional, locked test pair is Home Assistant **2026.10.4** with
+pytest-homeassistant-custom-component **0.13.375**. The initial development
+baseline kept version metadata at 4.0.3, but was **not the published 4.0.3**
+and must never be installed or released under that version.
 
-The independent `release/5.0.0a1-ha-2026.10.4` branch is the **experimental
-alpha release candidate**. Only on this versioned branch, manifest/project/lock
-metadata use `5.0.0a1`, and `hacs.json` declares the temporary minimum
-HA 2026.10.4. The published stable 4.0.3 remains on `main`, with HA 2026.5.0
-support unchanged.
+The experimental `5.0.0a1` metadata, changelog and documentation are prepared
+in short-lived [PR #462](https://github.com/eXPerience83/pollenlevels/pull/462)
+from `release/5.0.0a1-ha-2026.10.4`. Once its checks and review are
+satisfactory, **squash-merge the PR into the preparation branch**, which then
+carries `5.0.0a1` and the temporary `hacs.json` minimum HA **2026.10.4**.
+The temporary release branch may then be deleted; do not keep parallel
+long-lived development branches.
+
+The trusted Release workflow must be dispatched from `main` with
+`release_ref` set to the **exact prepared commit on the preparation branch**,
+creating a draft prerelease without merging 5.0 code into `main`. Review the
+ZIP and release metadata before any manual publication. The published stable
+4.0.3 stays on `main` with HA 2026.5.0 support unchanged.
 
 This alpha is **not production-ready** and must not be interpreted as
 certification of historical HA OS on-disk upgrades, Recorder/statistics
@@ -33,8 +39,9 @@ security audit, authentic migrated-install tests, Recorder, Marketplace, and
 CodeQL. That later decision must not be silently inferred from the alpha's
 temporary HA 2026.10.4 floor.
 
-Development PRs continue to target preparation; the versioned alpha branch is
-a release candidate and must not be merged into `main` or published without
-explicit owner approval. For alpha installation and manual test cautions see
+Development PRs continue to target preparation, not `main`. Merging
+the alpha metadata into preparation **does not authorize** a tag, draft,
+publication or production installation. Those actions require explicit owner
+approval. For alpha installation and manual test cautions see
 [README.md](README.md); for the publication procedure see
 [RELEASING.md](RELEASING.md).
