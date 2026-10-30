@@ -8,7 +8,7 @@
 Track **grass**, **tree**, and **weed** pollen, regional plant species, daily summaries, and up to **5 days of forecast data** across multiple locations.
 
 [![GitHub Release](https://img.shields.io/github/v/release/eXPerience83/pollenlevels)](https://github.com/eXPerience83/pollenlevels/releases)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.5%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.10.4%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
 [![Latest Home Assistant Compatibility](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml/badge.svg?branch=main)](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml)
 [![hassfest validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml)
 [![HACS validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
@@ -23,7 +23,7 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 
 ## Requirements
 
-- Home Assistant 2026.5.0 or newer.
+- Home Assistant **2026.10.4 or newer for 5.0.0a1**; this alpha is only tested on 2026.10.4. The published stable 4.0.3 supports HA 2026.5.0 or newer.
 - HACS 2.0.0 or newer when installing through HACS.
 - A Google Cloud API key with the Maps Pollen API enabled.
 
@@ -101,6 +101,41 @@ of forecast data so existing sensors can expose the maximum available forecast
 attributes.
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
+
+---
+
+## Experimental 5.0.0a1 alpha — Home Assistant 2026.10.4+
+
+**This section applies to the 5.0.0a1 alpha only.** It is intended for
+voluntary, controlled testing of Device Registry and migration compatibility,
+**not production use**. The final 5.0 minimum is expected to be a validated
+stable Home Assistant 2026.11.x version. The last public stable Pollen Levels
+4.0.3 remains available to users on Home Assistant 2026.5.0 and newer.
+
+Before installing the alpha in an existing Home Assistant instance:
+
+1. Verify Home Assistant Core is **2026.10.4 or newer**. This alpha has only
+   been validated against the locked HA 2026.10.4 development/test environment;
+   compatibility with other versions is **not yet certified**.
+2. Create a **full Home Assistant backup**, including the Recorder/history
+   database, and **download the backup and encryption emergency kit** to a
+   separate device. If Recorder uses a remote database, back it up separately.
+3. Record the current Pollen Levels version, location count, API-key parent and
+   location subentry associations, entity names/IDs, history/statistics, and
+   automations that use them. Never share API keys or precise coordinates.
+4. If and only if 5.0.0a1 is **published**, open its repository in HACS,
+   enable the **pre-release** option, then choose **Redownload** and select
+   5.0.0a1. Restart Home Assistant and inspect integration logs, Repairs,
+   entities, devices, locations, last refresh and historical statistics.
+5. If the migration fails or identity/history changes unexpectedly, stop
+   testing and **restore the matching full pre-upgrade backup**. Installing
+   4.0.3 files over an already migrated installation is **not a supported
+   downgrade** and cannot reliably undo Registry or Recorder changes.
+
+The alpha does **not** yet certify genuine older-version stored migration,
+Recorder/statistics continuity, HACS-to-Marketplace transfer, or safe rollback.
+See [PREPARATION_5.0.md](PREPARATION_5.0.md) and the
+[5.0 roadmap](https://github.com/eXPerience83/pollenlevels/issues/452).
 
 ---
 
