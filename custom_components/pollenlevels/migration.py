@@ -588,54 +588,45 @@ def _migrate_device_registry_for_merged_entry(
             migrated = False
             continue
 
-        valid_source_subentry_ids = {
-            subentry_id
-            for subentry_id in source_subentry_ids
-            if subentry_id in targets_by_source_subentry
-        }
-        target_subentries: list[ConfigSubentry] = []
-        for source_subentry_id in sorted(
-            source_subentry_ids, key=lambda item: item or ""
-        ):
-            if source_subentry_id not in targets_by_source_subentry:
-                if source is parent:
-                    continue
-                if source_subentry_id is None and valid_source_subentry_ids:
-                    continue
-                _LOGGER.error(
-                    "Cannot move device %s from entry %s to parent %s: no target "
-                    "subentry for source subentry %s",
-                    getattr(device, "id", "unknown"),
-                    source.entry_id,
-                    parent.entry_id,
-                    source_subentry_id or "legacy-entry",
-                )
-                migrated = False
+        source_subentry_id = next(iter(source_subentry_ids))
+        subentry = targets_by_source_subentry.get(source_subentry_id)
+        if subentry is None:
+            if source is parent:
                 continue
-            target_subentries.append(targets_by_source_subentry[source_subentry_id])
-
-        if not target_subentries:
+            _LOGGER.error(
+                "Cannot move device %s from entry %s to parent %s: no target "
+                "subentry for source subentry %s",
+                device.id,
+                source.entry_id,
+                parent.entry_id,
+                source_subentry_id or "legacy-entry",
+            )
+            migrated = False
+            continue
+        if source is parent and source_subentry_id == subentry.subentry_id:
             continue
 
         try:
-            for subentry in target_subentries:
-                registry.async_update_device(
+            if source is parent:
+                updated = registry.async_update_device(
                     device.id,
-                    add_config_entry_id=parent.entry_id,
-                    add_config_subentry_id=subentry.subentry_id,
+                    new_config_subentry_id=subentry.subentry_id,
                 )
-                moved += 1
-            if source is not parent:
-                registry.async_update_device(
+            else:
+                updated = registry.async_update_device(
                     device.id,
-                    remove_config_entry_id=source.entry_id,
+                    new_config_entry_id=parent.entry_id,
+                    new_config_subentry_id=subentry.subentry_id,
                 )
-            elif None in source_subentry_ids:
-                registry.async_update_device(
-                    device.id,
-                    remove_config_entry_id=source.entry_id,
-                    remove_config_subentry_id=None,
-                )
+            if (
+                updated is None
+                or updated.id != device.id
+                or device_subentry_ids(updated, parent.entry_id)
+                != {subentry.subentry_id}
+            ):
+                raise RuntimeError("Device ownership move was not applied")
+            moved += 1
+            if source is parent and source_subentry_id is None:
                 legacy_associations_removed += 1
         except Exception:  # noqa: BLE001
             migrated = False

@@ -2429,6 +2429,11 @@ def test_migrate_mixed_parent_direct_legacy_location_attaches_registries(
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: str) -> None:
             device_updates.append((device_id, kwargs))
+            return types.SimpleNamespace(
+                id=device_id,
+                config_entry_id=kwargs.get("new_config_entry_id", entry.entry_id),
+                config_subentry_id=kwargs["new_config_subentry_id"],
+            )
 
     device_registry = _DeviceRegistry()
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
@@ -2477,15 +2482,7 @@ def test_migrate_mixed_parent_direct_legacy_location_attaches_registries(
         (
             "device-home",
             {
-                "add_config_entry_id": "mixed-parent",
-                "add_config_subentry_id": created_subentry.subentry_id,
-            },
-        ),
-        (
-            "device-home",
-            {
-                "remove_config_entry_id": "mixed-parent",
-                "remove_config_subentry_id": None,
+                "new_config_subentry_id": created_subentry.subentry_id,
             },
         ),
     ]
@@ -2879,6 +2876,11 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: str) -> None:
             device_updates.append((device_id, kwargs))
+            return types.SimpleNamespace(
+                id=device_id,
+                config_entry_id=kwargs.get("new_config_entry_id", parent.entry_id),
+                config_subentry_id=kwargs["new_config_subentry_id"],
+            )
 
     device_registry = _DeviceRegistry()
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
@@ -2932,19 +2934,17 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
         (
             "device-home",
             {
-                "add_config_entry_id": "clean-parent",
-                "add_config_subentry_id": target_home.subentry_id,
+                "new_config_entry_id": "clean-parent",
+                "new_config_subentry_id": target_home.subentry_id,
             },
         ),
-        ("device-home", {"remove_config_entry_id": "legacy-source"}),
         (
             "device-office",
             {
-                "add_config_entry_id": "clean-parent",
-                "add_config_subentry_id": target_office.subentry_id,
+                "new_config_entry_id": "clean-parent",
+                "new_config_subentry_id": target_office.subentry_id,
             },
         ),
-        ("device-office", {"remove_config_entry_id": "legacy-source"}),
     ]
     assert source.data == {
         integration.CONF_API_KEY: "shared-key",
@@ -3008,6 +3008,11 @@ def test_migrate_grouped_source_single_subentry_moves_association(
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: Any) -> None:
             device_updates.append((device_id, kwargs))
+            return types.SimpleNamespace(
+                id=device_id,
+                config_entry_id=kwargs.get("new_config_entry_id", parent.entry_id),
+                config_subentry_id=kwargs["new_config_subentry_id"],
+            )
 
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: _DeviceRegistry()
@@ -3037,11 +3042,10 @@ def test_migrate_grouped_source_single_subentry_moves_association(
         (
             "device-office",
             {
-                "add_config_entry_id": "legacy-home",
-                "add_config_subentry_id": office_subentry.subentry_id,
+                "new_config_entry_id": "legacy-home",
+                "new_config_subentry_id": office_subentry.subentry_id,
             },
         ),
-        ("device-office", {"remove_config_entry_id": "legacy-office"}),
     ]
     assert source.data == {
         integration.CONF_API_KEY: "shared-key",
@@ -3107,6 +3111,11 @@ def test_migrate_grouped_source_only_none_device_association_keeps_source(
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: Any) -> None:
             device_updates.append((device_id, kwargs))
+            return types.SimpleNamespace(
+                id=device_id,
+                config_entry_id=kwargs.get("new_config_entry_id", parent.entry_id),
+                config_subentry_id=kwargs["new_config_subentry_id"],
+            )
 
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: _DeviceRegistry()
@@ -3293,6 +3302,11 @@ def test_migrate_grouped_entries_attaches_parent_registries_to_parent_subentry(
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: str) -> None:
             device_updates.append((device_id, kwargs))
+            return types.SimpleNamespace(
+                id=device_id,
+                config_entry_id=kwargs.get("new_config_entry_id", parent.entry_id),
+                config_subentry_id=kwargs["new_config_subentry_id"],
+            )
 
     device_registry = _DeviceRegistry()
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
@@ -3344,25 +3358,16 @@ def test_migrate_grouped_entries_attaches_parent_registries_to_parent_subentry(
         (
             "device-home",
             {
-                "add_config_entry_id": "legacy-home",
-                "add_config_subentry_id": home_subentry.subentry_id,
-            },
-        ),
-        (
-            "device-home",
-            {
-                "remove_config_entry_id": "legacy-home",
-                "remove_config_subentry_id": None,
+                "new_config_subentry_id": home_subentry.subentry_id,
             },
         ),
         (
             "device-office",
             {
-                "add_config_entry_id": "legacy-home",
-                "add_config_subentry_id": office_subentry.subentry_id,
+                "new_config_entry_id": "legacy-home",
+                "new_config_subentry_id": office_subentry.subentry_id,
             },
         ),
-        ("device-office", {"remove_config_entry_id": "legacy-office"}),
     ]
 
 
@@ -3524,11 +3529,10 @@ def test_migrate_parent_surviving_devices_move_from_main_entry_to_location_suben
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: str) -> None:
             device = next(device for device in devices if device.id == device_id)
-            if add_entry := kwargs.get("add_config_entry_id"):
+            if add_entry := kwargs.get("new_config_entry_id"):
                 device.config_entry_id = add_entry
-                device.config_subentry_id = kwargs.get("add_config_subentry_id")
-            # These tests inject successful moves; the real HA harness covers
-            # the deprecated add/remove API's deferred cross-owner transition.
+            device.config_subentry_id = kwargs["new_config_subentry_id"]
+            return device
 
     device_registry = _DeviceRegistry()
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
@@ -3629,11 +3633,10 @@ def test_migrate_a1_state_repairs_registry_without_duplicate_subentries(
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: str) -> None:
             assert device_id == device.id
-            if add_entry := kwargs.get("add_config_entry_id"):
+            if add_entry := kwargs.get("new_config_entry_id"):
                 device.config_entry_id = add_entry
-                device.config_subentry_id = kwargs.get("add_config_subentry_id")
-            # These tests inject successful moves; the real HA harness covers
-            # the deprecated add/remove API's deferred cross-owner transition.
+            device.config_subentry_id = kwargs["new_config_subentry_id"]
+            return device
 
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: _DeviceRegistry()
@@ -3703,11 +3706,10 @@ def test_migrate_legacy_main_device_association_to_existing_subentry(
         def async_update_device(self, device_id: str, **kwargs: Any) -> None:
             device_updates.append((device_id, kwargs))
             assert device_id == device.id
-            if add_entry := kwargs.get("add_config_entry_id"):
+            if add_entry := kwargs.get("new_config_entry_id"):
                 device.config_entry_id = add_entry
-                device.config_subentry_id = kwargs.get("add_config_subentry_id")
-            # These tests inject successful moves; the real HA harness covers
-            # the deprecated add/remove API's deferred cross-owner transition.
+            device.config_subentry_id = kwargs["new_config_subentry_id"]
+            return device
 
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: _DeviceRegistry()
@@ -3726,13 +3728,9 @@ def test_migrate_legacy_main_device_association_to_existing_subentry(
     assert device in devices
     assert removed_devices == []
     assert device.config_subentry_id == "existing-home"
-    assert (
-        "device-home",
-        {
-            "remove_config_entry_id": "legacy-home",
-            "remove_config_subentry_id": None,
-        },
-    ) in device_updates
+    assert device_updates == [
+        ("device-home", {"new_config_subentry_id": "existing-home"})
+    ]
 
 
 def test_migrate_grouped_parent_retry_after_parent_registry_failure_is_idempotent(
@@ -4109,8 +4107,8 @@ def test_migrate_grouped_entries_keeps_duplicate_when_device_registry_update_fai
         (
             "device-office",
             {
-                "add_config_entry_id": "legacy-home",
-                "add_config_subentry_id": office_subentry.subentry_id,
+                "new_config_entry_id": "legacy-home",
+                "new_config_subentry_id": office_subentry.subentry_id,
             },
         )
     ]

@@ -206,3 +206,247 @@ async def test_migration_device_failure_retries_without_changing_identity(
     assert retained.device_id == device.id
     assert retained.config_subentry_id in subentries
     assert registry.async_get(device.id).config_subentry_id in subentries
+
+
+@pytest.mark.parametrize("same_owner", [False, True])
+async def test_atomic_move_and_noop_counters(
+    hass,
+    ha_config_entry,
+    same_owner,
+    monkeypatch,
+):
+    """Moves retain identity; a repeated destination produces no update or count."""
+    clear_integration_modules()
+    from custom_components.pollenlevels.migration import (
+        _migrate_device_registry_for_merged_entry,
+        _MigrationLocation,
+    )
+
+    parent = ha_config_entry
+    parent.add_to_hass(hass)
+    source = parent if same_owner else _legacy_entry()
+    if not same_owner:
+        source.add_to_hass(hass)
+    target = next(iter(parent.subentries.values()))
+    registry = dr.async_get(hass)
+    device = registry.async_get_or_create(
+        config_entry_id=source.entry_id,
+        identifiers={(DOMAIN, "atomic-device")},
+        connections={("test", "synthetic-connection")},
+    )
+    device = registry.async_update_device(
+        device.id,
+        name_by_user="User name",
+        area_id="user-area",
+        disabled_by=dr.DeviceEntryDisabler.USER,
+    )
+    location = _MigrationLocation(source, "Home", {}, source.entry_id, None)
+    update = Mock(wraps=registry.async_update_device)
+    monkeypatch.setattr(registry, "async_update_device", update)
+    result = _migrate_device_registry_for_merged_entry(
+        hass, source, parent, [(location, target)]
+    )
+    assert result == (True, 1, int(same_owner))
+    expected = {"new_config_subentry_id": target.subentry_id}
+    if not same_owner:
+        expected["new_config_entry_id"] = parent.entry_id
+    update.assert_called_once_with(device.id, **expected)
+    actual = registry.async_get(device.id)
+    assert actual.config_entry_id == parent.entry_id
+    assert actual.config_subentry_id == target.subentry_id
+    for field in (
+        "id",
+        "identifiers",
+        "connections",
+        "name_by_user",
+        "area_id",
+        "disabled_by",
+    ):
+        assert getattr(actual, field) == getattr(device, field)
+    update.reset_mock()
+    location = _MigrationLocation(
+        parent, "Home", {}, source.entry_id, None, target.subentry_id
+    )
+    assert _migrate_device_registry_for_merged_entry(
+        hass, parent, parent, [(location, target)]
+    ) == (True, 0, 0)
+    update.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "identifier",
+        "connection",
+        "children",
+        "missing_entry",
+        "missing_subentry",
+        "ignored",
+        "none",
+    ],
+)
+async def test_atomic_move_rejection_keeps_registry_state(
+    hass,
+    ha_config_entry,
+    monkeypatch,
+    failure,
+):
+    """Real HA validation and ignored updates must never count as successful moves."""
+    clear_integration_modules()
+    from custom_components.pollenlevels.migration import (
+        _migrate_device_registry_for_merged_entry,
+        _MigrationLocation,
+    )
+
+    parent = ha_config_entry
+    if failure != "missing_entry":
+        parent.add_to_hass(hass)
+    source = _legacy_entry()
+    source.add_to_hass(hass)
+    target = next(iter(parent.subentries.values()))
+    registry = dr.async_get(hass)
+    device = registry.async_get_or_create(
+        config_entry_id=source.entry_id,
+        identifiers={(DOMAIN, "collision")},
+        connections={("test", "synthetic-connection")},
+    )
+    if failure in {"identifier", "connection"}:
+        registry.async_get_or_create(
+            config_entry_id=parent.entry_id,
+            identifiers=device.identifiers
+            if failure == "identifier"
+            else {(DOMAIN, "other-device")},
+            connections=device.connections if failure == "connection" else set(),
+        )
+    elif failure == "children":
+        registry.async_get_or_create_child(
+            config_entry_id=source.entry_id,
+            parent_device_id=device.id,
+            identifiers={(DOMAIN, "child")},
+        )
+    elif failure == "missing_subentry":
+        target = SimpleNamespace(subentry_id="missing-location")
+    elif failure in {"ignored", "none"}:
+        monkeypatch.setattr(
+            registry,
+            "async_update_device",
+            Mock(return_value=device if failure == "ignored" else None),
+        )
+    location = _MigrationLocation(source, "Home", {}, source.entry_id, None)
+    assert _migrate_device_registry_for_merged_entry(
+        hass, source, parent, [(location, target)]
+    ) == (False, 0, 0)
+    assert registry.async_get(device.id) == device
+    assert hass.config_entries.async_get_entry(source.entry_id) is source
+
+
+@pytest.mark.parametrize("failure", ["exception", "ignored", "collision"])
+async def test_grouped_atomic_failure_retains_source_after_entity_success(
+    hass,
+    ha_config_entry,
+    enable_custom_integrations,
+    monkeypatch,
+    failure,
+):
+    """Partial entity success is retryable without removing the legacy source."""
+    clear_integration_modules()
+    from custom_components.pollenlevels.const import CONF_API_KEY
+
+    parent = ha_config_entry
+    parent.add_to_hass(hass)
+    source = legacy_config_entry(
+        entry_id="atomic-source",
+        title="Legacy",
+        api_key=parent.data[CONF_API_KEY],
+        latitude=1.0,
+        longitude=2.0,
+    )
+    source.add_to_hass(hass)
+    registry = dr.async_get(hass)
+    device = registry.async_get_or_create(
+        config_entry_id=source.entry_id, identifiers={(DOMAIN, "retained-device")}
+    )
+    entities = er.async_get(hass)
+    entity = entities.async_get_or_create(
+        "sensor", DOMAIN, "retained-unique", config_entry=source, device_id=device.id
+    )
+    blocker = None
+    with monkeypatch.context() as patch:
+        if failure == "collision":
+            blocker = registry.async_get_or_create(
+                config_entry_id=parent.entry_id, identifiers=device.identifiers
+            )
+        else:
+            patch.setattr(
+                registry,
+                "async_update_device",
+                Mock(side_effect=RuntimeError("Synthetic failure"))
+                if failure == "exception"
+                else Mock(return_value=device),
+            )
+        assert not await async_migrate_config_entry(hass, parent)
+    assert entities.async_get(entity.entity_id).config_entry_id == parent.entry_id
+    assert registry.async_get(device.id).config_entry_id == source.entry_id
+    assert hass.config_entries.async_get_entry(source.entry_id) is source
+    persisted = set(parent.subentries)
+    if blocker:
+        # Resolve the injected conflict; production never deletes the competing device.
+        registry.async_update_device(
+            blocker.id, new_identifiers={(DOMAIN, "resolved-conflict")}
+        )
+    assert await async_migrate_config_entry(hass, parent)
+    assert hass.config_entries.async_get_entry(source.entry_id) is None
+    assert set(parent.subentries) == persisted
+    retained = entities.async_get(entity.entity_id)
+    assert retained.unique_id == entity.unique_id
+    assert retained.device_id == device.id
+    assert registry.async_get(device.id).config_entry_id == parent.entry_id
+    assert (
+        registry.async_get(device.id).config_subentry_id == retained.config_subentry_id
+    )
+    assert await async_migrate_config_entry(hass, parent)
+    assert set(parent.subentries) == persisted
+
+
+@pytest.mark.parametrize(
+    "source_disabled,target_disabled,expected",
+    [(True, False, None), (False, True, dr.DeviceEntryDisabler.CONFIG_ENTRY)],
+)
+async def test_atomic_move_respects_config_entry_disabled_state(
+    hass,
+    ha_config_entry,
+    source_disabled,
+    target_disabled,
+    expected,
+):
+    """HA reconciles CONFIG_ENTRY disabling with the destination owner."""
+    from homeassistant.config_entries import ConfigEntryDisabler
+
+    clear_integration_modules()
+    from custom_components.pollenlevels.migration import (
+        _migrate_device_registry_for_merged_entry,
+        _MigrationLocation,
+    )
+
+    parent = ha_config_entry
+    parent.add_to_hass(hass)
+    source = _legacy_entry()
+    source.add_to_hass(hass)
+    if source_disabled:
+        await hass.config_entries.async_set_disabled_by(
+            source.entry_id, ConfigEntryDisabler.USER
+        )
+    if target_disabled:
+        await hass.config_entries.async_set_disabled_by(
+            parent.entry_id, ConfigEntryDisabler.USER
+        )
+    registry = dr.async_get(hass)
+    device = registry.async_get_or_create(
+        config_entry_id=source.entry_id, identifiers={(DOMAIN, "disabled-device")}
+    )
+    target = next(iter(parent.subentries.values()))
+    location = _MigrationLocation(source, "Home", {}, source.entry_id, None)
+    assert _migrate_device_registry_for_merged_entry(
+        hass, source, parent, [(location, target)]
+    ) == (True, 1, 0)
+    assert registry.async_get(device.id).disabled_by == expected
