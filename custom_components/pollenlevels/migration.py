@@ -348,26 +348,6 @@ def _make_migrated_subentry(
     )
 
 
-def _add_migrated_subentry_for_tests(
-    entry: ConfigEntry, subentry: ConfigSubentry
-) -> None:
-    """Fallback used by lightweight tests without Home Assistant's entry manager."""
-    subentries = dict(getattr(entry, "subentries", {}) or {})
-    subentries[subentry.subentry_id] = subentry
-    entry.subentries = subentries
-
-
-def _add_migrated_subentry(
-    hass: HomeAssistant, entry: ConfigEntry, subentry: ConfigSubentry
-) -> ConfigSubentry:
-    """Add a migrated subentry using HA APIs or the local test fallback."""
-    if hasattr(hass.config_entries, "async_add_subentry"):
-        hass.config_entries.async_add_subentry(entry, subentry)
-    else:
-        _add_migrated_subentry_for_tests(entry, subentry)
-    return subentry
-
-
 def _existing_location_indexes(
     entry: ConfigEntry,
 ) -> tuple[set[str | None], dict[str, ConfigSubentry]]:
@@ -389,11 +369,7 @@ def _migration_group_entries(
     hass: HomeAssistant, entry: ConfigEntry, api_key: str
 ) -> list[ConfigEntry]:
     """Return legacy entries sharing the same API key."""
-    async_entries = getattr(hass.config_entries, "async_entries", None)
-    if callable(async_entries):
-        entries = list(async_entries(DOMAIN))
-    else:
-        entries = [entry]
+    entries = hass.config_entries.async_entries(DOMAIN)
 
     group: list[ConfigEntry] = []
     target_unique_id = api_key_unique_id(api_key)
@@ -657,12 +633,7 @@ def _mark_entry_merged(
 
 async def _async_remove_merged_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Remove a duplicate entry after its data has been merged."""
-    async_remove = getattr(hass.config_entries, "async_remove", None)
-    if async_remove is None:
-        return
-    result = async_remove(entry.entry_id)
-    if asyncio.iscoroutine(result):
-        await result
+    await hass.config_entries.async_remove(entry.entry_id)
 
 
 async def _remove_or_schedule_merged_entry(
@@ -672,12 +643,10 @@ async def _remove_or_schedule_merged_entry(
 ) -> None:
     """Remove merged entries, deferring the current entry until its setup lock exits."""
     if source is current:
-        create_task = getattr(hass, "async_create_task", None)
-        if callable(create_task):
-            create_task(
-                _async_remove_merged_entry(hass, source),
-                name=f"remove merged {DOMAIN} entry {source.entry_id}",
-            )
+        hass.async_create_task(
+            _async_remove_merged_entry(hass, source),
+            name=f"remove merged {DOMAIN} entry {source.entry_id}",
+        )
         return
 
     await _async_remove_merged_entry(hass, source)
@@ -772,7 +741,7 @@ async def _async_migrate_grouped_entries(
                 subentry = legacy_subentries.get(location.legacy_entry_id)
             if subentry is None:
                 subentry = _make_migrated_subentry(location, used_unique_ids)
-                _add_migrated_subentry(hass, parent, subentry)
+                hass.config_entries.async_add_subentry(parent, subentry)
                 if location.legacy_entry_id is not None:
                     legacy_subentries[location.legacy_entry_id] = subentry
                 _LOGGER.info(
@@ -980,7 +949,7 @@ async def async_handle_entry_migration(
                 subentry = legacy_subentries.get(location.legacy_entry_id)
             if subentry is None:
                 subentry = _make_migrated_subentry(location, used_unique_ids)
-                _add_migrated_subentry(hass, entry, subentry)
+                hass.config_entries.async_add_subentry(entry, subentry)
                 if location.legacy_entry_id is not None:
                     legacy_subentries[location.legacy_entry_id] = subentry
                 _LOGGER.info(
