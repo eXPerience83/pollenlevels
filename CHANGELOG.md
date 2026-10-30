@@ -19,10 +19,13 @@ The intended final 5.0 minimum is a separately validated stable HA 2026.11.x.
   coverage. These tests do not replace real historical-install upgrades.
 - No new pollen sensors, entity types or visible forecast functionality.
   Existing type/plant codes, summary and forecast attributes are unchanged.
-- Back up the whole Home Assistant installation (including Recorder data)
-  before testing an upgrade, and store the backup and encryption recovery
-  key off-device. If Recorder uses an external database, back it up separately.
-  Restoring 4.0.3 files alone cannot reverse Registry/database migrations.
+- Back up the complete persistent Home Assistant configuration, Registry
+  and Recorder data before upgrading. On HAOS, use a full off-device backup
+  with its encryption key; on HA Container/TrueNAS, stop the container
+  before a consistent snapshot/copy of its mounted config and SQLite
+  database, and store a restore-capable copy off-NAS. Back up any external
+  Recorder database separately. Reinstalling 4.0.3 files alone cannot
+  reverse Registry/database migrations.
 - This temporary HA 2026.10.4 alpha floor does not change the intended
   final 5.0 minimum, which is a tested stable HA 2026.11.x release.
 
