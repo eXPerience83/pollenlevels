@@ -1,5 +1,55 @@
 # Changelog
 
+## [5.0.0a1] - 2026-10-30
+
+Experimental alpha for voluntary testing; **not production-ready**. Validated
+against Home Assistant **2026.10.4**, PHACC **0.13.375** and Python 3.14.
+The intended final 5.0 minimum is a separately validated stable HA 2026.11.x.
+
+### Changed
+
+- **Breaking change:** Raised the minimum Home Assistant version for this
+  alpha only to **2026.10.4** to use its modern Device Registry contracts.
+  Pollen Levels 4.0.3 remains the public stable for HA 2026.5.0 and newer.
+- Modernized single-owner device association reads and atomic device moves
+  between parent config entries and location subentries (#456, #457).
+- Removed obsolete migration manager compatibility adapters (#458).
+- Updated locked current and minimum test environments to HA 2026.10.4 /
+  PHACC 0.13.375, with expanded real-HA registry and migration regression
+  coverage. These tests do not replace real historical-install upgrades.
+- No new pollen sensors, entity types or visible forecast functionality.
+  Existing type/plant codes, summary and forecast attributes are unchanged.
+
+### Fixed
+
+- Reconciled migrated locations added while the target parent entry was
+  setting up, so runtime locations converge with stored subentries (#455).
+- Failed closed on registry reassociation errors and kept entity moves
+  ahead of device moves during migration (#459).
+- Added regression coverage for device ownership, legacy identifiers,
+  Registry associations, safe retries and partial migration failures.
+
+### Security
+
+- Applied compatible fixes for multidict, urllib3 and certificate-related
+  advisories in repository validation dependencies (#447, #453).
+- Enforced the three-day dependency maturity policy on `uvx zizmor`
+  (#461).
+- Known limitation: HA 2026.10.4 pins Pillow 12.3.0, which still matches
+  published vulnerability ranges. Do not override upstream HA constraints
+  to silence dependency alerts. Use this alpha only for controlled testing.
+
+### Deprecated
+
+- **Alpha-only compatibility floor:** the provisional HA 2026.10.4 minimum
+  will be replaced by a validated stable HA 2026.11.x minimum before final
+  5.0 release. Older HA users should remain on the last compatible stable.
+
+### Removed
+
+- No public sensors, services, entity identifiers or forecast attributes
+  have been removed in this alpha.
+
 ## [4.0.3] - 2026-09-26
 
 This patch release completes the post-4.0.2 internal hardening and repository
