@@ -19,6 +19,12 @@ The intended final 5.0 minimum is a separately validated stable HA 2026.11.x.
   coverage. These tests do not replace real historical-install upgrades.
 - No new pollen sensors, entity types or visible forecast functionality.
   Existing type/plant codes, summary and forecast attributes are unchanged.
+- Back up the whole Home Assistant installation (including Recorder data)
+  before testing an upgrade, and store the backup and encryption recovery
+  key off-device. If Recorder uses an external database, back it up separately.
+  Restoring 4.0.3 files alone cannot reverse Registry/database migrations.
+- This temporary HA 2026.10.4 alpha floor does not change the intended
+  final 5.0 minimum, which is a tested stable HA 2026.11.x release.
 
 ### Fixed
 
@@ -38,17 +44,6 @@ The intended final 5.0 minimum is a separately validated stable HA 2026.11.x.
 - Known limitation: HA 2026.10.4 pins Pillow 12.3.0, which still matches
   published vulnerability ranges. Do not override upstream HA constraints
   to silence dependency alerts. Use this alpha only for controlled testing.
-
-### Deprecated
-
-- **Alpha-only compatibility floor:** the provisional HA 2026.10.4 minimum
-  will be replaced by a validated stable HA 2026.11.x minimum before final
-  5.0 release. Older HA users should remain on the last compatible stable.
-
-### Removed
-
-- No public sensors, services, entity identifiers or forecast attributes
-  have been removed in this alpha.
 
 ## [4.0.3] - 2026-09-26
 
