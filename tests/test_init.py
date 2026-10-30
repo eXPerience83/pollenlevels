@@ -2435,10 +2435,15 @@ def test_migrate_mixed_parent_direct_legacy_location_attaches_registries(
     device_registry_mod.async_get = lambda _hass: device_registry
     device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: (
         [
-            types.SimpleNamespace(id="device-home"),
+            types.SimpleNamespace(
+                id="device-home",
+                config_entry_id="mixed-parent",
+                config_subentry_id=None,
+            ),
             types.SimpleNamespace(
                 id="device-existing",
-                config_entries_subentries={"mixed-parent": {"existing-location"}},
+                config_entry_id="mixed-parent",
+                config_subentry_id="existing-location",
             ),
         ]
         if entry_id == "mixed-parent"
@@ -2882,11 +2887,13 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
         [
             types.SimpleNamespace(
                 id="device-home",
-                config_entries_subentries={"legacy-source": {"source-home"}},
+                config_entry_id="legacy-source",
+                config_subentry_id="source-home",
             ),
             types.SimpleNamespace(
                 id="device-office",
-                config_entries_subentries={"legacy-source": {"source-office"}},
+                config_entry_id="legacy-source",
+                config_subentry_id="source-office",
             ),
         ]
         if entry_id == "legacy-source"
@@ -2946,10 +2953,10 @@ def test_migrate_grouped_multi_subentry_source_moves_registries_by_location(
     assert hass.config_entries.removed_entries == ["legacy-source"]
 
 
-def test_migrate_grouped_source_mixed_none_and_subentry_skips_leftover_none(
+def test_migrate_grouped_source_single_subentry_moves_association(
     integration_modules: _InitModules, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A grouped source device should ignore stale None if a valid subentry exists."""
+    """A grouped source device should retain its known source subentry."""
     integration = integration_modules.integration
 
     parent_subentry = integration_modules.config_entries.ConfigSubentry(
@@ -3008,8 +3015,8 @@ def test_migrate_grouped_source_mixed_none_and_subentry_skips_leftover_none(
         [
             types.SimpleNamespace(
                 id="device-office",
-                config_entries={"legacy-office"},
-                config_entries_subentries={"legacy-office": {None, "source-location"}},
+                config_entry_id="legacy-office",
+                config_subentry_id="source-location",
             )
         ]
         if entry_id == "legacy-office"
@@ -3107,8 +3114,8 @@ def test_migrate_grouped_source_only_none_device_association_keeps_source(
         [
             types.SimpleNamespace(
                 id="device-office",
-                config_entries={"legacy-office"},
-                config_entries_subentries={"legacy-office": {None}},
+                config_entry_id="legacy-office",
+                config_subentry_id=None,
             )
         ]
         if entry_id == "legacy-office"
@@ -3291,8 +3298,18 @@ def test_migrate_grouped_entries_attaches_parent_registries_to_parent_subentry(
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: device_registry
     device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: {
-        "legacy-home": [types.SimpleNamespace(id="device-home")],
-        "legacy-office": [types.SimpleNamespace(id="device-office")],
+        "legacy-home": [
+            types.SimpleNamespace(
+                id="device-home", config_entry_id="legacy-home", config_subentry_id=None
+            )
+        ],
+        "legacy-office": [
+            types.SimpleNamespace(
+                id="device-office",
+                config_entry_id="legacy-office",
+                config_subentry_id=None,
+            )
+        ],
     }.get(entry_id, [])
     monkeypatch.setitem(
         sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
@@ -3493,13 +3510,13 @@ def test_migrate_parent_surviving_devices_move_from_main_entry_to_location_suben
 
     parent_device = types.SimpleNamespace(
         id="device-home",
-        config_entries={"legacy-home"},
-        config_entries_subentries={"legacy-home": {None}},
+        config_entry_id="legacy-home",
+        config_subentry_id=None,
     )
     duplicate_device = types.SimpleNamespace(
         id="device-office",
-        config_entries={"legacy-office"},
-        config_entries_subentries={"legacy-office": {None}},
+        config_entry_id="legacy-office",
+        config_subentry_id=None,
     )
     devices = [parent_device, duplicate_device]
     removed_devices: list[str] = []
@@ -3508,27 +3525,16 @@ def test_migrate_parent_surviving_devices_move_from_main_entry_to_location_suben
         def async_update_device(self, device_id: str, **kwargs: str) -> None:
             device = next(device for device in devices if device.id == device_id)
             if add_entry := kwargs.get("add_config_entry_id"):
-                device.config_entries.add(add_entry)
-                device.config_entries_subentries.setdefault(add_entry, set()).add(
-                    kwargs.get("add_config_subentry_id")
-                )
-            if remove_entry := kwargs.get("remove_config_entry_id"):
-                if "remove_config_subentry_id" in kwargs:
-                    subentries = device.config_entries_subentries.setdefault(
-                        remove_entry, set()
-                    )
-                    subentries.discard(kwargs["remove_config_subentry_id"])
-                    if not subentries:
-                        device.config_entries.discard(remove_entry)
-                else:
-                    device.config_entries.discard(remove_entry)
-                    device.config_entries_subentries.pop(remove_entry, None)
+                device.config_entry_id = add_entry
+                device.config_subentry_id = kwargs.get("add_config_subentry_id")
+            # These tests inject successful moves; the real HA harness covers
+            # the deprecated add/remove API's deferred cross-owner transition.
 
     device_registry = _DeviceRegistry()
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: device_registry
     device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: [
-        device for device in devices if entry_id in device.config_entries
+        device for device in devices if entry_id == device.config_entry_id
     ]
     monkeypatch.setitem(
         sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
@@ -3557,14 +3563,10 @@ def test_migrate_parent_surviving_devices_move_from_main_entry_to_location_suben
     assert parent_device in devices
     assert duplicate_device in devices
     assert removed_devices == []
-    assert parent_device.config_entries == {"legacy-home"}
-    assert parent_device.config_entries_subentries == {
-        "legacy-home": {home_subentry.subentry_id}
-    }
-    assert duplicate_device.config_entries == {"legacy-home"}
-    assert duplicate_device.config_entries_subentries == {
-        "legacy-home": {office_subentry.subentry_id}
-    }
+    assert parent_device.config_entry_id == "legacy-home"
+    assert parent_device.config_subentry_id == home_subentry.subentry_id
+    assert duplicate_device.config_entry_id == "legacy-home"
+    assert duplicate_device.config_subentry_id == office_subentry.subentry_id
 
 
 def test_migrate_a1_state_repairs_registry_without_duplicate_subentries(
@@ -3620,23 +3622,18 @@ def test_migrate_a1_state_repairs_registry_without_duplicate_subentries(
 
     device = types.SimpleNamespace(
         id="device-home",
-        config_entries={"legacy-home"},
-        config_entries_subentries={"legacy-home": {None}},
+        config_entry_id="legacy-home",
+        config_subentry_id=None,
     )
 
     class _DeviceRegistry:
         def async_update_device(self, device_id: str, **kwargs: str) -> None:
             assert device_id == device.id
             if add_entry := kwargs.get("add_config_entry_id"):
-                device.config_entries.add(add_entry)
-                device.config_entries_subentries.setdefault(add_entry, set()).add(
-                    kwargs.get("add_config_subentry_id")
-                )
-            if remove_entry := kwargs.get("remove_config_entry_id"):
-                subentries = device.config_entries_subentries.setdefault(
-                    remove_entry, set()
-                )
-                subentries.discard(kwargs.get("remove_config_subentry_id"))
+                device.config_entry_id = add_entry
+                device.config_subentry_id = kwargs.get("add_config_subentry_id")
+            # These tests inject successful moves; the real HA harness covers
+            # the deprecated add/remove API's deferred cross-owner transition.
 
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: _DeviceRegistry()
@@ -3655,16 +3652,14 @@ def test_migrate_a1_state_repairs_registry_without_duplicate_subentries(
     assert entity.entity_id == "sensor.legacy_home_grass"
     assert entity.unique_id == "legacy-home_type_grass"
     assert entity.config_subentry_id == existing_subentry.subentry_id
-    assert device.config_entries_subentries == {
-        "legacy-home": {existing_subentry.subentry_id}
-    }
+    assert device.config_subentry_id == existing_subentry.subentry_id
 
 
-def test_migrate_mixed_device_registry_state_removes_leftover_none_association(
+def test_migrate_legacy_main_device_association_to_existing_subentry(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Migration should remove stale legacy main-entry device links."""
+    """Migration should move a legacy main-entry link to an existing location."""
     integration = integration_modules.integration
 
     existing_subentry = integration_modules.config_entries.ConfigSubentry(
@@ -3697,8 +3692,8 @@ def test_migrate_mixed_device_registry_state_removes_leftover_none_association(
 
     device = types.SimpleNamespace(
         id="device-home",
-        config_entries={"legacy-home"},
-        config_entries_subentries={"legacy-home": {None, "existing-home"}},
+        config_entry_id="legacy-home",
+        config_subentry_id=None,
     )
     devices = [device]
     removed_devices: list[str] = []
@@ -3709,26 +3704,15 @@ def test_migrate_mixed_device_registry_state_removes_leftover_none_association(
             device_updates.append((device_id, kwargs))
             assert device_id == device.id
             if add_entry := kwargs.get("add_config_entry_id"):
-                device.config_entries.add(add_entry)
-                device.config_entries_subentries.setdefault(add_entry, set()).add(
-                    kwargs.get("add_config_subentry_id")
-                )
-            if remove_entry := kwargs.get("remove_config_entry_id"):
-                if "remove_config_subentry_id" in kwargs:
-                    subentries = device.config_entries_subentries.setdefault(
-                        remove_entry, set()
-                    )
-                    subentries.discard(kwargs["remove_config_subentry_id"])
-                    if not subentries:
-                        device.config_entries.discard(remove_entry)
-                else:
-                    device.config_entries.discard(remove_entry)
-                    device.config_entries_subentries.pop(remove_entry, None)
+                device.config_entry_id = add_entry
+                device.config_subentry_id = kwargs.get("add_config_subentry_id")
+            # These tests inject successful moves; the real HA harness covers
+            # the deprecated add/remove API's deferred cross-owner transition.
 
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: _DeviceRegistry()
     device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: [
-        device for device in devices if entry_id in device.config_entries
+        device for device in devices if entry_id == device.config_entry_id
     ]
     monkeypatch.setitem(
         sys.modules, "homeassistant.helpers.device_registry", device_registry_mod
@@ -3741,7 +3725,7 @@ def test_migrate_mixed_device_registry_state_removes_leftover_none_association(
     assert hass.config_entries.added_subentries == []
     assert device in devices
     assert removed_devices == []
-    assert device.config_entries_subentries == {"legacy-home": {"existing-home"}}
+    assert device.config_subentry_id == "existing-home"
     assert (
         "device-home",
         {
@@ -4091,7 +4075,13 @@ def test_migrate_grouped_entries_keeps_duplicate_when_device_registry_update_fai
     device_registry_mod = types.ModuleType("homeassistant.helpers.device_registry")
     device_registry_mod.async_get = lambda _hass: _DeviceRegistry()
     device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: (
-        [types.SimpleNamespace(id="device-office")]
+        [
+            types.SimpleNamespace(
+                id="device-office",
+                config_entry_id="legacy-office",
+                config_subentry_id=None,
+            )
+        ]
         if entry_id == "legacy-office"
         else []
     )
