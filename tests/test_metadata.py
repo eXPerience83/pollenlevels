@@ -376,9 +376,18 @@ def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> Non
         for name, versions in lock_packages.items()
         if any(version.is_prerelease for version in versions)
     }
-    assert locked_prereleases == {
+    expected_locked_prereleases = {
         name: {version} for name, version in declared_prereleases.items()
     }
+    # An alpha/RC release legitimately locks the local project as a prerelease.
+    # This exception must not weaken the rule for third-party dependencies.
+    project = _load_pyproject()["project"]
+    local_version = Version(project["version"])
+    if local_version.is_prerelease:
+        expected_locked_prereleases[canonicalize_name(project["name"])] = {
+            local_version
+        }
+    assert locked_prereleases == expected_locked_prereleases
 
     if os.environ.get("HA_COMPATIBILITY_CANARY") == "1":
         # The advisory canary deliberately installs the newest harness instead
