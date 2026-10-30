@@ -447,29 +447,6 @@ def test_validate_location_pair_rejects_invalid_pair(util_module, latitude, long
     assert util_module.validate_location_pair(latitude, longitude) is None
 
 
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
-        (None, {None}),
-        ("", {None}),
-        ("abc", {"abc"}),
-        (["abc", None, ""], {"abc", None}),
-        ({"abc", None}, {"abc", None}),
-        (("abc", "def"), {"abc", "def"}),
-    ],
-)
-def test_normalize_subentry_ids(util_module, value, expected):
-    """Subentry ID containers should normalize to stable string/None sets."""
-
-    assert util_module.normalize_subentry_ids(value) == expected
-
-
-def test_normalize_subentry_ids_handles_non_iterable_values(util_module):
-    """Non-iterable subentry containers should fall back to legacy None."""
-
-    assert util_module.normalize_subentry_ids(123) == {None}
-
-
 def test_device_subentry_ids_returns_none_without_supported_attributes(util_module):
     """Devices without subentry attributes should report unavailable metadata."""
 

@@ -99,24 +99,6 @@ def active_location_subentry_ids(entry: Any) -> set[str]:
     return active_ids
 
 
-def normalize_subentry_ids(value: Any) -> set[str | None]:
-    """Return normalized subentry IDs while preserving legacy None links."""
-    if value is None:
-        return {None}
-    if isinstance(value, str):
-        return {value} if value else {None}
-    try:
-        ids: set[str | None] = set()
-        for item in value:
-            if item is None:
-                ids.add(None)
-            elif isinstance(item, str) and item:
-                ids.add(item)
-        return ids or {None}
-    except TypeError:
-        return {None}
-
-
 def device_subentry_ids(device: Any, entry_id: str) -> set[str | None] | None:
     """Return an ordinary device's association, or None for unknown ownership.
 
@@ -390,7 +372,6 @@ __all__ = [
     "LEGACY_FORECAST_OPTION_KEYS",
     "normalize_language_code",
     "normalize_pollen_index_value",
-    "normalize_subentry_ids",
     "parse_finite_float",
     "redact_api_key",
     "redact_sensitive_values",
