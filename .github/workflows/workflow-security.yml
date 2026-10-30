@@ -98,6 +98,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          UV_EXCLUDE_NEWER: "3 days"
         run: |
           set -euo pipefail
           uvx "zizmor@${ZIZMOR_VERSION}" \
