@@ -1,9 +1,9 @@
 {
     "domain": "pollenlevels",
     "name": "Pollen Levels",
+    "categories": ["weather_alerts.air_quality_pollen"],
     "codeowners": ["@eXPerience83"],
     "config_flow": true,
-    "categories": ["weather_alerts.air_quality_pollen"],
     "documentation": "https://github.com/eXPerience83/pollenlevels",
     "integration_type": "service",
     "iot_class": "cloud_polling",
