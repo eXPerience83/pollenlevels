@@ -1,6 +1,7 @@
 {
     "domain": "pollenlevels",
     "name": "Pollen Levels",
+    "categories": ["weather_alerts.air_quality_pollen"],
     "codeowners": ["@eXPerience83"],
     "config_flow": true,
     "documentation": "https://github.com/eXPerience83/pollenlevels",
