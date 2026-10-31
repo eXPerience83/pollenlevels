@@ -6,13 +6,13 @@ pytest-homeassistant-custom-component **0.13.375**. The initial development
 baseline kept version metadata at 4.0.3, but was **not the published 4.0.3**
 and must never be installed or released under that version.
 
-The experimental `5.0.0a1` metadata, changelog and documentation are prepared
-in short-lived [PR #462](https://github.com/eXPerience83/pollenlevels/pull/462)
-from `release/5.0.0a1-ha-2026.10.4`. Once its checks and review are
-satisfactory, **squash-merge the PR into the preparation branch**, which then
-carries `5.0.0a1` and the temporary `hacs.json` minimum HA **2026.10.4**.
-The temporary release branch may then be deleted; do not keep parallel
-long-lived development branches.
+The experimental `5.0.0a1` metadata, changelog and documentation were
+squash-merged into this preparation branch in
+[PR #462](https://github.com/eXPerience83/pollenlevels/pull/462) on
+2026-10-31. This branch now carries version `5.0.0a1` and the
+**alpha-only** `hacs.json` minimum Home Assistant **2026.10.4**.
+The `release/5.0.0a1-ha-2026.10.4` branch was a short-lived PR branch,
+not a parallel development line; it can be deleted after merge.
 
 The trusted Release workflow must be dispatched from `main` with
 `release_ref` set to the **exact prepared commit on the preparation branch**,
