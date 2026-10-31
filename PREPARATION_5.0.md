@@ -1,19 +1,47 @@
-# Future 5.0 preparation branch
+# Pollen Levels 5.0 preparation and experimental alpha
 
-`prep/5.0-ha-2026.10.4` is an unpublished integration branch for #452 / #226.
-Its interim engineering floor is Home Assistant 2026.10.4 with
-pytest-homeassistant-custom-component 0.13.375, matching the normal locked tests.
-The minimum test requirements are exported from the existing `uv.lock`, without
-resolving newer dependencies. Both lanes use this provisional pair.
+The development branch `prep/5.0-ha-2026.10.4` tracks #452 / #226.
+Its provisional, locked test pair is Home Assistant **2026.10.4** with
+pytest-homeassistant-custom-component **0.13.375**. The initial development
+baseline kept version metadata at 4.0.3, but was **not the published 4.0.3**
+and must never be installed or released under that version.
 
-Public release metadata remains 4.0.3 and its historical HA 2026.5.0 support is
-unchanged on main and published tags. The retained HACS/README minimum on this
-branch describes that published release, not support for this unpublished code.
-Do not install or publish this branch as 4.0.3.
+The experimental `5.0.0a1` metadata, changelog and documentation are prepared
+in short-lived [PR #462](https://github.com/eXPerience83/pollenlevels/pull/462)
+from `release/5.0.0a1-ha-2026.10.4`. Once its checks and review are
+satisfactory, **squash-merge the PR into the preparation branch**, which then
+carries `5.0.0a1` and the temporary `hacs.json` minimum HA **2026.10.4**.
+The temporary release branch may then be deleted; do not keep parallel
+long-lived development branches.
 
-Device Registry PRs target this preparation branch, not main. Keep baseline
-commits separate from runtime changes. Do not merge this branch into main or
-publish without explicit authorization. The final 5.0 floor must be a validated,
-mature stable HA 2026.11.x / PHACC pair, with consistent public declarations and
-passing persisted-upgrade, Recorder and Marketplace gates. Historical Pollen
-Levels 2.x / 4.0.3 migration fixtures remain required.
+The trusted Release workflow must be dispatched from `main` with
+`release_ref` set to the **exact prepared commit on the preparation branch**,
+creating a draft prerelease without merging 5.0 code into `main`. Review the
+ZIP and release metadata before any manual publication. The published stable
+4.0.3 stays on `main` with HA 2026.5.0 support unchanged.
+
+This alpha is **not production-ready** and must not be interpreted as
+certification of historical HA OS on-disk upgrades, Recorder/statistics
+continuity, automated HACS-to-Marketplace takeover, or rollback. Volunteers
+using an existing HA instance must first save a complete off-device backup
+including persistent `.storage`, config and the Recorder database. On HAOS,
+use a full backup and retain its encryption recovery key; on Home Assistant
+Container / TrueNAS, stop the container for an offline ZFS snapshot/copy of
+its persistent configuration and SQLite database, record image/volume mounts,
+and store a second restore-capable copy outside the NAS. External Recorder
+databases require their own consistent backups. Restore the matching config,
+Registry and history together on failure. **Installing old integration files
+over a migrated instance is not a supported rollback.**
+
+The final 5.0 minimum remains a **stable, supported and mature HA 2026.11.x**
+paired with matching PHACC, independently validated by tests, dependency
+security audit, authentic migrated-install tests, Recorder, Marketplace, and
+CodeQL. That later decision must not be silently inferred from the alpha's
+temporary HA 2026.10.4 floor.
+
+Development PRs continue to target preparation, not `main`. Merging
+the alpha metadata into preparation **does not authorize** a tag, draft,
+publication or production installation. Those actions require explicit owner
+approval. For alpha installation and manual test cautions see
+[README.md](README.md); for the publication procedure see
+[RELEASING.md](RELEASING.md).
