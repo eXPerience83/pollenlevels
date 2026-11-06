@@ -452,3 +452,280 @@ async def test_real_storage_survives_new_ha_instances_and_recorder_reopen(
             (entity.entity_id,),
         ).fetchall()
     assert [value[0] for value in values][-2:] == ["2", "3"]
+
+
+def _multi_key_historical_entries(release: str) -> list[MockConfigEntry]:
+    """Represent three old locations under two distinct API-key owners."""
+    first = _historical_entries(release)
+    if release == "2.3.0":
+        return [
+            *first,
+            MockConfigEntry(
+                domain=DOMAIN,
+                entry_id="historical-other",
+                title="Other",
+                version=3,
+                unique_id="5.0000_6.0000",
+                data={
+                    "api_key": "synthetic-second-key",
+                    "latitude": 5.0,
+                    "longitude": 6.0,
+                },
+                options={"update_interval": 8},
+            ),
+        ]
+
+    return [
+        *first,
+        MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="historical-parent-other",
+            title="Other pollen service",
+            version=6,
+            unique_id=api_key_unique_id("synthetic-second-key"),
+            data={"api_key": "synthetic-second-key"},
+            options={"update_interval": 8},
+            subentries_data=[
+                {
+                    "subentry_id": "historical-location-other",
+                    "subentry_type": "location",
+                    "title": "Other",
+                    "unique_id": "5.0000_6.0000",
+                    "data": {"latitude": 5.0, "longitude": 6.0},
+                }
+            ],
+        ),
+    ]
+
+
+@pytest.mark.parametrize("historical_release", ["2.3.0", "4.0.3"])
+async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
+    hass_tmp_config_dir: str,
+    async_test_recorder: Any,
+    recorder_config: dict[str, str],
+    historical_release: str,
+) -> None:
+    """Replay old integration shapes on disk, then reopen registries and Recorder.
+
+    The payloads match tagged integration structures; this does not replay old
+    Home Assistant Core storage envelopes or actual Marketplace ownership.
+    """
+    clear_integration_modules()
+    from custom_components.pollenlevels import TARGET_ENTRY_VERSION
+
+    entries = _multi_key_historical_entries(historical_release)
+    primary_id = entries[0].entry_id
+    secondary_id = entries[-1].entry_id
+    config_dir = Path(hass_tmp_config_dir)
+    db_path = Path(recorder_config["db_url"].removeprefix("sqlite:///"))
+
+    if historical_release == "2.3.0":
+        locations = [
+            (entries[0], None, "home"),
+            (entries[1], None, "office"),
+            (entries[2], None, "other"),
+        ]
+    else:
+        locations = [
+            (entries[0], "historical-location-home", "home"),
+            (entries[0], "historical-location-office", "office"),
+            (entries[1], "historical-location-other", "other"),
+        ]
+
+    async def load_registries(home: HomeAssistant) -> None:
+        dr.async_setup(home)
+        await dr.async_load(home)
+        await er.async_load(home)
+
+    # Each snapshot includes the original parent, location, user-facing name
+    # and stable identity. All keys and positions are synthetic.
+    snapshots: dict[str, dict[str, Any]] = {}
+
+    async with _persisted_ha(config_dir) as old_hass:
+        await old_hass.config_entries.async_initialize()
+        await load_registries(old_hass)
+        for entry in entries:
+            entry.add_to_hass(old_hass)
+
+        device_registry = dr.async_get(old_hass)
+        entity_registry = er.async_get(old_hass)
+        for entry, subentry_id, suffix in locations:
+            device = device_registry.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                config_subentry_id=subentry_id,
+                identifiers={(DOMAIN, f"synthetic-device-{suffix}")},
+            )
+            device = device_registry.async_update_device(
+                device.id, name_by_user=f"Renamed device {suffix}"
+            )
+            entity = entity_registry.async_get_or_create(
+                "sensor",
+                DOMAIN,
+                f"synthetic-{suffix}-grass",
+                config_entry=entry,
+                config_subentry_id=subentry_id,
+                device_id=device.id,
+                suggested_object_id=f"legacy_{suffix}_grass",
+            )
+            entity = entity_registry.async_update_entity(
+                entity.entity_id,
+                new_entity_id=f"sensor.user_renamed_{suffix}_pollen",
+            )
+            snapshots[suffix] = {
+                "entry_id": entry.entry_id,
+                "subentry_id": subentry_id,
+                "entity": (
+                    entity.id,
+                    entity.entity_id,
+                    entity.unique_id,
+                    entity.device_id,
+                ),
+                "device": (
+                    device.id,
+                    device.identifiers,
+                    device.name_by_user,
+                ),
+            }
+
+        await old_hass.config_entries._store.async_save(
+            {"entries": [entry.as_dict() for entry in entries]}
+        )
+        await flush_store(device_registry._store)
+        await flush_store(entity_registry._store)
+
+        async with async_test_recorder(old_hass, recorder_config) as recorder:
+            for snapshot in snapshots.values():
+                old_hass.states.async_set(snapshot["entity"][1], "2")
+            await old_hass.async_block_till_done()
+            await async_wait_recording_done(old_hass)
+            await recorder.async_block_till_done()
+            for snapshot in snapshots.values():
+                assert "2" in await recorder.async_add_executor_job(
+                    _recorded_values, old_hass, snapshot["entity"][1]
+                )
+
+    for key in (config_entries.STORAGE_KEY, er.STORAGE_KEY, dr.STORAGE_KEY):
+        assert (config_dir / ".storage" / key).is_file()
+    assert db_path.is_file()
+
+    # Upgrade from disk after a real HA object shutdown. The shared-key
+    # legacy entries must converge into one parent, while the other key stays
+    # independent. Preserve every renamed entity's Registry and SQL identity.
+    async with _persisted_ha(config_dir) as upgraded_hass:
+        await upgraded_hass.config_entries.async_initialize()
+        await load_registries(upgraded_hass)
+        assert len(upgraded_hass.config_entries.async_entries(DOMAIN)) == len(entries)
+        async with async_test_recorder(upgraded_hass, recorder_config) as recorder:
+            for snapshot in snapshots.values():
+                assert "2" in await recorder.async_add_executor_job(
+                    _recorded_values, upgraded_hass, snapshot["entity"][1]
+                )
+
+            for entry_id in (primary_id, secondary_id):
+                restored = upgraded_hass.config_entries.async_get_entry(entry_id)
+                assert restored is not None
+                assert await async_migrate_config_entry(upgraded_hass, restored)
+
+            parents = upgraded_hass.config_entries.async_entries(DOMAIN)
+            assert {entry.entry_id for entry in parents} == {
+                primary_id,
+                secondary_id,
+            }
+            for parent in parents:
+                assert parent.version == TARGET_ENTRY_VERSION
+                assert len(parent.subentries) == (
+                    2 if parent.entry_id == primary_id else 1
+                )
+                assert parent.data["api_key"] == (
+                    HISTORICAL_KEY
+                    if parent.entry_id == primary_id
+                    else "synthetic-second-key"
+                )
+
+            for suffix, snapshot in snapshots.items():
+                expected_parent_id = (
+                    secondary_id if suffix == "other" else primary_id
+                )
+                moved = er.async_get(upgraded_hass).async_get(snapshot["entity"][1])
+                device = dr.async_get(upgraded_hass).async_get(snapshot["device"][0])
+                assert moved is not None and device is not None
+                assert (
+                    moved.id,
+                    moved.entity_id,
+                    moved.unique_id,
+                    moved.device_id,
+                ) == snapshot["entity"]
+                assert (
+                    device.id,
+                    device.identifiers,
+                    device.name_by_user,
+                ) == snapshot["device"]
+                assert moved.config_entry_id == expected_parent_id
+                assert device.config_entry_id == expected_parent_id
+                assert moved.config_subentry_id == device.config_subentry_id
+                parent = upgraded_hass.config_entries.async_get_entry(
+                    expected_parent_id
+                )
+                assert parent is not None
+                assert moved.config_subentry_id in parent.subentries
+                if historical_release == "4.0.3":
+                    assert moved.config_subentry_id == snapshot["subentry_id"]
+                else:
+                    assert (
+                        parent.subentries[moved.config_subentry_id].data[
+                            "legacy_entry_id"
+                        ]
+                        == snapshot["entry_id"]
+                    )
+
+            for snapshot in snapshots.values():
+                upgraded_hass.states.async_set(snapshot["entity"][1], "3")
+            await upgraded_hass.async_block_till_done()
+            await async_wait_recording_done(upgraded_hass)
+            await recorder.async_block_till_done()
+            for snapshot in snapshots.values():
+                values = await recorder.async_add_executor_job(
+                    _recorded_values, upgraded_hass, snapshot["entity"][1]
+                )
+                assert values[-2:] == ["2", "3"]
+
+            # A repeated migration must be a no-op, not an entity duplicate.
+            for parent in parents:
+                assert await async_migrate_config_entry(upgraded_hass, parent)
+            assert len(upgraded_hass.config_entries.async_entries(DOMAIN)) == 2
+
+        await flush_store(upgraded_hass.config_entries._store)
+        await flush_store(dr.async_get(upgraded_hass)._store)
+        await flush_store(er.async_get(upgraded_hass)._store)
+
+    # Third HA object reload and direct offline SQL reads prove that both the
+    # Registry names and older Recorder rows survived on the same filesystem.
+    async with _persisted_ha(config_dir) as reopened_hass:
+        await reopened_hass.config_entries.async_initialize()
+        await load_registries(reopened_hass)
+        for suffix, snapshot in snapshots.items():
+            entity = er.async_get(reopened_hass).async_get(snapshot["entity"][1])
+            device = dr.async_get(reopened_hass).async_get(snapshot["device"][0])
+            assert entity is not None and device is not None
+            assert (
+                entity.id,
+                entity.entity_id,
+                entity.unique_id,
+                entity.device_id,
+            ) == snapshot["entity"]
+            assert (device.id, device.identifiers, device.name_by_user) == (
+                snapshot["device"]
+            )
+            assert entity.config_subentry_id == device.config_subentry_id
+            expected_parent_id = secondary_id if suffix == "other" else primary_id
+            assert entity.config_entry_id == expected_parent_id
+
+    with closing(sqlite3.connect(db_path)) as connection:
+        for snapshot in snapshots.values():
+            recorded = connection.execute(
+                "SELECT states.state FROM states "
+                "JOIN states_meta ON states.metadata_id = states_meta.metadata_id "
+                "WHERE states_meta.entity_id = ? ORDER BY states.state_id",
+                (snapshot["entity"][1],),
+            ).fetchall()
+            assert [row[0] for row in recorded][-2:] == ["2", "3"]
