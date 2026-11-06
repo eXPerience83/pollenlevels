@@ -219,7 +219,7 @@ from older releases.
 
 - Write pytest tests named `test_<behavior>` in the matching `tests/test_*.py`
   module.
-- Prefer `pytest-homeassistant-custom-component` for Home Assistant integration
+- Prefer official `pytest-homeassistant` for Home Assistant integration
   surfaces such as config/subentry flows, setup/unload/reload, platform entity
   registration, services, diagnostics, Repairs, registries, and migration.
 - Keep lightweight unit tests for pure parsing, API-client behavior, redaction

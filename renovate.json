@@ -172,7 +172,7 @@
         "pep621"
       ],
       "matchPackageNames": [
-        "pytest-homeassistant-custom-component",
+        "pytest-homeassistant",
         "homeassistant",
         "pytest",
         "pytest-asyncio"
