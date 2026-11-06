@@ -1,5 +1,44 @@
 # Changelog
 
+## [Unreleased] — Pollen Levels 5.0 preparation (not published)
+
+These changes are present only in the 5.0 preparation branch; they are **not**
+part of the immutable published `v5.0.0a1` alpha or stable 4.0.3.
+A separate release/version PR will assign an actual version and date.
+
+### Changed
+
+- **Breaking change:** The forthcoming 5.0 support floor is **Home Assistant
+  2026.11.0**. Previous 4.0.3 compatibility with HA 2026.5 is retained only in
+  the public 4.0.3 release, not the future 5.0 line.
+- Migrated the v5 development/test harness from PHACC to official
+  `pytest-homeassistant==2026.11.0` matching `homeassistant==2026.11.0`;
+  regenerated the locked dependency graph and updated imports (#465, #466).
+- Updated README, contributing/release guidance and the 5.0 preparation plan
+  for Home Assistant's built-in **Marketplace**, replacing the former HACS UI.
+  The publisher `hacs.json`, catalogue validator and release ZIP stay intact.
+- Fixed the compatibility floor at HA 2026.11.0, avoiding redundant tests when
+  the current pinned baseline already equals the floor. The daily official
+  stable canary remains advisory; the baseline updater proposes reviewed,
+  non-automerge PRs after the three-day maturity period.
+- Reviewed and aligned Renovate GH Actions update policies and security-only
+  Dependabot settings with the current official HA test packages.
+
+### Fixed
+
+- Adjusted HA 2026.11 Registry-unavailability assertions without weakening
+  eventual entity/device identity retry checks, and used the official Recorder
+  commit barrier for historical state persistence tests (#465, #466).
+
+### Security
+
+- Preserved exact locked dependencies, action SHA pinning, narrow workflow
+  permissions, CodeQL and full-suite coverage checks. A temporary, bounded
+  dependency-age bootstrap for the just-published 2026.11 stable pair expires
+  on 2026-11-10; routine maturity controls remain in force.
+- Full real-world migration/Recorder/Marketplace and security acceptance
+  remain required before any stable 5.0 release (#452, #226).
+
 ## [5.0.0a1] - 2026-10-30
 
 Experimental alpha for voluntary testing; **not production-ready**. Validated
