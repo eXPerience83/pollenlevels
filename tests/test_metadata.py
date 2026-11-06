@@ -820,10 +820,19 @@ def test_release_enforces_selected_modern_snapshot_coverage() -> None:
     assert "--cov=custom_components.pollenlevels" in step
     assert "--cov-report=json:coverage.json" in step
     assert "scripts/check_coverage.py coverage.json" in step
-    assert '''release_version="$(jq -r '.version // empty' custom_components/pollenlevels/manifest.json)"''' in step
-    assert """if [[ "$release_version" == 5.* && "$release_version" != "5.0.0a1" ]]""" in step
+    assert (
+        '''release_version="$(jq -r '.version // empty' custom_components/pollenlevels/manifest.json)"'''
+        in step
+    )
+    assert (
+        """if [[ "$release_version" == 5.* && "$release_version" != "5.0.0a1" ]]"""
+        in step
+    )
     assert '''ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"''' in step
-    assert '''if [[ "$ha_floor" != "2026.11.0" || ! -f scripts/check_coverage.py ]]''' in step
+    assert (
+        """if [[ "$ha_floor" != "2026.11.0" || ! -f scripts/check_coverage.py ]]"""
+        in step
+    )
     assert "exit 1" in step
     assert "Historical legacy snapshots" in step
     assert "python -m pytest -q" in step
