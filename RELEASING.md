@@ -165,7 +165,11 @@ enabled. For stable releases, ensure it is disabled.
 ## 6. Verify the published package
 
 - Confirm the published release contains `pollenlevels.zip`.
-- Confirm Marketplace installation or Redownload uses the published asset and preserves existing install/updates.
+- For HA 2026.11+, confirm Marketplace install/update or Redownload uses the
+  published ZIP, preserving existing installations and update entities.
+- For **historical/maintenance releases supporting HA <2026.11**, also verify
+  compatible **HACS** installation or Redownload and the published version
+  selection. Do not claim an HACS check applies to HA 2026.11+.
 - Confirm Home Assistant restarts cleanly.
 - Confirm the displayed integration version is correct.
 - Complete smoke tests appropriate to the release.
@@ -200,7 +204,10 @@ after publication do not necessarily require a new release.
 - [ ] `pollenlevels.zip` is attached before Marketplace verification.
 - [ ] Prerelease status is correct.
 - [ ] The release was published manually.
-- [ ] Marketplace/HACS catalog ZIP validation and existing HACS → Marketplace update takeover verification are complete.
+- [ ] Marketplace/HACS catalog ZIP validation and existing HACS → Marketplace
+      update takeover verification are complete where applicable.
+- [ ] For historical or maintenance releases supporting HA <2026.11,
+      installation/update through compatible legacy HACS was checked.
 - [ ] Stable v5 HA 2026.11.0 floor and official pytest pair were checked.
 - [ ] Existing Registry/Recorder/statistics migration and backup recovery are verified.
 - [ ] CodeRabbit and full candidate CodeQL/CI/security review are complete.

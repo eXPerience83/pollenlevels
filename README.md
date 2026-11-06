@@ -111,7 +111,6 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 and the corresponding official pytest harness. The alpha's old floor does
 not define the forthcoming 5.0 support contract.
 
-
 **This section applies to the 5.0.0a1 alpha only.** It is intended for
 voluntary, controlled testing of Device Registry and migration compatibility,
 **not production use**. The final 5.0 minimum is expected to be a validated
@@ -137,12 +136,19 @@ Before installing the alpha in an existing Home Assistant instance:
 3. Record the current Pollen Levels version, location count, API-key parent and
    location subentry associations, entity names/IDs, history/statistics, and
    automations that use them. Never share API keys or precise coordinates.
-4. To examine the **already published** `v5.0.0a1` on HA 2026.11+, open
-   its repository via **Settings → Marketplace**, enable pre-releases and
-   select the historical asset in its version/redownload controls if available.
-   Restart after updating; then inspect integration logs, Repairs, entities,
-   devices, locations, last refresh and historical statistics. **Do not
-   install the old HACS integration separately.**
+4. To examine the **already published** `v5.0.0a1` historical artifact:
+   - On **HA 2026.10.4–2026.10.x**, use **HACS → Integrations** (the
+     historical installation interface), enable pre-releases if available,
+     then select `v5.0.0a1` only if the HACS version selector offers it.
+     The original [v5.0.0a1 release page](https://github.com/eXPerience83/pollenlevels/releases/tag/v5.0.0a1)
+     records the immutable artifact. Do not assume the HACS selector can
+     install any arbitrary historical version; if the asset is unavailable,
+     stop and consult the published release and [release guidance](RELEASING.md).
+   - On **HA 2026.11+**, use **Settings → Marketplace**; enable pre-releases
+     and select the historical asset if the UI offers it. Do **not**
+     install the old HACS integration separately.
+   Restart after updating; inspect logs, Repairs, entities, devices,
+   locations, latest refresh, history and statistics.
 5. If the migration fails or identity/history changes unexpectedly, stop
    testing and **restore the matching full pre-upgrade backup**. Installing
    4.0.3 files over an already migrated installation is **not a supported
@@ -476,6 +482,27 @@ remain the required Marketplace publishing interfaces.
 
 See the [official Marketplace migration guide](https://www.home-assistant.io/integrations/marketplace)
 and [5.0 preparation/rollback guidance](PREPARATION_5.0.md).
+
+### Legacy HACS (HA 2026.5–2026.10, Pollen Levels 4.0.3)
+
+For Home Assistant versions **before 2026.11**, Marketplace is unavailable.
+The supported Pollen Levels line for **HA 2026.5.0–2026.10.x** is the
+published **4.0.3** release, not the future 5.0 baseline:
+
+1. Install or open **HACS 2.x → Integrations** and locate **Pollen Levels**.
+2. Select the stable **4.0.3** release where the version selector exposes it;
+   leave pre-release installation disabled. Do not install 5.0 previews as
+   routine upgrades on an older Home Assistant.
+3. If this HACS version cannot select 4.0.3, use the
+   [immutable v4.0.3 release](https://github.com/eXPerience83/pollenlevels/releases/tag/v4.0.3)
+   as the historical reference and check the compatible HACS version before
+   proceeding. **Do not assume a historical version selector is available.**
+4. Restart Home Assistant when prompted, then configure the integration from
+   **Settings → Devices & Services**.
+
+For new installations with **HA 2026.11+**, use Marketplace above. Existing
+4.0.3 users should keep their configured integration in place when upgrading
+HA and follow the Marketplace migration path rather than reinstalling.
 
 ---
 

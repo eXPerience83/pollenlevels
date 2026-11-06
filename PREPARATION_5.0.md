@@ -82,14 +82,20 @@ The synthetic tests and one-location alpha smoke test are valuable but
    scheduled updates and manual refresh after a running HA 2026.11 restart.
 5. Complete recoverable backup/restore exercises before any real migration.
    Never rely on copying 4.0.3 code over migrated storage as rollback.
+   For rollback, restore the matching configuration, .storage registries,
+   and Recorder state from the **same pre-upgrade point in time**.
 6. All blocking CI, CodeQL (Python and Actions), workflow security, HACS
    validator, hassfest and CodeRabbit findings, dependency security triage,
    a final candidate ZIP, and maintainer GO/NO-GO.
 
 For existing HAOS, take a **full off-device backup** with encryption recovery
-key and Recorder; for container installations, stop the container for an
-offline persistent-config and SQLite snapshot/copy and preserve an off-NAS
-restore path. If Recorder uses an external database, back it up separately.
+key and Recorder. For container installations, stop the container before an
+offline snapshot/copy of persistent config, .storage and SQLite. **Retain a
+separate, recoverable copy outside the NAS** and verify the restoration
+procedure. If Recorder uses an external database, make an independent,
+**consistent backup using that database engine's supported backup method**.
+A local snapshot alone is not an off-device backup. Restore the configuration,
+registries and Recorder data **together** from a consistent pre-upgrade state.
 Never upload credentials, raw `.storage` state, or private coordinates.
 
 ## Version and merge strategy
