@@ -421,3 +421,40 @@ def test_wrong_resulting_harness_versions_fail() -> None:
     before, after = _valid_locks()
     with pytest.raises(UpdaterError, match="homeassistant"):
         validate_lock_delta(before, after, "2026.11.2", "2026.11.1")
+
+
+@pytest.mark.parametrize("override,remove", [(False, False), (True, True)])
+def test_lock_cooldown_transition_is_explicit(override, remove):
+    before, after = _valid_locks()
+    options = '\n[options]\nexclude-newer = "0001-01-01T00:00:00Z"\nexclude-newer-span = "P3D"\n'
+    if remove:
+        before = before.replace("\n[[package]]", options + "\n[[package]]", 1)
+    else:
+        after = after.replace("\n[[package]]", options + "\n[[package]]", 1)
+    validate_lock_delta(
+        before, after, "2026.11.1", "2026.11.1", override_cooldown=override
+    )
+    with pytest.raises(UpdaterError, match="cooldown metadata"):
+        validate_lock_delta(
+            before, after, "2026.11.1", "2026.11.1", override_cooldown=not override
+        )
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        'exclude-newer-span = "P1D"',
+        'exclude-newer = "2026-11-06T00:00:00Z"',
+        'resolution-mode = "lowest"',
+        'exclude-newer-package = { packaging = "P1D" }',
+    ],
+)
+def test_lock_cooldown_waiver_does_not_allow_unrelated_options(options):
+    before, after = _valid_locks()
+    after = after.replace(
+        "\n[[package]]", "\n[options]\n" + options + "\n[[package]]", 1
+    )
+    with pytest.raises(UpdaterError, match="metadata"):
+        validate_lock_delta(
+            before, after, "2026.11.1", "2026.11.1", override_cooldown=True
+        )

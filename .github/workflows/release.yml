@@ -253,22 +253,39 @@ jobs:
             echo "Override requires release_ref to be the full validated commit SHA." >&2
             exit 1
           fi
-          if (( ${#OVERRIDE_REASON} < 15 || ${#OVERRIDE_REASON} > 200 )) ||
-             [[ "$OVERRIDE_REASON" == *$'\n'* || "$OVERRIDE_REASON" == *$'\r'* ]]; then
-            echo "Provide a single-line, 15-200 character override reason." >&2
-            exit 1
-          fi
+          python - <<'PYTHON'
+          import os
+
+          reason = os.environ["OVERRIDE_REASON"]
+          if not 15 <= len(reason) <= 200 or not reason.strip() or not reason.isprintable():
+              raise SystemExit("Provide a non-blank, printable single-line, 15-200 character override reason")
+          PYTHON
           version="$(python -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/pollenlevels/manifest.json").read_text())["version"])')"
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
+          if [[ ! "${version,,}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
             echo "Override applies only to alpha, beta and RC releases." >&2
             exit 1
           fi
-          printf 'UV_EXCLUDE_NEWER=false\n' >> "$GITHUB_ENV"
+          # Preserve the reviewed lock's normal relative cutoff. Removing it
+          # would invalidate --locked; only cutoff-free locks need the waiver.
+          python - <<'PYTHON' >> "$GITHUB_ENV"
+          import tomllib
+          from pathlib import Path
+
+          options = tomllib.loads(Path("uv.lock").read_text()).get("options", {})
+          cutoff = {key: value for key, value in options.items() if key.startswith("exclude-newer")}
+          normal = {"exclude-newer": "0001-01-01T00:00:00Z", "exclude-newer-span": "P3D"}
+          if cutoff == normal:
+              print("UV_EXCLUDE_NEWER=3 days")
+          elif not cutoff:
+              print("UV_EXCLUDE_NEWER=false")
+          else:
+              raise SystemExit("Unsupported lock cutoff: use normal validation; do not rewrite the release lock")
+          PYTHON
           {
             echo "## Manual prerelease package maturity override"
             printf 'Commit: %s\n' "$VALIDATED_COMMIT"
             printf 'Version: %s\n' "$version"
-            printf 'Reason: %s\n' "$OVERRIDE_REASON"
+            python -c 'import html, os; print("Reason:\n<pre>" + html.escape(os.environ["OVERRIDE_REASON"]) + "</pre>")'
             echo "One workflow run only; lock, tests, coverage, ZIP and draft release gates remain mandatory."
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -711,6 +728,7 @@ jobs:
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
           draft: true
+          prerelease: ${{ needs.validate-release.outputs.prerelease }}
           files: pollenlevels.zip
           overwrite_files: true
           fail_on_unmatched_files: true

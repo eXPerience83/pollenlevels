@@ -366,13 +366,43 @@ def _validate_local_record(
 
 
 def validate_lock_delta(
-    before_text: str, after_text: str, homeassistant: str, official: str
+    before_text: str,
+    after_text: str,
+    homeassistant: str,
+    official: str,
+    *,
+    override_cooldown: bool = False,
 ) -> None:
     """Reject lock movement outside the selected harness dependency graph and pins."""
     before = tomllib.loads(before_text)
     after = tomllib.loads(after_text)
     before_top = {key: value for key, value in before.items() if key != "package"}
     after_top = {key: value for key, value in after.items() if key != "package"}
+    # uv 0.13.5 records a relative three-day policy with a sentinel timestamp.
+    # Only this policy's addition (normal) or explicit removal (manual) is allowed.
+    normal_cutoff = {
+        "exclude-newer": "0001-01-01T00:00:00Z",
+        "exclude-newer-span": "P3D",
+    }
+    old_options = dict(before_top.pop("options", {}))
+    new_options = dict(after_top.pop("options", {}))
+    old_cutoff = {
+        key: old_options.pop(key)
+        for key in tuple(old_options)
+        if key.startswith("exclude-newer")
+    }
+    new_cutoff = {
+        key: new_options.pop(key)
+        for key in tuple(new_options)
+        if key.startswith("exclude-newer")
+    }
+    expected_cutoff = {} if override_cooldown else normal_cutoff
+    if old_cutoff != new_cutoff and not (
+        old_cutoff in ({}, normal_cutoff) and new_cutoff == expected_cutoff
+    ):
+        raise UpdaterError("uv.lock cooldown metadata changed unexpectedly")
+    if old_options != new_options:
+        raise UpdaterError("uv.lock non-package metadata changed")
     if before_top != after_top:
         raise UpdaterError("uv.lock non-package metadata changed")
     before_groups = _package_groups(before)
@@ -449,6 +479,7 @@ def _cmd_validate_lock(args: argparse.Namespace) -> None:
         args.after.read_text(encoding="utf-8"),
         args.homeassistant,
         args.official,
+        override_cooldown=args.override_cooldown,
     )
 
 
@@ -470,6 +501,7 @@ def main() -> None:
     validate.add_argument("--after", type=Path, required=True)
     validate.add_argument("--homeassistant", required=True)
     validate.add_argument("--official", required=True)
+    validate.add_argument("--override-cooldown", action="store_true")
     validate.set_defaults(func=_cmd_validate_lock)
     args = parser.parse_args()
     try:
