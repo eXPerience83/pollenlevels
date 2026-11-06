@@ -266,8 +266,8 @@ jobs:
           printf 'UV_EXCLUDE_NEWER=false\n' >> "$GITHUB_ENV"
           {
             echo "## Manual prerelease package maturity override"
-            printf 'Commit: `%s`\n' "$VALIDATED_COMMIT"
-            printf 'Version: `%s`\n' "$version"
+            printf 'Commit: %s\n' "$VALIDATED_COMMIT"
+            printf 'Version: %s\n' "$version"
             printf 'Reason: %s\n' "$OVERRIDE_REASON"
             echo "One workflow run only; lock, tests, coverage, ZIP and draft release gates remain mandatory."
           } >> "$GITHUB_STEP_SUMMARY"
