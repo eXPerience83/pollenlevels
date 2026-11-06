@@ -193,7 +193,7 @@ async def test_ha_force_update_parent_without_locations_is_noop(
     fake_api_key: str,
 ) -> None:
     """force_update should be a safe no-op when a parent has no locations."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     entry = MockConfigEntry(
@@ -283,7 +283,7 @@ async def test_ha_force_update_failure_log_redacts_secrets(
     caplog,
 ) -> None:
     """_log_force_update_failure redacts API keys and coordinates."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     entry = MockConfigEntry(

@@ -66,7 +66,7 @@ def ha_config_entry(
     sample_location_subentry_data: dict[str, Any],
 ):
     """Return a parent MockConfigEntry with one location subentry."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     return MockConfigEntry(
         domain=DOMAIN,
@@ -86,7 +86,7 @@ def ha_config_entry(
 @pytest.fixture
 def ha_two_location_config_entry(fake_api_key: str):
     """Return a parent MockConfigEntry with Madrid and Barcelona locations."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     madrid_latitude = 40.4168
     madrid_longitude = -3.7038

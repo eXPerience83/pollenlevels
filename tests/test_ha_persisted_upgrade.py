@@ -21,7 +21,8 @@ from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from pytest_homeassistant_custom_component.common import (
+from pytest_homeassistant.components.recorder.common import async_wait_recording_done
+from pytest_homeassistant.common import (
     MockConfigEntry,
     async_test_home_assistant,
     flush_store,
@@ -173,7 +174,7 @@ async def test_historical_config_store_upgrade_keeps_registry_and_recorder_histo
     # Record historical data in the real SQLite-backed HA Recorder, then migrate.
     hass.states.async_set(entity.entity_id, "2")
     await hass.async_block_till_done()
-    await recorder_mock.async_block_till_done()
+    await async_wait_recording_done(hass)
     before_states = await recorder_mock.async_add_executor_job(
         _recorded_values, hass, entity.entity_id
     )
@@ -215,7 +216,7 @@ async def test_historical_config_store_upgrade_keeps_registry_and_recorder_histo
     # Recorder keeps existing history under the unchanged entity_id.
     hass.states.async_set(entity.entity_id, "3")
     await hass.async_block_till_done()
-    await recorder_mock.async_block_till_done()
+    await async_wait_recording_done(hass)
     after_states = await recorder_mock.async_add_executor_job(
         _recorded_values, hass, entity.entity_id
     )

@@ -19,7 +19,7 @@ from homeassistant.helpers import (
 )
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.components.recorder.common import (
+from pytest_homeassistant.components.recorder.common import (
     async_wait_recording_done,
     do_adhoc_statistics,
 )
