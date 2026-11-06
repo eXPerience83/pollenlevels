@@ -706,8 +706,8 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 assert sensor.device_info["identifiers"] == expected[
                     "device_identifiers"
                 ]
-                matching_device = devices_b.async_get_device(
-                    identifiers=sensor.device_info["identifiers"]
+                matching_device = devices_b.async_get_device_by_identifier(
+                    next(iter(sensor.device_info["identifiers"])), parent.entry_id
                 )
                 assert matching_device is not None
                 assert matching_device.id == expected["device_id"]
