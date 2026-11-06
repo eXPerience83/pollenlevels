@@ -1,0 +1,137 @@
+name: Minimum Home Assistant Compatibility
+
+on:
+  push:
+    branches: [main, prep/5.0-ha-2026.10.4]
+  pull_request:
+    branches: [main, prep/5.0-ha-2026.10.4]
+  schedule:
+    - cron: "13 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  minimum-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      UV_NO_CACHE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version-file: .python-version
+
+      - name: Plan independent fixed minimum validation
+        id: floor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/ha_minimum_policy.py --github-output "$GITHUB_OUTPUT"
+
+      - name: Report baseline already covers the minimum
+        if: ${{ steps.floor.outputs.run_minimum == 'false' }}
+        shell: bash
+        run: |
+          {
+            echo "## HA minimum compatibility"
+            echo "HA 2026.11.0 is already the exact locked baseline."
+            echo "Mandatory locked tests cover this minimum; no redundant run."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up uv
+        if: ${{ steps.floor.outputs.run_minimum == 'true' }}
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: pyproject.toml
+          enable-cache: false
+
+      - name: Prepare minimum-version test environment
+        if: ${{ steps.floor.outputs.run_minimum == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          minimum_venv="$RUNNER_TEMP/ha-minimum-compatibility-venv"
+          uv venv --python "$(command -v python)" "$minimum_venv"
+          printf 'MINIMUM_PYTHON=%s\n' "$minimum_venv/bin/python" >> "$GITHUB_ENV"
+          python - <<'PY' >> "$GITHUB_ENV"
+          import tomllib
+          from pathlib import Path
+
+          with Path("pyproject.toml").open("rb") as file:
+              requirements = tomllib.load(file)["dependency-groups"]["test"]
+          for name in ("aiointercept", "packaging", "pytest-cov"):
+              pins = [item for item in requirements if item.startswith(f"{name}==")]
+              if len(pins) != 1:
+                  raise SystemExit(f"Expected one exact {name} test requirement")
+              print(f"{name.upper().replace('-', '_')}_REQUIREMENT={pins[0]}")
+          PY
+
+      - name: Install exact 2026.11.0 official Home Assistant pair
+        if: ${{ steps.floor.outputs.run_minimum == 'true' }}
+        shell: bash
+        env:
+          MINIMUM_HA: ${{ steps.floor.outputs.minimum_ha }}
+        run: |
+          set -euo pipefail
+          uv pip install --python "$MINIMUM_PYTHON" \
+            "homeassistant==$MINIMUM_HA" \
+            "pytest-homeassistant==$MINIMUM_HA" \
+            "$AIOINTERCEPT_REQUIREMENT" \
+            "$PACKAGING_REQUIREMENT" \
+            "$PYTEST_COV_REQUIREMENT"
+          uv pip check --python "$MINIMUM_PYTHON"
+          "$MINIMUM_PYTHON" - <<'PY'
+          from importlib import metadata
+
+          minimum = "2026.11.0"
+          assert metadata.version("homeassistant") == minimum
+          assert metadata.version("pytest-homeassistant") == minimum
+          names = {
+              dist.metadata["Name"].lower().replace("_", "-")
+              for dist in metadata.distributions()
+          }
+          assert "pytest-homeassistant-custom-component" not in names
+          links = metadata.metadata("pytest-homeassistant").get_all("Project-URL") or []
+          assert any("github.com/home-assistant/core" in link for link in links)
+          print("Exact official minimum pair and provenance confirmed")
+          PY
+
+      - name: Verify full suite on fixed minimum Home Assistant
+        if: ${{ steps.floor.outputs.run_minimum == 'true' }}
+        shell: bash
+        env:
+          HA_MINIMUM_COMPATIBILITY: "1"
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          "$MINIMUM_PYTHON" -m pytest -q -ra \
+            --cov=custom_components.pollenlevels \
+            --cov-report=term-missing \
+            --cov-report=json:coverage.json
+          "$MINIMUM_PYTHON" scripts/check_coverage.py coverage.json
+
+      - name: Report independent minimum results
+        if: ${{ steps.floor.outputs.run_minimum == 'true' }}
+        shell: bash
+        run: |
+          {
+            echo "## HA minimum compatibility"
+            echo "- Fixed integration floor: 2026.11.0"
+            echo "- Baseline HA: ${{ steps.floor.outputs.current_ha }}"
+            echo "- Official HA + pytest-homeassistant 2026.11.0 pair: verified"
+            echo "- Full pytest and coverage gates: passed"
+            echo "- No PHACC, release, lock mutation or main write"
+          } >> "$GITHUB_STEP_SUMMARY"
