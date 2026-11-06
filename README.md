@@ -21,8 +21,6 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 
 ---
 
----
-
 ## Requirements
 
 - **Pollen Levels 5.0:** Home Assistant **2026.11.0 or newer**.
@@ -91,8 +89,6 @@ Each location gets its own pollen sensors and **Update now** button. By default 
 
 ---
 
----
-
 ## ⚙️ Options
 
 You can change:
@@ -109,8 +105,6 @@ of forecast data so existing sensors can expose the maximum available forecast
 attributes.
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
-
----
 
 ---
 
@@ -134,8 +128,6 @@ individual pollen type and plant sensors:
   - State: top pollen type name, or comma-separated names when tied.
   - Key attributes: `top_value`, `top_pollen_codes`, `top_pollen_names`,
     `top_pollen_categories`, and `tie_count`.
-
----
 
 ---
 
@@ -169,8 +161,6 @@ are not supported by this integration.
 403 responses during setup or updates now include the API’s reason (when
 available). They often indicate billing is disabled, the Pollen API is not
 enabled, or your key restrictions do not match your Home Assistant host.
-
----
 
 ---
 
@@ -287,8 +277,6 @@ color: '[[[
 
 ---
 
----
-
 ## ⚠️ Known caveats
 
 * **Plant codes and localized names**: Pollen Levels uses Google
@@ -301,8 +289,6 @@ color: '[[[
   API language. Pollen Levels does not use localized `displayName` values to
   build entity identity. If Google changes plant codes in the future, treat that
   as an upstream API behavior change and include diagnostics when reporting it.
-
----
 
 ---
 
@@ -339,8 +325,6 @@ details.
 
 ---
 
----
-
 ## 🌐 Example API request
 
 ```bash
@@ -348,8 +332,6 @@ curl -X GET "https://pollen.googleapis.com/v1/forecast:lookup?key=YOUR_KEY&locat
 ```
 
 > **Note:** Replace `YOUR_KEY` locally and never share full API URLs containing `key=...` publicly.
-
----
 
 ---
 
