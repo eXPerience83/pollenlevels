@@ -77,4 +77,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          uv run --locked --no-sync ruff format --diff tests/test_ha_persisted_upgrade.py || true
           uv run --locked --no-sync ruff format --check .
