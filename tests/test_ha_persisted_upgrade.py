@@ -15,11 +15,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from aiointercept import aiointercept
 from homeassistant import config_entries
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
+from homeassistant.setup import async_setup_component
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant.common import (
     MockConfigEntry,
@@ -31,7 +33,7 @@ from pytest_homeassistant.components.recorder.common import async_wait_recording
 from custom_components.pollenlevels.const import DOMAIN
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
-from tests.ha_helpers import async_migrate_config_entry
+from tests.ha_helpers import async_migrate_config_entry, mock_pollen_api
 
 HISTORICAL_KEY = "synthetic-history-key"
 HISTORY_ENTITY = "sensor.synthetic_pollen_history"
@@ -459,6 +461,9 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
     hass_tmp_config_dir: str,
     async_test_recorder: Any,
     recorder_config: dict[str, str],
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    google_pollen_5_day_payload: dict[str, Any],
     historical_release: str,
 ) -> None:
     """Exercise multiple locations/keys and a renamed sensor across disk reloads.
@@ -529,11 +534,17 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             old.add_to_hass(home_a)
             subentry_ids = list(old.subentries) or [None]
             for index, subentry_id in enumerate(subentry_ids):
+                # Match the identity formula used by the actual sensor platform.
+                identity_id = (
+                    old.entry_id
+                    if subentry_id is None
+                    else f"{old.entry_id}_{subentry_id}"
+                )
                 suffix = f"{old.entry_id}-{index}"
                 device = devices_a.async_get_or_create(
                     config_entry_id=old.entry_id,
                     config_subentry_id=subentry_id,
-                    identifiers={(DOMAIN, f"{suffix}_type")},
+                    identifiers={(DOMAIN, f"{identity_id}_type")},
                 )
                 device = devices_a.async_update_device(
                     device.id, name_by_user=f"Custom device {suffix}"
@@ -541,7 +552,7 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 entity = entities_a.async_get_or_create(
                     "sensor",
                     DOMAIN,
-                    f"{suffix}_type_grass",
+                    f"{identity_id}_type_grass",
                     config_entry=old,
                     config_subentry_id=subentry_id,
                     device_id=device.id,
@@ -646,6 +657,30 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 else:
                     assert entity.config_subentry_id == expected["source_subentry"]
 
+            # Setup the real sensor/button platforms after migration, with a
+            # mocked Google boundary. This must reclaim the existing Registry
+            # identities, not silently create fresh sensors with new IDs.
+            async with aiointercept(mock_external_urls=True) as mocked:
+                mock_pollen_api(mocked, google_pollen_5_day_payload)
+                assert await async_setup_component(home_b, DOMAIN, {})
+                for parent in parents:
+                    assert await home_b.config_entries.async_setup(parent.entry_id)
+                await home_b.async_block_till_done()
+                for entity_id, expected in identities.items():
+                    assert home_b.states.get(entity_id) is not None
+                    actual = entities_b.async_get(entity_id)
+                    assert actual is not None
+                    assert (actual.id, actual.unique_id, actual.device_id) == (
+                        expected["entity_id"],
+                        expected["unique_id"],
+                        expected["device_id"],
+                    )
+                    matching_device = devices_b.async_get_device(
+                        identifiers=expected["device_identifiers"]
+                    )
+                    assert matching_device is not None
+                    assert matching_device.id == expected["device_id"]
+
             for index, entity_id in enumerate(identities, start=1):
                 before = await recorder_b.async_add_executor_job(
                     _recorded_values, home_b, entity_id
@@ -662,8 +697,34 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 assert after[0] == str(index)
                 assert after[-1] == str(index + 10)
 
+            # An idempotent second migration must preserve both the complete
+            # parent subentry set and each entity/device owner association.
+            subentries_before = {
+                parent.entry_id: set(parent.subentries) for parent in parents
+            }
+            owners_before = {
+                entity_id: (
+                    entities_b.async_get(entity_id).config_entry_id,
+                    entities_b.async_get(entity_id).config_subentry_id,
+                    devices_b.async_get(expected["device_id"]).config_entry_id,
+                    devices_b.async_get(expected["device_id"]).config_subentry_id,
+                )
+                for entity_id, expected in identities.items()
+            }
             for parent in parents:
                 assert await async_migrate_config_entry(home_b, parent)
+            assert subentries_before == {
+                parent.entry_id: set(parent.subentries) for parent in parents
+            }
+            assert owners_before == {
+                entity_id: (
+                    entities_b.async_get(entity_id).config_entry_id,
+                    entities_b.async_get(entity_id).config_subentry_id,
+                    devices_b.async_get(expected["device_id"]).config_entry_id,
+                    devices_b.async_get(expected["device_id"]).config_subentry_id,
+                )
+                for entity_id, expected in identities.items()
+            }
 
         await flush_store(home_b.config_entries._store)
         await flush_store(devices_b._store)
@@ -675,6 +736,10 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
         await home_c.config_entries.async_initialize()
         await load_registries(home_c)
         assert len(home_c.config_entries.async_entries(DOMAIN)) == 2
+        assert {
+            parent.entry_id: set(parent.subentries)
+            for parent in home_c.config_entries.async_entries(DOMAIN)
+        } == subentries_before
         for entity_id, expected in identities.items():
             entity = er.async_get(home_c).async_get(entity_id)
             device = dr.async_get(home_c).async_get(expected["device_id"])
@@ -689,6 +754,11 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 expected["device_name"],
             )
             assert entity.config_subentry_id is not None
+            parent = home_c.config_entries.async_get_entry(entity.config_entry_id)
+            assert parent is not None
+            assert entity.config_subentry_id in parent.subentries
+            assert parent.data["api_key"] == expected["api_key"]
+            assert device.config_entry_id == entity.config_entry_id
             assert device.config_subentry_id == entity.config_subentry_id
 
     with closing(sqlite3.connect(db_path)) as connection:
