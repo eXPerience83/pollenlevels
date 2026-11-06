@@ -21,12 +21,12 @@ from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from pytest_homeassistant.components.recorder.common import async_wait_recording_done
 from pytest_homeassistant.common import (
     MockConfigEntry,
     async_test_home_assistant,
     flush_store,
 )
+from pytest_homeassistant.components.recorder.common import async_wait_recording_done
 
 from custom_components.pollenlevels.const import DOMAIN
 from custom_components.pollenlevels.util import api_key_unique_id
