@@ -1620,7 +1620,7 @@ wheels = [
 
 [[package]]
 name = "pollenlevels"
-version = "5.0.0a1"
+version = "5.0.0a2"
 source = { virtual = "." }
 default-groups = []
 

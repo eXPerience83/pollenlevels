@@ -1,10 +1,14 @@
 # Changelog
 
-## [Unreleased] — Pollen Levels 5.0 preparation (not published)
+## [5.0.0a2] - 2026-11-06
 
-These changes are present only in the 5.0 preparation branch; they are **not**
-part of the immutable published `v5.0.0a1` alpha or stable 4.0.3.
-A separate release/version PR will assign an actual version and date.
+**Experimental alpha candidate, not a stable release.** Minimum Home Assistant
+**2026.11.0**. This alpha is intended for supervised real-world installation,
+migration, Marketplace, Registry and Recorder validation before beta/stable.
+The last public stable Pollen Levels release remains **4.0.3**.
+
+This snapshot changes the development baseline and release packaging; it does
+**not** alter the immutable `v5.0.0a1` alpha or its published assets.
 
 ### Changed
 
