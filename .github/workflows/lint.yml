@@ -78,9 +78,3 @@ jobs:
         run: |
           set -euo pipefail
           uv run --locked --no-sync ruff format --check .
-
-      - name: TEMPORARY format diagnostic (remove before merge)
-        if: always()
-        shell: bash
-        run: |
-          uv run --locked --no-sync ruff format --diff tests/test_ha_persisted_upgrade.py
