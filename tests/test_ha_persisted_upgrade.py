@@ -14,8 +14,8 @@ from contextlib import asynccontextmanager, closing
 from pathlib import Path
 from typing import Any
 
-import pytest
 from aiointercept import aiointercept
+import pytest
 from homeassistant import config_entries
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
