@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from aiointercept import aiointercept
 from homeassistant import config_entries
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
@@ -31,7 +32,11 @@ from pytest_homeassistant.components.recorder.common import async_wait_recording
 from custom_components.pollenlevels.const import DOMAIN
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
-from tests.ha_helpers import async_migrate_config_entry
+from tests.ha_helpers import (
+    async_migrate_config_entry,
+    async_setup_config_entry,
+    mock_pollen_api,
+)
 
 HISTORICAL_KEY = "synthetic-history-key"
 HISTORY_ENTITY = "sensor.synthetic_pollen_history"
@@ -504,6 +509,9 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
     async_test_recorder: Any,
     recorder_config: dict[str, str],
     historical_release: str,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
     """Replay old integration shapes on disk, then reopen registries and Recorder.
 
@@ -550,10 +558,17 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
         device_registry = dr.async_get(old_hass)
         entity_registry = er.async_get(old_hass)
         for entry, subentry_id, suffix in locations:
+            # Match the IDs that tagged 2.3.0 / 4.0.3 sensors actually used,
+            # so real post-migration setup must adopt these Registry objects.
+            identity_id = (
+                entry.entry_id
+                if historical_release == "2.3.0"
+                else f"{entry.entry_id}_{subentry_id}"
+            )
             device = device_registry.async_get_or_create(
                 config_entry_id=entry.entry_id,
                 config_subentry_id=subentry_id,
-                identifiers={(DOMAIN, f"synthetic-device-{suffix}")},
+                identifiers={(DOMAIN, f"{identity_id}_type")},
             )
             device = device_registry.async_update_device(
                 device.id, name_by_user=f"Renamed device {suffix}"
@@ -561,7 +576,7 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
             entity = entity_registry.async_get_or_create(
                 "sensor",
                 DOMAIN,
-                f"synthetic-{suffix}-grass",
+                f"{identity_id}_type_grass",
                 config_entry=entry,
                 config_subentry_id=subentry_id,
                 device_id=device.id,
@@ -673,9 +688,20 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
                         == snapshot["entry_id"]
                     )
 
+            # Exercise the real integration's API-backed sensor setup, not
+            # manually injected post-upgrade states. GRASS=3 in this fixture.
+            async with aiointercept(mock_external_urls=True) as mocked:
+                mock_pollen_api(mocked, google_pollen_5_day_payload)
+                for parent in parents:
+                    await async_setup_config_entry(upgraded_hass, parent)
+
             for snapshot in snapshots.values():
-                upgraded_hass.states.async_set(snapshot["entity"][1], "3")
-            await upgraded_hass.async_block_till_done()
+                live = upgraded_hass.states.get(snapshot["entity"][1])
+                assert live is not None and live.state == "3"
+                assert (
+                    er.async_get(upgraded_hass).async_get(snapshot["entity"][1]).id
+                    == snapshot["entity"][0]
+                )
             await async_wait_recording_done(upgraded_hass)
             await recorder.async_block_till_done()
             for snapshot in snapshots.values():
@@ -698,6 +724,20 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
     async with _persisted_ha(config_dir) as reopened_hass:
         await reopened_hass.config_entries.async_initialize()
         await load_registries(reopened_hass)
+        reloaded_parents = {
+            entry.entry_id: entry
+            for entry in reopened_hass.config_entries.async_entries(DOMAIN)
+        }
+        assert set(reloaded_parents) == {primary_id, secondary_id}
+        for parent_id, parent in reloaded_parents.items():
+            assert parent.version == TARGET_ENTRY_VERSION
+            assert parent.data["api_key"] == (
+                HISTORICAL_KEY
+                if parent_id == primary_id
+                else "synthetic-second-key"
+            )
+            assert parent.unique_id == api_key_unique_id(parent.data["api_key"])
+            assert len(parent.subentries) == (2 if parent_id == primary_id else 1)
         for suffix, snapshot in snapshots.items():
             entity = er.async_get(reopened_hass).async_get(snapshot["entity"][1])
             device = dr.async_get(reopened_hass).async_get(snapshot["device"][0])
@@ -714,6 +754,18 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
             assert entity.config_subentry_id == device.config_subentry_id
             expected_parent_id = secondary_id if suffix == "other" else primary_id
             assert entity.config_entry_id == expected_parent_id
+            assert device.config_entry_id == expected_parent_id
+            parent = reloaded_parents[expected_parent_id]
+            assert entity.config_subentry_id in parent.subentries
+            if historical_release == "4.0.3":
+                assert entity.config_subentry_id == snapshot["subentry_id"]
+            else:
+                assert (
+                    parent.subentries[entity.config_subentry_id].data[
+                        "legacy_entry_id"
+                    ]
+                    == snapshot["entry_id"]
+                )
 
     with closing(sqlite3.connect(db_path)) as connection:
         for snapshot in snapshots.values():
