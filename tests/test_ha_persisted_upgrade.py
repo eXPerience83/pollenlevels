@@ -12,6 +12,7 @@ import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, closing
 from pathlib import Path
+from shutil import copytree
 from typing import Any
 
 import pytest
@@ -525,6 +526,12 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
     secondary_id = entries[-1].entry_id
     config_dir = Path(hass_tmp_config_dir)
     db_path = Path(recorder_config["db_url"].removeprefix("sqlite:///"))
+    # Isolated Home Assistant must discover the actual custom component from
+    # its config directory. Do not enable in-memory hass_storage interception.
+    copytree(
+        Path(__file__).resolve().parents[1] / "custom_components" / DOMAIN,
+        config_dir / "custom_components" / DOMAIN,
+    )
 
     if historical_release == "2.3.0":
         locations = [
