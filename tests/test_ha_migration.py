@@ -173,7 +173,7 @@ async def test_ha_migration_legacy_entry_merges_into_existing_clean_v3_parent(
 ) -> None:
     """A residual legacy entry should merge into an existing clean parent."""
     clear_integration_modules()
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     from custom_components.pollenlevels import TARGET_ENTRY_VERSION
 
@@ -656,12 +656,17 @@ async def test_registry_unavailability_preserves_source_and_retry_identity(
     assert devices.async_get(device.id) is not None
     assert entities.async_get(entity.entity_id) is not None
     if failure.startswith("device") or failure == "missing_device":
-        # Entity reassociation precedes device access; retries must keep this success.
-        assert entities.async_get(entity.entity_id).config_entry_id == parent.entry_id
+        # HA 2026.11 validates the device registry before moving an entity.
+        # Preserve source ownership when a registry is unavailable.
+        assert entities.async_get(entity.entity_id).config_entry_id == source.entry_id
         assert devices.async_get(device.id).config_entry_id == source.entry_id
     if failure.endswith("error") or failure == "missing_device":
-        assert "registry is unavailable" in caplog.text
-        assert "Synthetic registry initialization failure" not in caplog.text
+        if failure in {"missing_device", "device_error"}:
+            assert "Entity registry migration incomplete" in caplog.text
+        else:
+            assert "registry is unavailable" in caplog.text
+        if failure != "device_error":
+            assert "Synthetic registry initialization failure" not in caplog.text
     persisted = dict(parent.subentries)
 
     assert await async_migrate_config_entry(hass, parent)

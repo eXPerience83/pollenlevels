@@ -24,21 +24,21 @@ def _project(cooldown: str = "3 days") -> dict[str, object]:
         "dependency-groups": {
             "test": [
                 "packaging==26.3",
-                "pytest-homeassistant-custom-component==0.13.357",
-                "homeassistant==2026.8.3",
+                "pytest-homeassistant==2026.11.0",
+                "homeassistant==2026.11.0",
             ]
         },
         "tool": {"uv": {"exclude-newer": cooldown}},
     }
 
 
-def _selection(ha: str = "2026.8.3", phacc: str = "0.13.357") -> HarnessSelection:
+def _selection(ha: str = "2026.11.0", official: str = "2026.11.0") -> HarnessSelection:
     return HarnessSelection(
         latest_homeassistant=ha,
-        latest_phacc=phacc,
+        latest_official=official,
         selected_homeassistant=ha,
-        selected_phacc=phacc,
-        skipped_prerelease_phacc=("0.13.360",),
+        selected_official=official,
+        skipped_prerelease_official=("2026.11.0b6",),
     )
 
 
@@ -55,16 +55,16 @@ def _release(uploaded: datetime, *, yanked: bool = False) -> dict[str, object]:
 
 def _plan(
     *,
-    ha: str = "2026.8.3",
-    phacc: str = "0.13.357",
+    ha: str = "2026.11.0",
+    official: str = "2026.11.0",
     ha_uploaded: datetime = NOW - timedelta(days=4),
-    phacc_uploaded: datetime = NOW - timedelta(days=4),
+    official_uploaded: datetime = NOW - timedelta(days=4),
 ) -> BaselinePlan:
     return make_plan(
         _project(),
-        _selection(ha, phacc),
+        _selection(ha, official),
         _release(ha_uploaded),
-        _release(phacc_uploaded),
+        _release(official_uploaded),
         NOW,
     )
 
@@ -76,7 +76,7 @@ def test_baseline_already_current_is_a_noop() -> None:
 
 def test_mature_newer_stable_pair_is_an_update() -> None:
     """A newer pair becomes eligible only after both release gates mature."""
-    plan = _plan(ha="2026.9.0", phacc="0.13.400")
+    plan = _plan(ha="2026.11.1", official="2026.11.1")
 
     assert plan.status == "update"
     assert plan.mature_at == (NOW - timedelta(days=1)).isoformat()
@@ -84,19 +84,26 @@ def test_mature_newer_stable_pair_is_an_update() -> None:
 
 def test_candidate_younger_than_cooldown_is_not_updated() -> None:
     """A new selected pair stays in cooldown until the common maturity instant."""
-    assert _plan(ha="2026.9.0", phacc="0.13.400", ha_uploaded=NOW).status == "cooldown"
-
-
-def test_ha_mature_but_phacc_young_is_cooldown() -> None:
-    """PHACC's release timestamp independently protects the pair."""
     assert (
-        _plan(ha="2026.9.0", phacc="0.13.400", phacc_uploaded=NOW).status == "cooldown"
+        _plan(ha="2026.11.1", official="2026.11.1", ha_uploaded=NOW).status
+        == "cooldown"
     )
 
 
-def test_phacc_mature_but_ha_young_is_cooldown() -> None:
+def test_ha_mature_but_official_young_is_cooldown() -> None:
+    """OFFICIAL's release timestamp independently protects the pair."""
+    assert (
+        _plan(ha="2026.11.1", official="2026.11.1", official_uploaded=NOW).status
+        == "cooldown"
+    )
+
+
+def test_official_mature_but_ha_young_is_cooldown() -> None:
     """Home Assistant's release timestamp independently protects the pair."""
-    assert _plan(ha="2026.9.0", phacc="0.13.400", ha_uploaded=NOW).status == "cooldown"
+    assert (
+        _plan(ha="2026.11.1", official="2026.11.1", ha_uploaded=NOW).status
+        == "cooldown"
+    )
 
 
 def test_latest_non_yanked_artifact_controls_maturity() -> None:
@@ -182,11 +189,11 @@ def test_malformed_cooldown_fails(cooldown: object) -> None:
 def test_downgrade_candidate_fails() -> None:
     """The normal baseline updater never moves either direct pin backward."""
     with pytest.raises(UpdaterError, match="downgrade"):
-        _plan(ha="2026.8.2")
+        _plan(ha="2026.10.4", official="2026.10.4")
 
 
-def _update_plan(*, ha: str = "2026.9.0", phacc: str = "0.13.400") -> BaselinePlan:
-    return _plan(ha=ha, phacc=phacc)
+def _update_plan(*, ha: str = "2026.11.1", official: str = "2026.11.1") -> BaselinePlan:
+    return _plan(ha=ha, official=official)
 
 
 def _pyproject() -> str:
@@ -194,13 +201,13 @@ def _pyproject() -> str:
 
 [dependency-groups]
 test = [
-    "pytest-homeassistant-custom-component==0.13.357",
-    "homeassistant==2026.8.3",
+    "pytest-homeassistant==2026.11.0",
+    "homeassistant==2026.11.0",
 ]
 
 [tool.uv]
 exclude-newer = "3 days"
-# Home Assistant 2026.8.3 requires Python 3.14.2+, while CI itself uses the
+# Home Assistant 2026.11.0 requires Python 3.14.2+, while CI itself uses the
 # exact patch from .python-version. Keep the lock within the supported 3.14 line.
 """
 
@@ -209,27 +216,25 @@ def test_pyproject_updates_exact_two_pins_and_ha_comment() -> None:
     """The text update keeps unrelated configuration bytes intact."""
     updated = update_pyproject(_pyproject(), _update_plan())
 
-    assert '"homeassistant==2026.9.0"' in updated
-    assert '"pytest-homeassistant-custom-component==0.13.400"' in updated
-    assert "# Home Assistant 2026.9.0 requires Python 3.14.2+" in updated
+    assert '"homeassistant==2026.11.1"' in updated
+    assert '"pytest-homeassistant==2026.11.1"' in updated
+    assert "# Home Assistant 2026.11.1 requires Python 3.14.2+" in updated
     assert "# Tooling aligned to the Home Assistant 2026.5" in updated
 
 
-def test_pyproject_leaves_ha_comment_when_only_phacc_changes() -> None:
-    """A same-HA harness update must not touch the nearby HA compatibility note."""
-    plan = _update_plan(ha="2026.8.3", phacc="0.13.400")
-    updated = update_pyproject(_pyproject(), plan)
-
-    assert "# Home Assistant 2026.8.3 requires Python 3.14.2+" in updated
+def test_mismatched_official_pair_is_rejected() -> None:
+    """Official package and Home Assistant must have equal versions."""
+    with pytest.raises(UpdaterError, match="match Home Assistant exactly"):
+        _update_plan(ha="2026.11.0", official="2026.11.1")
 
 
 @pytest.mark.parametrize(
     "text",
     [
-        _pyproject().replace('"homeassistant==2026.8.3",\n', ""),
+        _pyproject().replace('"homeassistant==2026.11.0",\n', ""),
         _pyproject().replace(
-            '    "homeassistant==2026.8.3",\n',
-            '    "homeassistant==2026.8.3",\n    "homeassistant==2026.8.3",\n',
+            '    "homeassistant==2026.11.0",\n',
+            '    "homeassistant==2026.11.0",\n    "homeassistant==2026.11.0",\n',
         ),
     ],
 )
@@ -242,7 +247,7 @@ def test_missing_or_ambiguous_pyproject_pin_fails(text: str) -> None:
 def _lock(
     *,
     ha: str,
-    phacc: str,
+    official: str,
     local_version: str = "4.0.0",
     source: str = 'virtual = "."',
     other: str = "1.0",
@@ -258,8 +263,8 @@ source = {{ registry = "https://pypi.org/simple" }}
 dependencies = [{{ name = "dependency" }}]
 
 [[package]]
-name = "pytest-homeassistant-custom-component"
-version = "{phacc}"
+name = "pytest-homeassistant"
+version = "{official}"
 source = {{ registry = "https://pypi.org/simple" }}
 dependencies = [{{ name = "homeassistant" }}]
 
@@ -276,33 +281,33 @@ version = "{local_version}"
 source = {{ {source} }}
 
 [package.dev-dependencies]
-release = [{{ name = "homeassistant" }}, {{ name = "pytest-homeassistant-custom-component" }}]
-test = [{{ name = "homeassistant" }}, {{ name = "pytest-homeassistant-custom-component" }}]
+release = [{{ name = "homeassistant" }}, {{ name = "pytest-homeassistant" }}]
+test = [{{ name = "homeassistant" }}, {{ name = "pytest-homeassistant" }}]
 
 [package.metadata]
 
 [package.metadata.requires-dev]
 release = [
     {{ name = "homeassistant", specifier = "=={ha}" }},
-    {{ name = "pytest-homeassistant-custom-component", specifier = "=={phacc}" }},
+    {{ name = "pytest-homeassistant", specifier = "=={official}" }},
 ]
 test = [
     {{ name = "homeassistant", specifier = "=={ha}" }},
-    {{ name = "pytest-homeassistant-custom-component", specifier = "=={phacc}" }},
+    {{ name = "pytest-homeassistant", specifier = "=={official}" }},
 ]
 '''
 
 
 def _valid_locks() -> tuple[str, str]:
-    return _lock(ha="2026.8.3", phacc="0.13.357"), _lock(
-        ha="2026.9.0", phacc="0.13.400"
+    return _lock(ha="2026.11.0", official="2026.11.0"), _lock(
+        ha="2026.11.1", official="2026.11.1"
     )
 
 
-def test_allowed_ha_phacc_and_local_specifier_movement_passes() -> None:
+def test_allowed_ha_official_and_local_specifier_movement_passes() -> None:
     """The intended direct record and local requirement metadata update is accepted."""
     before, after = _valid_locks()
-    validate_lock_delta(before, after, "2026.9.0", "0.13.400")
+    validate_lock_delta(before, after, "2026.11.1", "2026.11.1")
 
 
 @pytest.mark.parametrize(
@@ -338,23 +343,23 @@ def test_unrelated_lock_movement_fails(transform: object, match: str) -> None:
     """No unrelated package record change is acceptable to publication."""
     before, after = _valid_locks()
     with pytest.raises(UpdaterError, match=match):
-        validate_lock_delta(before, transform(after), "2026.9.0", "0.13.400")
+        validate_lock_delta(before, transform(after), "2026.11.1", "2026.11.1")
 
 
 @pytest.mark.parametrize(
     ("after", "match"),
     [
         (
-            _lock(ha="2026.9.0", phacc="0.13.400", local_version="5.0.0"),
+            _lock(ha="2026.11.1", official="2026.11.1", local_version="5.0.0"),
             "version or source",
         ),
         (
-            _lock(ha="2026.9.0", phacc="0.13.400", source='virtual = "elsewhere"'),
+            _lock(ha="2026.11.1", official="2026.11.1", source='virtual = "elsewhere"'),
             "version or source",
         ),
         (
-            _lock(ha="2026.9.0", phacc="0.13.400").replace(
-                'specifier = "==2026.9.0"', 'specifier = ">=2026.9.0"'
+            _lock(ha="2026.11.1", official="2026.11.1").replace(
+                'specifier = "==2026.11.1"', 'specifier = ">=2026.11.1"'
             ),
             "target specifier",
         ),
@@ -364,11 +369,11 @@ def test_unexpected_local_pollenlevels_movement_fails(after: str, match: str) ->
     """Only the two direct local dependency specifiers may change."""
     before, _ = _valid_locks()
     with pytest.raises(UpdaterError, match=match):
-        validate_lock_delta(before, after, "2026.9.0", "0.13.400")
+        validate_lock_delta(before, after, "2026.11.1", "2026.11.1")
 
 
 def test_wrong_resulting_harness_versions_fail() -> None:
     """Target records must lock exactly to the selected stable pair."""
     before, after = _valid_locks()
     with pytest.raises(UpdaterError, match="homeassistant"):
-        validate_lock_delta(before, after, "2026.9.1", "0.13.400")
+        validate_lock_delta(before, after, "2026.11.2", "2026.11.1")

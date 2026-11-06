@@ -79,7 +79,7 @@ async def test_historical_device_storage_retains_identity(
         ),
     }
     if composite:
-        from pytest_homeassistant_custom_component.common import MockConfigEntry
+        from pytest_homeassistant.common import MockConfigEntry
 
         other = MockConfigEntry(domain="test", entry_id="other-owner")
         other.add_to_hass(hass)

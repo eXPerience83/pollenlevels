@@ -199,7 +199,7 @@ async def test_ha_user_flow_rejects_duplicate_parent_api_key(
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
     """User flow should reject another parent with the same API-key identity."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     MockConfigEntry(
@@ -305,7 +305,7 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
     legacy_entry_id: str | None,
 ) -> None:
     """Parent API-key changes must preserve location registry identities."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     location_subentry_data = {
@@ -446,7 +446,7 @@ async def test_ha_parent_api_key_flow_rejects_duplicate_parent_unique_id(
     step_id: str,
 ) -> None:
     """Parent reauth/reconfigure should reject another parent's API key."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     duplicate = MockConfigEntry(
@@ -498,7 +498,7 @@ async def test_ha_location_subentry_flow_creates_subentry(
     monkeypatch,
 ) -> None:
     """Location subentry flow should persist a new location on the parent entry."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     captured_params: list[dict[str, Any]] = []

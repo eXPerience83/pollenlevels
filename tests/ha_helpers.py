@@ -73,7 +73,7 @@ def legacy_config_entry(
     version: int = 3,
 ):
     """Return a legacy location-based config entry for migration harness tests."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     entry_data = {
         CONF_API_KEY: api_key,
