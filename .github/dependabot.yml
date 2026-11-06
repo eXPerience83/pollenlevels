@@ -1,7 +1,6 @@
-# Renovate owns routine dependency updates; Dependabot is security-only.
-# HA harness versions and the uv toolchain require explicit owner review.
-# Ignoring these packages suppresses their Dependabot update PRs, not
-# GitHub vulnerability alerts. See https://github.com/eXPerience83/pollenlevels/issues/438.
+# Renovate owns routine dependency and GitHub Actions updates; Dependabot
+# is retained for security alerts, without duplicate version-update PRs.
+# The HA/official-pytest pair is owner-managed by the scheduled pair updater.
 version: 2
 updates:
   - package-ecosystem: "uv"
@@ -14,21 +13,7 @@ updates:
     open-pull-requests-limit: 0
     ignore:
       - dependency-name: "homeassistant"
-      - dependency-name: "pytest-homeassistant-custom-component"
+      - dependency-name: "pytest-homeassistant"
       - dependency-name: "pytest"
       - dependency-name: "pytest-asyncio"
       - dependency-name: "uv"
-
-  - package-ecosystem: "pip"
-    directory: "/.github/requirements"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "Europe/Madrid"
-    open-pull-requests-limit: 0
-    ignore:
-      - dependency-name: "homeassistant"
-      - dependency-name: "pytest-homeassistant-custom-component"
-      - dependency-name: "pytest"
-      - dependency-name: "pytest-asyncio"
