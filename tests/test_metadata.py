@@ -499,7 +499,7 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert '"$PACKAGING_REQUIREMENT"' in selector_requirements
     assert "scripts/select_ha_harness.py" in selector
     assert '"pytest-homeassistant==$SELECTED_OFFICIAL"' in harness
-    assert "homeassistant==" not in harness
+    assert '"homeassistant==$SELECTED_HA"' not in harness
     assert "pytest-homeassistant" in canary
     assert '"$AIOINTERCEPT_REQUIREMENT"' in canary
     assert '"$PACKAGING_REQUIREMENT"' in canary
