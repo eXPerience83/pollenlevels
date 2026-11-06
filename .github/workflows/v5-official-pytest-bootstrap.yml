@@ -56,6 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           uv sync --locked --only-group release
+          uv run --locked --no-sync ruff format scripts/ha_test_baseline_updater.py scripts/select_ha_harness.py tests/test_ha_test_baseline_updater.py
           uv run --locked --no-sync ruff check .
           uv run --locked --no-sync ruff format --check .
           uv run --locked --no-sync python -m pytest -q -ra --cov=custom_components.pollenlevels --cov-report=term-missing --cov-report=json:coverage.json
@@ -66,7 +67,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add uv.lock
+          git add uv.lock scripts/ha_test_baseline_updater.py scripts/select_ha_harness.py tests/test_ha_test_baseline_updater.py
           git diff --cached --quiet && { echo "Lock unchanged"; exit 0; }
           git commit -m "chore(lock): stable official HA 2026.11 pair [skip lock-bootstrap]"
           git push origin "HEAD:refs/heads/feat/v5-ha-2026.11-official-pytest"
