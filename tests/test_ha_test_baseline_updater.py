@@ -182,7 +182,7 @@ def test_malformed_cooldown_fails(cooldown: object) -> None:
 def test_downgrade_candidate_fails() -> None:
     """The normal baseline updater never moves either direct pin backward."""
     with pytest.raises(UpdaterError, match="downgrade"):
-        _plan(ha="2026.10.4")
+        _plan(ha="2026.10.4", official="2026.10.4")
 
 
 def _update_plan(*, ha: str = "2026.11.1", official: str = "2026.11.1") -> BaselinePlan:
