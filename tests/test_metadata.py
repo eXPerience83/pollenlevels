@@ -568,6 +568,22 @@ def test_shell_command_detection_uses_command_boundaries() -> None:
     assert not _shell_invokes_command("jq --arg result value .\n", "rg")
 
 
+def test_release_cooldown_override_is_explicit_and_prerelease_only() -> None:
+    """Release still requires a full SHA and retains all locked quality gates."""
+    workflow = _read_text(WORKFLOWS_PATH / "release.yml")
+    guard = _workflow_step(workflow, "Authorize manual prerelease dependency cooldown override")
+    assert workflow.count("UV_EXCLUDE_NEWER=false") == 1
+    assert "UV_EXCLUDE_NEWER=false" in guard
+    assert "github.event_name == 'workflow_dispatch' && inputs.bypass_dependency_cooldown" in guard
+    assert "VALIDATION_MODE" in guard and "modern" in guard
+    assert "RELEASE_REF" in guard and "VALIDATED_COMMIT" in guard
+    assert "OVERRIDE_REASON" in guard
+    assert "(a|b|rc)" in guard
+    assert "uv lock --check" in workflow
+    assert "uv sync --locked --only-group release" in workflow
+    assert "draft: true" in workflow
+
+
 def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() -> None:
     """Protect the daily updater's narrow generated-PR security contract."""
     workflow = _read_text(WORKFLOWS_PATH / "ha-test-baseline-updater.yml")
@@ -590,7 +606,12 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "pull-requests: write" in workflow
     assert "actions/checkout@" in workflow
     assert "persist-credentials: false" in workflow
-    assert "UV_EXCLUDE_NEWER=false" not in workflow
+    override_guard = _workflow_step(workflow, "Authorize manual package cooldown override")
+    assert workflow.count("UV_EXCLUDE_NEWER=false") == 1
+    assert "UV_EXCLUDE_NEWER=false" in override_guard
+    assert "github.event_name == 'workflow_dispatch' && inputs.override_cooldown" in override_guard
+    assert 'WORKFLOW_REF" != "refs/heads/main"' in override_guard
+    assert "OVERRIDE_REASON" in override_guard
     assert 'UV_EXCLUDE_NEWER: "false"' not in workflow
     assert not _shell_invokes_command(planner_script, "rg")
     assert "import tomllib" in planner_environment
