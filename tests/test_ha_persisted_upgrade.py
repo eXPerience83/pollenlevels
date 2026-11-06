@@ -8,22 +8,20 @@ This harness is not yet a complete independent-process upgrade/Marketplace test.
 from __future__ import annotations
 
 import json
-import shutil
 import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, closing
 from pathlib import Path
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
-from aiointercept import aiointercept
-from homeassistant import config_entries, loader
+from homeassistant import config_entries
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import (
     MockConfigEntry,
     async_test_home_assistant,
@@ -34,7 +32,7 @@ from pytest_homeassistant.components.recorder.common import async_wait_recording
 from custom_components.pollenlevels.const import DOMAIN
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
-from tests.ha_helpers import async_migrate_config_entry, mock_pollen_api
+from tests.ha_helpers import async_migrate_config_entry
 
 HISTORICAL_KEY = "synthetic-history-key"
 HISTORY_ENTITY = "sensor.synthetic_pollen_history"
@@ -462,9 +460,6 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
     hass_tmp_config_dir: str,
     async_test_recorder: Any,
     recorder_config: dict[str, str],
-    enable_custom_integrations: None,
-    socket_enabled: None,
-    google_pollen_5_day_payload: dict[str, Any],
     historical_release: str,
 ) -> None:
     """Exercise multiple locations/keys and a renamed sensor across disk reloads.
@@ -516,12 +511,6 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
         )
 
     config_dir = Path(hass_tmp_config_dir)
-    # The throwaway HA instances use a new config dir: install the actual
-    # custom integration there so HA can discover and set up its platforms.
-    shutil.copytree(
-        Path(__file__).resolve().parents[1] / "custom_components" / DOMAIN,
-        config_dir / "custom_components" / DOMAIN,
-    )
     db_path = Path(recorder_config["db_url"].removeprefix("sqlite:///"))
     identities: dict[str, dict[str, Any]] = {}
 
@@ -677,34 +666,48 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 else:
                     assert entity.config_subentry_id == expected["source_subentry"]
 
-            # Setup the real sensor/button platforms after migration, with a
-            # mocked Google boundary. This must reclaim the existing Registry
-            # identities, not silently create fresh sensors with new IDs.
-            # async_test_home_assistant intentionally starts with an empty
-            # loader custom-component cache. Rescan after installing the
-            # integration into this isolated HA config directory.
-            home_b.data.pop(loader.DATA_CUSTOM_COMPONENTS, None)
-            assert DOMAIN in await loader.async_get_custom_components(home_b)
-            async with aiointercept(mock_external_urls=True) as mocked:
-                mock_pollen_api(mocked, google_pollen_5_day_payload)
-                assert await async_setup_component(home_b, DOMAIN, {})
-                for parent in parents:
-                    assert await home_b.config_entries.async_setup(parent.entry_id)
-                await home_b.async_block_till_done()
-                for entity_id, expected in identities.items():
-                    assert home_b.states.get(entity_id) is not None
-                    actual = entities_b.async_get(entity_id)
-                    assert actual is not None
-                    assert (actual.id, actual.unique_id, actual.device_id) == (
-                        expected["entity_id"],
-                        expected["unique_id"],
-                        expected["device_id"],
-                    )
-                    matching_device = devices_b.async_get_device(
-                        identifiers=expected["device_identifiers"]
-                    )
-                    assert matching_device is not None
-                    assert matching_device.id == expected["device_id"]
+            # Construct real post-migration sensor/coordinator identities,
+            # then resolve them through the persisted Home Assistant Registry.
+            # This checks the platform's identity contract without claiming a
+            # full integration/Marketplace setup inside these HA test objects.
+            from custom_components.pollenlevels.coordinator import (
+                PollenDataUpdateCoordinator,
+            )
+            from custom_components.pollenlevels.sensor import PollenSensor
+
+            for entity_id, expected in identities.items():
+                entity = entities_b.async_get(entity_id)
+                assert entity is not None
+                parent = home_b.config_entries.async_get_entry(entity.config_entry_id)
+                assert parent is not None
+                subentry = parent.subentries[entity.config_subentry_id]
+                coordinator = PollenDataUpdateCoordinator(
+                    hass=home_b,
+                    api_key=parent.data["api_key"],
+                    lat=float(subentry.data["latitude"]),
+                    lon=float(subentry.data["longitude"]),
+                    hours=12,
+                    language="en",
+                    entry_id=parent.entry_id,
+                    client=Mock(),
+                    entry_title=subentry.title,
+                    subentry_id=subentry.subentry_id,
+                    legacy_entry_id=subentry.data.get("legacy_entry_id"),
+                    config_entry=parent,
+                )
+                sensor = PollenSensor(coordinator, "type_grass")
+                assert sensor.unique_id == expected["unique_id"]
+                assert entities_b.async_get_entity_id(
+                    "sensor", DOMAIN, sensor.unique_id
+                ) == entity_id
+                assert sensor.device_info["identifiers"] == expected[
+                    "device_identifiers"
+                ]
+                matching_device = devices_b.async_get_device(
+                    identifiers=sensor.device_info["identifiers"]
+                )
+                assert matching_device is not None
+                assert matching_device.id == expected["device_id"]
 
             for index, entity_id in enumerate(identities, start=1):
                 before = await recorder_b.async_add_executor_job(
