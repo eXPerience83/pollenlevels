@@ -19,9 +19,9 @@ import pytest
 from aiointercept import aiointercept
 from homeassistant import config_entries, loader
 from homeassistant.components.recorder import Recorder
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er, frame
 from pytest_homeassistant.common import (
