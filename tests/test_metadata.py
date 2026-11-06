@@ -816,13 +816,13 @@ def test_release_enforces_selected_modern_snapshot_coverage() -> None:
     release = _read_text(WORKFLOWS_PATH / "release.yml")
     step = _workflow_step(release, "Run tests")
     assert 'if [[ "$VALIDATION_MODE" == "modern" ]]' in step
-    assert 'if [[ -f scripts/check_coverage.py ]]' in step
+    assert "if [[ -f scripts/check_coverage.py ]]" in step
     assert "--cov=custom_components.pollenlevels" in step
     assert "--cov-report=json:coverage.json" in step
     assert "scripts/check_coverage.py coverage.json" in step
     assert '''ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"''' in step
-    assert '''if [[ "$ha_floor" == "2026.11.0" ]]''' in step
-    assert 'exit 1' in step
+    assert """if [[ "$ha_floor" == "2026.11.0" ]]""" in step
+    assert "exit 1" in step
     assert "Historical legacy snapshots" in step
     assert "python -m pytest -q" in step
     # Coverage occurs before ZIP creation on the selected snapshot.
