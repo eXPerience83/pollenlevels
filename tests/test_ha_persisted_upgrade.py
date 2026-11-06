@@ -15,15 +15,15 @@ from contextlib import asynccontextmanager, closing
 from pathlib import Path
 from typing import Any
 
-from aiointercept import aiointercept
 import pytest
+from aiointercept import aiointercept
 from homeassistant import config_entries
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import (
     MockConfigEntry,
     async_test_home_assistant,
