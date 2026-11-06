@@ -88,11 +88,11 @@ jobs:
               selection = json.load(file)
           fields = {
               "LATEST_HA": selection["latest_homeassistant"],
-              "LATEST_PHACC": selection["latest_phacc"],
+              "LATEST_OFFICIAL": selection["latest_official"],
               "SELECTED_HA": selection["selected_homeassistant"],
-              "SELECTED_PHACC": selection["selected_phacc"],
-              "SKIPPED_PRERELEASE_PHACC": ",".join(
-                  selection["skipped_prerelease_phacc"]
+              "SELECTED_OFFICIAL": selection["selected_official"],
+              "SKIPPED_PRERELEASE_OFFICIAL": ",".join(
+                  selection["skipped_prerelease_official"]
               ),
           }
           for name, value in fields.items():
@@ -106,7 +106,7 @@ jobs:
         run: |
           set -euo pipefail
           uv pip install --python "$CANARY_PYTHON" \
-            "pytest-homeassistant-custom-component==$SELECTED_PHACC" \
+            "pytest-homeassistant==$SELECTED_OFFICIAL" \
             "$AIOINTERCEPT_REQUIREMENT"
 
       - name: Report resolved compatibility versions
@@ -123,7 +123,7 @@ jobs:
           from scripts.select_ha_harness import exact_homeassistant_requirement
 
           names = (
-              "pytest-homeassistant-custom-component",
+              "pytest-homeassistant",
               "homeassistant",
               "pytest",
               "pytest-asyncio",
@@ -134,12 +134,12 @@ jobs:
               name: importlib.metadata.version(name)
               for name in names
           }
-          installed_phacc = versions["pytest-homeassistant-custom-component"]
+          installed_official = versions["pytest-homeassistant"]
           installed_homeassistant = versions["homeassistant"]
-          if installed_phacc != os.environ["SELECTED_PHACC"]:
+          if installed_official != os.environ["SELECTED_OFFICIAL"]:
               raise SystemExit(
-                  f"Installed PHACC {installed_phacc} does not match selected "
-                  f"{os.environ['SELECTED_PHACC']}"
+                  f"Installed OFFICIAL {installed_official} does not match selected "
+                  f"{os.environ['SELECTED_OFFICIAL']}"
               )
           if installed_homeassistant != os.environ["SELECTED_HA"]:
               raise SystemExit(
@@ -147,11 +147,11 @@ jobs:
                   f"selected {os.environ['SELECTED_HA']}"
               )
           required_homeassistant = exact_homeassistant_requirement(
-              importlib.metadata.requires("pytest-homeassistant-custom-component")
+              importlib.metadata.requires("pytest-homeassistant")
           )
           if required_homeassistant != installed_homeassistant:
               raise SystemExit(
-                  "PHACC Home Assistant requirement is not the exact installed version: "
+                  "OFFICIAL Home Assistant requirement is not the exact installed version: "
                   f"{required_homeassistant} != {installed_homeassistant}"
               )
 
@@ -161,15 +161,15 @@ jobs:
               status = "latest stable Home Assistant is covered by the canary"
           else:
               status = (
-                  "upstream PHACC has not yet caught up with latest Home Assistant"
+                  "upstream OFFICIAL has not yet caught up with latest Home Assistant"
               )
               print(
                   "::warning title=Home Assistant harness lag::"
-                  f"Latest stable Home Assistant is {latest_ha}, but PHACC "
-                  f"{installed_phacc} selects Home Assistant {installed_homeassistant}"
+                  f"Latest stable Home Assistant is {latest_ha}, but OFFICIAL "
+                  f"{installed_official} selects Home Assistant {installed_homeassistant}"
               )
 
-          skipped = os.environ["SKIPPED_PRERELEASE_PHACC"]
+          skipped = os.environ["SKIPPED_PRERELEASE_OFFICIAL"]
           skipped_summary = (
               f"`{skipped}` (target HA prerelease)" if skipped else "None"
           )
@@ -182,10 +182,10 @@ jobs:
               "## Latest Home Assistant compatibility canary",
               "",
               f"- Latest stable HA: `{latest_ha}`",
-              f"- Latest stable-versioned PHACC: `{os.environ['LATEST_PHACC']}`",
-              f"- Selected stable-pair PHACC: `{installed_phacc}`",
-              f"- HA selected by PHACC: `{installed_homeassistant}`",
-              f"- Newer PHACC releases skipped: {skipped_summary}",
+              f"- Latest stable-versioned OFFICIAL: `{os.environ['LATEST_OFFICIAL']}`",
+              f"- Selected stable-pair OFFICIAL: `{installed_official}`",
+              f"- HA selected by OFFICIAL: `{installed_homeassistant}`",
+              f"- Newer OFFICIAL releases skipped: {skipped_summary}",
               f"- Status: {status}",
               "",
               "| Component | Resolved version |",
@@ -194,7 +194,7 @@ jobs:
           for name in names:
               summary.append(f"| {name} | `{versions[name]}` |")
           summary.append(
-              "| PHACC Home Assistant requirement | "
+              "| OFFICIAL Home Assistant requirement | "
               f"`homeassistant=={required_homeassistant}` |"
           )
           summary.append(f"| Python | `{python_version}` |")
@@ -211,4 +211,4 @@ jobs:
           PYTHONPATH: .
         run: |
           set -euo pipefail
-          "$CANARY_PYTHON" -m pytest -q -p no:cacheprovider
+          "$CANARY_PYTHON" -m pytest -q -p no:cacheprovider -p no:respx

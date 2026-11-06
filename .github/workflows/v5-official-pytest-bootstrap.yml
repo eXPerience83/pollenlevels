@@ -1,0 +1,72 @@
+name: v5 official HA pytest lock bootstrap (temporary)
+
+on:
+  push:
+    branches: [feat/v5-ha-2026.11-official-pytest]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v5-official-pytest-lock-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    if: ${{ !contains(github.event.head_commit.message, '[skip lock-bootstrap]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version-file: .python-version
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: pyproject.toml
+          enable-cache: false
+      - name: Generate official stable locked harness
+        shell: bash
+        env:
+          UV_EXCLUDE_NEWER: "false"
+        run: |
+          set -euo pipefail
+          uv lock --upgrade-package homeassistant --upgrade-package pytest-homeassistant
+          uv lock --check
+          uv sync --locked --only-group test
+          uv pip check --python .venv/bin/python
+          .venv/bin/python - <<'PY'
+          from importlib import metadata
+          assert metadata.version("homeassistant") == "2026.11.0"
+          assert metadata.version("pytest-homeassistant") == "2026.11.0"
+          assert all(d.metadata["Name"].lower().replace("_", "-") != "pytest-homeassistant-custom-component"
+                     for d in metadata.distributions())
+          project_urls = metadata.metadata("pytest-homeassistant").get_all("Project-URL") or []
+          assert any("github.com/home-assistant/core" in url for url in project_urls)
+          print("Official provenance, exact pair, and PHACC absence verified.")
+          PY
+      - name: Validate code and full coverage
+        shell: bash
+        env:
+          UV_EXCLUDE_NEWER: "false"
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          uv sync --locked --only-group release
+          uv run --locked --no-sync ruff check .
+          uv run --locked --no-sync ruff format --check .
+          uv run --locked --no-sync python -m pytest -q -ra --cov=custom_components.pollenlevels --cov-report=term-missing --cov-report=json:coverage.json
+          uv run --locked --no-sync python scripts/check_coverage.py coverage.json
+      - name: Commit validated lock to migration branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock
+          git diff --cached --quiet && { echo "Lock unchanged"; exit 0; }
+          git commit -m "chore(lock): stable official HA 2026.11 pair [skip lock-bootstrap]"
+          git push origin "HEAD:refs/heads/feat/v5-ha-2026.11-official-pytest"
