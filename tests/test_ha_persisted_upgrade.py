@@ -452,3 +452,256 @@ async def test_real_storage_survives_new_ha_instances_and_recorder_reopen(
             (entity.entity_id,),
         ).fetchall()
     assert [value[0] for value in values][-2:] == ["2", "3"]
+
+
+@pytest.mark.parametrize("historical_release", ["2.3.0", "4.0.3"])
+async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
+    hass_tmp_config_dir: str,
+    async_test_recorder: Any,
+    recorder_config: dict[str, str],
+    historical_release: str,
+) -> None:
+    """Exercise multiple locations/keys and a renamed sensor across disk reloads.
+
+    These are tagged historical integration layouts inside current HA Stores,
+    not genuine old-Core storage files or a Marketplace migration rehearsal.
+    """
+    clear_integration_modules()
+    from custom_components.pollenlevels import TARGET_ENTRY_VERSION
+
+    second_key = "synthetic-second-api-key"
+    entries = _historical_entries(historical_release)
+    if historical_release == "2.3.0":
+        entries.append(
+            MockConfigEntry(
+                domain=DOMAIN,
+                entry_id="historical-second-key",
+                title="Second API key",
+                version=3,
+                unique_id="5.0000_6.0000",
+                data={
+                    "api_key": second_key,
+                    "latitude": 5.0,
+                    "longitude": 6.0,
+                },
+                options={"update_interval": 12},
+            )
+        )
+    else:
+        entries.append(
+            MockConfigEntry(
+                domain=DOMAIN,
+                entry_id="historical-second-parent",
+                title="Second API key",
+                version=6,
+                unique_id=api_key_unique_id(second_key),
+                data={"api_key": second_key},
+                options={"update_interval": 12},
+                subentries_data=[
+                    {
+                        "subentry_id": "historical-second-location",
+                        "subentry_type": "location",
+                        "title": "Other",
+                        "unique_id": "5.0000_6.0000",
+                        "data": {"latitude": 5.0, "longitude": 6.0},
+                    }
+                ],
+            )
+        )
+
+    config_dir = Path(hass_tmp_config_dir)
+    db_path = Path(recorder_config["db_url"].removeprefix("sqlite:///"))
+    identities: dict[str, dict[str, Any]] = {}
+
+    async def load_registries(home: HomeAssistant) -> None:
+        dr.async_setup(home)
+        await dr.async_load(home)
+        await er.async_load(home)
+
+    # A: persist pre-upgrade config entries, user Registry customizations and
+    # real state rows in one on-disk SQLite Recorder database.
+    async with _persisted_ha(config_dir) as home_a:
+        await home_a.config_entries.async_initialize()
+        await load_registries(home_a)
+        devices_a = dr.async_get(home_a)
+        entities_a = er.async_get(home_a)
+        for old in entries:
+            old.add_to_hass(home_a)
+            subentry_ids = list(old.subentries) or [None]
+            for index, subentry_id in enumerate(subentry_ids):
+                suffix = f"{old.entry_id}-{index}"
+                device = devices_a.async_get_or_create(
+                    config_entry_id=old.entry_id,
+                    config_subentry_id=subentry_id,
+                    identifiers={(DOMAIN, f"{suffix}_type")},
+                )
+                device = devices_a.async_update_device(
+                    device.id, name_by_user=f"Custom device {suffix}"
+                )
+                entity = entities_a.async_get_or_create(
+                    "sensor",
+                    DOMAIN,
+                    f"{suffix}_type_grass",
+                    config_entry=old,
+                    config_subentry_id=subentry_id,
+                    device_id=device.id,
+                    suggested_object_id=f"synthetic_{suffix.replace('-', '_')}",
+                )
+                if not identities:
+                    entity = entities_a.async_update_entity(
+                        entity.entity_id, new_entity_id="sensor.user_named_pollen"
+                    )
+                identities[entity.entity_id] = {
+                    "entity_id": entity.id,
+                    "unique_id": entity.unique_id,
+                    "device_id": device.id,
+                    "device_identifiers": device.identifiers,
+                    "device_name": device.name_by_user,
+                    "source_entry": old.entry_id,
+                    "source_subentry": subentry_id,
+                    "api_key": old.data["api_key"],
+                }
+
+        assert len(identities) == 3
+        assert "sensor.user_named_pollen" in identities
+        await home_a.config_entries._store.async_save(
+            {"entries": [entry.as_dict() for entry in entries]}
+        )
+        await flush_store(devices_a._store)
+        await flush_store(entities_a._store)
+        async with async_test_recorder(home_a, recorder_config) as recorder_a:
+            for index, entity_id in enumerate(identities, start=1):
+                home_a.states.async_set(entity_id, str(index))
+            await home_a.async_block_till_done()
+            await async_wait_recording_done(home_a)
+            await recorder_a.async_block_till_done()
+            for index, entity_id in enumerate(identities, start=1):
+                assert str(index) in await recorder_a.async_add_executor_job(
+                    _recorded_values, home_a, entity_id
+                )
+
+    assert db_path.is_file()
+
+    # B: reopen the exact same persisted HA Store/Registry and SQLite files,
+    # migrate every remaining legacy source, then write new Recorder rows.
+    async with _persisted_ha(config_dir) as home_b:
+        await home_b.config_entries.async_initialize()
+        await load_registries(home_b)
+        assert len(home_b.config_entries.async_entries(DOMAIN)) == len(entries)
+        devices_b = dr.async_get(home_b)
+        entities_b = er.async_get(home_b)
+        for entity_id, expected in identities.items():
+            entity = entities_b.async_get(entity_id)
+            device = devices_b.async_get(expected["device_id"])
+            assert entity is not None and device is not None
+            assert (entity.id, entity.unique_id, entity.device_id) == (
+                expected["entity_id"],
+                expected["unique_id"],
+                expected["device_id"],
+            )
+            assert (device.identifiers, device.name_by_user) == (
+                expected["device_identifiers"],
+                expected["device_name"],
+            )
+
+        async with async_test_recorder(home_b, recorder_config) as recorder_b:
+            for old in entries:
+                source = home_b.config_entries.async_get_entry(old.entry_id)
+                if source is not None and source.version < TARGET_ENTRY_VERSION:
+                    assert await async_migrate_config_entry(home_b, source)
+
+            parents = home_b.config_entries.async_entries(DOMAIN)
+            assert len(parents) == 2
+            assert {p.data["api_key"] for p in parents} == {
+                HISTORICAL_KEY,
+                second_key,
+            }
+            assert sorted(len(p.subentries) for p in parents) == [1, 2]
+            for entity_id, expected in identities.items():
+                entity = entities_b.async_get(entity_id)
+                device = devices_b.async_get(expected["device_id"])
+                assert entity is not None and device is not None
+                assert (entity.id, entity.unique_id, entity.device_id) == (
+                    expected["entity_id"],
+                    expected["unique_id"],
+                    expected["device_id"],
+                )
+                assert (device.identifiers, device.name_by_user) == (
+                    expected["device_identifiers"],
+                    expected["device_name"],
+                )
+                parent = home_b.config_entries.async_get_entry(
+                    entity.config_entry_id
+                )
+                assert parent is not None
+                assert parent.data["api_key"] == expected["api_key"]
+                assert entity.config_subentry_id in parent.subentries
+                assert device.config_entry_id == parent.entry_id
+                assert device.config_subentry_id == entity.config_subentry_id
+                if historical_release == "2.3.0":
+                    assert (
+                        parent.subentries[entity.config_subentry_id].data[
+                            "legacy_entry_id"
+                        ]
+                        == expected["source_entry"]
+                    )
+                else:
+                    assert entity.config_subentry_id == expected["source_subentry"]
+
+            for index, entity_id in enumerate(identities, start=1):
+                before = await recorder_b.async_add_executor_job(
+                    _recorded_values, home_b, entity_id
+                )
+                assert str(index) in before
+                home_b.states.async_set(entity_id, str(index + 10))
+            await home_b.async_block_till_done()
+            await async_wait_recording_done(home_b)
+            await recorder_b.async_block_till_done()
+            for index, entity_id in enumerate(identities, start=1):
+                after = await recorder_b.async_add_executor_job(
+                    _recorded_values, home_b, entity_id
+                )
+                assert after[0] == str(index)
+                assert after[-1] == str(index + 10)
+
+            for parent in parents:
+                assert await async_migrate_config_entry(home_b, parent)
+
+        await flush_store(home_b.config_entries._store)
+        await flush_store(devices_b._store)
+        await flush_store(entities_b._store)
+
+    # C: a third HA instance proves the updated Registry identities survive a
+    # further restart, and SQLite history survives with the same entity IDs.
+    async with _persisted_ha(config_dir) as home_c:
+        await home_c.config_entries.async_initialize()
+        await load_registries(home_c)
+        assert len(home_c.config_entries.async_entries(DOMAIN)) == 2
+        for entity_id, expected in identities.items():
+            entity = er.async_get(home_c).async_get(entity_id)
+            device = dr.async_get(home_c).async_get(expected["device_id"])
+            assert entity is not None and device is not None
+            assert (entity.id, entity.unique_id, entity.device_id) == (
+                expected["entity_id"],
+                expected["unique_id"],
+                expected["device_id"],
+            )
+            assert (device.identifiers, device.name_by_user) == (
+                expected["device_identifiers"],
+                expected["device_name"],
+            )
+            assert entity.config_subentry_id is not None
+            assert device.config_subentry_id == entity.config_subentry_id
+
+    with closing(sqlite3.connect(db_path)) as connection:
+        for index, entity_id in enumerate(identities, start=1):
+            states = connection.execute(
+                "SELECT states.state FROM states "
+                "JOIN states_meta ON states.metadata_id = states_meta.metadata_id "
+                "WHERE states_meta.entity_id = ? ORDER BY states.state_id",
+                (entity_id,),
+            ).fetchall()
+            assert [row[0] for row in states][-2:] == [
+                str(index),
+                str(index + 10),
+            ]
