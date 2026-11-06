@@ -8,14 +8,14 @@
 Track **grass**, **tree**, and **weed** pollen, regional plant species, daily summaries, and up to **5 days of forecast data** across multiple locations.
 
 [![GitHub Release](https://img.shields.io/github/v/release/eXPerience83/pollenlevels)](https://github.com/eXPerience83/pollenlevels/releases)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.11.0%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant%20v5-2026.11.0%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
 [![Latest Home Assistant Compatibility](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml/badge.svg?branch=main)](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml)
 [![hassfest validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml)
 [![Marketplace validation (HACS action)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
 [![Marketplace catalog](https://img.shields.io/badge/Marketplace-Community%20Catalog-blue.svg)](https://github.com/hacs/default/blob/master/integration)
 [![License](https://img.shields.io/github/license/eXPerience83/pollenlevels?logo=github)](LICENSE)
 
-[FAQ](FAQ.md) · [Terms](TERMS.md) · [Privacy](PRIVACY.md)
+[Installation](#installation) · [Configuration](#configuration) · [FAQ](FAQ.md) · [Terms](TERMS.md) · [Privacy](PRIVACY.md)
 
 [![Open Pollen Levels in your Home Assistant Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=eXPerience83&repository=pollenlevels&category=integration)
 
@@ -23,14 +23,51 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 
 ## Requirements
 
-- The Pollen Levels **5.0.0a2 alpha candidate** requires **Home Assistant 2026.11.0 or newer**. The previously published `5.0.0a1` originally targeted HA 2026.10.4; its immutable artifact is unchanged. The latest stable release remains **4.0.3** (HA 2026.5.0+).
-- **Marketplace is built into Home Assistant 2026.11+**: use Settings → Marketplace; do not install the former HACS integration separately.
-- A Google Cloud API key with the Maps Pollen API enabled.
+- **Pollen Levels 5.0:** Home Assistant **2026.11.0 or newer**.
+- **Distribution:** the built-in **Settings → Marketplace** in Home Assistant 2026.11+; no separate HACS installation.
+- A Google Cloud project with billing enabled and a Google API key restricted to the **Maps Pollen API**.
+
+**Release availability:** This guide describes the intended Pollen Levels 5.0 public contract. **5.0.0 stable has not been published yet.** The latest published stable remains [4.0.3](https://github.com/eXPerience83/pollenlevels/releases/tag/v4.0.3), supporting HA 2026.5.0+. Development and pre-release 5.0 builds are for controlled testing; check [Releases](https://github.com/eXPerience83/pollenlevels/releases) before selecting a version.
+
+---
+
+## Installation
+
+### Home Assistant 2026.11+ (Marketplace)
+
+1. Open **Settings → Marketplace** and search for **Pollen Levels**, or use the Marketplace badge above.
+2. Select **Install** and review the community-integration notice and the selected release version.
+3. If the repository is not listed, select **Add from link**, enter `https://github.com/eXPerience83/pollenlevels`, then install it. Adding a custom repository requires connecting GitHub; catalog installation does not.
+4. When Home Assistant offers the integration setup flow, configure it. Otherwise open **Settings → Devices & services → Add integration → Pollen Levels**.
+5. Restart Home Assistant when prompted after an integration **update**.
+
+Marketplace offers stable releases by default. Pre-releases are opt-in under **Settings → Devices & services → Marketplace** on the repository's device page. **Do not install a 5.0 pre-release as a routine upgrade.**
+
+### Existing HACS installations and older Home Assistant
+
+Home Assistant 2026.11 migrates supported HACS integrations, custom repositories, and update entities into Marketplace automatically. **Do not uninstall and reinstall Pollen Levels just to migrate**: preserve configuration entries, entities, history, and automations. See the [official Marketplace migration guide](https://www.home-assistant.io/integrations/marketplace).
+
+On Home Assistant **2026.5–2026.10**, use the compatible legacy HACS installation of [Pollen Levels 4.0.3](https://github.com/eXPerience83/pollenlevels/releases/tag/v4.0.3). Version 5.0 requires HA 2026.11+.
+
+Before upgrading an existing installation to v5, read [Upgrading to 5.0](#upgrading-to-50) and [PREPARATION_5.0.md](PREPARATION_5.0.md).
+
+---
+
+## Configuration
+
+1. Open **Settings → Devices & services → Add integration → Pollen Levels**.
+2. Enter your **Google API key**, a **location name** and its **map location**, then choose an optional update interval and API language.
+3. To add more locations with the **same API key**, open the existing Pollen Levels parent entry and **add a location**. Do not create another parent entry with the same key.
+4. To change a location name/coordinates, reconfigure that location. Use the parent's **Configure** action for the shared polling interval and API language.
+
+Each location gets its own pollen sensors and **Update now** button. By default Pollen Levels refreshes every **6 hours**, with an adjustable interval of **1–24 hours**. The forecast request is fixed at five days. Use `pollenlevels.force_update` for a manual refresh of all loaded active locations.
+
+---
 
 ## 🌟 Features
 
 - **Multi-language support** — UI in 21 languages (**EN, ES, CA, DE, FR, IT, PL, RU, UK, NL, ZH-Hans, SV, CS, PT-BR, DA, NB, PT-PT, RO, FI, HU, ZH-Hant**) + API responses in any language.
-- **Dynamic sensors** — Auto-creates sensors for all pollen types found in your location.  
+- **Location-specific sensors** — Creates sensors for pollen types and plants present in the location's initial API data; a reload may be needed if Google introduces a new plant code after setup.  
 - **Daily summary sensors** — Adds plants in season today, overall pollen risk today, and top pollen types today.
 - **Five-day forecast for TYPES, PLANTS, and summary sensors** —
   Pollen Levels always requests the maximum 5-day forecast horizon supported by
@@ -48,40 +85,7 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 - **Last Updated sensor** — Shows timestamp of last successful update.
 - **Rich attributes** — Includes `inSeason`, index `description`, health `advice`
   for pollen types, `color_hex`, `color_rgb`, and plant details.
-- **Resilient startup** — Retries setup automatically when the first API response lacks daily pollen info (`dailyInfo` types/plants), ensuring entities appear once data is ready.
-
----
-
-## 🔒 Security & Privacy
-
-- Your **API key** is stored by Home Assistant’s secure config entries.  
-- **We never log your API key.** As a safety net, if it ever appears in an error message, it is **redacted** as `***`.  
-- **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
-- Diagnostics include redacted daily, registry, and runtime summaries to help
-  troubleshoot the integration without exposing API keys or exact coordinates.
-  Approximate coordinates are rounded to 1 decimal for support purposes.
-  Diagnostics may also include Home Assistant internal config entry and location
-  subentry identifiers (`entry_id`, `subentry_id`). These are not credentials, but
-  you should still review diagnostics before posting them publicly.
-- Avoid sharing full debug logs publicly; review them for sensitive information before posting.
-- Never share real Google API keys publicly, and do not paste full Google Pollen
-  API URLs containing `key=...` into public issues. If a key was exposed,
-  rotate it in Google Cloud Console and restrict it to the required API and
-  allowed referrers/IPs where possible.
-
-Requests go directly from your Home Assistant instance to the Google Maps Pollen
-API. The project maintainer does not operate a data-collection backend; Google
-processes request data under its own privacy policy. See [PRIVACY.md](PRIVACY.md)
-for details.
-
-Live forecast attributes remain available to dashboards, templates, automations,
-and compatible custom cards. Pollen Levels excludes `forecast`, `tomorrow_*`,
-`d2_*`, `trend`, and `expected_peak` from Home Assistant Recorder persistence,
-while current states and non-excluded attributes remain subject to your Recorder
-configuration. Its own stale Pollen API coordinator snapshot has a fixed 24-hour
-runtime cache lifetime. Recorder history and Home Assistant-generated long-term
-statistics are separate local storage layers; see [PRIVACY.md](PRIVACY.md) for
-details.
+- **Resilient startup** — Retries when the first request lacks usable `dailyInfo` and isolates a failed location from healthy locations sharing the same API key.
 
 ---
 
@@ -101,218 +105,6 @@ of forecast data so existing sensors can expose the maximum available forecast
 attributes.
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
-
----
-
-## 5.0.0a2 experimental alpha — Home Assistant 2026.11.0+
-
-The `5.0.0a2` source is an **experimental alpha** for controlled testing,
-not a production-ready stable release. It uses Home Assistant 2026.11.0+
-and the official matching `pytest-homeassistant` test harness.
-Merging its development source into `main` does **not** itself publish a
-GitHub release: check the [GitHub Releases page](https://github.com/eXPerience83/pollenlevels/releases)
-to see whether `v5.0.0a2` has been published as a **pre-release**.
-
-Once published, install or update through **Settings → Marketplace** on
-HA 2026.11+, enabling pre-releases where appropriate. Keep existing entries
-and entity IDs; do not uninstall/reinstall to force migration. Take a
-consistent, recoverable backup before upgrading an existing installation.
-Inspect entities, registries, Recorder history and Marketplace repository
-updates as part of the alpha trials. The next beta/stable release requires
-these real-world checks; the alpha is intended to obtain that evidence.
-
----
-
-## Historical 5.0.0a1 alpha — Home Assistant 2026.10.4+
-
-**Published historical artifact only.** This section describes the immutable
-`v5.0.0a1` release; **the current 5.0 preparation requires HA 2026.11.0**
-and the corresponding official pytest harness. The alpha's old floor does
-not define the forthcoming 5.0 support contract.
-
-**This section applies to the 5.0.0a1 alpha only.** It is intended for
-voluntary, controlled testing of Device Registry and migration compatibility,
-**not production use**. The final 5.0 minimum is expected to be a validated
-stable Home Assistant 2026.11.x version. The last public stable Pollen Levels
-4.0.3 remains available to users on Home Assistant 2026.5.0 and newer.
-
-Before installing the alpha in an existing Home Assistant instance:
-
-1. Verify Home Assistant Core is **2026.10.4 or newer**. This alpha has only
-   been validated against the locked HA 2026.10.4 development/test environment;
-   compatibility with other versions is **not yet certified**.
-2. Back up the **complete, persistent Home Assistant state** before the
-   upgrade, including `.storage`, configuration and the Recorder database:
-   - On **Home Assistant OS**, create a full backup with history included,
-     download it off-device and retain the encryption recovery key.
-   - On **Home Assistant Container / TrueNAS**, first stop the container for
-     a consistent ZFS snapshot or offline copy of the mounted configuration
-     dataset and its SQLite database. Retain a second, recoverable copy
-     off the NAS and record the container image/version and volume mounts.
-     A HACS download or an integration-only archive is not enough.
-   - If Recorder uses a **separate database**, make a consistent database
-     backup as well; HA's local configuration backup does not include it.
-3. Record the current Pollen Levels version, location count, API-key parent and
-   location subentry associations, entity names/IDs, history/statistics, and
-   automations that use them. Never share API keys or precise coordinates.
-4. To examine the **already published** `v5.0.0a1` historical artifact:
-   - On **HA 2026.10.4–2026.10.x**, open the **HACS dashboard**, search for Pollen Levels and filter by
-     type **Integrations**; enable pre-releases if available,
-     then select `v5.0.0a1` only if the HACS version selector offers it.
-     The original [v5.0.0a1 release page](https://github.com/eXPerience83/pollenlevels/releases/tag/v5.0.0a1)
-     records the immutable artifact. Do not assume the HACS selector can
-     install any arbitrary historical version; if the asset is unavailable,
-     stop and consult the published release and [release guidance](RELEASING.md).
-   - On **HA 2026.11+**, use **Settings → Marketplace**; enable pre-releases
-     and select the historical asset if the UI offers it. Do **not**
-     install the old HACS integration separately.
-   Restart after updating; inspect logs, Repairs, entities, devices,
-   locations, latest refresh, history and statistics.
-5. If the migration fails or identity/history changes unexpectedly, stop
-   testing and **restore the matching full pre-upgrade backup**. Installing
-   4.0.3 files over an already migrated installation is **not a supported
-   downgrade** and cannot reliably undo Registry or Recorder changes.
-
-The alpha does **not** yet certify genuine older-version stored migration,
-Recorder/statistics continuity, historical HACS-to-Marketplace transfer, or safe rollback.
-See [PREPARATION_5.0.md](PREPARATION_5.0.md) and the
-[5.0 roadmap](https://github.com/eXPerience83/pollenlevels/issues/452).
-
----
-
-## Upgrading to 4.0.0: long-term statistics restored
-
-Pollen Levels 4.0.0 restores long-term-statistics eligibility for current-day
-pollen type and plant sensors and `overall_pollen_risk_today`, matching the HACS
-integration behavior available before 3.1.0. If you kept earlier statistics,
-Home Assistant can continue them under the same entity and statistic identity,
-although the period on 3.1.0 may contain a gap. Statistics manually deleted
-after upgrading to 3.1.0 cannot be reconstructed automatically; new statistics
-start after upgrading to 4.0.0.
-
-No entity ID, unique ID, or device identity changes are involved. These numeric
-states remain based on Google's current-day forecast rather than direct physical
-observations. Future `forecast`, `tomorrow_*`, `d2_*`, `trend`, and
-`expected_peak` attributes remain excluded from Recorder persistence.
-
-## Migrating from per-day forecast sensors
-
-Pollen Levels no longer creates separate per-day pollen type forecast sensors
-such as:
-
-```text
-sensor.example_grass_d1
-sensor.example_grass_d2
-```
-
-Forecast data is now exposed on the base pollen type sensor through attributes.
-Existing legacy `_d1` and `_d2` entity registry entries owned by Pollen Levels
-are removed automatically during setup/reload. Recorder history is not purged.
-In Pollen Levels v3, this cleanup is part of the stable migration to the fixed
-5-day forecast model.
-
-Before:
-
-```jinja
-{{ states("sensor.example_grass_d1") }}
-{{ states("sensor.example_grass_d2") }}
-```
-
-After:
-
-```jinja
-{{ state_attr("sensor.example_grass", "tomorrow_value") }}
-{{ state_attr("sensor.example_grass", "d2_value") }}
-```
-
-For advanced templates, use the `forecast` attribute and select the desired
-offset:
-
-```jinja
-{% set forecast = state_attr("sensor.example_grass", "forecast") or [] %}
-{% set tomorrow = forecast | selectattr("offset", "eq", 1) | first %}
-{{ tomorrow.value if tomorrow else none }}
-```
-
-With the fixed 5-day horizon, the base sensor can expose future forecast items
-with offsets `1` to `4`, depending on the data returned by the API.
-
----
-
-## Multiple locations and upgrades
-
-Pollen Levels v3 introduces a breaking architectural migration to Home
-Assistant config subentries. Configuration is stored as one parent API-key entry
-with one or more location subentries. Existing 2.x entries are consolidated by
-API key during migration:
-
-- Legacy entries with the same Google API key are grouped under one parent
-  entry, so the API key is stored once on the parent instead of duplicated.
-- Each migrated legacy location becomes a location subentry under that parent.
-- Duplicate legacy entries are marked as merged and removed after their
-  locations, entities, and devices are moved to the parent. If Home Assistant
-  cannot move the entity or device registry links safely, the legacy entry is
-  kept so the migration can be retried.
-- Migrated location subentries keep the legacy entry ID internally so existing
-  entity unique IDs, devices, dashboards, history, and automations continue to
-  match.
-
-If legacy entries sharing a key used different update interval or language
-options, the parent entry keeps the first entry's options and fills missing
-values from the remaining entries. You can adjust the shared options after
-upgrading from **Settings -> Devices & Services -> Pollen Levels -> Configure**.
-
-To add another location after upgrading, go to **Settings -> Devices & Services
--> Pollen Levels**, open the parent entry, and add a new location subentry.
-Reconfigure a location from that same entry when only its name or map
-coordinates need to change. Each location has its own sensors and **Update now**
-button; shared options such as update interval and language stay on the parent
-**Configure** flow.
-
-When reauthenticating or reconfiguring the parent API key, the integration tries
-the configured locations until one returns usable pollen data. Authentication
-and quota errors are treated as key-level failures.
-
-During startup, Pollen Levels v3 keeps the parent entry available when at least
-one configured location loads successfully. Locations that fail their initial
-non-auth refresh are isolated in diagnostics and retried on parent reload; after
-a repeated retryable failure, the integration creates a Repair warning for the
-affected location. If no configured location can load successfully, the parent
-entry is marked not ready so Home Assistant can retry setup.
-
-Create a full Home Assistant backup before upgrading from Pollen Levels 2.x to
-v3.
-Downgrading from v3 to Pollen Levels 2.x is not supported without restoring that
-backup.
-
-### Diagnostics after the v3 migration
-
-Diagnostics include two support summaries for the v3 migration:
-
-- `registry_summary` shows how many entities and devices are associated with
-  each location subentry.
-- `registry_summary.entities.without_subentry` should normally be `0`.
-- `registry_summary.devices.without_subentry` should normally be `0`.
-- `registry_summary.devices.with_legacy_none_association` should normally be
-  `0`.
-- `runtime_summary` reports temporary runtime-only locations that can remain in
-  memory after deleting a location subentry before the parent entry is reloaded.
-- `runtime_summary.stale_location_count` should normally be `0` after reloading
-  the parent entry.
-- If `runtime_summary.stale_location_count > 0` immediately after deleting a
-  location, reload the Pollen Levels parent entry from Home Assistant.
-
-Diagnostics redact the API key and only include approximate coordinates rounded
-to 1 decimal for support purposes.
-
----
-
-## Health recommendations
-
-Google Pollen API currently provides health recommendations at pollen type level
-(`GRASS`, `TREE`, `WEED`). Plant sensors expose plant-specific index and
-description data when available, but health advice is usually not provided for
-individual plants.
 
 ---
 
@@ -369,6 +161,44 @@ are not supported by this integration.
 403 responses during setup or updates now include the API’s reason (when
 available). They often indicate billing is disabled, the Pollen API is not
 enabled, or your key restrictions do not match your Home Assistant host.
+
+---
+
+## Upgrading to 5.0
+
+Pollen Levels 5.0 targets the built-in Marketplace and Home Assistant 2026.11+. It retains the existing parent API-key and location-subentry model, sensor identities, forecast attributes, and update actions.
+
+- **Before upgrading, make a complete, recoverable Home Assistant backup**, including config entries, `.storage`, entity/device registries, and Recorder data. Back up an external Recorder database separately. Keep an off-device copy and the recovery key when applicable.
+- When upgrading Home Assistant from a version with HACS, let **Marketplace migrate the existing installation**. Update Pollen Levels in place; do not remove and re-add it.
+- Check that locations, sensors, custom entity IDs, dashboards, automations, Recorder history and long-term statistics remain associated after restart. Multi-location and historical-migration checks are particularly important.
+- **Downgrade by file replacement is not supported** after stored migration changes. Restore the matching **pre-upgrade** configuration, registries and database from a consistent backup.
+
+The 5.0 beta/stable upgrade acceptance is still pending; the documented target behavior is **not proof of real-world migration validation**. Follow [the 5.0 preparation and rollback guide](PREPARATION_5.0.md) and [GitHub issue #452](https://github.com/eXPerience83/pollenlevels/issues/452) for testing and release readiness.
+
+### Historical compatibility
+
+Pollen Levels v3 replaced the old one-entry-per-location layout and separate `_d1` / `_d2` forecast entities. Future values are attributes of the base sensor:
+
+```jinja
+{{ state_attr("sensor.example_grass", "tomorrow_value") }}
+{{ state_attr("sensor.example_grass", "d2_value") }}
+```
+
+### Upgrading to 4.0.0: long-term statistics restored
+
+Pollen Levels 4.0.0 restored long-term statistics eligibility for current-day
+pollen type and plant sensors and `overall_pollen_risk_today`. Previously
+collected statistics can continue under the **same entity and statistic identity**;
+the period on 3.1.0 may contain a gap. Statistics manually deleted after
+upgrading to 3.1.0 cannot be reconstructed automatically. New statistics begin
+with a supported version.
+
+These numeric states represent Google's current-day forecast, not direct
+physical measurements. Forecast attributes for future days are excluded
+from Recorder persistence.
+
+See the [FAQ](FAQ.md) for the v2→v3 migration, legacy forecast entities and
+Recorder details.
 
 ---
 
@@ -476,66 +306,36 @@ color: '[[[
 
 ---
 
-## ⚙️ Installation
+## 🔒 Security & Privacy
 
-### Via Home Assistant Marketplace (HA 2026.11+, recommended)
+- Your **API key** is stored by Home Assistant’s secure config entries.  
+- **We never log your API key.** As a safety net, if it ever appears in an error message, it is **redacted** as `***`.  
+- **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
+- Diagnostics include redacted daily, registry, and runtime summaries to help
+  troubleshoot the integration without exposing API keys or exact coordinates.
+  Approximate coordinates are rounded to 1 decimal for support purposes.
+  Diagnostics may also include Home Assistant internal config entry and location
+  subentry identifiers (`entry_id`, `subentry_id`). These are not credentials, but
+  you should still review diagnostics before posting them publicly.
+- Avoid sharing full debug logs publicly; review them for sensitive information before posting.
+- Never share real Google API keys publicly, and do not paste full Google Pollen
+  API URLs containing `key=...` into public issues. If a key was exposed,
+  rotate it in Google Cloud Console and restrict it to the required API and
+  allowed referrers/IPs where possible.
 
-1. Go to **Settings → Marketplace** and search for **Pollen Levels**,
-   or use the Marketplace badge at the top of this README.
-2. Select **Install** and acknowledge the community-integration notice.
-   Marketplace can start the config flow directly without a restart on a
-   first installation of an integration with a config flow.
-3. If the project is not in the catalog, select **Add from link** and enter
-   `https://github.com/eXPerience83/pollenlevels`. Custom repositories
-   require a GitHub connection; catalog installation does not.
-4. For an existing installation, update through Marketplace and **restart
-   when requested**. Do not uninstall/re-add Pollen Levels just to update:
-   preserve config entries, location subentries, entity IDs and Recorder
-   history.
+Requests go directly from your Home Assistant instance to the Google Maps Pollen
+API. The project maintainer does not operate a data-collection backend; Google
+processes request data under its own privacy policy. See [PRIVACY.md](PRIVACY.md)
+for details.
 
-**Coming from HACS?** When upgrading Home Assistant to 2026.11, installed
-HACS repositories, custom repositories and update entities are migrated to
-Marketplace automatically. The old HACS integration is removed. The publisher
-still maintains `hacs.json` and the HACS catalog validation action, as those
-remain the required Marketplace publishing interfaces.
-
-See the [official Marketplace migration guide](https://www.home-assistant.io/integrations/marketplace)
-and [5.0 preparation/rollback guidance](PREPARATION_5.0.md).
-
-### Legacy HACS (HA 2026.5–2026.10, Pollen Levels 4.0.3)
-
-For Home Assistant versions **before 2026.11**, Marketplace is unavailable.
-The supported Pollen Levels line for **HA 2026.5.0–2026.10.x** is the
-published **4.0.3** release, not the future 5.0 baseline:
-
-1. Open the **HACS 2.x dashboard**, search for **Pollen Levels** and, if
-   needed, filter by repository type **Integrations**.
-2. Select the stable **4.0.3** release where the version selector exposes it;
-   leave pre-release installation disabled. Do not install 5.0 previews as
-   routine upgrades on an older Home Assistant.
-3. If this HACS version cannot select 4.0.3, use the
-   [immutable v4.0.3 release](https://github.com/eXPerience83/pollenlevels/releases/tag/v4.0.3)
-   as the historical reference and check the compatible HACS version before
-   proceeding. **Do not assume a historical version selector is available.**
-4. Restart Home Assistant when prompted, then configure the integration from
-   **Settings → Devices & Services**.
-
-For new installations with **HA 2026.11+**, use Marketplace above. Existing
-4.0.3 users should keep their configured integration in place when upgrading
-HA and follow the Marketplace migration path rather than reinstalling.
-
----
-
-## 🔑 Configuration
-
-1. Go to **Settings → Devices & Services → Add Integration**.
-2. Search for **Pollen Levels**.
-3. Enter:
-
-   * **Google API Key**
-   * **Location**
-   * **Update Interval** (hours)
-   * **Language Code**
+Live forecast attributes remain available to dashboards, templates, automations,
+and compatible custom cards. Pollen Levels excludes `forecast`, `tomorrow_*`,
+`d2_*`, `trend`, and `expected_peak` from Home Assistant Recorder persistence,
+while current states and non-excluded attributes remain subject to your Recorder
+configuration. Its own stale Pollen API coordinator snapshot has a fixed 24-hour
+runtime cache lifetime. Recorder history and Home Assistant-generated long-term
+statistics are separate local storage layers; see [PRIVACY.md](PRIVACY.md) for
+details.
 
 ---
 

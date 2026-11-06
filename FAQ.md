@@ -1,10 +1,10 @@
 # ❓ Frequently Asked Questions (FAQ)
 
-*Last verified: 2026-07-10 (UTC). Pricing and quota limits may change; always confirm the current values in the official Google Maps Platform pages linked below.*
+*Pricing and Marketplace documentation reviewed: 2026-11-06 (UTC). Prices and quotas may change; confirm the official Google Maps Platform pages linked below.*
 
 ## 1. How many requests can I make to the Google Maps Pollen API?
 
-Pricing/free usage cap last checked: **2026-06-13 (UTC)**.
+Pricing/free usage cap last checked: **2026-11-06 (UTC)**.
 
 Google's current Pollen API documentation describes pay-as-you-go pricing per
 request, based on usage volume tiers. The current global Google Maps Platform
@@ -154,9 +154,9 @@ FAQ: https://developers.google.com/maps/documentation/pollen/faq
 
 ---
 
-## 12. What happens to my entries when upgrading to Pollen Levels v3?
+## 12. How does Pollen Levels migrate legacy 2.x entries?
 
-Pollen Levels v3 introduces a breaking architectural migration to Home
+Pollen Levels v3 introduced a breaking architectural migration to Home
 Assistant config subentries. Legacy 2.x entries that share the same Google API
 key are grouped under one parent API-key entry, and each migrated location
 becomes one location subentry. The API key is stored once on the parent instead
@@ -214,7 +214,7 @@ backup.
 
 ## 13. Can I choose how many forecast days Pollen Levels requests?
 
-No. Pollen Levels v3 always requests 5 forecast days. This
+No. Since v3, Pollen Levels always requests 5 forecast days. This
 keeps the integration simpler and gives all existing sensors the maximum
 available forecast attributes.
 
@@ -232,7 +232,7 @@ forecast data is available on the base pollen sensors through the `forecast`,
 If the integration detects legacy per-day forecast entities or settings during
 upgrade, it also creates a persistent Repair warning in Home Assistant.
 
-In Pollen Levels v3, this cleanup is part of the stable migration to the fixed
+Since v3, this cleanup has been part of the migration to the fixed
 5-day forecast model.
 
 Update any dashboards, automations, templates or custom cards that reference
@@ -289,6 +289,44 @@ address.
 
 See [PRIVACY.md](PRIVACY.md) and Google's
 [Privacy Policy](https://policies.google.com/privacy) for more detail.
+
+---
+
+## 17. How do I install or upgrade on Home Assistant 2026.11+?
+
+Home Assistant 2026.11 has a built-in **Settings → Marketplace**. You do not
+install the old standalone HACS integration. Open Marketplace, search for
+Pollen Levels, review the version shown, and install it.
+
+If you already used HACS, Home Assistant migrates the installed repositories,
+custom repositories and update entities to Marketplace. **Keep your existing
+Pollen Levels configuration**; do not uninstall and reinstall merely to move
+from HACS to Marketplace. Restart Home Assistant after updating an integration.
+
+Marketplace offers stable releases by default. Pre-releases must be enabled
+explicitly for the repository in **Settings → Devices & services → Marketplace**
+on the repository's device page. See the
+[official Marketplace guide](https://www.home-assistant.io/integrations/marketplace).
+
+Pollen Levels **5.0 requires HA 2026.11.0+**. Until Pollen Levels 5.0 is
+published as stable, **4.0.3** remains the published stable release and supports
+HA 2026.5.0+. Review [PREPARATION_5.0.md](PREPARATION_5.0.md)
+before an existing-install v5 upgrade; experimental 5.0 previews are not routine
+production upgrades.
+
+---
+
+## 18. Will new plant species always appear automatically?
+
+Pollen Levels uses the plant and type codes provided for your location when
+entities are first created. It does not create a universal plant catalogue, and
+some regions expose fewer plants than others.
+
+If Google later begins returning a **new plant code** that was not present when
+the location's entities were set up, a **reload of the integration may be
+needed** to register that entity. Routine pollen value and forecast updates do
+not require reloading. Plant entries with missing optional index information
+can remain present with an unavailable numeric value.
 
 ---
 

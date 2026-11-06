@@ -1,31 +1,33 @@
-# Pollen Levels 5.0 — Home Assistant 2026.11 / Marketplace preparation
+# Pollen Levels 5.0 — upgrade, validation and rollback
 
-> **Alpha development preparation.** This file documents v5 work for the
-> next experimental release, not a production-ready 5.0 release. See [roadmap #452](https://github.com/eXPerience83/pollenlevels/issues/452)
-> and the [real-upgrade acceptance tracker #226](https://github.com/eXPerience83/pollenlevels/issues/226).
+> **Release-readiness guide.** The supported 5.0 target is Home Assistant
+> **2026.11.0+** and its built-in Marketplace. This describes the intended
+> final user-facing contract and the validation required **before stable**
+> publication. It does not certify an unpublished version as production-ready.
 
-## Branches, versions and historical alpha
+## Release and compatibility status
 
-- **Until the alpha promotion**, `main` still contains Pollen Levels
-  **4.0.3** with a Home Assistant **2026.5.0** minimum. After the approved
-  merge, `main` will carry **5.0 alpha development** while the immutable
-  **4.0.3 release** remains the latest stable release. Merging into `main`
-  does not itself publish a stable integration version.
-- **Development line:** `prep/5.0-ha-2026.10.4`. The branch name is historical;
-  the **actual declared 5.0 minimum is now Home Assistant 2026.11.0**.
-- **Current v5 test pair:** `homeassistant==2026.11.0` and official
-  `pytest-homeassistant==2026.11.0` (Python 3.14 as pinned in
-  `.python-version`). Old PHACC is removed from v5 test infrastructure.
-- The already published `v5.0.0a1` artifact/tag from 2026-10-31 retains
-  its **historical** HA 2026.10.4 / PHACC test baseline and its original
-  `hacs.json` requirement. The current `prep` branch has commits after that
-  tag. Never retag, rebuild, or silently replace the published alpha.
-- The new **`5.0.0a2` alpha candidate** has been versioned in release
-  preparation PR #470 (manifest, `pyproject.toml`, local `uv.lock` and
-  dated changelog). This is **not evidence of publication**: after reviewed
-  integration to `main`, validate the selected SHA in Release and publish
-  the new draft as a **pre-release**. Never reuse the immutable `v5.0.0a1`
-  tag or ZIP.
+- **Current published stable:** Pollen Levels **4.0.3**, supporting Home
+  Assistant 2026.5.0 and newer.
+- **5.0 development baseline on `main`:** `5.0.0a2`, using
+  `homeassistant==2026.11.0` and official
+  `pytest-homeassistant==2026.11.0` under the repository's locked Python
+  3.14.7 environment. A source merge does not publish a release.
+- **Publication state (2026-11-06):** `v5.0.0a2` is a **draft prerelease**,
+  not yet published. `v5.0.0a1` remains an immutable published historical
+  alpha with HA 2026.10.4 / PHACC baseline; it does not define the 5.0
+  compatibility floor.
+- **Target final 5.0 minimum:** Home Assistant **2026.11.0**. The supported
+  installation path is **Settings → Marketplace**. Do not install the old
+  standalone HACS integration on this version.
+- **Stable-release blockers:** genuine installed-upgrade and rollback
+  verification, persisted Entity/Device Registry and Recorder/statistics
+  continuity, HACS-to-Marketplace takeover, security review, and successful
+  candidate package validation. Track [#452](https://github.com/eXPerience83/pollenlevels/issues/452)
+  and [#226](https://github.com/eXPerience83/pollenlevels/issues/226).
+
+This file is the detailed companion to [README.md](README.md) and
+[FAQ.md](FAQ.md), not a substitute for the published release notes.
 
 ## Distribution: HACS → built-in Marketplace
 
@@ -57,11 +59,10 @@ References:
 | Marketplace catalogue + manifest | `validate.yml`, `hassfest.yml` | Marketplace still uses the HACS validation action plus hassfest |
 
 GitHub's scheduled workflows execute from the **repository default branch**.
-While `main` still contains 4.0.3, its scheduled workflows do **not** run
-the unreleased v5 canary/updater. The v5 workflows can be tested via
-`workflow_dispatch` where supported, and only become the active schedules
-after reviewed merge to `main`. Do not interpret old 4.0.3 schedule results
-as v5 compatibility evidence.
+As `main` now contains the 5.0 alpha-development baseline, the v5 canary and
+updater definitions are the active scheduled workflows. Confirm the timestamp,
+selected ref and results of actual runs before claiming a particular check
+has executed or passed. Previous 4.0.3 runs are not v5 acceptance evidence.
 
 The GA exception in mandatory lint/tests for the newly published 2026.11.0
 lock ends automatically **2026-11-10 00:00 UTC**. Keep the normal
@@ -103,22 +104,30 @@ A local snapshot alone is not an off-device backup. Restore the configuration,
 registries and Recorder data **together** from a consistent pre-upgrade state.
 Never upload credentials, raw `.storage` state, or private coordinates.
 
-## Version and merge strategy
+## Final 5.0 publication gates
 
-- Feature PRs target `prep/5.0-ha-2026.10.4` until promotion. The
-  **draft PR #467** to `main` is the review vehicle for **alpha
-  development**, not a stable release.
-- Run a transversal audit of the complete v5/main diff (recommended first
-  pass: **GPT-6 Astra Medium**; escalate focused unresolved migration,
-  registry/Recorder/security findings to High). Use
-  [AUDIT_5.0_2026.11.md](AUDIT_5.0_2026.11.md) for the complete brief.
-- Review and resolve CodeRabbit findings and every required action.
-- The release-only **`5.0.0a2` bump** was prepared in PR #470.
-  Independently validate the selected lock with normal three-day package
-  maturity before publishing; CI's bounded GA bootstrap is **not** Release
-  acceptance.
-- With alpha-appropriate CI, CodeQL and owner approval, `prep` may be
-  merged into `main` as **alpha development**. The release remains
-  draft-first and **pre-release**. The real-upgrade gates above apply
-  **before beta/stable**, not before the next alpha. Never move published
-  tags or overwrite immutable historical artifacts.
+1. Finish targeted 5.0 alpha testing on Home Assistant 2026.11+, using the
+   **actual published prerelease ZIP** through Marketplace. A draft is not an
+   installable published release.
+2. Complete the real-upgrade acceptance matrix above with backed-up v2.3.0
+   and v4.0.3 installations, single/multiple locations and API keys, and
+   existing dashboards and automations.
+3. Verify the persisted Entity and Device Registries, historical Recorder
+   state, long-term statistics IDs and Marketplace update-entity continuity.
+   Record reproducible results and resolve any data-loss or identity issue.
+4. Verify restoration from a consistent pre-upgrade backup. Never describe a
+   file-only downgrade as a safe rollback.
+5. Require green blocking CI/coverage, the Home Assistant compatibility
+   floor, Marketplace validation, hassfest, CodeQL, workflow security and
+   resolved review findings. The latest-stable HA canary remains advisory.
+6. Prepare an independently reviewed final release/version PR only after
+   the gates pass. Keep `manifest.json`, `pyproject.toml`, `uv.lock`, and
+   `CHANGELOG.md` version and release metadata synchronized; do not
+   change them in a documentation-preparation PR.
+7. Follow [RELEASING.md](RELEASING.md) to create a draft release, verify
+   the exact commit and ZIP, then **publish manually** as stable only with
+   explicit maintainer approval.
+
+Use [AUDIT_5.0_2026.11.md](AUDIT_5.0_2026.11.md) as a historical transversal
+audit brief, not as an up-to-date approval. Actual tests, reviews, and the
+published release asset determine readiness.

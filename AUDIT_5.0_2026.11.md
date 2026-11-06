@@ -1,10 +1,11 @@
-# Independent transversal audit — Pollen Levels v5 / HA 2026.11
+# Historical transversal audit brief — Pollen Levels v5 / HA 2026.11
 
-> **Review plan, not an audit verdict.** Request an independent Codex run
-> after the CI and CodeRabbit comments on the completed preparation PR are
-> available. Recommended first run: **GPT-6 Astra, Medium**. Escalate only
-> concrete unresolved identity, Recorder, Marketplace security or migration
-> issues to High. No release, tag, deployment or merge authorization here.
+> **Archived scope, not a current audit verdict or release approval.**
+> This brief was written for the 5.0 alpha-development promotion. Since then,
+> `main` contains the 5.0 alpha development baseline; **4.0.3** remains the
+> latest published stable release. A final 5.0 decision must use the real
+> acceptance gates in [PREPARATION_5.0.md](PREPARATION_5.0.md).
+> No release, tag, deployment or merge authorization is implied.
 
 ## Exact scope
 
@@ -17,14 +18,11 @@ the latest PR, last commit, or 2026.11 tooling only. Read AGENTS.md,
 PREPARATION_5.0.md, issues #452/#226/#465, and the published `v5.0.0a1`
 manifest for immutable-artifact history.
 
-**Updated objective (2026-11-06):** decide whether v5 may become the
-`main` **alpha-development** baseline after version bump and owner review,
-and whether the next experimental alpha can be released safely. Do **not**
-treat HAOS migration/Recorder/Marketplace real-world acceptance as a
-prerequisite to publishing that alpha: the tests are conducted **on the
-alpha** and gate beta/stable instead. Proven destructive migration,
-insecure CI or broken packaging still block alpha publication.
-Do not automatically merge or publish anything.
+**Historical objective (2026-11-06):** assess alpha-development promotion
+and safe experimental alpha publication. The promotion is now historical; do
+not confuse this plan with current beta/stable acceptance. Real migration,
+Recorder and Marketplace behavior require separate verification before
+beta/stable. Do not automatically merge or publish anything.
 
 ## Required audit lenses
 
@@ -90,9 +88,8 @@ Do not automatically merge or publish anything.
 ## Audit output format
 
 Return:
-- **GO / NO-GO for merging v5 into `main` as alpha development**;
-  **GO / NO-GO for publishing the next alpha**, separately from
-  subsequent beta/stable acceptance.
+- Historical **GO / NO-GO for alpha-development promotion** and a separate
+  **GO / NO-GO for alpha publication**, not a beta/stable approval.
 - Findings ordered **P0 critical, P1 high, P2 medium, P3 low** with file and
   line anchors, exact code/test evidence, real repro when available,
   consequence, and smallest safe remedy.

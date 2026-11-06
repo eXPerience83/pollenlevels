@@ -17,7 +17,7 @@ required.
 
 ## Home Assistant 2026.11 and Marketplace release gate
 
-For an eventual **Pollen Levels 5.0 beta/stable** release, require a validated
+For a **Pollen Levels 5.0 beta/stable** release, require a validated
 minimum HA **2026.11.0**, exact officially paired `homeassistant` /
 `pytest-homeassistant` tooling, full locked CI and the independent fixed-floor
 lane once the normal baseline advances. The latest-stable canary is advisory;
@@ -33,10 +33,10 @@ HACS catalogue validation action and `pollenlevels.zip`; these are still
 the required Marketplace publisher contracts. No standalone HACS install is
 needed on HA 2026.11+. The already published `v5.0.0a1` tag is immutable;
 prepare a **new** release version, never reuse the alpha version.
-The next **`5.0.0a2` alpha** can follow a reviewed alpha-development merge
-to `main` and be published draft-first as a **prerelease** after exact-version,
-lock, CI/CodeQL and ZIP checks. Full real HAOS/Recorder/Marketplace acceptance
-comes **after this alpha and before beta/stable**.
+**5.0.0a2 development is already on `main`** and its release is a draft
+prerelease as of 2026-11-06. Publication still requires exact-version,
+lock, CI/CodeQL and ZIP checks and manual maintainer review. Full real
+HAOS/Recorder/Marketplace acceptance gates **beta/stable**, not the alpha.
 
 ## Validation environments
 
