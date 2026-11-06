@@ -106,6 +106,50 @@ def test_official_mature_but_ha_young_is_cooldown() -> None:
     )
 
 
+def test_manual_override_only_waives_maturity_for_newer_compatible_pair() -> None:
+    """Explicit override retains selection, compatibility and metadata checks."""
+    plan = make_plan(
+        _project(),
+        _selection("2026.11.1", "2026.11.1"),
+        _release(NOW - timedelta(days=4)),
+        _release(NOW),
+        NOW,
+        override_cooldown=True,
+    )
+    assert plan.status == "update"
+    assert plan.cooldown_overridden is True
+    assert plan.mature_at == (NOW + timedelta(days=3)).isoformat()
+
+
+def test_manual_override_does_not_upgrade_existing_pair() -> None:
+    plan = make_plan(
+        _project(),
+        _selection(),
+        _release(NOW),
+        _release(NOW),
+        NOW,
+        override_cooldown=True,
+    )
+    assert plan.status == "current"
+    assert plan.cooldown_overridden is False
+
+
+def test_manual_override_does_not_allow_downgrade_or_harness_mismatch() -> None:
+    for ha, official, expected in (
+        ("2026.10.4", "2026.10.4", "downgrade"),
+        ("2026.11.1", "2026.11.0", "match Home Assistant"),
+    ):
+        with pytest.raises(UpdaterError, match=expected):
+            make_plan(
+                _project(),
+                _selection(ha, official),
+                _release(NOW),
+                _release(NOW),
+                NOW,
+                override_cooldown=True,
+            )
+
+
 def test_latest_non_yanked_artifact_controls_maturity() -> None:
     """A late usable wheel extends the whole release's maturity window."""
     metadata = {

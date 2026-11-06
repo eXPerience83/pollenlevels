@@ -7,6 +7,15 @@ on:
         description: "Branch, tag, or full commit SHA to release. Leave empty for the current main commit."
         required: false
         type: string
+      bypass_dependency_cooldown:
+        description: "One-time prerelease maturity waiver (full commit SHA and reason required)"
+        required: false
+        default: false
+        type: boolean
+      cooldown_override_reason:
+        description: "Required for maturity override; 15-200 characters"
+        required: false
+        type: string
   release:
     types: [published]
 
@@ -223,6 +232,45 @@ jobs:
             pyproject.toml
             uv.lock
           cache-suffix: release
+
+      - name: Authorize manual prerelease dependency cooldown override
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bypass_dependency_cooldown }}
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.ref }}
+          RELEASE_REF: ${{ inputs.release_ref }}
+          VALIDATED_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
+          OVERRIDE_REASON: ${{ inputs.cooldown_override_reason }}
+        run: |
+          set -euo pipefail
+          if [[ "$WORKFLOW_REF" != "refs/heads/main" || "$VALIDATION_MODE" != "modern" ]]; then
+            echo "Override is allowed only for modern prereleases from main." >&2
+            exit 1
+          fi
+          if [[ ! "$RELEASE_REF" =~ ^[0-9A-Fa-f]{40}$ ]] ||
+             [[ "${RELEASE_REF,,}" != "${VALIDATED_COMMIT,,}" ]]; then
+            echo "Override requires release_ref to be the full validated commit SHA." >&2
+            exit 1
+          fi
+          if (( ${#OVERRIDE_REASON} < 15 || ${#OVERRIDE_REASON} > 200 )) ||
+             [[ "$OVERRIDE_REASON" == *$'\n'* || "$OVERRIDE_REASON" == *$'\r'* ]]; then
+            echo "Provide a single-line, 15-200 character override reason." >&2
+            exit 1
+          fi
+          version="$(python -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/pollenlevels/manifest.json").read_text())["version"])')"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
+            echo "Override applies only to alpha, beta and RC releases." >&2
+            exit 1
+          fi
+          printf 'UV_EXCLUDE_NEWER=false\n' >> "$GITHUB_ENV"
+          {
+            echo "## Manual prerelease package maturity override"
+            printf 'Commit: `%s`\n' "$VALIDATED_COMMIT"
+            printf 'Version: `%s`\n' "$version"
+            printf 'Reason: %s\n' "$OVERRIDE_REASON"
+            echo "One workflow run only; lock, tests, coverage, ZIP and draft release gates remain mandatory."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up modern locked validation environment
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
