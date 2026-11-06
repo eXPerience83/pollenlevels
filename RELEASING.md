@@ -130,8 +130,9 @@ and version `3.0.1rc1` maps to tag `v3.0.1rc1`.
 
 Include backup, no-file-only-downgrade and migration notes where applicable.
 For a beta, state explicitly whether historical migrations were validated
-only with synthetic persisted fixtures, identify the missing real HAOS/Recorder/
-Marketplace checks and urge a restorable pre-upgrade backup. Do not imply
+only with synthetic persisted fixtures, identify relevant unverified real
+upgrade paths, and **recommend a full Home Assistant backup before upgrading**.
+Keep detailed backup instructions in [PREPARATION_5.0.md](PREPARATION_5.0.md). Do not imply
 that a lack of reported beta failures proves every migration path.
 
 ## 2. Merge the release pull request (if used)
@@ -192,8 +193,10 @@ intended prerelease version, and verify GitHub marks the draft as a prerelease.
   publication. Prereleases must not be marked latest.
 - Review and edit generated notes as needed.
 - Confirm backup, migration and no-file-only-downgrade warnings are present for upgrades to v5 and older migrations where applicable.
-- If publishing a beta, confirm the notes disclose unverified authentic historical upgrades and any Recorder/Marketplace limits.
-- Confirm `pollenlevels.zip` is attached.
+- If publishing a beta, confirm the notes disclose unverified historical migrations,
+  recommend a backup, and warn against a file-only downgrade.
+- Confirm `pollenlevels.zip` is attached and was built from the intended
+  candidate version and commit. Test its Marketplace install/update after publication.
 - Confirm no unexpected asset is present.
 - Confirm the workflow completed successfully.
 
