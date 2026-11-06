@@ -184,7 +184,21 @@ Pollen Levels v3 replaced the old one-entry-per-location layout and separate `_d
 {{ state_attr("sensor.example_grass", "d2_value") }}
 ```
 
-From v4.0.0 onward, eligible current-day numeric sensors again support Home Assistant long-term statistics. Historical gaps or manually deleted statistics cannot be reconstructed automatically. See [FAQ](FAQ.md) for the v2→v3 migration, legacy forecast entities and Recorder details.
+### Upgrading to 4.0.0: long-term statistics restored
+
+Pollen Levels 4.0.0 restored long-term statistics eligibility for current-day
+pollen type and plant sensors and `overall_pollen_risk_today`. Previously
+collected statistics can continue under the **same entity and statistic identity**;
+the period on 3.1.0 may contain a gap. Statistics manually deleted after
+upgrading to 3.1.0 cannot be reconstructed automatically. New statistics begin
+with a supported version.
+
+These numeric states represent Google's current-day forecast, not direct
+physical measurements. Forecast attributes for future days are excluded
+from Recorder persistence.
+
+See the [FAQ](FAQ.md) for the v2→v3 migration, legacy forecast entities and
+Recorder details.
 
 ---
 
