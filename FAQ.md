@@ -310,7 +310,8 @@ on the repository's device page. See the
 [official Marketplace guide](https://www.home-assistant.io/integrations/marketplace).
 
 Pollen Levels **5.0 requires HA 2026.11.0+**. Home Assistant 2026.5–2026.10
-users should remain on a compatible Pollen Levels 4.x release. For an in-place
+users can use Pollen Levels **4.0.3**; older Home Assistant versions must be
+upgraded to at least **2026.5** before installing 4.0.3. For an in-place
 upgrade to 5.0, protect your Recorder history, configuration and backups, and
 read the [upgrade and rollback guide](PREPARATION_5.0.md).
 
