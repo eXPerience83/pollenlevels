@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 from aiointercept import aiointercept
-from homeassistant import config_entries
+from homeassistant import config_entries, loader
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
@@ -696,6 +696,9 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
 
             # Exercise the real integration's API-backed sensor setup, not
             # manually injected post-upgrade states. GRASS=3 in this fixture.
+            # async_test_home_assistant disables custom component discovery
+            # by default. Enable it for this isolated instance only.
+            upgraded_hass.data.pop(loader.DATA_CUSTOM_COMPONENTS, None)
             async with aiointercept(mock_external_urls=True) as mocked:
                 mock_pollen_api(mocked, google_pollen_5_day_payload)
                 for parent in parents:
@@ -738,9 +741,7 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
         for parent_id, parent in reloaded_parents.items():
             assert parent.version == TARGET_ENTRY_VERSION
             assert parent.data["api_key"] == (
-                HISTORICAL_KEY
-                if parent_id == primary_id
-                else "synthetic-second-key"
+                HISTORICAL_KEY if parent_id == primary_id else "synthetic-second-key"
             )
             assert parent.unique_id == api_key_unique_id(parent.data["api_key"])
             assert len(parent.subentries) == (2 if parent_id == primary_id else 1)
@@ -767,9 +768,7 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
                 assert entity.config_subentry_id == snapshot["subentry_id"]
             else:
                 assert (
-                    parent.subentries[entity.config_subentry_id].data[
-                        "legacy_entry_id"
-                    ]
+                    parent.subentries[entity.config_subentry_id].data["legacy_entry_id"]
                     == snapshot["entry_id"]
                 )
 
