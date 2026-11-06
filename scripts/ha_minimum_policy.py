@@ -28,7 +28,9 @@ class MinimumPlan:
 
 def _release(version: object) -> tuple[int, int, int]:
     if not isinstance(version, str) or not (match := _VERSION_RE.fullmatch(version)):
-        raise MinimumPolicyError(f"Expected an exact stable HA release, got {version!r}")
+        raise MinimumPolicyError(
+            f"Expected an exact stable HA release, got {version!r}"
+        )
     return tuple(map(int, match.groups()))  # type: ignore[return-value]
 
 

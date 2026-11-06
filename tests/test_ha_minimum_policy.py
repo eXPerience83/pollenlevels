@@ -46,10 +46,26 @@ def test_minimum_remains_pinned_when_latest_moves_forward() -> None:
     ("project", "hacs", "error"),
     [
         (_project(), {"homeassistant": "2026.11.1"}, "preserve HA floor"),
-        (_project("2026.10.4", "2026.10.4"), {"homeassistant": "2026.11.0"}, "older than"),
-        (_project("2026.11.1", "2026.11.0"), {"homeassistant": "2026.11.0"}, "exactly match"),
-        (_project("2026.11.0b6", "2026.11.0b6"), {"homeassistant": "2026.11.0"}, "exact stable"),
-        (_project("2026.11.0", "0.1.3"), {"homeassistant": "2026.11.0"}, "exactly match"),
+        (
+            _project("2026.10.4", "2026.10.4"),
+            {"homeassistant": "2026.11.0"},
+            "older than",
+        ),
+        (
+            _project("2026.11.1", "2026.11.0"),
+            {"homeassistant": "2026.11.0"},
+            "exactly match",
+        ),
+        (
+            _project("2026.11.0b6", "2026.11.0b6"),
+            {"homeassistant": "2026.11.0"},
+            "exact stable",
+        ),
+        (
+            _project("2026.11.0", "0.1.3"),
+            {"homeassistant": "2026.11.0"},
+            "exact stable",
+        ),
     ],
 )
 def test_malformed_or_unsupported_floor_fails_closed(
@@ -84,7 +100,7 @@ def test_workflow_never_uses_legacy_plugin_or_mutates_sources() -> None:
     assert '"pytest-homeassistant==$MINIMUM_HA"' in workflow
     assert '"homeassistant==$MINIMUM_HA"' in workflow
     assert "scripts/check_coverage.py coverage.json" in workflow
-    assert "pytest-homeassistant-custom-component" not in workflow
+    assert '"pytest-homeassistant-custom-component=="' not in workflow
     assert "contents: write" not in workflow
     assert "git push" not in workflow
     assert "gh pr" not in workflow

@@ -371,9 +371,10 @@ def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> Non
         }
     assert locked_prereleases == expected_locked_prereleases
 
-    if os.environ.get("HA_COMPATIBILITY_CANARY") == "1" or os.environ.get(
-        "HA_MINIMUM_COMPATIBILITY"
-    ) == "1":
+    if (
+        os.environ.get("HA_COMPATIBILITY_CANARY") == "1"
+        or os.environ.get("HA_MINIMUM_COMPATIBILITY") == "1"
+    ):
         # Canary and fixed-minimum use isolated, alternative official pairs.
         # Preserve static policy checks while bypassing installed lock pins.
         return
