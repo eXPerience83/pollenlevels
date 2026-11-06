@@ -29,14 +29,17 @@ A separate release/version PR will assign an actual version and date.
 - Adjusted HA 2026.11 Registry-unavailability assertions without weakening
   eventual entity/device identity retry checks, and used the official Recorder
   commit barrier for historical state persistence tests (#465, #466).
+- Added an explicit Recorder commit barrier before SQL queries in the
+  pre-migration and post-migration persisted-history regression tests.
 
 ### Security
 
 - Preserved exact locked dependencies, action SHA pinning, narrow workflow
   permissions, CodeQL and full-suite coverage checks. Modern Release validation
-  now applies the project coverage gate to the selected snapshot, without
-  imposing unavailable coverage tooling on historical legacy releases. A temporary, bounded
-  dependency-age bootstrap for the just-published 2026.11 stable pair expires
+  applies per-module coverage to its selected snapshot. Only historical
+  snapshots predating the checker retain their original test path; all new
+  5.x candidates must include coverage tooling and declare the HA 2026.11
+  floor. The bounded GA dependency-age bootstrap expires
   on 2026-11-10; routine maturity controls remain in force.
 - Full real-world migration/Recorder/Marketplace and security acceptance
   remain required before any stable 5.0 release (#452, #226).

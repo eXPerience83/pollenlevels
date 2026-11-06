@@ -1,14 +1,16 @@
 # Pollen Levels 5.0 — Home Assistant 2026.11 / Marketplace preparation
 
-> **Unreleased preparation branch.** This file documents current v5 work,
-> not a published production-ready 5.0 release. See [roadmap #452](https://github.com/eXPerience83/pollenlevels/issues/452)
+> **Alpha development preparation.** This file documents v5 work for the
+> next experimental release, not a production-ready 5.0 release. See [roadmap #452](https://github.com/eXPerience83/pollenlevels/issues/452)
 > and the [real-upgrade acceptance tracker #226](https://github.com/eXPerience83/pollenlevels/issues/226).
 
 ## Branches, versions and historical alpha
 
-- **Stable public `main`** still contains Pollen Levels **4.0.3**, with the
-  original Home Assistant **2026.5.0** minimum until an expressly approved v5
-  merge. This document does not change that published support contract.
+- **Until the alpha promotion**, `main` still contains Pollen Levels
+  **4.0.3** with a Home Assistant **2026.5.0** minimum. After the approved
+  merge, `main` will carry **5.0 alpha development** while the immutable
+  **4.0.3 release** remains the latest stable release. Merging into `main`
+  does not itself publish a stable integration version.
 - **Development line:** `prep/5.0-ha-2026.10.4`. The branch name is historical;
   the **actual declared 5.0 minimum is now Home Assistant 2026.11.0**.
 - **Current v5 test pair:** `homeassistant==2026.11.0` and official
@@ -18,10 +20,11 @@
   its **historical** HA 2026.10.4 / PHACC test baseline and its original
   `hacs.json` requirement. The current `prep` branch has commits after that
   tag. Never retag, rebuild, or silently replace the published alpha.
-- The source metadata still identifies an alpha `5.0.0a1`. A **separate**
-  final-release metadata PR must assign a new version to the manifest,
-  `pyproject.toml`, local `uv.lock`, changelog and release notes. Do not
-  merge this alpha-versioned snapshot to stable `main` as an inadvertent release.
+- The preparation snapshot still identifies the **previously published**
+  `5.0.0a1`. Before promoting alpha development to `main`, prepare a
+  **release-only `5.0.0a2`** PR synchronizing manifest, `pyproject.toml`,
+  local `uv.lock`, dated changelog and release notes. Never reuse the
+  immutable historical alpha tag or ZIP.
 
 ## Distribution: HACS → built-in Marketplace
 
@@ -65,10 +68,11 @@ lock ends automatically **2026-11-10 00:00 UTC**. Keep the normal
 Remove the temporary exception after it expires and mandatory CI proves
 the committed lock resolves under the normal policy.
 
-## Required real-upgrade acceptance before stable main
+## Real-upgrade acceptance before beta/stable (not alpha promotion)
 
 The synthetic tests and one-location alpha smoke test are valuable but
-**do not** establish a production-ready stable upgrade. Record evidence for:
+**do not** establish a production-ready stable upgrade. Use the next
+experimental alpha to obtain evidence for the following before beta/stable:
 
 1. Existing 2.3.0 and 4.0.3 installations upgraded with genuine persistent
    HAOS/config entry/Registry data, including custom entity IDs and multiple
@@ -100,14 +104,18 @@ Never upload credentials, raw `.storage` state, or private coordinates.
 
 ## Version and merge strategy
 
-- Feature PRs target `prep/5.0-ha-2026.10.4`; the **draft PR #467**
-  toward `main` is an integration/security review vehicle only.
+- Feature PRs target `prep/5.0-ha-2026.10.4` until promotion. The
+  **draft PR #467** to `main` is the review vehicle for **alpha
+  development**, not a stable release.
 - Run a transversal audit of the complete v5/main diff (recommended first
   pass: **GPT-6 Astra Medium**; escalate focused unresolved migration,
   registry/Recorder/security findings to High). Use
   [AUDIT_5.0_2026.11.md](AUDIT_5.0_2026.11.md) for the complete brief.
 - Review and resolve CodeRabbit findings and every required action.
-- Complete the release-only version bump once the real-upgrade gates pass.
-- Do **not** merge `prep` into `main`, move existing tags or publish a new
-  release before explicit approval. The developer line can advance without
-  changing the stable public repository.
+- Prepare a release-only **`5.0.0a2` bump before alpha promotion**,
+  and validate the lock with normal three-day package maturity policy.
+- With alpha-appropriate CI, CodeQL and owner approval, `prep` may be
+  merged into `main` as **alpha development**. The release remains
+  draft-first and **pre-release**. The real-upgrade gates above apply
+  **before beta/stable**, not before the next alpha. Never move published
+  tags or overwrite immutable historical artifacts.

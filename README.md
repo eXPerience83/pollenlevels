@@ -137,8 +137,8 @@ Before installing the alpha in an existing Home Assistant instance:
    location subentry associations, entity names/IDs, history/statistics, and
    automations that use them. Never share API keys or precise coordinates.
 4. To examine the **already published** `v5.0.0a1` historical artifact:
-   - On **HA 2026.10.4–2026.10.x**, use **HACS → Integrations** (the
-     historical installation interface), enable pre-releases if available,
+   - On **HA 2026.10.4–2026.10.x**, open the **HACS dashboard**, search for Pollen Levels and filter by
+     type **Integrations**; enable pre-releases if available,
      then select `v5.0.0a1` only if the HACS version selector offers it.
      The original [v5.0.0a1 release page](https://github.com/eXPerience83/pollenlevels/releases/tag/v5.0.0a1)
      records the immutable artifact. Do not assume the HACS selector can
@@ -489,7 +489,8 @@ For Home Assistant versions **before 2026.11**, Marketplace is unavailable.
 The supported Pollen Levels line for **HA 2026.5.0–2026.10.x** is the
 published **4.0.3** release, not the future 5.0 baseline:
 
-1. Install or open **HACS 2.x → Integrations** and locate **Pollen Levels**.
+1. Open the **HACS 2.x dashboard**, search for **Pollen Levels** and, if
+   needed, filter by repository type **Integrations**.
 2. Select the stable **4.0.3** release where the version selector exposes it;
    leave pre-release installation disabled. Do not install 5.0 previews as
    routine upgrades on an older Home Assistant.
