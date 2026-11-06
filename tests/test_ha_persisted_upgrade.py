@@ -509,7 +509,6 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
     async_test_recorder: Any,
     recorder_config: dict[str, str],
     historical_release: str,
-    enable_custom_integrations: None,
     socket_enabled: None,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
