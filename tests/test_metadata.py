@@ -371,10 +371,12 @@ def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> Non
         }
     assert locked_prereleases == expected_locked_prereleases
 
-    if os.environ.get("HA_COMPATIBILITY_CANARY") == "1":
-        # The advisory canary deliberately installs the newest harness instead
-        # of the committed locked environment, so only installed-version
-        # comparisons are skipped while static policy checks still run.
+    if (
+        os.environ.get("HA_COMPATIBILITY_CANARY") == "1"
+        or os.environ.get("HA_MINIMUM_COMPATIBILITY") == "1"
+    ):
+        # Canary and fixed-minimum use isolated, alternative official pairs.
+        # Preserve static policy checks while bypassing installed lock pins.
         return
     harness = metadata.distribution(harness_name)
     assert Version(harness.version) == declared_versions[harness_name]
@@ -616,6 +618,8 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "pr-body.md" in artifact_check
     assert "pyproject.toml" in artifact_check and "uv.lock" in artifact_check
     assert "scripts/ha_test_baseline_updater.py plan" in validation
+    assert "scripts/check_coverage.py coverage.json" in pytest_step
+    assert "--cov-report=json:coverage.json" in pytest_step
     assert workflow.index("Seal validated publication artifact") < workflow.index(
         "Install locked test environment"
     )
@@ -804,6 +808,37 @@ def test_release_binds_trusted_and_default_snapshots_to_event_shas() -> None:
     assert '"refs/tags/$tag_name^{commit}"' in resolver
     assert release.index("scripts/classify_release_validation.py") < release.index(
         'git checkout --detach "$RELEASE_COMMIT"'
+    )
+
+
+def test_release_enforces_selected_modern_snapshot_coverage() -> None:
+    """Release must not bypass coverage for future HA 2026.11 v5 packages."""
+    release = _read_text(WORKFLOWS_PATH / "release.yml")
+    step = _workflow_step(release, "Run tests")
+    assert 'if [[ "$VALIDATION_MODE" == "modern" ]]' in step
+    assert "if [[ -f scripts/check_coverage.py ]]" in step
+    assert "--cov=custom_components.pollenlevels" in step
+    assert "--cov-report=json:coverage.json" in step
+    assert "scripts/check_coverage.py coverage.json" in step
+    assert (
+        '''release_version="$(jq -r '.version // empty' custom_components/pollenlevels/manifest.json)"'''
+        in step
+    )
+    assert (
+        """if [[ "$release_version" == 5.* && "$release_version" != "5.0.0a1" ]]"""
+        in step
+    )
+    assert '''ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"''' in step
+    assert (
+        """if [[ "$ha_floor" != "2026.11.0" || ! -f scripts/check_coverage.py ]]"""
+        in step
+    )
+    assert "exit 1" in step
+    assert "Historical legacy snapshots" in step
+    assert "python -m pytest -q" in step
+    # Coverage occurs before ZIP creation on the selected snapshot.
+    assert release.index("scripts/check_coverage.py coverage.json") < release.index(
+        "Build release ZIP"
     )
 
 

@@ -183,8 +183,9 @@ jobs:
               "- OFFICIAL mature at: `" + .official_mature_at + "`",
               "- Configured cooldown: `" + (.cooldown_days | tostring) + " days`",
               "- Lock command: `uv lock --upgrade-package homeassistant --upgrade-package pytest-homeassistant`",
-              "- Lock-delta validation: passed; only Home Assistant, OFFICIAL, and allowed local dependency specifiers changed.",
-              "- Full pytest: `__PYTEST_RESULT__`", "- The v5 HA floor is managed by the declared HACS minimum and locked test pair.",
+              "- Lock-delta validation: passed; movement was limited to the old/new HA and OFFICIAL dependency closure, plus validated local project requirement specifiers.",
+              "- Full pytest and coverage gate: `__PYTEST_RESULT__`",
+              "- Minimum HA 2026.11.0 is checked independently when the locked baseline moves.",
               "- No automerge is enabled.",
               "- This PR was created with the repository `GITHUB_TOKEN`; a repository writer must select **Approve workflows to run** for CI."
             ] | join("\n")
@@ -212,6 +213,7 @@ jobs:
         run: |
           set -euo pipefail
           uv sync --locked --only-group test
+          uv pip check --python .venv/bin/python
 
       - name: Run full normal test suite
         if: ${{ steps.plan.outputs.status == 'update' }}
@@ -219,7 +221,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          result="$(PYTHONPATH=. uv run --locked --no-sync python -m pytest -q | tail -n 1)"
+          result="$(PYTHONPATH=. uv run --locked --no-sync python -m pytest -q \
+            --cov=custom_components.pollenlevels \
+            --cov-report=term-missing \
+            --cov-report=json:coverage.json | tail -n 1)"
+          uv run --locked --no-sync python scripts/check_coverage.py coverage.json
           result="${result:-pytest exited successfully; summary unavailable}"
           printf 'pytest_result=%s\n' "$result" >> "$GITHUB_OUTPUT"
 

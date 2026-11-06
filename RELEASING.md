@@ -15,13 +15,43 @@ must be reachable from a normal repository branch or tag; unmerged
 same-repository branches remain supported, and ancestry from `main` is not
 required.
 
+## Home Assistant 2026.11 and Marketplace release gate
+
+For an eventual **Pollen Levels 5.0 beta/stable** release, require a validated
+minimum HA **2026.11.0**, exact officially paired `homeassistant` /
+`pytest-homeassistant` tooling, full locked CI and the independent fixed-floor
+lane once the normal baseline advances. The latest-stable canary is advisory;
+neither its success nor a green synthetic test suite alone certifies a real
+upgrade. Assess identity, Recorder and long-term statistics, existing HACS
+installation takeover by built-in Marketplace, multiple API keys/locations,
+backup restoration, security/CodeQL, and an explicit owner GO/NO-GO under
+[#452](https://github.com/eXPerience83/pollenlevels/issues/452) and
+[#226](https://github.com/eXPerience83/pollenlevels/issues/226).
+
+Marketplace is built into HA 2026.11+. **Keep** `hacs.json`, the existing
+HACS catalogue validation action and `pollenlevels.zip`; these are still
+the required Marketplace publisher contracts. No standalone HACS install is
+needed on HA 2026.11+. The already published `v5.0.0a1` tag is immutable;
+prepare a **new** release version, never reuse the alpha version.
+The next **`5.0.0a2` alpha** can follow a reviewed alpha-development merge
+to `main` and be published draft-first as a **prerelease** after exact-version,
+lock, CI/CodeQL and ZIP checks. Full real HAOS/Recorder/Marketplace acceptance
+comes **after this alpha and before beta/stable**.
+
 ## Validation environments
 
 Modern snapshots use the exact Python patch in `.python-version`, the central
 `[tool.uv].required-version`, exact PEP 735 dependencies, and committed
 `uv.lock`. Release validates modern snapshots with `uv lock --check` and
 `uv sync --locked --only-group release`; do not replace this with pip installs
-or a fresh resolution.
+or a fresh resolution. For snapshots with `scripts/check_coverage.py`, the
+modern release validation **also runs pytest-cov and the same per-module coverage
+gate used by CI, against the exact selected release commit**. A candidate
+declaring the HA 2026.11.0 v5 floor is rejected if that checker is missing.
+Historical snapshots predating the checker retain their original pytest path.
+**New 5.x snapshots** (except immutable historical `v5.0.0a1`) must include
+`scripts/check_coverage.py` and declare HA 2026.11.0; this historical
+fallback is not a coverage waiver for new v5 releases.
 
 Historical snapshots are classified against immutable boundary
 `0e65e38e2830c0485cdc6b3a00c95ad7e65d7427`. A selected commit that is equal
@@ -146,7 +176,11 @@ enabled. For stable releases, ensure it is disabled.
 ## 6. Verify the published package
 
 - Confirm the published release contains `pollenlevels.zip`.
-- Confirm HACS installation or Redownload uses the published asset.
+- For HA 2026.11+, confirm Marketplace install/update or Redownload uses the
+  published ZIP, preserving existing installations and update entities.
+- For **historical/maintenance releases supporting HA <2026.11**, also verify
+  compatible **HACS** installation or Redownload and the published version
+  selection. Do not claim an HACS check applies to HA 2026.11+.
 - Confirm Home Assistant restarts cleanly.
 - Confirm the displayed integration version is correct.
 - Complete smoke tests appropriate to the release.
@@ -178,7 +212,13 @@ after publication do not necessarily require a new release.
 - [ ] If a release PR was used, it was squash merged.
 - [ ] Release completed through either the draft-first or emergency fallback route.
 - [ ] For draft-first releases, draft review is complete.
-- [ ] `pollenlevels.zip` is attached before HACS verification.
+- [ ] `pollenlevels.zip` is attached before Marketplace verification.
 - [ ] Prerelease status is correct.
 - [ ] The release was published manually.
-- [ ] HACS package verification is complete.
+- [ ] Marketplace/HACS catalog ZIP validation and existing HACS → Marketplace
+      update takeover verification are complete where applicable.
+- [ ] For historical or maintenance releases supporting HA <2026.11,
+      installation/update through compatible legacy HACS was checked.
+- [ ] Stable v5 HA 2026.11.0 floor and official pytest pair were checked.
+- [ ] Existing Registry/Recorder/statistics migration and backup recovery are verified.
+- [ ] CodeRabbit and full candidate CodeQL/CI/security review are complete.

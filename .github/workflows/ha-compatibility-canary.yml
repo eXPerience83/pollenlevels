@@ -108,6 +108,7 @@ jobs:
           uv pip install --python "$CANARY_PYTHON" \
             "pytest-homeassistant==$SELECTED_OFFICIAL" \
             "$AIOINTERCEPT_REQUIREMENT"
+          uv pip check --python "$CANARY_PYTHON"
 
       - name: Report resolved compatibility versions
         shell: bash
@@ -120,7 +121,10 @@ jobs:
 
           from packaging.version import Version
 
-          from scripts.select_ha_harness import exact_homeassistant_requirement
+          from scripts.select_ha_harness import (
+              exact_homeassistant_requirement,
+              is_core_repository_url,
+          )
 
           names = (
               "pytest-homeassistant",
@@ -134,6 +138,22 @@ jobs:
               name: importlib.metadata.version(name)
               for name in names
           }
+          official_metadata = importlib.metadata.metadata("pytest-homeassistant")
+          urls = official_metadata.get_all("Project-URL") or []
+          if not any(
+              is_core_repository_url(value.split(",", 1)[-1].strip())
+              for value in urls
+          ):
+              raise SystemExit(
+                  "Installed pytest-homeassistant lacks canonical Core repository URL metadata"
+              )
+          installed_names = {
+              dist.metadata["Name"].lower().replace("_", "-")
+              for dist in importlib.metadata.distributions()
+          }
+          if "pytest-homeassistant-custom-component" in installed_names:
+              raise SystemExit("The official plugin cannot coexist with PHACC")
+
           installed_official = versions["pytest-homeassistant"]
           installed_homeassistant = versions["homeassistant"]
           if installed_official != os.environ["SELECTED_OFFICIAL"]:
@@ -187,6 +207,8 @@ jobs:
               f"- HA selected by OFFICIAL: `{installed_homeassistant}`",
               f"- Newer OFFICIAL releases skipped: {skipped_summary}",
               f"- Status: {status}",
+              "- Canonical Core repository URL matches self-declared package metadata; publisher origin is not authenticated",
+              "- No PHACC coinstallation",
               "",
               "| Component | Resolved version |",
               "| --- | --- |",

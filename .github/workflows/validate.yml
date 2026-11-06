@@ -1,4 +1,4 @@
-name: Validate with HACS
+name: Marketplace catalog validation (HACS action)
 
 on:
   push:
@@ -9,7 +9,8 @@ on:
     - cron: "37 0 * * *"
   workflow_dispatch:
 
-# No checkout needed; HACS action validates repo metadata remotely
+# Marketplace still uses the HACS catalog, hacs.json and hacs/action.
+# No checkout needed; the catalog action validates repo metadata remotely.
 permissions: {}
 
 concurrency:
