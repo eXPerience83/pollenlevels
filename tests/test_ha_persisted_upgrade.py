@@ -12,14 +12,16 @@ import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, closing
 from pathlib import Path
+from shutil import copytree
 from typing import Any
-from unittest.mock import Mock
 
 import pytest
-from homeassistant import config_entries
+from aiointercept import aiointercept
+from homeassistant import config_entries, loader
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er, frame
 from pytest_homeassistant.common import (
@@ -32,7 +34,11 @@ from pytest_homeassistant.components.recorder.common import async_wait_recording
 from custom_components.pollenlevels.const import DOMAIN
 from custom_components.pollenlevels.util import api_key_unique_id
 from tests._ha_stubs import clear_integration_modules
-from tests.ha_helpers import async_migrate_config_entry
+from tests.ha_helpers import (
+    async_migrate_config_entry,
+    async_setup_config_entry,
+    mock_pollen_api,
+)
 
 HISTORICAL_KEY = "synthetic-history-key"
 HISTORY_ENTITY = "sensor.synthetic_pollen_history"
@@ -461,6 +467,8 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
     async_test_recorder: Any,
     recorder_config: dict[str, str],
     historical_release: str,
+    socket_enabled: None,
+    google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
     """Exercise multiple locations/keys and a renamed sensor across disk reloads.
 
@@ -512,6 +520,11 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
 
     config_dir = Path(hass_tmp_config_dir)
     db_path = Path(recorder_config["db_url"].removeprefix("sqlite:///"))
+    # Allow the isolated HA instance to discover the actual integration.
+    copytree(
+        Path(__file__).resolve().parents[1] / "custom_components" / DOMAIN,
+        config_dir / "custom_components" / DOMAIN,
+    )
     identities: dict[str, dict[str, Any]] = {}
 
     async def load_registries(home: HomeAssistant) -> None:
@@ -554,10 +567,14 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                     device_id=device.id,
                     suggested_object_id=f"synthetic_{suffix.replace('-', '_')}",
                 )
-                if not identities:
-                    entity = entities_a.async_update_entity(
-                        entity.entity_id, new_entity_id="sensor.user_named_pollen"
-                    )
+                renamed_entity_id = (
+                    "sensor.user_named_pollen"
+                    if not identities
+                    else f"sensor.user_named_pollen_{len(identities) + 1}"
+                )
+                entity = entities_a.async_update_entity(
+                    entity.entity_id, new_entity_id=renamed_entity_id
+                )
                 identities[entity.entity_id] = {
                     "entity_id": entity.id,
                     "unique_id": entity.unique_id,
@@ -569,8 +586,11 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                     "api_key": old.data["api_key"],
                 }
 
-        assert len(identities) == 3
-        assert "sensor.user_named_pollen" in identities
+        assert set(identities) == {
+            "sensor.user_named_pollen",
+            "sensor.user_named_pollen_2",
+            "sensor.user_named_pollen_3",
+        }
         await home_a.config_entries._store.async_save(
             {"entries": [entry.as_dict() for entry in entries]}
         )
@@ -578,12 +598,12 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
         await flush_store(entities_a._store)
         async with async_test_recorder(home_a, recorder_config) as recorder_a:
             for index, entity_id in enumerate(identities, start=1):
-                home_a.states.async_set(entity_id, str(index))
+                home_a.states.async_set(entity_id, str(index + 10))
             await home_a.async_block_till_done()
             await async_wait_recording_done(home_a)
             await recorder_a.async_block_till_done()
             for index, entity_id in enumerate(identities, start=1):
-                assert str(index) in await recorder_a.async_add_executor_job(
+                assert str(index + 10) in await recorder_a.async_add_executor_job(
                     _recorded_values, home_a, entity_id
                 )
 
@@ -632,6 +652,9 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             }
             parents = home_b.config_entries.async_entries(DOMAIN)
             assert len(parents) == 2
+            for parent in parents:
+                assert parent.version == TARGET_ENTRY_VERSION
+                assert parent.unique_id == api_key_unique_id(parent.data["api_key"])
             assert {p.data["api_key"] for p in parents} == {
                 HISTORICAL_KEY,
                 second_key,
@@ -666,68 +689,78 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 else:
                     assert entity.config_subentry_id == expected["source_subentry"]
 
-            # The manually created HA instance does not initialize the
-            # frame helper used by the real DataUpdateCoordinator constructor.
+            # Exercise real sensor platforms after migration rather than
+            # manually injecting post-upgrade states into Recorder.
+            home_b.data.pop(loader.DATA_CUSTOM_COMPONENTS, None)
             frame.async_setup(home_b)
-            # Construct real post-migration sensor/coordinator identities,
-            # then resolve them through the persisted Home Assistant Registry.
-            # This checks the platform's identity contract without claiming a
-            # full integration/Marketplace setup inside these HA test objects.
-            from custom_components.pollenlevels.coordinator import (
-                PollenDataUpdateCoordinator,
-            )
-            from custom_components.pollenlevels.sensor import PollenSensor
+            captured_params: list[dict[str, Any]] = []
+            async with aiointercept(mock_external_urls=True) as mocked:
+                mock_pollen_api(
+                    mocked,
+                    google_pollen_5_day_payload,
+                    captured_params=captured_params,
+                )
+                for parent in parents:
+                    if parent.state is ConfigEntryState.NOT_LOADED:
+                        await async_setup_config_entry(home_b, parent)
+            # A shared fixture response alone cannot prove correct API routing.
+            assert {
+                (
+                    params["key"],
+                    float(params["location.latitude"]),
+                    float(params["location.longitude"]),
+                )
+                for params in captured_params
+            } == {
+                (HISTORICAL_KEY, 1.0, 2.0),
+                (HISTORICAL_KEY, 3.0, 4.0),
+                (second_key, 5.0, 6.0),
+            }
+            assert all(parent.state is ConfigEntryState.LOADED for parent in parents)
 
             for entity_id, expected in identities.items():
+                live = home_b.states.get(entity_id)
+                assert live is not None and live.state == "3"
                 entity = entities_b.async_get(entity_id)
-                assert entity is not None
+                device = devices_b.async_get(expected["device_id"])
+                assert entity is not None and device is not None
+                assert (entity.id, entity.unique_id, entity.device_id) == (
+                    expected["entity_id"],
+                    expected["unique_id"],
+                    expected["device_id"],
+                )
+                assert (device.identifiers, device.name_by_user) == (
+                    expected["device_identifiers"],
+                    expected["device_name"],
+                )
                 parent = home_b.config_entries.async_get_entry(entity.config_entry_id)
                 assert parent is not None
-                subentry = parent.subentries[entity.config_subentry_id]
-                coordinator = PollenDataUpdateCoordinator(
-                    hass=home_b,
-                    api_key=parent.data["api_key"],
-                    lat=float(subentry.data["latitude"]),
-                    lon=float(subentry.data["longitude"]),
-                    hours=12,
-                    language="en",
-                    entry_id=parent.entry_id,
-                    client=Mock(),
-                    entry_title=subentry.title,
-                    subentry_id=subentry.subentry_id,
-                    legacy_entry_id=subentry.data.get("legacy_entry_id"),
-                    config_entry=parent,
-                )
-                sensor = PollenSensor(coordinator, "type_grass")
-                assert sensor.unique_id == expected["unique_id"]
-                assert (
-                    entities_b.async_get_entity_id("sensor", DOMAIN, sensor.unique_id)
-                    == entity_id
-                )
-                assert (
-                    sensor.device_info["identifiers"] == expected["device_identifiers"]
-                )
-                matching_device = devices_b.async_get_device_by_identifier(
-                    next(iter(sensor.device_info["identifiers"])), parent.entry_id
-                )
-                assert matching_device is not None
-                assert matching_device.id == expected["device_id"]
+                assert parent.data["api_key"] == expected["api_key"]
+                assert device.config_entry_id == parent.entry_id
+                assert device.config_subentry_id == entity.config_subentry_id
+                assert entity.config_subentry_id in parent.subentries
+                if historical_release == "2.3.0":
+                    assert (
+                        parent.subentries[entity.config_subentry_id].data[
+                            "legacy_entry_id"
+                        ]
+                        == expected["source_entry"]
+                    )
+                else:
+                    assert entity.config_subentry_id == expected["source_subentry"]
 
-            for index, entity_id in enumerate(identities, start=1):
-                before = await recorder_b.async_add_executor_job(
-                    _recorded_values, home_b, entity_id
-                )
-                assert str(index) in before
-                home_b.states.async_set(entity_id, str(index + 10))
             await home_b.async_block_till_done()
             await async_wait_recording_done(home_b)
             await recorder_b.async_block_till_done()
             for index, entity_id in enumerate(identities, start=1):
+                before = original_histories[entity_id]
                 after = await recorder_b.async_add_executor_job(
                     _recorded_values, home_b, entity_id
                 )
-                assert after[0] == str(index)
-                assert after[-1] == str(index + 10)
+                assert str(index + 10) in before
+                assert after[0] == str(index + 10)
+                assert after[-1] == "3"
+                assert len(after) > len(before)
 
             recorder_before_retry = {
                 entity_id: await recorder_b.async_add_executor_job(
@@ -771,6 +804,11 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 for entity_id in identities
             }
 
+        # Shut down coordinators before re-opening the persisted HA storage.
+        for parent in parents:
+            if parent.state is ConfigEntryState.LOADED:
+                assert await home_b.config_entries.async_unload(parent.entry_id)
+        await home_b.async_block_till_done()
         await flush_store(home_b.config_entries._store)
         await flush_store(devices_b._store)
         await flush_store(entities_b._store)
@@ -781,6 +819,9 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
         await home_c.config_entries.async_initialize()
         await load_registries(home_c)
         assert len(home_c.config_entries.async_entries(DOMAIN)) == 2
+        for parent in home_c.config_entries.async_entries(DOMAIN):
+            assert parent.version == TARGET_ENTRY_VERSION
+            assert parent.unique_id == api_key_unique_id(parent.data["api_key"])
         assert {
             parent.entry_id: set(parent.subentries)
             for parent in home_c.config_entries.async_entries(DOMAIN)
@@ -805,6 +846,13 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             assert parent.data["api_key"] == expected["api_key"]
             assert device.config_entry_id == entity.config_entry_id
             assert device.config_subentry_id == entity.config_subentry_id
+            if historical_release == "2.3.0":
+                assert (
+                    parent.subentries[entity.config_subentry_id].data["legacy_entry_id"]
+                    == expected["source_entry"]
+                )
+            else:
+                assert entity.config_subentry_id == expected["source_subentry"]
 
     with closing(sqlite3.connect(db_path)) as connection:
         for index, entity_id in enumerate(identities, start=1):
@@ -815,5 +863,5 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 (entity_id,),
             ).fetchall()
             assert [row[0] for row in states] == recorder_before_retry[entity_id]
-            assert str(index) in recorder_before_retry[entity_id]
-            assert recorder_before_retry[entity_id][-1] == str(index + 10)
+            assert str(index + 10) in recorder_before_retry[entity_id]
+            assert recorder_before_retry[entity_id][-1] == "3"
