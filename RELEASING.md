@@ -132,6 +132,8 @@ Include backup, no-file-only-downgrade and migration notes where applicable.
 For a beta, state explicitly whether historical migrations were validated
 only with synthetic persisted fixtures, identify relevant unverified real
 upgrade paths, and **recommend a full Home Assistant backup before upgrading**.
+If Recorder uses an external database, also recommend backing it up separately;
+a Home Assistant backup may not include it.
 Keep detailed backup instructions in [PREPARATION_5.0.md](PREPARATION_5.0.md). Do not imply
 that a lack of reported beta failures proves every migration path.
 
