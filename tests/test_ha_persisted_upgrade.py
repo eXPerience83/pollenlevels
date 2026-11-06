@@ -22,6 +22,7 @@ from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import frame
 from pytest_homeassistant.common import (
     MockConfigEntry,
     async_test_home_assistant,
@@ -666,6 +667,9 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 else:
                     assert entity.config_subentry_id == expected["source_subentry"]
 
+            # The manually created HA instance does not initialize the
+            # frame helper used by the real DataUpdateCoordinator constructor.
+            frame.async_setup(home_b)
             # Construct real post-migration sensor/coordinator identities,
             # then resolve them through the persisted Home Assistant Registry.
             # This checks the platform's identity contract without claiming a
