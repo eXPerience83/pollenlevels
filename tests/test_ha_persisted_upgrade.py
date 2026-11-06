@@ -696,7 +696,8 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             captured_params: list[dict[str, Any]] = []
             async with aiointercept(mock_external_urls=True) as mocked:
                 mock_pollen_api(
-                    mocked, google_pollen_5_day_payload,
+                    mocked,
+                    google_pollen_5_day_payload,
                     captured_params=captured_params,
                 )
                 for parent in parents:
@@ -847,9 +848,7 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             assert device.config_subentry_id == entity.config_subentry_id
             if historical_release == "2.3.0":
                 assert (
-                    parent.subentries[entity.config_subentry_id].data[
-                        "legacy_entry_id"
-                    ]
+                    parent.subentries[entity.config_subentry_id].data["legacy_entry_id"]
                     == expected["source_entry"]
                 )
             else:
