@@ -8,6 +8,7 @@ from scripts.select_ha_harness import (
     HarnessSelection,
     SelectionError,
     exact_homeassistant_requirement,
+    is_core_repository_url,
     latest_stable_release,
     select_stable_harness,
 )
@@ -98,11 +99,60 @@ def test_version_mismatch_fails() -> None:
 
 
 def test_unofficial_provenance_fails() -> None:
-    with pytest.raises(SelectionError, match="lacks official core provenance"):
+    with pytest.raises(SelectionError, match="lacks canonical Core repository URL metadata"):
         select_stable_harness(
             _project(("2026.11.0", False)),
             _project(("2026.11.0", False)),
             lambda _: _official_release(["homeassistant==2026.11.0"], official=False),
+        )
+
+
+@pytest.mark.parametrize(
+    "candidate",
+    [
+        "https://example.invalid/github.com/home-assistant/core",
+        "https://github.com.evil.invalid/home-assistant/core",
+        "https://github.com@evil.invalid/home-assistant/core",
+        "https://evil.invalid@github.com/home-assistant/core",
+        "http://github.com/home-assistant/core",
+        "https://github.com/home-assistant/core/other",
+        "https://github.com/home-assistant/core?redirect=1",
+        "https://github.com/home-assistant/core#anchor",
+        "https://github.com:443/home-assistant/core",
+        "https://github.com/home-assistant/another",
+        "https://github.com/home-assistant/%63ore",
+        "not-a-url",
+        None,
+    ],
+)
+def test_canonical_core_url_metadata_rejects_misleading_values(
+    candidate: object,
+) -> None:
+    assert is_core_repository_url(candidate) is False
+
+
+@pytest.mark.parametrize(
+    "candidate",
+    [
+        "https://github.com/home-assistant/core",
+        "https://github.com/home-assistant/core/",
+        "https://github.com/home-assistant/core.git",
+    ],
+)
+def test_canonical_core_url_metadata_accepts_expected_source(candidate: str) -> None:
+    assert is_core_repository_url(candidate) is True
+
+
+def test_misleading_project_url_is_rejected_by_selector() -> None:
+    metadata = _official_release(["homeassistant==2026.11.0"])
+    metadata["info"]["project_urls"] = {
+        "Source": "https://example.invalid/github.com/home-assistant/core"
+    }
+    with pytest.raises(SelectionError, match="canonical Core repository"):
+        select_stable_harness(
+            _project(("2026.11.0", False)),
+            _project(("2026.11.0", False)),
+            lambda _: metadata,
         )
 
 

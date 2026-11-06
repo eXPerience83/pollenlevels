@@ -7,6 +7,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
@@ -18,6 +19,30 @@ from packaging.version import InvalidVersion, Version
 
 PYPI_URL = "https://pypi.org/pypi/{package}{version}/json"
 USER_AGENT = "pollenlevels-ha-harness-selector"
+
+
+def is_core_repository_url(value: object) -> bool:
+    """Check canonical GitHub repository URL syntax, NOT publisher identity.
+
+    PyPI Project-URL fields are self-declared and cannot establish supply-chain
+    provenance. This excludes misleading substring, subdomain and userinfo URLs.
+    """
+    if not isinstance(value, str):
+        return False
+    try:
+        url = urllib.parse.urlsplit(value)
+    except ValueError:
+        return False
+    return (
+        url.scheme == "https"
+        and url.netloc.lower() == "github.com"
+        and url.path.rstrip("/") in {
+            "/home-assistant/core",
+            "/home-assistant/core.git",
+        }
+        and not url.query
+        and not url.fragment
+    )
 
 
 class SelectionError(ValueError):
@@ -151,11 +176,10 @@ def select_stable_harness(
             )
         project_urls = info.get("project_urls")
         if not isinstance(project_urls, Mapping) or not any(
-            isinstance(url, str) and "github.com/home-assistant/core" in url
-            for url in project_urls.values()
+            is_core_repository_url(url) for url in project_urls.values()
         ):
             raise SelectionError(
-                "Selected pytest-homeassistant lacks official core provenance"
+                "Selected pytest-homeassistant lacks canonical Core repository URL metadata"
             )
         homeassistant_version = exact_homeassistant_requirement(
             info.get("requires_dist")

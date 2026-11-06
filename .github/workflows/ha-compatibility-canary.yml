@@ -121,7 +121,10 @@ jobs:
 
           from packaging.version import Version
 
-          from scripts.select_ha_harness import exact_homeassistant_requirement
+          from scripts.select_ha_harness import (
+              exact_homeassistant_requirement,
+              is_core_repository_url,
+          )
 
           names = (
               "pytest-homeassistant",
@@ -137,8 +140,13 @@ jobs:
           }
           official_metadata = importlib.metadata.metadata("pytest-homeassistant")
           urls = official_metadata.get_all("Project-URL") or []
-          if not any("github.com/home-assistant/core" in url for url in urls):
-              raise SystemExit("Installed pytest-homeassistant lacks official Core provenance")
+          if not any(
+              is_core_repository_url(value.split(",", 1)[-1].strip())
+              for value in urls
+          ):
+              raise SystemExit(
+                  "Installed pytest-homeassistant lacks canonical Core repository URL metadata"
+              )
           installed_names = {
               dist.metadata["Name"].lower().replace("_", "-")
               for dist in importlib.metadata.distributions()
@@ -199,7 +207,8 @@ jobs:
               f"- HA selected by OFFICIAL: `{installed_homeassistant}`",
               f"- Newer OFFICIAL releases skipped: {skipped_summary}",
               f"- Status: {status}",
-              "- Verified official Core origin and no PHACC coinstallation",
+              "- Canonical Core repository URL matches self-declared package metadata; publisher origin is not authenticated",
+              "- No PHACC coinstallation",
               "",
               "| Component | Resolved version |",
               "| --- | --- |",

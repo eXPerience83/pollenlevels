@@ -183,7 +183,7 @@ jobs:
               "- OFFICIAL mature at: `" + .official_mature_at + "`",
               "- Configured cooldown: `" + (.cooldown_days | tostring) + " days`",
               "- Lock command: `uv lock --upgrade-package homeassistant --upgrade-package pytest-homeassistant`",
-              "- Lock-delta validation: passed; only Home Assistant, OFFICIAL, and allowed local dependency specifiers changed.",
+              "- Lock-delta validation: passed; movement was limited to the old/new HA and OFFICIAL dependency closure, plus validated local project requirement specifiers.",
               "- Full pytest and coverage gate: `__PYTEST_RESULT__`",
               "- Minimum HA 2026.11.0 is checked independently when the locked baseline moves.",
               "- No automerge is enabled.",

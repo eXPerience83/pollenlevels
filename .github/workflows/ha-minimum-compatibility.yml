@@ -95,6 +95,8 @@ jobs:
           "$MINIMUM_PYTHON" - <<'PY'
           from importlib import metadata
 
+          from scripts.select_ha_harness import is_core_repository_url
+
           minimum = "2026.11.0"
           assert metadata.version("homeassistant") == minimum
           assert metadata.version("pytest-homeassistant") == minimum
@@ -104,8 +106,11 @@ jobs:
           }
           assert "pytest-homeassistant-custom-component" not in names
           links = metadata.metadata("pytest-homeassistant").get_all("Project-URL") or []
-          assert any("github.com/home-assistant/core" in link for link in links)
-          print("Exact official minimum pair and provenance confirmed")
+          assert any(
+              is_core_repository_url(value.split(",", 1)[-1].strip())
+              for value in links
+          ), "Missing canonical Core repository URL in package metadata"
+          print("Exact HA/pytest pair and self-declared Core repository metadata checked")
           PY
 
       - name: Verify full suite on fixed minimum Home Assistant
