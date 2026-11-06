@@ -3,9 +3,9 @@
 ## Home Assistant upstream alignment and project direction
 
 Pollen Levels is maintained in this repository as a Home Assistant custom
-integration distributed through HACS. The current Home Assistant developer
+integration distributed through Marketplace on Home Assistant 2026.11+. The current Home Assistant developer
 documentation and Integration Quality Scale remain useful upstream quality
-references when they improve supported HACS behavior:
+references when they improve supported Marketplace behavior:
 
 - [Contributing an integration to Core](https://developers.home-assistant.io/docs/core/integration/contributing_to_core/)
 - [Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
@@ -37,19 +37,19 @@ For this repository:
   excluded from the target;
 - supported public Home Assistant APIs, async patterns, typing conventions, and
   Home Assistant harness tests are preferred whenever they improve the supported
-  HACS integration.
+  Marketplace custom integration.
 
-Do not reshape the current HACS runtime architecture, migration behavior, IDs,
+Do not reshape the current Marketplace runtime architecture, migration behavior, IDs,
 compatibility helpers, translations, packaging, public contracts, or API-client
 layout solely to satisfy hypothetical future Core submission requirements. Such
 changes require an independent benefit or requirement for Pollen Levels itself.
 Core-specific findings and upstream conventions remain useful learning material,
 but they do not create backlog work for this repository unless a focused issue
-explicitly reframes them as HACS work.
+explicitly reframes them as Marketplace work.
 
 ## Development environment
 
-- Home Assistant 2026.5 requires Python >=3.14.2. Use the exact patch in
+- Home Assistant 2026.11 requires Python >=3.14.2. Use the exact patch in
   `.python-version` for local development and CI parity. The project metadata
   remains `requires-python = ">=3.14"`, but the locked Home Assistant test
   environment is constrained to Python 3.14.2+; do not infer runtime support for
@@ -68,14 +68,15 @@ explicitly reframes them as HACS work.
   `uv run --locked --no-sync ruff format --check .`.
 - Direct validation dependencies are exact and Renovate proposes reviewed
   updates after a 72-hour release age. Home Assistant harness compatibility pins
-  (`pytest-homeassistant-custom-component`, `homeassistant`, `pytest`, and
+  (`pytest-homeassistant`, `homeassistant`, `pytest`, and
   `pytest-asyncio`) are intentionally owner-managed and excluded from Renovate;
   review and update them together in a dedicated owner-reviewed compatibility
   change. `uv.lock` maintenance is reviewed weekly.
 - Required CI is locked and reproducible. The daily latest-Home-Assistant canary
-  is intentionally non-reproducible and advisory: it resolves the newest stable
-  harness for early warning but never updates committed pins or blocks normal
-  release validation.
+  is fresh-resolving and advisory: it tests the latest supported official HA/
+  pytest pair, without modifying committed pins. The 2026.11.0 floor is
+  tested independently once the locked pair advances. The nightly updater
+  proposes reviewed PRs without auto-merging.
 - Tooling targets Python 3.14 with line length 88, and Ruff preview formatting is
   disabled.
 - The translation source of truth is
@@ -86,7 +87,7 @@ explicitly reframes them as HACS work.
 - Do not introduce `%key:` translation references in this custom repository.
 - Preserve the existing coordinator-driven architecture and avoid introducing
   blocking I/O in the event loop.
-- Tests use pytest plus `pytest-homeassistant-custom-component` for scenarios
+- Tests use pytest plus official `pytest-homeassistant` for scenarios
   that exercise Home Assistant's real integration surface, such as config flows,
   subentries, setup/unload, platform registration, services, diagnostics,
   Repairs, registries, and migrations. Prefer focused unit tests for pure

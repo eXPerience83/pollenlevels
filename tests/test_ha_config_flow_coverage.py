@@ -133,7 +133,7 @@ async def test_ha_parent_api_key_flow_tries_next_location_after_invalid_coordina
 ) -> None:
     """Parent key validation should skip a corrupt location and try the next one."""
 
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     entry = MockConfigEntry(
@@ -210,7 +210,7 @@ async def test_ha_location_subentry_user_recovers_after_invalid_parent_api_key(
 ) -> None:
     """Location creation should recover after the parent API key is repaired."""
 
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     entry = MockConfigEntry(
@@ -281,7 +281,7 @@ async def test_ha_location_subentry_reconfigure_recovers_after_invalid_parent_ke
 ) -> None:
     """Location reconfigure should recover after the parent key is repaired."""
 
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from pytest_homeassistant.common import MockConfigEntry
 
     clear_integration_modules()
     entry = MockConfigEntry(

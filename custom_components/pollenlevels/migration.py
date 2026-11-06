@@ -348,26 +348,6 @@ def _make_migrated_subentry(
     )
 
 
-def _add_migrated_subentry_for_tests(
-    entry: ConfigEntry, subentry: ConfigSubentry
-) -> None:
-    """Fallback used by lightweight tests without Home Assistant's entry manager."""
-    subentries = dict(getattr(entry, "subentries", {}) or {})
-    subentries[subentry.subentry_id] = subentry
-    entry.subentries = subentries
-
-
-def _add_migrated_subentry(
-    hass: HomeAssistant, entry: ConfigEntry, subentry: ConfigSubentry
-) -> ConfigSubentry:
-    """Add a migrated subentry using HA APIs or the local test fallback."""
-    if hasattr(hass.config_entries, "async_add_subentry"):
-        hass.config_entries.async_add_subentry(entry, subentry)
-    else:
-        _add_migrated_subentry_for_tests(entry, subentry)
-    return subentry
-
-
 def _existing_location_indexes(
     entry: ConfigEntry,
 ) -> tuple[set[str | None], dict[str, ConfigSubentry]]:
@@ -389,11 +369,7 @@ def _migration_group_entries(
     hass: HomeAssistant, entry: ConfigEntry, api_key: str
 ) -> list[ConfigEntry]:
     """Return legacy entries sharing the same API key."""
-    async_entries = getattr(hass.config_entries, "async_entries", None)
-    if callable(async_entries):
-        entries = list(async_entries(DOMAIN))
-    else:
-        entries = [entry]
+    entries = hass.config_entries.async_entries(DOMAIN)
 
     group: list[ConfigEntry] = []
     target_unique_id = api_key_unique_id(api_key)
@@ -491,13 +467,6 @@ def _parent_legacy_location_target(
     )
 
 
-def _device_source_subentry_ids(
-    device: Any, source_entry_id: str
-) -> set[str | None] | None:
-    """Return known source subentry IDs for a device, or None if unavailable."""
-    return device_subentry_ids(device, source_entry_id)
-
-
 def _migrate_entity_registry_for_merged_entry(
     hass: HomeAssistant,
     source: ConfigEntry,
@@ -509,8 +478,13 @@ def _migrate_entity_registry_for_merged_entry(
         from homeassistant.helpers import entity_registry as er
 
         registry = er.async_get(hass)
-    except ImportError, RuntimeError, KeyError, AttributeError:
-        return True, 0
+    except RuntimeError:
+        _LOGGER.error(
+            "Entity registry is unavailable; cannot migrate entry %s to parent %s",
+            source.entry_id,
+            parent.entry_id,
+        )
+        return False, 0
 
     migrated = True
     moved = 0
@@ -568,82 +542,70 @@ def _migrate_device_registry_for_merged_entry(
         from homeassistant.helpers import device_registry as dr
 
         registry = dr.async_get(hass)
-    except ImportError, RuntimeError, KeyError, AttributeError:
-        return True, 0, 0
+    except RuntimeError:
+        _LOGGER.error(
+            "Device registry is unavailable; cannot migrate entry %s to parent %s",
+            source.entry_id,
+            parent.entry_id,
+        )
+        return False, 0, 0
 
     migrated = True
     moved = 0
     legacy_associations_removed = 0
     targets_by_source_subentry = _target_subentries_by_source_subentry(location_targets)
-    has_source_subentry_targets = any(
-        source_subentry_id is not None
-        for source_subentry_id in targets_by_source_subentry
-    )
     for device in dr.async_entries_for_config_entry(registry, source.entry_id):
-        source_subentry_ids = _device_source_subentry_ids(device, source.entry_id)
-        if source_subentry_ids is None:
-            if has_source_subentry_targets:
-                _LOGGER.error(
-                    "Cannot move device %s from entry %s to parent %s: source "
-                    "subentry association is unavailable",
-                    getattr(device, "id", "unknown"),
-                    source.entry_id,
-                    parent.entry_id,
-                )
-                migrated = False
-                continue
-            source_subentry_ids = {None}
-        elif not source_subentry_ids:
-            source_subentry_ids = {None}
+        source_subentry_ids = device_subentry_ids(device, source.entry_id)
+        if not source_subentry_ids:
+            _LOGGER.error(
+                "Cannot move device %s from entry %s to parent %s: source "
+                "ownership is unavailable or does not match",
+                getattr(device, "id", "unknown"),
+                source.entry_id,
+                parent.entry_id,
+            )
+            migrated = False
+            continue
 
-        valid_source_subentry_ids = {
-            subentry_id
-            for subentry_id in source_subentry_ids
-            if subentry_id in targets_by_source_subentry
-        }
-        target_subentries: list[ConfigSubentry] = []
-        for source_subentry_id in sorted(
-            source_subentry_ids, key=lambda item: item or ""
-        ):
-            if source_subentry_id not in targets_by_source_subentry:
-                if source is parent:
-                    continue
-                if source_subentry_id is None and valid_source_subentry_ids:
-                    continue
-                _LOGGER.error(
-                    "Cannot move device %s from entry %s to parent %s: no target "
-                    "subentry for source subentry %s",
-                    getattr(device, "id", "unknown"),
-                    source.entry_id,
-                    parent.entry_id,
-                    source_subentry_id or "legacy-entry",
-                )
-                migrated = False
+        source_subentry_id = next(iter(source_subentry_ids))
+        subentry = targets_by_source_subentry.get(source_subentry_id)
+        if subentry is None:
+            if source is parent:
                 continue
-            target_subentries.append(targets_by_source_subentry[source_subentry_id])
-
-        if not target_subentries:
+            _LOGGER.error(
+                "Cannot move device %s from entry %s to parent %s: no target "
+                "subentry for source subentry %s",
+                device.id,
+                source.entry_id,
+                parent.entry_id,
+                source_subentry_id or "legacy-entry",
+            )
+            migrated = False
+            continue
+        if source is parent and source_subentry_id == subentry.subentry_id:
             continue
 
         try:
-            for subentry in target_subentries:
-                registry.async_update_device(
+            if source is parent:
+                updated = registry.async_update_device(
                     device.id,
-                    add_config_entry_id=parent.entry_id,
-                    add_config_subentry_id=subentry.subentry_id,
+                    new_config_subentry_id=subentry.subentry_id,
                 )
-                moved += 1
-            if source is not parent:
-                registry.async_update_device(
+            else:
+                updated = registry.async_update_device(
                     device.id,
-                    remove_config_entry_id=source.entry_id,
+                    new_config_entry_id=parent.entry_id,
+                    new_config_subentry_id=subentry.subentry_id,
                 )
-            elif None in source_subentry_ids:
-                registry.async_update_device(
-                    device.id,
-                    remove_config_entry_id=source.entry_id,
-                    remove_config_subentry_id=None,
-                )
+            if (
+                updated is None
+                or updated.id != device.id
+                or device_subentry_ids(updated, parent.entry_id)
+                != {subentry.subentry_id}
+            ):
+                raise RuntimeError("Device ownership move was not applied")
+            moved += 1
+            if source is parent and source_subentry_id is None:
                 legacy_associations_removed += 1
         except Exception:  # noqa: BLE001
             migrated = False
@@ -674,12 +636,7 @@ def _mark_entry_merged(
 
 async def _async_remove_merged_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Remove a duplicate entry after its data has been merged."""
-    async_remove = getattr(hass.config_entries, "async_remove", None)
-    if async_remove is None:
-        return
-    result = async_remove(entry.entry_id)
-    if asyncio.iscoroutine(result):
-        await result
+    await hass.config_entries.async_remove(entry.entry_id)
 
 
 async def _remove_or_schedule_merged_entry(
@@ -689,12 +646,10 @@ async def _remove_or_schedule_merged_entry(
 ) -> None:
     """Remove merged entries, deferring the current entry until its setup lock exits."""
     if source is current:
-        create_task = getattr(hass, "async_create_task", None)
-        if callable(create_task):
-            create_task(
-                _async_remove_merged_entry(hass, source),
-                name=f"remove merged {DOMAIN} entry {source.entry_id}",
-            )
+        hass.async_create_task(
+            _async_remove_merged_entry(hass, source),
+            name=f"remove merged {DOMAIN} entry {source.entry_id}",
+        )
         return
 
     await _async_remove_merged_entry(hass, source)
@@ -789,7 +744,7 @@ async def _async_migrate_grouped_entries(
                 subentry = legacy_subentries.get(location.legacy_entry_id)
             if subentry is None:
                 subentry = _make_migrated_subentry(location, used_unique_ids)
-                _add_migrated_subentry(hass, parent, subentry)
+                hass.config_entries.async_add_subentry(parent, subentry)
                 if location.legacy_entry_id is not None:
                     legacy_subentries[location.legacy_entry_id] = subentry
                 _LOGGER.info(
@@ -820,6 +775,12 @@ async def _async_migrate_grouped_entries(
                 hass, source, parent, location_targets
             )
         )
+        if not entity_registry_migrated:
+            # Moving devices first can make HA remove still-source-owned entities.
+            _LOGGER.warning(
+                "Entity registry migration incomplete; device moves deferred until retry"
+            )
+            return False
         device_registry_migrated, moved_devices, removed_legacy_associations = (
             _migrate_device_registry_for_merged_entry(
                 hass, source, parent, location_targets
@@ -846,7 +807,7 @@ async def _async_migrate_grouped_entries(
                 removed_legacy_associations,
                 source.entry_id,
             )
-        if not entity_registry_migrated or not device_registry_migrated:
+        if not device_registry_migrated:
             _LOGGER.warning(
                 "Registry migration incomplete; migration state will be reused on retry"
             )
@@ -912,6 +873,12 @@ def _repair_existing_parent_registry_links(
     entity_registry_migrated, moved_entities = (
         _migrate_entity_registry_for_merged_entry(hass, entry, entry, registry_targets)
     )
+    if not entity_registry_migrated:
+        # Moving devices first can make HA remove still-source-owned entities.
+        _LOGGER.warning(
+            "Entity registry migration incomplete; device moves deferred until retry"
+        )
+        return False
     device_registry_migrated, moved_devices, removed_legacy_associations = (
         _migrate_device_registry_for_merged_entry(hass, entry, entry, registry_targets)
     )
@@ -933,7 +900,7 @@ def _repair_existing_parent_registry_links(
             removed_legacy_associations,
             entry.entry_id,
         )
-    if not entity_registry_migrated or not device_registry_migrated:
+    if not device_registry_migrated:
         _LOGGER.warning(
             "Registry migration incomplete; migration state will be reused on retry"
         )
@@ -997,7 +964,7 @@ async def async_handle_entry_migration(
                 subentry = legacy_subentries.get(location.legacy_entry_id)
             if subentry is None:
                 subentry = _make_migrated_subentry(location, used_unique_ids)
-                _add_migrated_subentry(hass, entry, subentry)
+                hass.config_entries.async_add_subentry(entry, subentry)
                 if location.legacy_entry_id is not None:
                     legacy_subentries[location.legacy_entry_id] = subentry
                 _LOGGER.info(
@@ -1028,6 +995,12 @@ async def async_handle_entry_migration(
                     hass, entry, entry, registry_targets
                 )
             )
+            if not entity_registry_migrated:
+                # Moving devices first can make HA remove still-source-owned entities.
+                _LOGGER.warning(
+                    "Entity registry migration incomplete; device moves deferred until retry"
+                )
+                return False
             device_registry_migrated, moved_devices, removed_legacy_associations = (
                 _migrate_device_registry_for_merged_entry(
                     hass, entry, entry, registry_targets
@@ -1054,7 +1027,7 @@ async def async_handle_entry_migration(
                     removed_legacy_associations,
                     entry.entry_id,
                 )
-            if not entity_registry_migrated or not device_registry_migrated:
+            if not device_registry_migrated:
                 _LOGGER.warning(
                     "Registry migration incomplete; migration state will be reused on retry"
                 )

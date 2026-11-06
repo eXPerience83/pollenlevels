@@ -99,40 +99,23 @@ def active_location_subentry_ids(entry: Any) -> set[str]:
     return active_ids
 
 
-def normalize_subentry_ids(value: Any) -> set[str | None]:
-    """Return normalized subentry IDs while preserving legacy None links."""
-    if value is None:
-        return {None}
-    if isinstance(value, str):
-        return {value} if value else {None}
-    try:
-        ids: set[str | None] = set()
-        for item in value:
-            if item is None:
-                ids.add(None)
-            elif isinstance(item, str) and item:
-                ids.add(item)
-        return ids or {None}
-    except TypeError:
-        return {None}
-
-
 def device_subentry_ids(device: Any, entry_id: str) -> set[str | None] | None:
-    """Return normalized device subentry IDs for one config entry."""
-    for attr in ("config_entries_subentries", "config_entry_subentries"):
-        mapping = getattr(device, attr, None)
-        if isinstance(mapping, Mapping):
-            return normalize_subentry_ids(mapping.get(entry_id))
+    """Return an ordinary device's association, or None for unknown ownership.
 
-    for attr in ("config_subentry_ids", "config_subentries"):
-        value = getattr(device, attr, None)
-        if value is not None:
-            return normalize_subentry_ids(value)
-
-    direct_subentry_id = getattr(device, "config_subentry_id", None)
-    if direct_subentry_id is not None:
-        return normalize_subentry_ids(direct_subentry_id)
-    return None
+    An empty set means a different owner; {None} is a known main-entry link.
+    Registry enumeration returns real devices, never read-only composites.
+    """
+    if getattr(device, "is_composite_device", False):
+        return None
+    owner = getattr(device, "config_entry_id", None)
+    if not isinstance(owner, str) or not owner:
+        return None
+    if owner != entry_id:
+        return set()
+    try:
+        return {device.config_subentry_id}
+    except AttributeError:
+        return None
 
 
 def normalize_language_code(value: object) -> str | None:
@@ -389,7 +372,6 @@ __all__ = [
     "LEGACY_FORECAST_OPTION_KEYS",
     "normalize_language_code",
     "normalize_pollen_index_value",
-    "normalize_subentry_ids",
     "parse_finite_float",
     "redact_api_key",
     "redact_sensitive_values",

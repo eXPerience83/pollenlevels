@@ -398,8 +398,30 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$VALIDATION_MODE" == "modern" ]]; then
-            uv run --locked --no-sync python -m pytest -q
+            # Historical v5.0.0a1 is immutable. All later 5.x candidates
+            # must declare HA 2026.11.0 and keep the coverage checker.
+            release_version="$(jq -r '.version // empty' custom_components/pollenlevels/manifest.json)"
+            if [[ "$release_version" == 5.* && "$release_version" != "5.0.0a1" ]]; then
+              ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"
+              if [[ "$ha_floor" != "2026.11.0" || ! -f scripts/check_coverage.py ]]; then
+                echo "New v5 snapshots require HA 2026.11.0 and the per-module coverage checker." >&2
+                exit 1
+              fi
+            fi
+            if [[ -f scripts/check_coverage.py ]]; then
+              uv run --locked --no-sync python -m pytest -q \
+                --cov=custom_components.pollenlevels \
+                --cov-report=term-missing \
+                --cov-report=json:coverage.json
+              uv run --locked --no-sync python scripts/check_coverage.py coverage.json
+            else
+              # Historical snapshots predating the checker keep their
+              # original test path; new v5 snapshots were rejected above.
+              echo "::warning title=Historical release coverage::Selected snapshot has no per-module coverage checker."
+              uv run --locked --no-sync python -m pytest -q
+            fi
           else
+            # Historical legacy snapshots keep their own non-uv validation.
             python -m pytest -q
           fi
 

@@ -31,8 +31,6 @@ PYTHON_VERSION_PATH = ROOT / ".python-version"
 LOCK_PATH = ROOT / "uv.lock"
 RENOVATE_PATH = ROOT / "renovate.json"
 WORKFLOWS_PATH = ROOT / ".github" / "workflows"
-MINIMUM_HA_REQUIREMENTS_PATH = ROOT / ".github" / "requirements" / "minimum-ha.in"
-MINIMUM_HA_WORKFLOW_PATH = WORKFLOWS_PATH / "ha-minimum-compatibility.yml"
 
 
 def _read_text(path: Path) -> str:
@@ -325,7 +323,7 @@ def test_exact_uv_and_dependency_groups_are_declared() -> None:
         "pytest-cov",
         "aiointercept",
         "packaging",
-        "pytest-homeassistant-custom-component",
+        "pytest-homeassistant",
         "homeassistant",
     }
     release = project["dependency-groups"]["release"]
@@ -341,26 +339,12 @@ def test_direct_declarations_and_lock_agree() -> None:
         )
 
 
-def test_minimum_ha_input_matches_hacs_support_contract() -> None:
-    """Keep the minimum compatibility input aligned with HACS metadata."""
-    minimum = _exact_requirements_file(MINIMUM_HA_REQUIREMENTS_PATH)
-    assert set(minimum) == {
-        "pytest-homeassistant-custom-component",
-        "homeassistant",
-        "aiointercept",
-        "packaging",
-    }
-    assert _exact_requirement_version(minimum["homeassistant"]) == Version(
-        _load_hacs()["homeassistant"]
-    )
-
-
 def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> None:
     """Require direct compatibility pins to match the selected HA harness."""
     test = _exact_group_requirements("test")
     declared_versions = _declared_direct_versions()
     lock_packages = _load_lock_packages()
-    harness_name = "pytest-homeassistant-custom-component"
+    harness_name = "pytest-homeassistant"
     assert "override-dependencies" not in _load_pyproject().get("tool", {}).get(
         "uv", {}
     )
@@ -374,42 +358,25 @@ def test_harness_metadata_direct_pins_installed_packages_and_lock_agree() -> Non
         for name, versions in lock_packages.items()
         if any(version.is_prerelease for version in versions)
     }
-    assert locked_prereleases == {
+    expected_locked_prereleases = {
         name: {version} for name, version in declared_prereleases.items()
     }
+    # An alpha/RC release legitimately locks the local project as a prerelease.
+    # This exception must not weaken the rule for third-party dependencies.
+    project = _load_pyproject()["project"]
+    local_version = Version(project["version"])
+    if local_version.is_prerelease:
+        expected_locked_prereleases[canonicalize_name(project["name"])] = {
+            local_version
+        }
+    assert locked_prereleases == expected_locked_prereleases
 
-    if os.environ.get("HA_COMPATIBILITY_CANARY") == "1":
-        # The advisory canary deliberately installs the newest harness instead
-        # of the committed locked environment, so only installed-version
-        # comparisons are skipped while static policy checks still run.
-        return
-    if os.environ.get("HA_MINIMUM_COMPATIBILITY") == "1":
-        minimum = _exact_requirements_file(MINIMUM_HA_REQUIREMENTS_PATH)
-        assert set(minimum) == {
-            harness_name,
-            "homeassistant",
-            "aiointercept",
-            "packaging",
-        }
-        harness = metadata.distribution(harness_name)
-        assert Version(harness.version) == _exact_requirement_version(
-            minimum[harness_name]
-        )
-        harness_requirements = {
-            canonicalize_name(requirement.name): requirement
-            for requirement_text in harness.requires or []
-            if (requirement := Requirement(requirement_text)).name.lower()
-            in {"homeassistant", "pytest", "pytest-asyncio"}
-        }
-        for name in ("homeassistant", "pytest", "pytest-asyncio"):
-            harness_version = _exact_requirement_version(harness_requirements[name])
-            assert Version(metadata.version(name)) == harness_version
-            if name == "homeassistant":
-                assert harness_version == _exact_requirement_version(minimum[name])
-        for name in (harness_name, "aiointercept", "packaging"):
-            assert Version(metadata.version(name)) == _exact_requirement_version(
-                minimum[name]
-            )
+    if (
+        os.environ.get("HA_COMPATIBILITY_CANARY") == "1"
+        or os.environ.get("HA_MINIMUM_COMPATIBILITY") == "1"
+    ):
+        # Canary and fixed-minimum use isolated, alternative official pairs.
+        # Preserve static policy checks while bypassing installed lock pins.
         return
     harness = metadata.distribution(harness_name)
     assert Version(harness.version) == declared_versions[harness_name]
@@ -533,15 +500,15 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
     assert "pull-requests: write" not in canary
     assert '"$PACKAGING_REQUIREMENT"' in selector_requirements
     assert "scripts/select_ha_harness.py" in selector
-    assert '"pytest-homeassistant-custom-component==$SELECTED_PHACC"' in harness
-    assert "homeassistant==" not in harness
-    assert "pytest-homeassistant-custom-component" in canary
+    assert '"pytest-homeassistant==$SELECTED_OFFICIAL"' in harness
+    assert '"homeassistant==$SELECTED_HA"' not in harness
+    assert "pytest-homeassistant" in canary
     assert '"$AIOINTERCEPT_REQUIREMENT"' in canary
     assert '"$PACKAGING_REQUIREMENT"' in canary
     assert "pytest==" not in canary
     assert "pytest-asyncio==" not in canary
     for name in (
-        "pytest-homeassistant-custom-component",
+        "pytest-homeassistant",
         "homeassistant",
         "pytest",
         "pytest-asyncio",
@@ -553,17 +520,17 @@ def test_canary_is_advisory_fresh_resolution_with_no_mutation_actions() -> None:
         assert name in canary
     for evidence in (
         "Latest stable HA",
-        "Latest stable-versioned PHACC",
-        "Selected stable-pair PHACC",
-        "HA selected by PHACC",
-        "Newer PHACC releases skipped",
+        "Latest stable-versioned OFFICIAL",
+        "Selected stable-pair OFFICIAL",
+        "HA selected by OFFICIAL",
+        "Newer OFFICIAL releases skipped",
         "Status",
         "Home Assistant harness lag",
     ):
         assert evidence in canary
     report = _workflow_step(canary, "Report resolved compatibility versions")
     assert "exact_homeassistant_requirement" in report
-    assert "SELECTED_PHACC" in report
+    assert "SELECTED_OFFICIAL" in report
     assert "SELECTED_HA" in report
     assert "does not match selected" in report
     assert "exact installed version" in report
@@ -633,7 +600,7 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
         in (planner_environment)
     )
     assert "uv lock --upgrade-package homeassistant" in workflow
-    assert "--upgrade-package pytest-homeassistant-custom-component" in workflow
+    assert "--upgrade-package pytest-homeassistant" in workflow
     assert "uv lock --upgrade" not in workflow.replace("uv lock --upgrade-package", "")
     assert "gh pr merge" not in workflow
     assert "enablePullRequestAutoMerge" not in workflow
@@ -651,6 +618,8 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "pr-body.md" in artifact_check
     assert "pyproject.toml" in artifact_check and "uv.lock" in artifact_check
     assert "scripts/ha_test_baseline_updater.py plan" in validation
+    assert "scripts/check_coverage.py coverage.json" in pytest_step
+    assert "--cov-report=json:coverage.json" in pytest_step
     assert workflow.index("Seal validated publication artifact") < workflow.index(
         "Install locked test environment"
     )
@@ -822,29 +791,6 @@ def test_ha_test_baseline_updater_inserts_pytest_result_literally(
     assert (runner_temp / "pr-body-final.md").read_text(encoding="utf-8") == expected
 
 
-def test_minimum_ha_workflow_is_blocking_and_hash_verified() -> None:
-    """Protect the minimum compatibility lane's reproducible contract."""
-    workflow = _read_text(MINIMUM_HA_WORKFLOW_PATH)
-    assert "name: Minimum Home Assistant Compatibility" in workflow
-    assert "push:" in workflow
-    assert "pull_request:" in workflow
-    assert "workflow_dispatch:" in workflow
-    assert "contents: read" in workflow
-    assert "cancel-in-progress: true" in workflow
-    assert "persist-credentials: false" in workflow
-    assert "python-version-file: .python-version" in workflow
-    assert "version-file: pyproject.toml" in workflow
-    assert "$RUNNER_TEMP/ha-minimum-compatibility-venv" in workflow
-    assert "uv pip sync" in workflow
-    assert "--require-hashes" in workflow
-    assert ".github/requirements/minimum-ha.txt" in workflow
-    assert "HA_MINIMUM_COMPATIBILITY" in workflow
-    assert "PYTHONDONTWRITEBYTECODE" in workflow
-    assert '"$MINIMUM_PYTHON" -m pytest -q -ra -p no:cacheprovider' in workflow
-    assert "continue-on-error" not in workflow
-    assert "uv pip compile" not in workflow
-
-
 def test_release_binds_trusted_and_default_snapshots_to_event_shas() -> None:
     """Keep Release selection independent from a default-branch race."""
     release = _read_text(WORKFLOWS_PATH / "release.yml")
@@ -865,6 +811,37 @@ def test_release_binds_trusted_and_default_snapshots_to_event_shas() -> None:
     )
 
 
+def test_release_enforces_selected_modern_snapshot_coverage() -> None:
+    """Release must not bypass coverage for future HA 2026.11 v5 packages."""
+    release = _read_text(WORKFLOWS_PATH / "release.yml")
+    step = _workflow_step(release, "Run tests")
+    assert 'if [[ "$VALIDATION_MODE" == "modern" ]]' in step
+    assert "if [[ -f scripts/check_coverage.py ]]" in step
+    assert "--cov=custom_components.pollenlevels" in step
+    assert "--cov-report=json:coverage.json" in step
+    assert "scripts/check_coverage.py coverage.json" in step
+    assert (
+        '''release_version="$(jq -r '.version // empty' custom_components/pollenlevels/manifest.json)"'''
+        in step
+    )
+    assert (
+        """if [[ "$release_version" == 5.* && "$release_version" != "5.0.0a1" ]]"""
+        in step
+    )
+    assert '''ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"''' in step
+    assert (
+        """if [[ "$ha_floor" != "2026.11.0" || ! -f scripts/check_coverage.py ]]"""
+        in step
+    )
+    assert "exit 1" in step
+    assert "Historical legacy snapshots" in step
+    assert "python -m pytest -q" in step
+    # Coverage occurs before ZIP creation on the selected snapshot.
+    assert release.index("scripts/check_coverage.py coverage.json") < release.index(
+        "Build release ZIP"
+    )
+
+
 def test_renovate_has_one_source_for_each_managed_validation_dependency() -> None:
     """Keep direct extraction lanes visible without duplicate declarations."""
     renovate = json.loads(_read_text(RENOVATE_PATH))
@@ -879,7 +856,7 @@ def test_renovate_has_one_source_for_each_managed_validation_dependency() -> Non
     assert renovate["automerge"] is False
     assert renovate["lockFileMaintenance"]["enabled"] is True
     harness_packages = {
-        "pytest-homeassistant-custom-component",
+        "pytest-homeassistant",
         "homeassistant",
         "pytest",
         "pytest-asyncio",

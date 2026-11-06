@@ -22,14 +22,14 @@ source = {{ registry = "https://pypi.org/simple" }}{dependency_block}
 def _lock(
     *,
     ha: str,
-    phacc: str,
+    official: str,
     ha_dependencies: tuple[str, ...],
-    phacc_dependencies: tuple[str, ...],
+    official_dependencies: tuple[str, ...],
     packages: tuple[tuple[str, str, tuple[str, ...]], ...],
 ) -> str:
     records = [
         _package("homeassistant", ha, *ha_dependencies),
-        _package("pytest-homeassistant-custom-component", phacc, *phacc_dependencies),
+        _package("pytest-homeassistant", official, *official_dependencies),
     ]
     records.extend(
         _package(name, version, *dependencies)
@@ -44,11 +44,11 @@ source = {{ virtual = "." }}
 [package.dev-dependencies]
 release = [
     {{ name = "homeassistant" }},
-    {{ name = "pytest-homeassistant-custom-component" }},
+    {{ name = "pytest-homeassistant" }},
 ]
 test = [
     {{ name = "homeassistant" }},
-    {{ name = "pytest-homeassistant-custom-component" }},
+    {{ name = "pytest-homeassistant" }},
 ]
 
 [package.metadata]
@@ -56,11 +56,11 @@ test = [
 [package.metadata.requires-dev]
 release = [
     {{ name = "homeassistant", specifier = "=={ha}" }},
-    {{ name = "pytest-homeassistant-custom-component", specifier = "=={phacc}" }},
+    {{ name = "pytest-homeassistant", specifier = "=={official}" }},
 ]
 test = [
     {{ name = "homeassistant", specifier = "=={ha}" }},
-    {{ name = "pytest-homeassistant-custom-component", specifier = "=={phacc}" }},
+    {{ name = "pytest-homeassistant", specifier = "=={official}" }},
 ]
 """
     )
@@ -74,10 +74,10 @@ requires-python = ">=3.14"
 
 def _monthly_pair() -> tuple[str, str]:
     before = _lock(
-        ha="2026.8.3",
-        phacc="0.13.357",
+        ha="2026.11.0",
+        official="2026.11.0",
         ha_dependencies=("shared", "removed"),
-        phacc_dependencies=("homeassistant", "coverage"),
+        official_dependencies=("homeassistant", "coverage"),
         packages=(
             ("shared", "1.0", ("nested",)),
             ("nested", "1.0", ()),
@@ -87,10 +87,10 @@ def _monthly_pair() -> tuple[str, str]:
         ),
     )
     after = _lock(
-        ha="2026.9.3",
-        phacc="0.13.366",
+        ha="2026.11.1",
+        official="2026.11.1",
         ha_dependencies=("shared", "added"),
-        phacc_dependencies=("homeassistant", "coverage"),
+        official_dependencies=("homeassistant", "coverage"),
         packages=(
             ("shared", "2.0", ("nested",)),
             ("nested", "2.0", ()),
@@ -106,7 +106,7 @@ def test_target_derived_monthly_graph_movement_passes() -> None:
     """Target descendants may update, appear, disappear, and change recursively."""
     before, after = _monthly_pair()
 
-    validate_lock_delta(before, after, "2026.9.3", "0.13.366")
+    validate_lock_delta(before, after, "2026.11.1", "2026.11.1")
 
 
 def test_unrelated_package_addition_still_fails() -> None:
@@ -115,7 +115,7 @@ def test_unrelated_package_addition_still_fails() -> None:
     after += "\n" + _package("unrelated-added", "1.0")
 
     with pytest.raises(UpdaterError, match="package set changed"):
-        validate_lock_delta(before, after, "2026.9.3", "0.13.366")
+        validate_lock_delta(before, after, "2026.11.1", "2026.11.1")
 
 
 def test_unrelated_existing_package_movement_still_fails() -> None:
@@ -128,4 +128,4 @@ def test_unrelated_existing_package_movement_still_fails() -> None:
     )
 
     with pytest.raises(UpdaterError, match="unrelated"):
-        validate_lock_delta(before, after, "2026.9.3", "0.13.366")
+        validate_lock_delta(before, after, "2026.11.1", "2026.11.1")

@@ -1096,9 +1096,9 @@ async def test_diagnostics_includes_registry_summary_without_sensitive_values(
 
     device_registry_mod.async_get = lambda _hass: object()
     device_registry_mod.async_entries_for_config_entry = lambda _registry, entry_id: [
-        SimpleNamespace(config_entries_subentries={entry_id: {"subentry-home"}}),
-        SimpleNamespace(config_entries_subentries={entry_id: {None}}),
-        SimpleNamespace(config_entries_subentries={entry_id: {"subentry-office"}}),
+        SimpleNamespace(config_entry_id=entry_id, config_subentry_id="subentry-home"),
+        SimpleNamespace(config_entry_id=entry_id, config_subentry_id=None),
+        SimpleNamespace(config_entry_id=entry_id, config_subentry_id="subentry-office"),
     ]
 
     monkeypatch.setitem(sys.modules, "homeassistant.helpers", helpers_mod)

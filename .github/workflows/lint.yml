@@ -2,9 +2,9 @@ name: Lint
 
 on:
   push:
-    branches: [main]
+    branches: [main, prep/5.0-ha-2026.10.4]
   pull_request:
-    branches: [main]
+    branches: [main, prep/5.0-ha-2026.10.4]
   workflow_dispatch:
     inputs:
       ref:
@@ -46,6 +46,19 @@ jobs:
             pyproject.toml
             uv.lock
           cache-suffix: lint
+
+      - name: Time-bounded 2026.11 GA dependency bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Explicitly permit the reviewed exact 2026.11 GA lock while its
+          # releases have not yet aged through the normal three-day cooldown.
+          # This exception automatically expires; the repository's default
+          # exclude-newer = "3 days" and updater maturity policy stay intact.
+          if (( $(date -u +%s) < $(date -u -d '2026-11-10T00:00:00Z' +%s) )); then
+            printf 'UV_EXCLUDE_NEWER=false\n' >> "$GITHUB_ENV"
+            echo "Temporary GA bootstrap active for the exact committed lock."
+          fi
 
       - name: Verify locked lint environment
         shell: bash

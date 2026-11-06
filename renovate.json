@@ -59,7 +59,24 @@
         "patch",
         "minor"
       ],
-      "groupName": "GitHub Actions non-major updates"
+      "groupName": "GitHub Actions non-major updates",
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Keep major GitHub Actions updates individually reviewable",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "action"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict",
+      "automerge": false
     },
     {
       "description": "Delay workflow security tooling updates",
@@ -172,7 +189,7 @@
         "pep621"
       ],
       "matchPackageNames": [
-        "pytest-homeassistant-custom-component",
+        "pytest-homeassistant",
         "homeassistant",
         "pytest",
         "pytest-asyncio"

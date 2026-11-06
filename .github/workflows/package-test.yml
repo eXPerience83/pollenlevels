@@ -2,9 +2,9 @@ name: Package Test
 
 on:
   push:
-    branches: [main]
+    branches: [main, prep/5.0-ha-2026.10.4]
   pull_request:
-    branches: [main]
+    branches: [main, prep/5.0-ha-2026.10.4]
   workflow_dispatch:
 
 concurrency:
