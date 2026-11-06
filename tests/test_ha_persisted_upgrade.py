@@ -627,10 +627,7 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
                 assert await async_migrate_config_entry(upgraded_hass, restored)
 
             parents = upgraded_hass.config_entries.async_entries(DOMAIN)
-            assert {entry.entry_id for entry in parents} == {
-                primary_id,
-                secondary_id,
-            }
+            assert {entry.entry_id for entry in parents} == {primary_id, secondary_id}
             for parent in parents:
                 assert parent.version == TARGET_ENTRY_VERSION
                 assert len(parent.subentries) == (
@@ -643,9 +640,7 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
                 )
 
             for suffix, snapshot in snapshots.items():
-                expected_parent_id = (
-                    secondary_id if suffix == "other" else primary_id
-                )
+                expected_parent_id = secondary_id if suffix == "other" else primary_id
                 moved = er.async_get(upgraded_hass).async_get(snapshot["entity"][1])
                 device = dr.async_get(upgraded_hass).async_get(snapshot["device"][0])
                 assert moved is not None and device is not None
