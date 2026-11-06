@@ -630,9 +630,7 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                     expected["device_identifiers"],
                     expected["device_name"],
                 )
-                parent = home_b.config_entries.async_get_entry(
-                    entity.config_entry_id
-                )
+                parent = home_b.config_entries.async_get_entry(entity.config_entry_id)
                 assert parent is not None
                 assert parent.data["api_key"] == expected["api_key"]
                 assert entity.config_subentry_id in parent.subentries
