@@ -76,9 +76,10 @@ Pollen Levels uses Google `plantInfo.code` values, not localized
 localizing the visible names. For example, `GRAMINALES` remained the plant code
 for grass pollen plants, while the display name changed by language.
 
-This means changing the API language should update localized attributes without
-recreating plant sensors, as long as Google keeps returning the same
-`plantInfo.code` values. If Google changes plant codes in the future, treat it
+Google may use the closest available translation if the requested language is
+not supported for particular fields. Changing the API language should update
+localized attributes without recreating plant sensors, as long as Google keeps
+returning the same `plantInfo.code` values. If Google changes plant codes in the future, treat it
 as an upstream API behavior change and include diagnostics when reporting it.
 
 ---
@@ -100,10 +101,10 @@ No. The integration requires internet access to reach the Google Maps Pollen API
 
 ## 9. Does the integration store my API key?
 
-The API key is stored by Home Assistant in the parent Pollen Levels config entry
-and is sent directly from your Home Assistant instance to the Google Maps Pollen
-API when requesting pollen data. It is not sent to the Pollen Levels project
-maintainer.
+The API key is stored locally by Home Assistant in the parent Pollen Levels
+config entry and is sent directly to the Google Maps Pollen API when requesting
+data. It is not sent to the Pollen Levels project maintainer. Protect your Home
+Assistant configuration and backups, which may contain the API key.
 
 ---
 
@@ -308,11 +309,11 @@ explicitly for the repository in **Settings → Devices & services → Marketpla
 on the repository's device page. See the
 [official Marketplace guide](https://www.home-assistant.io/integrations/marketplace).
 
-Pollen Levels **5.0 requires HA 2026.11.0+**. Until Pollen Levels 5.0 is
-published as stable, **4.0.3** remains the published stable release and supports
-HA 2026.5.0+. Review [PREPARATION_5.0.md](PREPARATION_5.0.md)
-before an existing-install v5 upgrade; experimental 5.0 previews are not routine
-production upgrades.
+Pollen Levels **5.0 requires HA 2026.11.0+**. Home Assistant 2026.5–2026.10
+users can use Pollen Levels **4.0.3**; older Home Assistant versions must be
+upgraded to at least **2026.5** before installing 4.0.3. For an in-place
+upgrade to 5.0, protect your Recorder history, configuration and backups, and
+read the [upgrade and rollback guide](PREPARATION_5.0.md).
 
 ---
 

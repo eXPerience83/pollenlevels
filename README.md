@@ -24,10 +24,11 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 ## Requirements
 
 - **Pollen Levels 5.0:** Home Assistant **2026.11.0 or newer**.
+- **Pollen Levels 4.0.3 (older Home Assistant):** Home Assistant **2026.5.0–2026.10.x**. If your Home Assistant is older than 2026.5, upgrade it before installing 4.0.3.
 - **Distribution:** the built-in **Settings → Marketplace** in Home Assistant 2026.11+; no separate HACS installation.
 - A Google Cloud project with billing enabled and a Google API key restricted to the **Maps Pollen API**.
 
-**Release availability:** This guide describes the intended Pollen Levels 5.0 public contract. **5.0.0 stable has not been published yet.** The latest published stable remains [4.0.3](https://github.com/eXPerience83/pollenlevels/releases/tag/v4.0.3), supporting HA 2026.5.0+. Development and pre-release 5.0 builds are for controlled testing; check [Releases](https://github.com/eXPerience83/pollenlevels/releases) before selecting a version.
+Install a [published Pollen Levels release](https://github.com/eXPerience83/pollenlevels/releases) compatible with your Home Assistant version. This guide documents the **5.0** functionality and upgrade path.
 
 ---
 
@@ -41,7 +42,7 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 4. When Home Assistant offers the integration setup flow, configure it. Otherwise open **Settings → Devices & services → Add integration → Pollen Levels**.
 5. Restart Home Assistant when prompted after an integration **update**.
 
-Marketplace offers stable releases by default. Pre-releases are opt-in under **Settings → Devices & services → Marketplace** on the repository's device page. **Do not install a 5.0 pre-release as a routine upgrade.**
+Marketplace normally offers the current stable release. Check its release notes before upgrading an existing installation.
 
 ### Existing HACS installations and older Home Assistant
 
@@ -66,7 +67,7 @@ Each location gets its own pollen sensors and **Update now** button. By default 
 
 ## 🌟 Features
 
-- **Multi-language support** — UI in 21 languages (**EN, ES, CA, DE, FR, IT, PL, RU, UK, NL, ZH-Hans, SV, CS, PT-BR, DA, NB, PT-PT, RO, FI, HU, ZH-Hant**) + API responses in any language.
+- **Multi-language support** — UI in 21 languages (**EN, ES, CA, DE, FR, IT, PL, RU, UK, NL, ZH-Hans, SV, CS, PT-BR, DA, NB, PT-PT, RO, FI, HU, ZH-Hant**) and a configurable Google API language code; Google may return the closest available translation.
 - **Location-specific sensors** — Creates sensors for pollen types and plants present in the location's initial API data; a reload may be needed if Google introduces a new plant code after setup.  
 - **Daily summary sensors** — Adds plants in season today, overall pollen risk today, and top pollen types today.
 - **Five-day forecast for TYPES, PLANTS, and summary sensors** —
@@ -173,7 +174,7 @@ Pollen Levels 5.0 targets the built-in Marketplace and Home Assistant 2026.11+. 
 - Check that locations, sensors, custom entity IDs, dashboards, automations, Recorder history and long-term statistics remain associated after restart. Multi-location and historical-migration checks are particularly important.
 - **Downgrade by file replacement is not supported** after stored migration changes. Restore the matching **pre-upgrade** configuration, registries and database from a consistent backup.
 
-The 5.0 beta/stable upgrade acceptance is still pending; the documented target behavior is **not proof of real-world migration validation**. Follow [the 5.0 preparation and rollback guide](PREPARATION_5.0.md) and [GitHub issue #452](https://github.com/eXPerience83/pollenlevels/issues/452) for testing and release readiness.
+For detailed migration checks and recovery procedures, see the [5.0 upgrade and rollback guide](PREPARATION_5.0.md).
 
 ### Historical compatibility
 
@@ -308,7 +309,7 @@ color: '[[[
 
 ## 🔒 Security & Privacy
 
-- Your **API key** is stored by Home Assistant’s secure config entries.  
+- Your **API key** is saved in Home Assistant's local config-entry storage. Protect your Home Assistant configuration and backups, which may contain this key.  
 - **We never log your API key.** As a safety net, if it ever appears in an error message, it is **redacted** as `***`.  
 - **We do not log request parameters** (coordinates). Debug logs only include non-sensitive metadata (e.g., forecast days and whether a language is set).  
 - Diagnostics include redacted daily, registry, and runtime summaries to help

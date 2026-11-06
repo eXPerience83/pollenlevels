@@ -11,9 +11,11 @@
 
 Repository: `eXPerience83/pollenlevels`.
 
-Compare **stable `main` 4.0.3** to the **entire future 5.0 preparation line**:
-the source branch `prep/5.0-ha-2026.10.4` (the name is historical), including
-the dedicated 2026.11 Marketplace/CI/docs PR. Do **not** limit the audit to
+This archived audit originally compared the **published `v4.0.3` stable baseline**
+with the complete historical 5.0 preparation branch
+`prep/5.0-ha-2026.10.4`, including the 2026.11 Marketplace/CI/docs PR.
+Neither that branch nor the historical `main` 4.0.3 reference identifies the
+current development baseline. Do **not** limit the audit to
 the latest PR, last commit, or 2026.11 tooling only. Read AGENTS.md,
 PREPARATION_5.0.md, issues #452/#226/#465, and the published `v5.0.0a1`
 manifest for immutable-artifact history.
