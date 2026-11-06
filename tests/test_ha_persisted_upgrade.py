@@ -19,6 +19,7 @@ import pytest
 from aiointercept import aiointercept
 from homeassistant import config_entries, loader
 from homeassistant.components.recorder import Recorder
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
@@ -703,7 +704,10 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
             async with aiointercept(mock_external_urls=True) as mocked:
                 mock_pollen_api(mocked, google_pollen_5_day_payload)
                 for parent in parents:
-                    await async_setup_config_entry(upgraded_hass, parent)
+                    # Setting up the integration can load sibling entries too.
+                    if parent.state is ConfigEntryState.NOT_LOADED:
+                        await async_setup_config_entry(upgraded_hass, parent)
+            assert all(parent.state is ConfigEntryState.LOADED for parent in parents)
 
             for snapshot in snapshots.values():
                 live = upgraded_hass.states.get(snapshot["entity"][1])
@@ -725,6 +729,12 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
                 assert await async_migrate_config_entry(upgraded_hass, parent)
             assert len(upgraded_hass.config_entries.async_entries(DOMAIN)) == 2
 
+        # Unload coordinators explicitly: the lightweight HA context manager
+        # does not provide the normal pytest hass fixture's entry cleanup.
+        for parent in parents:
+            if parent.state is ConfigEntryState.LOADED:
+                assert await upgraded_hass.config_entries.async_unload(parent.entry_id)
+        await upgraded_hass.async_block_till_done()
         await flush_store(upgraded_hass.config_entries._store)
         await flush_store(dr.async_get(upgraded_hass)._store)
         await flush_store(er.async_get(upgraded_hass)._store)
