@@ -23,7 +23,8 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 
 ## Requirements
 
-- **Pollen Levels 5.0:** Home Assistant **2026.11.0 or newer** (earlier Home Assistant versions must use a compatible 4.x release).
+- **Pollen Levels 5.0:** Home Assistant **2026.11.0 or newer**.
+- **Pollen Levels 4.0.3 (older Home Assistant):** Home Assistant **2026.5.0–2026.10.x**. If your Home Assistant is older than 2026.5, upgrade it before installing 4.0.3.
 - **Distribution:** the built-in **Settings → Marketplace** in Home Assistant 2026.11+; no separate HACS installation.
 - A Google Cloud project with billing enabled and a Google API key restricted to the **Maps Pollen API**.
 
