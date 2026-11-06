@@ -106,6 +106,50 @@ def test_official_mature_but_ha_young_is_cooldown() -> None:
     )
 
 
+def test_manual_override_only_waives_maturity_for_newer_compatible_pair() -> None:
+    """Explicit override retains selection, compatibility and metadata checks."""
+    plan = make_plan(
+        _project(),
+        _selection("2026.11.1", "2026.11.1"),
+        _release(NOW - timedelta(days=4)),
+        _release(NOW),
+        NOW,
+        override_cooldown=True,
+    )
+    assert plan.status == "update"
+    assert plan.cooldown_overridden is True
+    assert plan.mature_at == (NOW + timedelta(days=3)).isoformat()
+
+
+def test_manual_override_does_not_upgrade_existing_pair() -> None:
+    plan = make_plan(
+        _project(),
+        _selection(),
+        _release(NOW),
+        _release(NOW),
+        NOW,
+        override_cooldown=True,
+    )
+    assert plan.status == "current"
+    assert plan.cooldown_overridden is False
+
+
+def test_manual_override_does_not_allow_downgrade_or_harness_mismatch() -> None:
+    for ha, official, expected in (
+        ("2026.10.4", "2026.10.4", "downgrade"),
+        ("2026.11.1", "2026.11.0", "match Home Assistant"),
+    ):
+        with pytest.raises(UpdaterError, match=expected):
+            make_plan(
+                _project(),
+                _selection(ha, official),
+                _release(NOW),
+                _release(NOW),
+                NOW,
+                override_cooldown=True,
+            )
+
+
 def test_latest_non_yanked_artifact_controls_maturity() -> None:
     """A late usable wheel extends the whole release's maturity window."""
     metadata = {
@@ -377,3 +421,40 @@ def test_wrong_resulting_harness_versions_fail() -> None:
     before, after = _valid_locks()
     with pytest.raises(UpdaterError, match="homeassistant"):
         validate_lock_delta(before, after, "2026.11.2", "2026.11.1")
+
+
+@pytest.mark.parametrize("override,remove", [(False, False), (True, True)])
+def test_lock_cooldown_transition_is_explicit(override, remove):
+    before, after = _valid_locks()
+    options = '\n[options]\nexclude-newer = "0001-01-01T00:00:00Z"\nexclude-newer-span = "P3D"\n'
+    if remove:
+        before = before.replace("\n[[package]]", options + "\n[[package]]", 1)
+    else:
+        after = after.replace("\n[[package]]", options + "\n[[package]]", 1)
+    validate_lock_delta(
+        before, after, "2026.11.1", "2026.11.1", override_cooldown=override
+    )
+    with pytest.raises(UpdaterError, match="cooldown metadata"):
+        validate_lock_delta(
+            before, after, "2026.11.1", "2026.11.1", override_cooldown=not override
+        )
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        'exclude-newer-span = "P1D"',
+        'exclude-newer = "2026-11-06T00:00:00Z"',
+        'resolution-mode = "lowest"',
+        'exclude-newer-package = { packaging = "P1D" }',
+    ],
+)
+def test_lock_cooldown_waiver_does_not_allow_unrelated_options(options):
+    before, after = _valid_locks()
+    after = after.replace(
+        "\n[[package]]", "\n[options]\n" + options + "\n[[package]]", 1
+    )
+    with pytest.raises(UpdaterError, match="metadata"):
+        validate_lock_delta(
+            before, after, "2026.11.1", "2026.11.1", override_cooldown=True
+        )

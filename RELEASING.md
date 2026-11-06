@@ -66,6 +66,36 @@ The scheduled latest-Home-Assistant compatibility canary is advisory and
 intentionally fresh-resolving. It is not a Release dependency, does not update
 pins or `uv.lock`, and cannot replace the required locked validation lane.
 
+## One-run dependency maturity exceptions
+
+Normal resolution keeps `exclude-newer = "3 days"`. A trusted maintainer may
+request an exception through `workflow_dispatch` on `main`, with a non-blank,
+printable, single-line reason of 15–200 characters. Reasons are displayed as
+literal text in the run summary and, for updater PRs, in the PR body, including
+when the selected HA/pytest pair is already mature.
+
+For Release, set `bypass_dependency_cooldown` and supply `release_ref` as the
+full selected commit SHA. Only alpha, beta and RC versions qualify. A lock with
+no cutoff is validated with `UV_EXCLUDE_NEWER=false`; a lock already recording
+uv 0.13.5's relative three-day cutoff retains that policy. Other cutoff formats
+fail closed and require normal validation. Release never rewrites the lock or
+replaces `--locked` with `--frozen`. All tests, coverage and ZIP checks still run,
+and the output remains a draft that must be reviewed as a prerelease.
+
+For the baseline updater, `override_cooldown` waives both pair maturity and the
+global resolution cutoff for that run, including transitive dependencies within
+the validated HA/pytest dependency closure. It does not authorize unrelated
+package changes, automatic merge, or bypass of the resulting PR's CI. Scheduled
+runs and manual runs without the flag retain normal policy. The lock validator
+permits only the known relative three-day metadata transition appropriate to
+the selected mode; other options remain protected.
+
+The temporary GA bootstrap in Lint/Tests expires on November 10, 2026 UTC.
+Before expiration, validate the committed lock under normal policy after package
+maturity. If its cutoff metadata needs synchronization, review that narrow lock
+change separately without upgrading packages; do not extend the bootstrap or
+assume a successful exceptional run proves normal-policy readiness.
+
 ## 1. Prepare a release pull request (recommended)
 
 For normal stable releases, a release-only pull request is recommended. It

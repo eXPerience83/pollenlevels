@@ -7,6 +7,15 @@ on:
         description: "Branch, tag, or full commit SHA to release. Leave empty for the current main commit."
         required: false
         type: string
+      bypass_dependency_cooldown:
+        description: "One-time prerelease maturity waiver (full commit SHA and reason required)"
+        required: false
+        default: false
+        type: boolean
+      cooldown_override_reason:
+        description: "Required for maturity override; 15-200 characters"
+        required: false
+        type: string
   release:
     types: [published]
 
@@ -223,6 +232,62 @@ jobs:
             pyproject.toml
             uv.lock
           cache-suffix: release
+
+      - name: Authorize manual prerelease dependency cooldown override
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bypass_dependency_cooldown }}
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.ref }}
+          RELEASE_REF: ${{ inputs.release_ref }}
+          VALIDATED_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
+          OVERRIDE_REASON: ${{ inputs.cooldown_override_reason }}
+        run: |
+          set -euo pipefail
+          if [[ "$WORKFLOW_REF" != "refs/heads/main" || "$VALIDATION_MODE" != "modern" ]]; then
+            echo "Override is allowed only for modern prereleases from main." >&2
+            exit 1
+          fi
+          if [[ ! "$RELEASE_REF" =~ ^[0-9A-Fa-f]{40}$ ]] ||
+             [[ "${RELEASE_REF,,}" != "${VALIDATED_COMMIT,,}" ]]; then
+            echo "Override requires release_ref to be the full validated commit SHA." >&2
+            exit 1
+          fi
+          python - <<'PYTHON'
+          import os
+
+          reason = os.environ["OVERRIDE_REASON"]
+          if not 15 <= len(reason) <= 200 or not reason.strip() or not reason.isprintable():
+              raise SystemExit("Provide a non-blank, printable single-line, 15-200 character override reason")
+          PYTHON
+          version="$(python -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/pollenlevels/manifest.json").read_text())["version"])')"
+          if [[ ! "${version,,}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
+            echo "Override applies only to alpha, beta and RC releases." >&2
+            exit 1
+          fi
+          # Preserve the reviewed lock's normal relative cutoff. Removing it
+          # would invalidate --locked; only cutoff-free locks need the waiver.
+          python - <<'PYTHON' >> "$GITHUB_ENV"
+          import tomllib
+          from pathlib import Path
+
+          options = tomllib.loads(Path("uv.lock").read_text()).get("options", {})
+          cutoff = {key: value for key, value in options.items() if key.startswith("exclude-newer")}
+          normal = {"exclude-newer": "0001-01-01T00:00:00Z", "exclude-newer-span": "P3D"}
+          if cutoff == normal:
+              print("UV_EXCLUDE_NEWER=3 days")
+          elif not cutoff:
+              print("UV_EXCLUDE_NEWER=false")
+          else:
+              raise SystemExit("Unsupported lock cutoff: use normal validation; do not rewrite the release lock")
+          PYTHON
+          {
+            echo "## Manual prerelease package maturity override"
+            printf 'Commit: %s\n' "$VALIDATED_COMMIT"
+            printf 'Version: %s\n' "$version"
+            python -c 'import html, os; print("Reason:\n<pre>" + html.escape(os.environ["OVERRIDE_REASON"]) + "</pre>")'
+            echo "One workflow run only; lock, tests, coverage, ZIP and draft release gates remain mandatory."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up modern locked validation environment
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
@@ -663,6 +728,7 @@ jobs:
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
           draft: true
+          prerelease: ${{ needs.validate-release.outputs.prerelease }}
           files: pollenlevels.zip
           overwrite_files: true
           fail_on_unmatched_files: true
