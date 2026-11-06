@@ -82,10 +82,11 @@ alpha or beta before stable. If a beta is selected:
    fixtures, **not comprehensively verified by installing and upgrading authentic
    historical HAOS backups**. Mention any outstanding Recorder, long-term
    statistics and HACS→Marketplace checks.
-3. Strongly advise a complete, restorable pre-upgrade Home Assistant backup,
-   including Recorder, and clearly warn that **downgrading just the integration
-   is not a safe rollback**. Upgraders must choose the preview with these
-   limitations in mind and report reproducible issues.
+3. In the beta release notes, **recommend a complete Home Assistant backup
+   before upgrading**, including Recorder, and warn that simply reinstalling
+   an older integration version is not a safe rollback. Keep detailed recovery
+   procedures in this guide, not in the release announcement. Invite testers
+   to report reproducible issues.
 4. Gather evidence from any reported real upgrades. **No user reports is not
    proof that an untested migration path works.** A beta's observations may
    improve confidence but do not, by themselves, certify a stable release.
@@ -143,8 +144,10 @@ on the strength of fixtures or the absence of bug reports.
    their remaining migration/Recorder/Marketplace evidence or an explicit
    release decision about any residual gaps.
 3. Resolve material reviewer findings, including CodeRabbit if required.
-   Review the exact candidate `pollenlevels.zip` and verify its installation
-   and update path; a draft release is not an installed published release.
+   Before publishing, check that the release workflow validates and attaches
+   the ZIP built from the intended commit and version. **After publishing**,
+   verify that Marketplace installs or updates from the published ZIP on a
+   test installation. A draft does not appear as a published Marketplace release.
 4. In a **separate release-only PR**, synchronize `CHANGELOG.md`,
    `manifest.json`, `pyproject.toml` and the local project version in
    `uv.lock`. Choose beta or stable only when explicitly approved.
