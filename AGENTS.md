@@ -20,7 +20,8 @@ These instructions apply to the entire repository unless a more specific nested
 
 ## Project structure
 
-Pollen Levels is a Home Assistant custom integration distributed through HACS.
+Pollen Levels is a Home Assistant custom integration distributed through the
+built-in Marketplace since HA 2026.11 (publisher metadata keeps `hacs.json`).
 
 - Integration code lives in `custom_components/pollenlevels/`.
 - Home Assistant integration-surface tests and focused unit tests live in
@@ -35,7 +36,8 @@ coordinator-driven async design.
 
 ## Home Assistant upstream alignment and separate Core project
 
-Pollen Levels is and remains a HACS custom integration. This repository uses
+Pollen Levels remains a community custom integration through Marketplace,
+not an upstream Home Assistant Core integration. This repository uses
 current Home Assistant Core guidance as an upstream quality reference, but it is
 not a staging tree for a future Core submission.
 
@@ -43,11 +45,11 @@ not a staging tree for a future Core submission.
   `Pollen`, will be designed from scratch in a separate clean project/repository.
 - Reuse knowledge, evidence, behavioral lessons, and useful test ideas from
   Pollen Levels, but do not assume its code, storage architecture, IDs,
-  migrations, entity contracts, helper layout, or HACS compatibility should be
+  migrations, entity contracts, helper layout, or Marketplace compatibility should be
   ported.
 - Treat current official Home Assistant developer documentation and the
   Integration Quality Scale as quality references when they improve supported
-  HACS behavior. Re-check requirements before relying on them because upstream
+  Marketplace behavior. Re-check requirements before relying on them because upstream
   rules evolve.
 - Keep the repository's existing quality targets, including literal 100%
   statement coverage in `config_flow.py` and above 95% statement coverage in
@@ -56,13 +58,13 @@ not a staging tree for a future Core submission.
 - Prefer supported public Home Assistant APIs and current idioms when they
   improve maintainability and compatibility for Pollen Levels itself.
 - Do not extract `GooglePollenApiClient`, change manifest/translation/branding
-  structure, remove HACS features, or otherwise reshape Pollen Levels solely to
+  structure, remove Marketplace features, or otherwise reshape Pollen Levels solely to
   satisfy hypothetical future Core requirements. Such changes need an
-  independent HACS benefit or requirement.
+  independent Marketplace benefit or requirement.
 - Core-specific findings from historical audits, including external-library,
   `quality_scale.yaml`, `strings.json`, docs/brands, or initial-PR requirements,
   are learning material for the separate Core project, not Pollen Levels backlog
-  unless a focused issue explicitly reframes them as HACS work.
+  unless a focused issue explicitly reframes them as Marketplace work.
 - Treat issue #325 and earlier `Core-readiness` wording in this repository as
   historical quality/reference context, not as a roadmap to port this codebase.
 - If the separate Core project starts, audit it from scratch against then-current
@@ -253,11 +255,14 @@ Use the locked commands reflected by the current repository configuration:
 Run the narrowest relevant tests while developing, then the complete required
 suite before merge.
 
-Hosted validation currently includes the locked Lint, Tests, Package Test,
-Workflow Security, hassfest, HACS validation, and CodeQL gates where configured.
-The scheduled latest-Home-Assistant compatibility canary is intentionally
-fresh-resolving and advisory; do not treat it as a replacement for locked merge
-or Release validation.
+Hosted validation includes locked Lint, Tests, Package Test, Workflow
+Security, hassfest, Marketplace catalog validation via hacs/action, and
+CodeQL where configured.
+The daily official Home Assistant canary is advisory and fresh-resolving:
+it does not replace locked CI or authorize a release. The HA 2026.11.0
+minimum is fixed in `hacs.json` and independently retested after the
+locked pair advances beyond it. The baseline updater proposes reviewed
+PRs; Renovate manages Actions/tooling PRs, with no automerge.
 
 When editing GitHub Actions, preserve the repository's supply-chain and workflow
 safety conventions: minimal `permissions`, appropriate `concurrency`, external

@@ -11,20 +11,20 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.11.0%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
 [![Latest Home Assistant Compatibility](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml/badge.svg?branch=main)](https://github.com/eXPerience83/pollenlevels/actions/workflows/ha-compatibility-canary.yml)
 [![hassfest validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/hassfest.yml)
-[![HACS validation](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
-[![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/default/blob/master/integration)
+[![Marketplace validation (HACS action)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml/badge.svg)](https://github.com/eXPerience83/pollenlevels/actions/workflows/validate.yml)
+[![Marketplace catalog](https://img.shields.io/badge/Marketplace-Community%20Catalog-blue.svg)](https://github.com/hacs/default/blob/master/integration)
 [![License](https://img.shields.io/github/license/eXPerience83/pollenlevels?logo=github)](LICENSE)
 
 [FAQ](FAQ.md) · [Terms](TERMS.md) · [Privacy](PRIVACY.md)
 
-[![Open your Home Assistant instance and add this repository inside HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eXPerience83&repository=pollenlevels&category=integration)
+[![Open Pollen Levels in your Home Assistant Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=eXPerience83&repository=pollenlevels&category=integration)
 
 ---
 
 ## Requirements
 
 - The forthcoming Pollen Levels 5.0 baseline requires **Home Assistant 2026.11.0 or newer**. The already-published `5.0.0a1` originally targeted 2026.10.4; its published artifact is unchanged. The 4.0.3 stable release supports HA 2026.5.0 or newer.
-- HACS 2.0.0 or newer when installing through HACS.
+- **Marketplace is built into Home Assistant 2026.11+**: use Settings → Marketplace; do not install the former HACS integration separately.
 - A Google Cloud API key with the Maps Pollen API enabled.
 
 ## 🌟 Features
@@ -104,7 +104,13 @@ Go to **Settings → Devices & Services → Pollen Levels → Configure**.
 
 ---
 
-## Experimental 5.0.0a1 alpha — Home Assistant 2026.10.4+
+## Historical 5.0.0a1 alpha — Home Assistant 2026.10.4+
+
+**Published historical artifact only.** This section describes the immutable
+`v5.0.0a1` release; **the current 5.0 preparation requires HA 2026.11.0**
+and the corresponding official pytest harness. The alpha's old floor does
+not define the forthcoming 5.0 support contract.
+
 
 **This section applies to the 5.0.0a1 alpha only.** It is intended for
 voluntary, controlled testing of Device Registry and migration compatibility,
@@ -131,17 +137,19 @@ Before installing the alpha in an existing Home Assistant instance:
 3. Record the current Pollen Levels version, location count, API-key parent and
    location subentry associations, entity names/IDs, history/statistics, and
    automations that use them. Never share API keys or precise coordinates.
-4. If and only if 5.0.0a1 is **published**, open its repository in HACS,
-   enable the **pre-release** option, then choose **Redownload** and select
-   5.0.0a1. Restart Home Assistant and inspect integration logs, Repairs,
-   entities, devices, locations, last refresh and historical statistics.
+4. To examine the **already published** `v5.0.0a1` on HA 2026.11+, open
+   its repository via **Settings → Marketplace**, enable pre-releases and
+   select the historical asset in its version/redownload controls if available.
+   Restart after updating; then inspect integration logs, Repairs, entities,
+   devices, locations, last refresh and historical statistics. **Do not
+   install the old HACS integration separately.**
 5. If the migration fails or identity/history changes unexpectedly, stop
    testing and **restore the matching full pre-upgrade backup**. Installing
    4.0.3 files over an already migrated installation is **not a supported
    downgrade** and cannot reliably undo Registry or Recorder changes.
 
 The alpha does **not** yet certify genuine older-version stored migration,
-Recorder/statistics continuity, HACS-to-Marketplace transfer, or safe rollback.
+Recorder/statistics continuity, historical HACS-to-Marketplace transfer, or safe rollback.
 See [PREPARATION_5.0.md](PREPARATION_5.0.md) and the
 [5.0 roadmap](https://github.com/eXPerience83/pollenlevels/issues/452).
 
@@ -391,7 +399,7 @@ The base sensor `forecast`, `tomorrow_*`, `d2_*`, `trend`, and `expected_peak`
 attributes keep their existing format for card compatibility.
 
 - Repo: [pollenprognos-card](https://github.com/krissen/pollenprognos-card)
-- Install: HACS → Frontend
+- Install: Settings → Marketplace → `pollenprognos-card` (dashboard plugin)
 
 If you need the icon/badge to follow the **exact** API color (`color_hex`):
 
@@ -445,13 +453,29 @@ color: '[[[
 
 ## ⚙️ Installation
 
-### Via HACS (recommended)
+### Via Home Assistant Marketplace (HA 2026.11+, recommended)
 
-1. Open **HACS → Integrations** in Home Assistant.
-2. Click **Explore & Download Repositories**.
-3. Search for **Pollen Levels** or click the badge above.
-4. Click **Download** and follow prompts.
-5. Restart or *Reload* HA when prompted.
+1. Go to **Settings → Marketplace** and search for **Pollen Levels**,
+   or use the Marketplace badge at the top of this README.
+2. Select **Install** and acknowledge the community-integration notice.
+   Marketplace can start the config flow directly without a restart on a
+   first installation of an integration with a config flow.
+3. If the project is not in the catalog, select **Add from link** and enter
+   `https://github.com/eXPerience83/pollenlevels`. Custom repositories
+   require a GitHub connection; catalog installation does not.
+4. For an existing installation, update through Marketplace and **restart
+   when requested**. Do not uninstall/re-add Pollen Levels just to update:
+   preserve config entries, location subentries, entity IDs and Recorder
+   history.
+
+**Coming from HACS?** When upgrading Home Assistant to 2026.11, installed
+HACS repositories, custom repositories and update entities are migrated to
+Marketplace automatically. The old HACS integration is removed. The publisher
+still maintains `hacs.json` and the HACS catalog validation action, as those
+remain the required Marketplace publishing interfaces.
+
+See the [official Marketplace migration guide](https://www.home-assistant.io/integrations/marketplace)
+and [5.0 preparation/rollback guidance](PREPARATION_5.0.md).
 
 ---
 
