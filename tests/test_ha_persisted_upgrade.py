@@ -21,8 +21,7 @@ from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers import frame
+from homeassistant.helpers import device_registry as dr, entity_registry as er, frame
 from pytest_homeassistant.common import (
     MockConfigEntry,
     async_test_home_assistant,
