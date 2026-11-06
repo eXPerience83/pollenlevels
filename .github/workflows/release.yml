@@ -398,8 +398,25 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$VALIDATION_MODE" == "modern" ]]; then
-            uv run --locked --no-sync python -m pytest -q
+            if [[ -f scripts/check_coverage.py ]]; then
+              uv run --locked --no-sync python -m pytest -q \
+                --cov=custom_components.pollenlevels \
+                --cov-report=term-missing \
+                --cov-report=json:coverage.json
+              uv run --locked --no-sync python scripts/check_coverage.py coverage.json
+            else
+              # Historical modern snapshots may predate the project's coverage
+              # checker. New v5 candidates must never bypass the coverage gate.
+              ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"
+              if [[ "$ha_floor" == "2026.11.0" ]]; then
+                echo "v5 release snapshot must include scripts/check_coverage.py" >&2
+                exit 1
+              fi
+              echo "::warning title=Historical release coverage::Selected snapshot has no per-module coverage checker."
+              uv run --locked --no-sync python -m pytest -q
+            fi
           else
+            # Historical legacy snapshots keep their own non-uv validation.
             python -m pytest -q
           fi
 

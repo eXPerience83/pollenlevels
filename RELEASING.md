@@ -40,7 +40,12 @@ Modern snapshots use the exact Python patch in `.python-version`, the central
 `[tool.uv].required-version`, exact PEP 735 dependencies, and committed
 `uv.lock`. Release validates modern snapshots with `uv lock --check` and
 `uv sync --locked --only-group release`; do not replace this with pip installs
-or a fresh resolution.
+or a fresh resolution. For snapshots with `scripts/check_coverage.py`, the
+modern release validation **also runs pytest-cov and the same per-module coverage
+gate used by CI, against the exact selected release commit**. A candidate
+declaring the HA 2026.11.0 v5 floor is rejected if that checker is missing.
+Historical snapshots predating the checker retain their original pytest path;
+this exception does not grant a coverage waiver to the v5 line.
 
 Historical snapshots are classified against immutable boundary
 `0e65e38e2830c0485cdc6b3a00c95ad7e65d7427`. A selected commit that is equal

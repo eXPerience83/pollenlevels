@@ -33,7 +33,9 @@ A separate release/version PR will assign an actual version and date.
 ### Security
 
 - Preserved exact locked dependencies, action SHA pinning, narrow workflow
-  permissions, CodeQL and full-suite coverage checks. A temporary, bounded
+  permissions, CodeQL and full-suite coverage checks. Modern Release validation
+  now applies the project coverage gate to the selected snapshot, without
+  imposing unavailable coverage tooling on historical legacy releases. A temporary, bounded
   dependency-age bootstrap for the just-published 2026.11 stable pair expires
   on 2026-11-10; routine maturity controls remain in force.
 - Full real-world migration/Recorder/Marketplace and security acceptance

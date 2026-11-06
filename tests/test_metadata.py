@@ -811,6 +811,26 @@ def test_release_binds_trusted_and_default_snapshots_to_event_shas() -> None:
     )
 
 
+def test_release_enforces_selected_modern_snapshot_coverage() -> None:
+    """Release must not bypass coverage for future HA 2026.11 v5 packages."""
+    release = _read_text(WORKFLOWS_PATH / "release.yml")
+    step = _workflow_step(release, "Run tests")
+    assert 'if [[ "$VALIDATION_MODE" == "modern" ]]' in step
+    assert 'if [[ -f scripts/check_coverage.py ]]' in step
+    assert "--cov=custom_components.pollenlevels" in step
+    assert "--cov-report=json:coverage.json" in step
+    assert "scripts/check_coverage.py coverage.json" in step
+    assert '''ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"''' in step
+    assert '''if [[ "$ha_floor" == "2026.11.0" ]]''' in step
+    assert 'exit 1' in step
+    assert "Historical legacy snapshots" in step
+    assert "python -m pytest -q" in step
+    # Coverage occurs before ZIP creation on the selected snapshot.
+    assert release.index("scripts/check_coverage.py coverage.json") < release.index(
+        "Build release ZIP"
+    )
+
+
 def test_renovate_has_one_source_for_each_managed_validation_dependency() -> None:
     """Keep direct extraction lanes visible without duplicate declarations."""
     renovate = json.loads(_read_text(RENOVATE_PATH))
