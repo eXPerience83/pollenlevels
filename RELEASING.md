@@ -17,26 +17,32 @@ required.
 
 ## Home Assistant 2026.11 and Marketplace release gate
 
-For a **Pollen Levels 5.0 beta/stable** release, require a validated
-minimum HA **2026.11.0**, exact officially paired `homeassistant` /
-`pytest-homeassistant` tooling, full locked CI and the independent fixed-floor
-lane once the normal baseline advances. The latest-stable canary is advisory;
-neither its success nor a green synthetic test suite alone certifies a real
-upgrade. Assess identity, Recorder and long-term statistics, existing HACS
-installation takeover by built-in Marketplace, multiple API keys/locations,
-backup restoration, security/CodeQL, and an explicit owner GO/NO-GO under
+For any **Pollen Levels 5.0 candidate**, validate the minimum HA
+**2026.11.0**, the exact officially paired `homeassistant` /
+`pytest-homeassistant` tooling, locked tests/coverage, packaging and security.
+The independent fixed-floor lane runs once the normal pinned baseline advances;
+the latest-stable canary is advisory.
+
+An **optional beta** may be used to gather real migration evidence before full
+manual historical-upgrade acceptance, provided the release notes state the
+limitations of synthetic persisted migrations, the risks to Recorder/history
+and the need for a recoverable complete backup. Do not present beta validation
+as a certified real historical upgrade. A **stable 5.0** release requires a
+separate explicit maintainer GO/NO-GO, informed by identity, Recorder and
+long-term statistics, HACS → Marketplace continuity, multi-location/key
+behavior, recovery and security evidence or a clearly recorded decision on
+any residual uncertainty. See [PREPARATION_5.0.md](PREPARATION_5.0.md),
 [#452](https://github.com/eXPerience83/pollenlevels/issues/452) and
 [#226](https://github.com/eXPerience83/pollenlevels/issues/226).
 
 Marketplace is built into HA 2026.11+. **Keep** `hacs.json`, the existing
 HACS catalogue validation action and `pollenlevels.zip`; these are still
 the required Marketplace publisher contracts. No standalone HACS install is
-needed on HA 2026.11+. The already published `v5.0.0a1` tag is immutable;
-prepare a **new** release version, never reuse the alpha version.
-**5.0.0a2 development is already on `main`** and its release is a draft
-prerelease as of 2026-11-06. Publication still requires exact-version,
-lock, CI/CodeQL and ZIP checks and manual maintainer review. Full real
-HAOS/Recorder/Marketplace acceptance gates **beta/stable**, not the alpha.
+needed on HA 2026.11+. The published `v5.0.0a1` and `v5.0.0a2` prerelease tags/assets are
+historical and immutable. Prepare a **new version** for any subsequent beta,
+release candidate or stable release, never reuse an already published tag.
+Publication requires exact-version, lock, CI/CodeQL, review and ZIP checks
+and explicit manual maintainer approval.
 
 ## Validation environments
 
@@ -90,11 +96,12 @@ runs and manual runs without the flag retain normal policy. The lock validator
 permits only the known relative three-day metadata transition appropriate to
 the selected mode; other options remain protected.
 
-The temporary GA bootstrap in Lint/Tests expires on November 10, 2026 UTC.
-Before expiration, validate the committed lock under normal policy after package
-maturity. If its cutoff metadata needs synchronization, review that narrow lock
-change separately without upgrading packages; do not extend the bootstrap or
-assume a successful exceptional run proves normal-policy readiness.
+The time-bounded Home Assistant 2026.11 GA Lint/Tests bootstrap must be removed
+and the committed lock normalized under the ordinary three-day policy before
+stable publication; track its completion in
+[#473](https://github.com/eXPerience83/pollenlevels/issues/473).
+A successful exceptional run does not establish normal-policy reproducibility.
+Do not extend the bootstrap or bundle the cleanup with version changes.
 
 ## 1. Prepare a release pull request (recommended)
 
@@ -121,7 +128,11 @@ release pull request is considered ready.
 The release tag is derived automatically: version `3.0.1` maps to tag `v3.0.1`,
 and version `3.0.1rc1` maps to tag `v3.0.1rc1`.
 
-Include backup, no-downgrade, migration, and prerelease notes where applicable.
+Include backup, no-file-only-downgrade and migration notes where applicable.
+For a beta, state explicitly whether historical migrations were validated
+only with synthetic persisted fixtures, identify the missing real HAOS/Recorder/
+Marketplace checks and urge a restorable pre-upgrade backup. Do not imply
+that a lack of reported beta failures proves every migration path.
 
 ## 2. Merge the release pull request (if used)
 
@@ -180,7 +191,8 @@ intended prerelease version, and verify GitHub marks the draft as a prerelease.
 - For a stable release, review GitHub's latest-release setting before manual
   publication. Prereleases must not be marked latest.
 - Review and edit generated notes as needed.
-- Confirm backup and downgrade warnings are present for v3 where applicable.
+- Confirm backup, migration and no-file-only-downgrade warnings are present for upgrades to v5 and older migrations where applicable.
+- If publishing a beta, confirm the notes disclose unverified authentic historical upgrades and any Recorder/Marketplace limits.
 - Confirm `pollenlevels.zip` is attached.
 - Confirm no unexpected asset is present.
 - Confirm the workflow completed successfully.
