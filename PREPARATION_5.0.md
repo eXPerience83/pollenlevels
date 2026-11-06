@@ -1,33 +1,31 @@
-# Pollen Levels 5.0 — upgrade, validation and rollback
+# Pollen Levels 5.0 — release readiness, upgrade and rollback
 
-> **Release-readiness guide.** The supported 5.0 target is Home Assistant
-> **2026.11.0+** and its built-in Marketplace. This describes the intended
-> final user-facing contract and the validation required **before stable**
-> publication. It does not certify an unpublished version as production-ready.
+> **5.0 release guide.** Pollen Levels 5.0 targets Home Assistant **2026.11.0+**
+> and the built-in Marketplace. This is the release checklist and recovery
+> reference for the final 5.0 line; any optional beta is a separate, explicit
+> release decision. Passing synthetic tests does not establish that every
+> historical Home Assistant installation has been migrated successfully.
 
-## Release and compatibility status
+## Release and compatibility contract
 
-- **Current published stable:** Pollen Levels **4.0.3**, supporting Home
-  Assistant 2026.5.0 and newer.
-- **5.0 development baseline on `main`:** `5.0.0a2`, using
-  `homeassistant==2026.11.0` and official
-  `pytest-homeassistant==2026.11.0` under the repository's locked Python
-  3.14.7 environment. A source merge does not publish a release.
-- **Publication state (2026-11-06):** `v5.0.0a2` is a **draft prerelease**,
-  not yet published. `v5.0.0a1` remains an immutable published historical
-  alpha with HA 2026.10.4 / PHACC baseline; it does not define the 5.0
-  compatibility floor.
-- **Target final 5.0 minimum:** Home Assistant **2026.11.0**. The supported
-  installation path is **Settings → Marketplace**. Do not install the old
-  standalone HACS integration on this version.
-- **Stable-release blockers:** genuine installed-upgrade and rollback
-  verification, persisted Entity/Device Registry and Recorder/statistics
-  continuity, HACS-to-Marketplace takeover, security review, and successful
-  candidate package validation. Track [#452](https://github.com/eXPerience83/pollenlevels/issues/452)
-  and [#226](https://github.com/eXPerience83/pollenlevels/issues/226).
+- **Pollen Levels 5.0 minimum:** Home Assistant **2026.11.0**.
+- **Distribution:** the built-in **Settings → Marketplace** with the existing
+  `hacs.json`, HACS catalogue and `pollenlevels.zip` publisher contract.
+- **Older Home Assistant:** use a compatible 4.x release on HA 2026.5–2026.10.
+  Upgrading to 5.0 requires first moving Home Assistant to 2026.11 or newer.
+- **Current test contract:** use the committed, locked Home Assistant / official
+  `pytest-homeassistant` pair with Python 3.14.2+, the repository's exact Python
+  and uv versions, per-module coverage gates and normal dependency maturity.
+- **Historical compatibility:** v2.3.0 and v4.0.3 integration layouts have
+  persisted-registry/Recorder regression coverage. They remain different from
+  a replay of an original historical HAOS backup or a full Marketplace takeover.
+- **Publication:** GitHub releases and their ZIP assets, rather than this
+  document or the current `main` manifest, determine which version users can
+  actually install. Never present an unpublished candidate as published stable.
 
-This file is the detailed companion to [README.md](README.md) and
-[FAQ.md](FAQ.md), not a substitute for the published release notes.
+See [README.md](README.md) for the user guide, [FAQ.md](FAQ.md) for historical
+migration and data-retention answers, and [RELEASING.md](RELEASING.md) for
+publication steps.
 
 ## Distribution: HACS → built-in Marketplace
 
@@ -64,70 +62,95 @@ updater definitions are the active scheduled workflows. Confirm the timestamp,
 selected ref and results of actual runs before claiming a particular check
 has executed or passed. Previous 4.0.3 runs are not v5 acceptance evidence.
 
-The GA exception in mandatory lint/tests for the newly published 2026.11.0
-lock ends automatically **2026-11-10 00:00 UTC**. Keep the normal
-`exclude-newer = "3 days"` and the updater's maturity safeguards intact.
-Remove the temporary exception after it expires and mandatory CI proves
-the committed lock resolves under the normal policy.
+The initial Home Assistant 2026.11 GA bootstrap was intentionally
+time-limited. **Issue [#473](https://github.com/eXPerience83/pollenlevels/issues/473)**
+tracks replacing its exceptional lock/CI settings with ordinary
+`exclude-newer = "3 days"` validation. Require normal-policy lock and CI
+reproducibility before a 5.0 stable release; do not silently extend a temporary
+cooldown bypass. See [RELEASING.md](RELEASING.md).
 
-## Real-upgrade acceptance before beta/stable (not alpha promotion)
+## Optional beta: transparent migration limitations
 
-The synthetic tests and one-location alpha smoke test are valuable but
-**do not** establish a production-ready stable upgrade. Use the next
-experimental alpha to obtain evidence for the following before beta/stable:
+A beta can be released as an opt-in **test build** before the full manual
+historical-upgrade matrix is complete. It is not mandatory to release another
+alpha or beta before stable. If a beta is selected:
 
-1. Existing 2.3.0 and 4.0.3 installations upgraded with genuine persistent
-   HAOS/config entry/Registry data, including custom entity IDs and multiple
-   API keys/locations; retry and partial-failure identity must be preserved.
-2. Recorder state history and long-term statistics metadata continuity
-   across the actual upgrade; preserve entity and statistic IDs.
-3. Existing HACS installs carried to Marketplace, repository updates and
-   update entities retained; compare catalog/default and custom-repository
-   cases without assuming silent ownership takeover.
-4. Current compatible dashboard cards, automations, options/subentries,
-   scheduled updates and manual refresh after a running HA 2026.11 restart.
-5. Complete recoverable backup/restore exercises before any real migration.
-   Never rely on copying 4.0.3 code over migrated storage as rollback.
-   For rollback, restore the matching configuration, .storage registries,
-   and Recorder state from the **same pre-upgrade point in time**.
-6. All blocking CI, CodeQL (Python and Actions), workflow security, HACS
-   validator, hassfest and CodeRabbit findings, dependency security triage,
-   a final candidate ZIP, and maintainer GO/NO-GO.
+1. Require a passing candidate CI/coverage/security/Marketplace/ZIP validation
+   and a review of outstanding relevant issues.
+2. State plainly **in the beta release notes** that migration from historical
+   installations has been exercised using synthetic persistent HA 2026.11 test
+   fixtures, **not comprehensively verified by installing and upgrading authentic
+   historical HAOS backups**. Mention any outstanding Recorder, long-term
+   statistics and HACS→Marketplace checks.
+3. Strongly advise a complete, restorable pre-upgrade Home Assistant backup,
+   including Recorder, and clearly warn that **downgrading just the integration
+   is not a safe rollback**. Upgraders must choose the preview with these
+   limitations in mind and report reproducible issues.
+4. Gather evidence from any reported real upgrades. **No user reports is not
+   proof that an untested migration path works.** A beta's observations may
+   improve confidence but do not, by themselves, certify a stable release.
 
-For existing HAOS, take a **full off-device backup** with encryption recovery
-key and Recorder. For container installations, stop the container before an
-offline snapshot/copy of persistent config, .storage and SQLite. **Retain a
-separate, recoverable copy outside the NAS** and verify the restoration
-procedure. If Recorder uses an external database, make an independent,
-**consistent backup using that database engine's supported backup method**.
-A local snapshot alone is not an off-device backup. Restore the configuration,
-registries and Recorder data **together** from a consistent pre-upgrade state.
-Never upload credentials, raw `.storage` state, or private coordinates.
+Keep these preview-specific warnings in the release notes instead of making the
+general [README.md](README.md) a temporary alpha/beta status page.
 
-## Final 5.0 publication gates
+## Stable 5.0 verification priorities
 
-1. Finish targeted 5.0 alpha testing on Home Assistant 2026.11+, using the
-   **actual published prerelease ZIP** through Marketplace. A draft is not an
-   installable published release.
-2. Complete the real-upgrade acceptance matrix above with backed-up v2.3.0
-   and v4.0.3 installations, single/multiple locations and API keys, and
-   existing dashboards and automations.
-3. Verify the persisted Entity and Device Registries, historical Recorder
-   state, long-term statistics IDs and Marketplace update-entity continuity.
-   Record reproducible results and resolve any data-loss or identity issue.
-4. Verify restoration from a consistent pre-upgrade backup. Never describe a
-   file-only downgrade as a safe rollback.
-5. Require green blocking CI/coverage, the Home Assistant compatibility
-   floor, Marketplace validation, hassfest, CodeQL, workflow security and
-   resolved review findings. The latest-stable HA canary remains advisory.
-6. Prepare an independently reviewed final release/version PR only after
-   the gates pass. Keep `manifest.json`, `pyproject.toml`, `uv.lock`, and
-   `CHANGELOG.md` version and release metadata synchronized; do not
-   change them in a documentation-preparation PR.
-7. Follow [RELEASING.md](RELEASING.md) to create a draft release, verify
-   the exact commit and ZIP, then **publish manually** as stable only with
-   explicit maintainer approval.
+The next valuable acceptance work is evidence about actual installations,
+rather than additional tests added only to increase the coverage percentage:
 
-Use [AUDIT_5.0_2026.11.md](AUDIT_5.0_2026.11.md) as a historical transversal
-audit brief, not as an up-to-date approval. Actual tests, reviews, and the
-published release asset determine readiness.
+1. **Upgrade continuity:** for a genuine 4.0.3 installation (and a 2.3.0
+   historical source when available), validate existing parents/locations,
+   custom entity names and IDs, multiple API keys/locations where practical,
+   and retry/partial-failure behavior.
+2. **Recorder and statistics:** verify readable pre-upgrade state history,
+   new post-upgrade states, `statistics_meta` and long-term statistics IDs for
+   representative sensors. The persisted synthetic tests support these checks
+   but do not replace observation of the real stored database.
+3. **HACS → Marketplace:** test both catalogue/default and custom-repository
+   upgrade paths where available, including preservation of update entities
+   and normal in-place updates without removing Pollen Levels.
+4. **Dashboard compatibility:** verify configured options/subentries, scheduled
+   and manual updates, automations and the current compatible dashboard card
+   on HA 2026.11 after a restart.
+5. **Recovery:** rehearse restoring a consistent pre-upgrade configuration,
+   Registry and Recorder backup. File-only code replacement is not rollback.
+6. **Security and package:** review actual dependency advisories, CodeQL,
+   CodeRabbit findings, workflow permissions, publisher metadata and exact
+   candidate ZIP. CI passing alone is not a security-advisory triage.
+
+For existing HAOS, take a **full off-device backup** with the encryption
+recovery key and Recorder. For container installations, stop the container
+before an offline snapshot/copy of persistent config, `.storage` and SQLite.
+Retain an independent recoverable copy and verify the restoration procedure.
+For external Recorder databases, create a consistent engine-native backup.
+Restore configuration, registries and Recorder together from the same
+pre-upgrade point in time. Never publish credentials, raw `.storage` contents
+or private coordinates.
+
+A release decision must distinguish what was directly tested from
+unverified paths. If the maintainer accepts residual risk in a final release,
+record that decision explicitly; do not claim comprehensive manual acceptance
+on the strength of fixtures or the absence of bug reports.
+
+## Final 5.0 publication checklist
+
+1. Confirm `main` and the selected candidate SHA, the **normal-policy**
+   committed lock, mandatory full CI and coverage, HA 2026.11 floor,
+   Marketplace/HACS validator, hassfest, CodeQL and workflow security.
+2. Reconcile outstanding issues [#473](https://github.com/eXPerience83/pollenlevels/issues/473),
+   [#452](https://github.com/eXPerience83/pollenlevels/issues/452) and
+   [#226](https://github.com/eXPerience83/pollenlevels/issues/226), including
+   their remaining migration/Recorder/Marketplace evidence or an explicit
+   release decision about any residual gaps.
+3. Resolve material reviewer findings, including CodeRabbit if required.
+   Review the exact candidate `pollenlevels.zip` and verify its installation
+   and update path; a draft release is not an installed published release.
+4. In a **separate release-only PR**, synchronize `CHANGELOG.md`,
+   `manifest.json`, `pyproject.toml` and the local project version in
+   `uv.lock`. Choose beta or stable only when explicitly approved.
+5. Follow [RELEASING.md](RELEASING.md) for draft creation, exact tag/SHA/ZIP
+   inspection and **manual publication**. Do not reuse or modify a published
+   alpha/beta asset or tag.
+
+[AUDIT_5.0_2026.11.md](AUDIT_5.0_2026.11.md) preserves an earlier historical
+audit brief, not a current stable-release approval.
