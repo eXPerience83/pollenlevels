@@ -693,11 +693,28 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             # manually injecting post-upgrade states into Recorder.
             home_b.data.pop(loader.DATA_CUSTOM_COMPONENTS, None)
             frame.async_setup(home_b)
+            captured_params: list[dict[str, Any]] = []
             async with aiointercept(mock_external_urls=True) as mocked:
-                mock_pollen_api(mocked, google_pollen_5_day_payload)
+                mock_pollen_api(
+                    mocked, google_pollen_5_day_payload,
+                    captured_params=captured_params,
+                )
                 for parent in parents:
                     if parent.state is ConfigEntryState.NOT_LOADED:
                         await async_setup_config_entry(home_b, parent)
+            # A shared fixture response alone cannot prove correct API routing.
+            assert {
+                (
+                    params["key"],
+                    float(params["location.latitude"]),
+                    float(params["location.longitude"]),
+                )
+                for params in captured_params
+            } == {
+                (HISTORICAL_KEY, 1.0, 2.0),
+                (HISTORICAL_KEY, 3.0, 4.0),
+                (second_key, 5.0, 6.0),
+            }
             assert all(parent.state is ConfigEntryState.LOADED for parent in parents)
 
             for entity_id, expected in identities.items():
@@ -720,6 +737,16 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 assert parent.data["api_key"] == expected["api_key"]
                 assert device.config_entry_id == parent.entry_id
                 assert device.config_subentry_id == entity.config_subentry_id
+                assert entity.config_subentry_id in parent.subentries
+                if historical_release == "2.3.0":
+                    assert (
+                        parent.subentries[entity.config_subentry_id].data[
+                            "legacy_entry_id"
+                        ]
+                        == expected["source_entry"]
+                    )
+                else:
+                    assert entity.config_subentry_id == expected["source_subentry"]
 
             await home_b.async_block_till_done()
             await async_wait_recording_done(home_b)
@@ -818,6 +845,15 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             assert parent.data["api_key"] == expected["api_key"]
             assert device.config_entry_id == entity.config_entry_id
             assert device.config_subentry_id == entity.config_subentry_id
+            if historical_release == "2.3.0":
+                assert (
+                    parent.subentries[entity.config_subentry_id].data[
+                        "legacy_entry_id"
+                    ]
+                    == expected["source_entry"]
+                )
+            else:
+                assert entity.config_subentry_id == expected["source_subentry"]
 
     with closing(sqlite3.connect(db_path)) as connection:
         for index, entity_id in enumerate(identities, start=1):
