@@ -99,7 +99,9 @@ def test_version_mismatch_fails() -> None:
 
 
 def test_unofficial_provenance_fails() -> None:
-    with pytest.raises(SelectionError, match="lacks canonical Core repository URL metadata"):
+    with pytest.raises(
+        SelectionError, match="lacks canonical Core repository URL metadata"
+    ):
         select_stable_harness(
             _project(("2026.11.0", False)),
             _project(("2026.11.0", False)),

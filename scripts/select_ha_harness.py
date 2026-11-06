@@ -36,7 +36,8 @@ def is_core_repository_url(value: object) -> bool:
     return (
         url.scheme == "https"
         and url.netloc.lower() == "github.com"
-        and url.path.rstrip("/") in {
+        and url.path.rstrip("/")
+        in {
             "/home-assistant/core",
             "/home-assistant/core.git",
         }
