@@ -175,6 +175,9 @@ async def test_historical_config_store_upgrade_keeps_registry_and_recorder_histo
     hass.states.async_set(entity.entity_id, "2")
     await hass.async_block_till_done()
     await async_wait_recording_done(hass)
+    # HA can schedule Recorder writes asynchronously; wait for its commit
+    # barrier before reading historical rows from the SQLite connection.
+    await recorder_mock.async_block_till_done()
     before_states = await recorder_mock.async_add_executor_job(
         _recorded_values, hass, entity.entity_id
     )
@@ -217,6 +220,8 @@ async def test_historical_config_store_upgrade_keeps_registry_and_recorder_histo
     hass.states.async_set(entity.entity_id, "3")
     await hass.async_block_till_done()
     await async_wait_recording_done(hass)
+    # The new state may still be queued after HA's event loop becomes idle.
+    await recorder_mock.async_block_till_done()
     after_states = await recorder_mock.async_add_executor_job(
         _recorded_values, hass, entity.entity_id
     )
