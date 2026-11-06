@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 from aiointercept import aiointercept
-from homeassistant import config_entries
+from homeassistant import config_entries, loader
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
@@ -680,6 +680,11 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             # Setup the real sensor/button platforms after migration, with a
             # mocked Google boundary. This must reclaim the existing Registry
             # identities, not silently create fresh sensors with new IDs.
+            # async_test_home_assistant intentionally starts with an empty
+            # loader custom-component cache. Rescan after installing the
+            # integration into this isolated HA config directory.
+            home_b.data.pop(loader.DATA_CUSTOM_COMPONENTS, None)
+            assert DOMAIN in await loader.async_get_custom_components(home_b)
             async with aiointercept(mock_external_urls=True) as mocked:
                 mock_pollen_api(mocked, google_pollen_5_day_payload)
                 assert await async_setup_component(home_b, DOMAIN, {})
