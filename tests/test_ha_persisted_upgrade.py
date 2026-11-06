@@ -700,12 +700,13 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 )
                 sensor = PollenSensor(coordinator, "type_grass")
                 assert sensor.unique_id == expected["unique_id"]
-                assert entities_b.async_get_entity_id(
-                    "sensor", DOMAIN, sensor.unique_id
-                ) == entity_id
-                assert sensor.device_info["identifiers"] == expected[
-                    "device_identifiers"
-                ]
+                assert (
+                    entities_b.async_get_entity_id("sensor", DOMAIN, sensor.unique_id)
+                    == entity_id
+                )
+                assert (
+                    sensor.device_info["identifiers"] == expected["device_identifiers"]
+                )
                 matching_device = devices_b.async_get_device_by_identifier(
                     next(iter(sensor.device_info["identifiers"])), parent.entry_id
                 )
