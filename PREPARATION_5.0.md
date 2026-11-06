@@ -20,11 +20,12 @@
   its **historical** HA 2026.10.4 / PHACC test baseline and its original
   `hacs.json` requirement. The current `prep` branch has commits after that
   tag. Never retag, rebuild, or silently replace the published alpha.
-- The preparation snapshot still identifies the **previously published**
-  `5.0.0a1`. Before promoting alpha development to `main`, prepare a
-  **release-only `5.0.0a2`** PR synchronizing manifest, `pyproject.toml`,
-  local `uv.lock`, dated changelog and release notes. Never reuse the
-  immutable historical alpha tag or ZIP.
+- The new **`5.0.0a2` alpha candidate** has been versioned in release
+  preparation PR #470 (manifest, `pyproject.toml`, local `uv.lock` and
+  dated changelog). This is **not evidence of publication**: after reviewed
+  integration to `main`, validate the selected SHA in Release and publish
+  the new draft as a **pre-release**. Never reuse the immutable `v5.0.0a1`
+  tag or ZIP.
 
 ## Distribution: HACS → built-in Marketplace
 
@@ -112,8 +113,10 @@ Never upload credentials, raw `.storage` state, or private coordinates.
   registry/Recorder/security findings to High). Use
   [AUDIT_5.0_2026.11.md](AUDIT_5.0_2026.11.md) for the complete brief.
 - Review and resolve CodeRabbit findings and every required action.
-- Prepare a release-only **`5.0.0a2` bump before alpha promotion**,
-  and validate the lock with normal three-day package maturity policy.
+- The release-only **`5.0.0a2` bump** was prepared in PR #470.
+  Independently validate the selected lock with normal three-day package
+  maturity before publishing; CI's bounded GA bootstrap is **not** Release
+  acceptance.
 - With alpha-appropriate CI, CodeQL and owner approval, `prep` may be
   merged into `main` as **alpha development**. The release remains
   draft-first and **pre-release**. The real-upgrade gates above apply

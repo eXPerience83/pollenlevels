@@ -23,7 +23,7 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 
 ## Requirements
 
-- The forthcoming Pollen Levels 5.0 baseline requires **Home Assistant 2026.11.0 or newer**. The already-published `5.0.0a1` originally targeted 2026.10.4; its published artifact is unchanged. The 4.0.3 stable release supports HA 2026.5.0 or newer.
+- The Pollen Levels **5.0.0a2 alpha candidate** requires **Home Assistant 2026.11.0 or newer**. The previously published `5.0.0a1` originally targeted HA 2026.10.4; its immutable artifact is unchanged. The latest stable release remains **4.0.3** (HA 2026.5.0+).
 - **Marketplace is built into Home Assistant 2026.11+**: use Settings → Marketplace; do not install the former HACS integration separately.
 - A Google Cloud API key with the Maps Pollen API enabled.
 
@@ -101,6 +101,25 @@ of forecast data so existing sensors can expose the maximum available forecast
 attributes.
 
 Go to **Settings → Devices & Services → Pollen Levels → Configure**.
+
+---
+
+## 5.0.0a2 experimental alpha — Home Assistant 2026.11.0+
+
+The `5.0.0a2` source is an **experimental alpha** for controlled testing,
+not a production-ready stable release. It uses Home Assistant 2026.11.0+
+and the official matching `pytest-homeassistant` test harness.
+Merging its development source into `main` does **not** itself publish a
+GitHub release: check the [GitHub Releases page](https://github.com/eXPerience83/pollenlevels/releases)
+to see whether `v5.0.0a2` has been published as a **pre-release**.
+
+Once published, install or update through **Settings → Marketplace** on
+HA 2026.11+, enabling pre-releases where appropriate. Keep existing entries
+and entity IDs; do not uninstall/reinstall to force migration. Take a
+consistent, recoverable backup before upgrading an existing installation.
+Inspect entities, registries, Recorder history and Marketplace repository
+updates as part of the alpha trials. The next beta/stable release requires
+these real-world checks; the alpha is intended to obtain that evidence.
 
 ---
 

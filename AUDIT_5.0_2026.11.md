@@ -17,9 +17,14 @@ the latest PR, last commit, or 2026.11 tooling only. Read AGENTS.md,
 PREPARATION_5.0.md, issues #452/#226/#465, and the published `v5.0.0a1`
 manifest for immutable-artifact history.
 
-**Objective:** decide whether v5 can safely become the new `main` baseline
-after a separate version bump and owner approval. Do not automatically merge
-or release anything.
+**Updated objective (2026-11-06):** decide whether v5 may become the
+`main` **alpha-development** baseline after version bump and owner review,
+and whether the next experimental alpha can be released safely. Do **not**
+treat HAOS migration/Recorder/Marketplace real-world acceptance as a
+prerequisite to publishing that alpha: the tests are conducted **on the
+alpha** and gate beta/stable instead. Proven destructive migration,
+insecure CI or broken packaging still block alpha publication.
+Do not automatically merge or publish anything.
 
 ## Required audit lenses
 
@@ -85,8 +90,9 @@ or release anything.
 ## Audit output format
 
 Return:
-- **GO / NO-GO for merging v5 into `main`** (separately from GO for
-  publishing a stable release).
+- **GO / NO-GO for merging v5 into `main` as alpha development**;
+  **GO / NO-GO for publishing the next alpha**, separately from
+  subsequent beta/stable acceptance.
 - Findings ordered **P0 critical, P1 high, P2 medium, P3 low** with file and
   line anchors, exact code/test evidence, real repro when available,
   consequence, and smallest safe remedy.
