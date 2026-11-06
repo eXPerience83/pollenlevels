@@ -22,7 +22,7 @@ from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder.db_schema import States, StatesMeta
 from homeassistant.components.recorder.util import session_scope
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er, frame
 from pytest_homeassistant.common import (
     MockConfigEntry,
     async_test_home_assistant,
@@ -699,6 +699,7 @@ async def test_persisted_multikey_upgrade_preserves_custom_ids_and_each_history(
             # async_test_home_assistant disables custom component discovery
             # by default. Enable it for this isolated instance only.
             upgraded_hass.data.pop(loader.DATA_CUSTOM_COMPONENTS, None)
+            frame.async_setup(upgraded_hass)
             async with aiointercept(mock_external_urls=True) as mocked:
                 mock_pollen_api(mocked, google_pollen_5_day_payload)
                 for parent in parents:
