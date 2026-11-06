@@ -93,7 +93,9 @@ def _exact_test_pins(project: Mapping[str, object]) -> dict[str, str]:
             raise UpdaterError(f"test dependency {name} must have one exact unique pin")
         pins[name] = specifiers[0].version
     if set(pins) != set(TARGET_PACKAGES):
-        raise UpdaterError("test dependency group must contain exact HA and OFFICIAL pins")
+        raise UpdaterError(
+            "test dependency group must contain exact HA and OFFICIAL pins"
+        )
     return pins
 
 
@@ -395,7 +397,9 @@ def _read_plan(path: Path) -> BaselinePlan:
         value = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(value, dict):
             raise TypeError
-        value["skipped_prerelease_official"] = tuple(value["skipped_prerelease_official"])
+        value["skipped_prerelease_official"] = tuple(
+            value["skipped_prerelease_official"]
+        )
         return BaselinePlan(**value)
     except (OSError, TypeError, KeyError, json.JSONDecodeError) as err:
         raise UpdaterError("plan JSON is invalid") from err

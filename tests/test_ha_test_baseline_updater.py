@@ -84,19 +84,26 @@ def test_mature_newer_stable_pair_is_an_update() -> None:
 
 def test_candidate_younger_than_cooldown_is_not_updated() -> None:
     """A new selected pair stays in cooldown until the common maturity instant."""
-    assert _plan(ha="2026.11.1", official="2026.11.1", ha_uploaded=NOW).status == "cooldown"
+    assert (
+        _plan(ha="2026.11.1", official="2026.11.1", ha_uploaded=NOW).status
+        == "cooldown"
+    )
 
 
 def test_ha_mature_but_official_young_is_cooldown() -> None:
     """OFFICIAL's release timestamp independently protects the pair."""
     assert (
-        _plan(ha="2026.11.1", official="2026.11.1", official_uploaded=NOW).status == "cooldown"
+        _plan(ha="2026.11.1", official="2026.11.1", official_uploaded=NOW).status
+        == "cooldown"
     )
 
 
 def test_official_mature_but_ha_young_is_cooldown() -> None:
     """Home Assistant's release timestamp independently protects the pair."""
-    assert _plan(ha="2026.11.1", official="2026.11.1", ha_uploaded=NOW).status == "cooldown"
+    assert (
+        _plan(ha="2026.11.1", official="2026.11.1", ha_uploaded=NOW).status
+        == "cooldown"
+    )
 
 
 def test_latest_non_yanked_artifact_controls_maturity() -> None:
