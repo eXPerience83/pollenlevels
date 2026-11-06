@@ -8,6 +8,7 @@ This harness is not yet a complete independent-process upgrade/Marketplace test.
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, closing
@@ -515,6 +516,12 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
         )
 
     config_dir = Path(hass_tmp_config_dir)
+    # The throwaway HA instances use a new config dir: install the actual
+    # custom integration there so HA can discover and set up its platforms.
+    shutil.copytree(
+        Path(__file__).resolve().parents[1] / "custom_components" / DOMAIN,
+        config_dir / "custom_components" / DOMAIN,
+    )
     db_path = Path(recorder_config["db_url"].removeprefix("sqlite:///"))
     identities: dict[str, dict[str, Any]] = {}
 
@@ -616,11 +623,24 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             )
 
         async with async_test_recorder(home_b, recorder_config) as recorder_b:
+            original_histories = {
+                entity_id: await recorder_b.async_add_executor_job(
+                    _recorded_values, home_b, entity_id
+                )
+                for entity_id in identities
+            }
             for old in entries:
                 source = home_b.config_entries.async_get_entry(old.entry_id)
                 if source is not None and source.version < TARGET_ENTRY_VERSION:
                     assert await async_migrate_config_entry(home_b, source)
 
+            # The migration hook must not rewrite historical Recorder rows.
+            assert original_histories == {
+                entity_id: await recorder_b.async_add_executor_job(
+                    _recorded_values, home_b, entity_id
+                )
+                for entity_id in identities
+            }
             parents = home_b.config_entries.async_entries(DOMAIN)
             assert len(parents) == 2
             assert {p.data["api_key"] for p in parents} == {
@@ -697,6 +717,12 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 assert after[0] == str(index)
                 assert after[-1] == str(index + 10)
 
+            recorder_before_retry = {
+                entity_id: await recorder_b.async_add_executor_job(
+                    _recorded_values, home_b, entity_id
+                )
+                for entity_id in identities
+            }
             # An idempotent second migration must preserve both the complete
             # parent subentry set and each entity/device owner association.
             subentries_before = {
@@ -724,6 +750,13 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                     devices_b.async_get(expected["device_id"]).config_subentry_id,
                 )
                 for entity_id, expected in identities.items()
+            }
+            await recorder_b.async_block_till_done()
+            assert recorder_before_retry == {
+                entity_id: await recorder_b.async_add_executor_job(
+                    _recorded_values, home_b, entity_id
+                )
+                for entity_id in identities
             }
 
         await flush_store(home_b.config_entries._store)
@@ -769,7 +802,6 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                 "WHERE states_meta.entity_id = ? ORDER BY states.state_id",
                 (entity_id,),
             ).fetchall()
-            assert [row[0] for row in states][-2:] == [
-                str(index),
-                str(index + 10),
-            ]
+            assert [row[0] for row in states] == recorder_before_retry[entity_id]
+            assert str(index) in recorder_before_retry[entity_id]
+            assert recorder_before_retry[entity_id][-1] == str(index + 10)
