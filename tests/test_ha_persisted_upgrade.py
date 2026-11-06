@@ -567,10 +567,14 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                     device_id=device.id,
                     suggested_object_id=f"synthetic_{suffix.replace('-', '_')}",
                 )
-                if not identities:
-                    entity = entities_a.async_update_entity(
-                        entity.entity_id, new_entity_id="sensor.user_named_pollen"
-                    )
+                renamed_entity_id = (
+                    "sensor.user_named_pollen"
+                    if not identities
+                    else f"sensor.user_named_pollen_{len(identities) + 1}"
+                )
+                entity = entities_a.async_update_entity(
+                    entity.entity_id, new_entity_id=renamed_entity_id
+                )
                 identities[entity.entity_id] = {
                     "entity_id": entity.id,
                     "unique_id": entity.unique_id,
@@ -582,8 +586,11 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
                     "api_key": old.data["api_key"],
                 }
 
-        assert len(identities) == 3
-        assert "sensor.user_named_pollen" in identities
+        assert set(identities) == {
+            "sensor.user_named_pollen",
+            "sensor.user_named_pollen_2",
+            "sensor.user_named_pollen_3",
+        }
         await home_a.config_entries._store.async_save(
             {"entries": [entry.as_dict() for entry in entries]}
         )
@@ -645,6 +652,9 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
             }
             parents = home_b.config_entries.async_entries(DOMAIN)
             assert len(parents) == 2
+            for parent in parents:
+                assert parent.version == TARGET_ENTRY_VERSION
+                assert parent.unique_id == api_key_unique_id(parent.data["api_key"])
             assert {p.data["api_key"] for p in parents} == {
                 HISTORICAL_KEY,
                 second_key,
@@ -781,6 +791,9 @@ async def test_multi_key_persisted_upgrade_preserves_user_ids_and_recorder(
         await home_c.config_entries.async_initialize()
         await load_registries(home_c)
         assert len(home_c.config_entries.async_entries(DOMAIN)) == 2
+        for parent in home_c.config_entries.async_entries(DOMAIN):
+            assert parent.version == TARGET_ENTRY_VERSION
+            assert parent.unique_id == api_key_unique_id(parent.data["api_key"])
         assert {
             parent.entry_id: set(parent.subentries)
             for parent in home_c.config_entries.async_entries(DOMAIN)
