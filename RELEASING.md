@@ -86,7 +86,8 @@ no cutoff is validated with `UV_EXCLUDE_NEWER=false`; a lock already recording
 uv 0.13.5's relative three-day cutoff retains that policy. Other cutoff formats
 fail closed and require normal validation. Release never rewrites the lock or
 replaces `--locked` with `--frozen`. All tests, coverage and ZIP checks still run,
-and the output remains a draft that must be reviewed as a prerelease.
+and non-dry-run output remains a draft that must be reviewed as a prerelease.
+With `dry_run=true`, no draft is created.
 
 For the baseline updater, `override_cooldown` waives maturity only for the
 exact official Home Assistant / pytest-homeassistant pair. Absolute UTC cutoffs
@@ -119,6 +120,12 @@ and requires its reason and exact full SHA. A dry run does not waive the 72-hour
 policy, replace the reviewed normal-policy lock or establish historical
 Registry/Recorder migration acceptance. Review the workflow artifact and all
 required checks, then run the actual draft-first Release independently.
+
+The guarantees follow the selected snapshot's validation mode. Legacy snapshots
+use their recorded pip environment, not a uv lock, and run pytest without the
+modern coverage gate. Historical modern snapshots without a coverage checker
+also run pytest without that gate. Review the validation-mode summary; these
+historical exceptions do not establish current locked/coverage compliance.
 
 ## 1. Prepare a release pull request (recommended)
 
