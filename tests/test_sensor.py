@@ -857,6 +857,54 @@ def test_summary_sensor_caches_payload_for_current_data_object(
     assert calls == [initial_data, updated_data]
 
 
+def test_summary_listener_refreshes_cache_before_state_write(
+    sensor_modules: SensorModules,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Listeners refresh changed snapshots even when unavailable properties are skipped."""
+    sensor = sensor_modules.sensor
+    initial_data = {"plants_oak": {"source": "plant", "inSeason": True}}
+    coordinator = _summary_coordinator(initial_data)
+    entity = sensor.PlantsInSeasonTodaySensor(coordinator)
+    assert entity.native_value == 1
+    initial_cache = entity._summary_cache
+    writes = []
+
+    def write_state(self):
+        assert self._summary_data_ref is coordinator.data
+        writes.append(self._summary_cache)
+
+    monkeypatch.setattr(
+        sensor.CoordinatorEntity,
+        "_handle_coordinator_update",
+        write_state,
+        raising=False,
+    )
+
+    # Failure with the same snapshot must reuse the cached summary.
+    coordinator.last_update_success = False
+    entity._handle_coordinator_update()
+    assert writes[-1] is initial_cache
+
+    # Equal contents in a new snapshot must still refresh by identity.
+    coordinator.data = dict(initial_data)
+    entity._handle_coordinator_update()
+    assert writes[-1] == initial_cache
+    assert writes[-1] is not initial_cache
+
+    # Expiry refreshes before state writing, without a native_value read.
+    coordinator.data = {}
+    entity._handle_coordinator_update()
+    assert writes[-1]["plants_in_season_today"]["state"] is None
+    assert entity._summary_data_ref is coordinator.data
+
+    coordinator.data = initial_data
+    coordinator.last_update_success = True
+    entity._handle_coordinator_update()
+    assert writes[-1]["plants_in_season_today"]["state"] == 1
+    assert len(writes) == 4
+
+
 def test_overall_pollen_risk_returns_max_current_day_type_value(
     sensor_modules: SensorModules,
 ) -> None:

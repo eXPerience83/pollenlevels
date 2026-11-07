@@ -369,21 +369,21 @@ class _BaseSummarySensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorE
         self._summary_data_ref: object = object()
         self._summary_cache: dict[str, dict[str, Any]] = {}
 
-    def _summary_payload(self, key: str) -> dict[str, Any]:
-        """Return a cached summary payload for the current coordinator data."""
+    def _update_summary_cache(self) -> None:
+        """Refresh the summary when the coordinator snapshot changes identity."""
         data = self.coordinator.data
         if data is not self._summary_data_ref:
             self._summary_data_ref = data
             self._summary_cache = _daily_summary(data or {})
 
+    def _summary_payload(self, key: str) -> dict[str, Any]:
+        """Return a cached summary payload for the current coordinator data."""
+        self._update_summary_cache()
         return self._summary_cache[key]
 
     def _handle_coordinator_update(self) -> None:
         """Release memoized data before writing an unavailable state."""
-        data = self.coordinator.data
-        if data is not self._summary_data_ref:
-            self._summary_data_ref = data
-            self._summary_cache = _daily_summary(data or {})
+        self._update_summary_cache()
         super()._handle_coordinator_update()
 
     @property
