@@ -266,6 +266,47 @@ def test_pyproject_updates_exact_two_pins_and_ha_comment() -> None:
     assert "# Tooling aligned to the Home Assistant 2026.5" in updated
 
 
+def test_pyproject_update_retires_old_pair_package_cutoffs() -> None:
+    """The promoted pair must not inherit a cutoff for earlier artifacts."""
+    temporary = (
+        "\n# One-time artifact-bounded waiver for the already pinned HA 2026.11 GA pair.\n"
+        "# Remove after 2026-11-08 13:04 UTC; all other packages retain the 3-day cooldown.\n"
+        "[tool.uv.exclude-newer-package]\n"
+        'homeassistant = "2026-11-05T13:03:50Z"\n'
+        'pytest-homeassistant = "2026-11-05T13:03:59Z"\n'
+        "\n[tool.ruff]\nline-length = 88\n"
+    )
+    updated = update_pyproject(_pyproject() + temporary, _update_plan())
+    assert 'exclude-newer = "3 days"' in updated
+    assert "exclude-newer-package" not in updated
+    assert "One-time artifact-bounded waiver" not in updated
+    assert "[tool.ruff]\nline-length = 88" in updated
+    assert '"homeassistant==2026.11.1"' in updated
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        "",
+        'packaging = "2026-11-05T13:04:00Z"',
+        "homeassistant = false",
+        'homeassistant = "2026-11-05T13:03:50Z"',
+    ],
+)
+def test_pyproject_update_rejects_unexpected_package_cutoffs(exception: str) -> None:
+    """Do not mutate arbitrary package cooldown policies."""
+    source = _pyproject() + "\n[tool.uv.exclude-newer-package]\n" + exception + "\n"
+    with pytest.raises(UpdaterError, match="package-level cooldown"):
+        update_pyproject(source, _update_plan())
+
+
+def test_pyproject_update_rejects_non_table_package_cutoff() -> None:
+    """An explicit non-table package cutoff must fail closed."""
+    source = _pyproject() + "\nexclude-newer-package = false\n"
+    with pytest.raises(UpdaterError, match="package-level cooldown"):
+        update_pyproject(source, _update_plan())
+
+
 def test_mismatched_official_pair_is_rejected() -> None:
     """Official package and Home Assistant must have equal versions."""
     with pytest.raises(UpdaterError, match="match Home Assistant exactly"):
@@ -458,3 +499,62 @@ def test_lock_cooldown_waiver_does_not_allow_unrelated_options(options):
         validate_lock_delta(
             before, after, "2026.11.1", "2026.11.1", override_cooldown=True
         )
+
+
+@pytest.mark.parametrize("override", [False, True])
+def test_lock_retires_artifact_bounded_pair_exception_on_update(
+    override: bool,
+) -> None:
+    """Only removing the reviewed pair exception is allowed on promotion."""
+    before, after = _valid_locks()
+    cutoff = (
+        '\n[options]\nexclude-newer = "0001-01-01T00:00:00Z"\n'
+        'exclude-newer-span = "P3D"\n'
+    )
+    pair_exception = (
+        "\n[options.exclude-newer-package]\n"
+        'homeassistant = "2026-11-05T13:03:50Z"\n'
+        'pytest-homeassistant = "2026-11-05T13:03:59Z"\n'
+    )
+    before = before.replace(
+        "\n[[package]]", cutoff + pair_exception + "\n[[package]]", 1
+    )
+    if not override:
+        after = after.replace("\n[[package]]", cutoff + "\n[[package]]", 1)
+    validate_lock_delta(
+        before, after, "2026.11.1", "2026.11.1", override_cooldown=override
+    )
+
+    retained = (
+        after.replace("\n[[package]]", pair_exception + "\n[[package]]", 1)
+        if not override
+        else after.replace(
+            "\n[[package]]", "\n[options]" + pair_exception + "\n[[package]]", 1
+        )
+    )
+    with pytest.raises(UpdaterError, match="must be removed"):
+        validate_lock_delta(
+            before, retained, "2026.11.1", "2026.11.1", override_cooldown=override
+        )
+
+    unexpected = before.replace(
+        'homeassistant = "2026-11-05T13:03:50Z"',
+        'packaging = "2026-11-05T13:04:00Z"',
+    )
+    with pytest.raises(UpdaterError, match="package-level cooldown"):
+        validate_lock_delta(
+            unexpected, after, "2026.11.1", "2026.11.1", override_cooldown=override
+        )
+
+
+def test_lock_rejects_new_pair_cutoff_added_without_prior_exception() -> None:
+    """An updater cannot introduce new package-specific cooldown waivers."""
+    before, after = _valid_locks()
+    after = after.replace(
+        "\n[[package]]",
+        '\n[options.exclude-newer-package]\nhomeassistant = "2026-11-06T00:00:00Z"\n'
+        'pytest-homeassistant = "2026-11-06T00:00:00Z"\n\n[[package]]',
+        1,
+    )
+    with pytest.raises(UpdaterError, match="package-level cooldown"):
+        validate_lock_delta(before, after, "2026.11.1", "2026.11.1")

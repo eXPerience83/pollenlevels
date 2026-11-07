@@ -42,25 +42,25 @@ jobs:
             uv.lock
           cache-suffix: test
 
-      - name: Time-bounded 2026.11 GA dependency bootstrap
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Explicitly permit the reviewed exact 2026.11 GA lock while its
-          # releases have not yet aged through the normal three-day cooldown.
-          # This exception automatically expires; the repository's default
-          # exclude-newer = "3 days" and updater maturity policy stay intact.
-          if (( $(date -u +%s) < $(date -u -d '2026-11-10T00:00:00Z' +%s) )); then
-            printf 'UV_EXCLUDE_NEWER=false\n' >> "$GITHUB_ENV"
-            echo "Temporary GA bootstrap active for the exact committed lock."
-          fi
-
       - name: Verify locked test environment
         shell: bash
         run: |
           set -euo pipefail
           uv lock --check
           uv sync --locked --only-group test
+
+      - name: Check exact HA pair cooldown artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/ha_pair_cooldown.py check
+
+      - name: Verify locked release dependency group
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --locked --only-group release
+          uv pip check --python .venv/bin/python
 
       - name: Compile Python sources
         shell: bash

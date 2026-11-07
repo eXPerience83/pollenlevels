@@ -242,6 +242,33 @@ def update_pyproject(text: str, plan: BaselinePlan) -> str:
             )
         result = result.replace(old_comment, new_comment, 1)
     project = tomllib.loads(result)
+    uv = project.get("tool", {}).get("uv", {})
+    pair_cutoff = uv.get("exclude-newer-package")
+    if pair_cutoff is not None:
+        if (
+            not isinstance(pair_cutoff, dict)
+            or set(pair_cutoff) != set(TARGET_PACKAGES)
+            or any(not isinstance(value, str) for value in pair_cutoff.values())
+        ):
+            raise UpdaterError("unexpected package-level cooldown configuration")
+        # The current pair's artifact cutoffs cannot apply to the new HA pair.
+        section = (
+            "\n[tool.uv.exclude-newer-package]\n"
+            f'homeassistant = "{pair_cutoff[HOMEASSISTANT]}"\n'
+            f'pytest-homeassistant = "{pair_cutoff[OFFICIAL]}"\n'
+        )
+        if result.count(section) != 1:
+            raise UpdaterError("ambiguous package-level cooldown source")
+        result = result.replace(section, "", 1)
+        # Remove the adjacent note for the temporary 2026.11 GA exception.
+        temporary_note = (
+            "\n# One-time artifact-bounded waiver for the already pinned HA 2026.11 GA pair.\n"
+            "# Remove after 2026-11-08 13:04 UTC; all other packages retain the 3-day cooldown.\n"
+        )
+        result = result.replace(temporary_note, "\n", 1)
+        project = tomllib.loads(result)
+        if project["tool"]["uv"].get("exclude-newer-package") is not None:
+            raise UpdaterError("package-level cooldown exception was not retired")
     pins = _exact_test_pins(project)
     if pins != {
         HOMEASSISTANT: plan.selected_homeassistant,
@@ -386,6 +413,19 @@ def validate_lock_delta(
     }
     old_options = dict(before_top.pop("options", {}))
     new_options = dict(after_top.pop("options", {}))
+    old_package_cutoff = old_options.pop("exclude-newer-package", None)
+    new_package_cutoff = new_options.pop("exclude-newer-package", None)
+    if old_package_cutoff is not None:
+        if (
+            not isinstance(old_package_cutoff, dict)
+            or set(old_package_cutoff) != set(TARGET_PACKAGES)
+            or any(not isinstance(value, str) for value in old_package_cutoff.values())
+        ):
+            raise UpdaterError("uv.lock package-level cooldown metadata changed")
+        if new_package_cutoff is not None:
+            raise UpdaterError("temporary package-level cooldown must be removed")
+    elif new_package_cutoff is not None:
+        raise UpdaterError("uv.lock package-level cooldown metadata changed")
     old_cutoff = {
         key: old_options.pop(key)
         for key in tuple(old_options)
