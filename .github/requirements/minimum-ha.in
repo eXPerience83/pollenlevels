@@ -1,0 +1,6 @@
+homeassistant==2026.11.0
+pytest-homeassistant==2026.11.0
+pytest==9.0.3
+pytest-cov==7.1.0
+aiointercept==0.1.12
+packaging==26.3

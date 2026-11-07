@@ -260,8 +260,8 @@ Security, hassfest, Marketplace catalog validation via hacs/action, and
 CodeQL where configured.
 The daily official Home Assistant canary is advisory and fresh-resolving:
 it does not replace locked CI or authorize a release. The HA 2026.11.0
-minimum is fixed in `hacs.json` and independently retested after the
-locked pair advances beyond it. The baseline updater proposes reviewed
+minimum is fixed in `hacs.json` and independently retested from its frozen SHA-256 graph on every CI run, even
+when the locked pair matches it. The baseline updater proposes reviewed
 PRs; Renovate manages Actions/tooling PRs, with no automerge.
 
 When editing GitHub Actions, preserve the repository's supply-chain and workflow

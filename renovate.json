@@ -195,6 +195,14 @@
         "pytest-asyncio"
       ],
       "enabled": false
+    },
+    {
+      "description": "Keep the independently audited HA support-floor graph frozen",
+      "matchFileNames": [
+        ".github/requirements/minimum-ha.in",
+        ".github/requirements/minimum-ha.txt"
+      ],
+      "enabled": false
     }
   ]
 }
