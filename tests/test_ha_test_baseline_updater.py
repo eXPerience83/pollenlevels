@@ -504,7 +504,7 @@ def test_lock_retires_artifact_bounded_pair_exception_on_update(
         'exclude-newer-span = "P3D"\n'
     )
     pair_exception = (
-        '\n[options.exclude-newer-package]\n'
+        "\n[options.exclude-newer-package]\n"
         'homeassistant = "2026-11-05T13:04:00Z"\n'
         'pytest-homeassistant = "2026-11-05T13:04:00Z"\n'
     )
@@ -517,10 +517,12 @@ def test_lock_retires_artifact_bounded_pair_exception_on_update(
         before, after, "2026.11.1", "2026.11.1", override_cooldown=override
     )
 
-    retained = after.replace(
-        "\n[[package]]", pair_exception + "\n[[package]]", 1
-    ) if not override else after.replace(
-        "\n[[package]]", "\n[options]" + pair_exception + "\n[[package]]", 1
+    retained = (
+        after.replace("\n[[package]]", pair_exception + "\n[[package]]", 1)
+        if not override
+        else after.replace(
+            "\n[[package]]", "\n[options]" + pair_exception + "\n[[package]]", 1
+        )
     )
     with pytest.raises(UpdaterError, match="must be removed"):
         validate_lock_delta(
