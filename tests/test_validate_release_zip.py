@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import stat
 import zipfile
 from pathlib import Path
 
@@ -228,3 +229,30 @@ def test_mismatched_release_tag_reports_actual_and_expected_tags(
         match=re.escape("tag='v0.0.0' != 'v3.0.0rc3'"),
     ):
         validate_zip(_valid_zip(tmp_path), "v0.0.0")
+
+
+def test_unix_symlink_member_is_rejected(tmp_path: Path) -> None:
+    """A versioned symlink survives git archive and must not reach installers."""
+    zip_path = _valid_zip(tmp_path)
+    with zipfile.ZipFile(zip_path, "a") as archive:
+        member = zipfile.ZipInfo("linked.py")
+        member.create_system = 3
+        member.external_attr = (stat.S_IFLNK | 0o777) << 16
+        archive.writestr(member, "../../outside.py")
+
+    with pytest.raises(SystemExit, match="Symlink.*linked.py"):
+        validate_zip(zip_path, None)
+
+
+def test_corrupt_non_manifest_payload_is_rejected(tmp_path: Path) -> None:
+    """Validate every payload's CRC, including files metadata checks never read."""
+    zip_path = _valid_zip(tmp_path)
+    payload = b"unique stored payload to corrupt"
+    with zipfile.ZipFile(zip_path, "a") as archive:
+        archive.writestr("payload.py", payload, compress_type=zipfile.ZIP_STORED)
+    contents = zip_path.read_bytes()
+    assert contents.count(payload) == 1
+    zip_path.write_bytes(contents.replace(payload, b"X" + payload[1:], 1))
+
+    with pytest.raises(SystemExit, match="Corrupt ZIP member: payload.py"):
+        validate_zip(zip_path, None)
