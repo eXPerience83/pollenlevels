@@ -12,15 +12,6 @@ on:
         required: false
         type: boolean
         default: false
-      bypass_dependency_cooldown:
-        description: "One-time prerelease maturity waiver (full commit SHA and reason required)"
-        required: false
-        default: false
-        type: boolean
-      cooldown_override_reason:
-        description: "Required for maturity override; 15-200 characters"
-        required: false
-        type: string
   release:
     types: [published]
 
@@ -66,6 +57,10 @@ jobs:
             mapfile -t matches < "$asset_ids"
             if (( ${#matches[@]} > 1 )); then
               echo "Published release has multiple pollenlevels.zip assets; inspect manually" >&2
+              exit 1
+            fi
+            if (( ${#matches[@]} == 0 )); then
+              echo "Published release is missing its validated ZIP; automatic repair is forbidden." >&2
               exit 1
             fi
             printf 'event_mode=published-fallback\nselected_ref=refs/tags/%s\nskip_release=%s\n' "$EVENT_TAG" "$( (( ${#matches[@]} == 1 )) && echo true || echo false )" >> "$GITHUB_OUTPUT"
@@ -216,6 +211,20 @@ jobs:
             > "$RUNNER_TEMP/ha_pair_cooldown_trusted.py"
           test -s "$RUNNER_TEMP/ha_pair_cooldown_trusted.py"
 
+      - name: Enforce reviewed main preparation policy
+        if: steps.event.outputs.skip_release != 'true'
+        shell: bash
+        env:
+          SELECTED_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_REF: ${{ github.ref }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          python scripts/release_main_policy.py
+
+
       - name: Check out selected snapshot
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
@@ -242,85 +251,14 @@ jobs:
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version-file: pyproject.toml
-          enable-cache: true
-          cache-dependency-glob: |
-            .python-version
-            pyproject.toml
-            uv.lock
-          cache-suffix: release
+          enable-cache: false
 
-      - name: Authorize manual prerelease dependency cooldown override
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bypass_dependency_cooldown }}
-        shell: bash
-        env:
-          WORKFLOW_REF: ${{ github.ref }}
-          RELEASE_REF: ${{ inputs.release_ref }}
-          VALIDATED_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
-          VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
-          OVERRIDE_REASON: ${{ inputs.cooldown_override_reason }}
-        run: |
-          set -euo pipefail
-          if [[ "$WORKFLOW_REF" != "refs/heads/main" || "$VALIDATION_MODE" != "modern" ]]; then
-            echo "Override is allowed only for modern prereleases from main." >&2
-            exit 1
-          fi
-          if [[ ! "$RELEASE_REF" =~ ^[0-9A-Fa-f]{40}$ ]] ||
-             [[ "${RELEASE_REF,,}" != "${VALIDATED_COMMIT,,}" ]]; then
-            echo "Override requires release_ref to be the full validated commit SHA." >&2
-            exit 1
-          fi
-          python - <<'PYTHON'
-          import os
-
-          reason = os.environ["OVERRIDE_REASON"]
-          if not 15 <= len(reason) <= 200 or not reason.strip() or not reason.isprintable():
-              raise SystemExit("Provide a non-blank, printable single-line, 15-200 character override reason")
-          PYTHON
-          version="$(python -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/pollenlevels/manifest.json").read_text())["version"])')"
-          if [[ ! "${version,,}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
-            echo "Override applies only to alpha, beta and RC releases." >&2
-            exit 1
-          fi
-          # Preserve the reviewed lock's normal relative cutoff. Removing it
-          # would invalidate --locked; only cutoff-free locks need the waiver.
-          python - <<'PYTHON' >> "$GITHUB_ENV"
-          import tomllib
-          from pathlib import Path
-
-          options = tomllib.loads(Path("uv.lock").read_text()).get("options", {})
-          cutoff = {key: value for key, value in options.items() if key.startswith("exclude-newer")}
-          package_cutoff = cutoff.pop("exclude-newer-package", None)
-          if package_cutoff is not None:
-              project = tomllib.loads(Path("pyproject.toml").read_text())
-              configured = project["tool"]["uv"].get("exclude-newer-package")
-              if (package_cutoff != configured or
-                      set(package_cutoff) != {"homeassistant", "pytest-homeassistant"}):
-                  raise SystemExit("Unexpected package-level maturity override in lock")
-          normal = {"exclude-newer": "0001-01-01T00:00:00Z", "exclude-newer-span": "P3D"}
-          if cutoff == normal:
-              print("UV_EXCLUDE_NEWER=3 days")
-          elif not cutoff:
-              print("UV_EXCLUDE_NEWER=false")
-          else:
-              raise SystemExit("Unsupported lock cutoff: use normal validation; do not rewrite the release lock")
-          PYTHON
-          {
-            echo "## Manual prerelease package maturity override"
-            printf 'Commit: %s\n' "$VALIDATED_COMMIT"
-            printf 'Version: %s\n' "$version"
-            python -c 'import html, os; print("Reason:\n<pre>" + html.escape(os.environ["OVERRIDE_REASON"]) + "</pre>")'
-            echo "One workflow run only; lock, tests, coverage, ZIP and draft release gates remain mandatory."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Validate scoped HA pair cooldown for modern v5 snapshots
+      - name: Validate scoped HA pair cooldown for every modern snapshot
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
         shell: bash
         run: |
           set -euo pipefail
-          version="$(python -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/pollenlevels/manifest.json").read_text())["version"])')"
-          if [[ "$version" == 5.* ]]; then
-            python "$RUNNER_TEMP/ha_pair_cooldown_trusted.py" check --stable-release-guard
-          fi
+          python "$RUNNER_TEMP/ha_pair_cooldown_trusted.py" check --stable-release-guard
 
       - name: Set up modern locked validation environment
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
@@ -491,6 +429,7 @@ jobs:
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
         env:
+          DRY_RUN: ${{ inputs.dry_run }}
           PYTHONPATH: .
           VALIDATION_MODE: ${{ steps.validation-mode.outputs.validation_mode }}
         run: |
@@ -499,7 +438,7 @@ jobs:
             # Historical v5.0.0a1 is immutable. All later 5.x candidates
             # must declare HA 2026.11.0 and keep the coverage checker.
             release_version="$(jq -r '.version // empty' custom_components/pollenlevels/manifest.json)"
-            if [[ "$release_version" == 5.* && "$release_version" != "5.0.0a1" ]]; then
+            if [[ "$DRY_RUN" != "true" || ( "$release_version" == 5.* && "$release_version" != "5.0.0a1" ) ]]; then
               ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"
               if [[ "$ha_floor" != "2026.11.0" || ! -f scripts/check_coverage.py ]]; then
                 echo "New v5 snapshots require HA 2026.11.0 and the per-module coverage checker." >&2
@@ -530,7 +469,8 @@ jobs:
           RELEASE_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
         run: |
           set -euo pipefail
-          git archive --format=zip --output=pollenlevels.zip \
+          commit_time="$(git show -s --format=%cI "$RELEASE_COMMIT")"
+          git archive --format=zip --mtime="$commit_time" --output=pollenlevels.zip \
             "${RELEASE_COMMIT}:custom_components/pollenlevels"
 
       - name: Validate ZIP package
@@ -585,17 +525,18 @@ jobs:
 
   finalize-release:
     needs: validate-release
-    if: needs.validate-release.outputs.skip_release != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
+    if: github.event_name == 'workflow_dispatch' && inputs.dry_run != true && needs.validate-release.outputs.skip_release != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+      checks: read
 
     steps:
-      - name: Check out validated commit
+      - name: Check out trusted finalization policy
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ needs.validate-release.outputs.release_commit }}
+          ref: ${{ github.workflow_sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -635,12 +576,26 @@ jobs:
             exit 1
           fi
 
+      - name: Recheck main and required checks before writes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SELECTED_COMMIT: ${{ needs.validate-release.outputs.release_commit }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_REF: ${{ github.ref }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          python scripts/release_main_policy.py --finalize
+
       - name: Preflight release state
         if: needs.validate-release.outputs.event_mode == 'prepare'
         id: preflight
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          ZIP_SHA256: ${{ needs.validate-release.outputs.zip_sha256 }}
           RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
           VALIDATED_COMMIT: ${{ needs.validate-release.outputs.release_commit }}
         run: |
@@ -723,7 +678,15 @@ jobs:
                       "match the validated commit"
                   )
 
-          print("release_mode=update")
+          assets = release.get("assets")
+          if not isinstance(assets, list):
+              raise SystemExit("Draft asset list is missing")
+          assets = [asset for asset in assets if asset.get("name") == "pollenlevels.zip"]
+          if len(assets) > 1:
+              raise SystemExit("Duplicate draft ZIP assets")
+          if assets and (assets[0].get("state") != "uploaded" or assets[0].get("digest") != "sha256:" + os.environ["ZIP_SHA256"]):
+              raise SystemExit("Existing draft ZIP differs or has no verifiable digest; refusing replacement")
+          print("release_mode=reuse" if assets else "release_mode=update")
           print(f"release_url={url}")
           print(f"tag_exists={os.environ['TAG_EXISTS']}")
           print(f"create_tag={str(os.environ['TAG_EXISTS'] != 'true').lower()}")
@@ -761,7 +724,7 @@ jobs:
       - name: Create draft release
         id: create-draft
         if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.release_mode == 'new'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
           name: ${{ needs.validate-release.outputs.tag }}
@@ -769,19 +732,19 @@ jobs:
           prerelease: ${{ needs.validate-release.outputs.prerelease }}
           generate_release_notes: true
           files: pollenlevels.zip
-          overwrite_files: true
+          overwrite_files: false
           fail_on_unmatched_files: true
 
       - name: Update draft release asset
         id: update-draft
         if: needs.validate-release.outputs.event_mode == 'prepare' && steps.preflight.outputs.release_mode == 'update'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
           draft: true
           prerelease: ${{ needs.validate-release.outputs.prerelease }}
           files: pollenlevels.zip
-          overwrite_files: true
+          overwrite_files: false
           fail_on_unmatched_files: true
 
       - name: Write release summary
@@ -808,8 +771,10 @@ jobs:
           fi
           if [[ "$RELEASE_MODE" == "new" ]]; then
             release_action="Created a new draft release"
+          elif [[ "$RELEASE_MODE" == "reuse" ]]; then
+            release_action="Reused the identical draft ZIP without modification"
           else
-            release_action="Updated the existing draft release asset"
+            release_action="Added the missing ZIP to the existing draft"
           fi
           {
             echo "## Prepare Release"
@@ -826,27 +791,3 @@ jobs:
             echo
             echo "Next manual step: Review the draft release and publish it from the GitHub Releases page."
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload missing published release ZIP
-        if: needs.validate-release.outputs.event_mode == 'published-fallback'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_ID: ${{ github.event.release.id }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          set -euo pipefail
-          asset_ids="$(mktemp)"
-          trap 'rm -f "$asset_ids"' EXIT
-          gh api --paginate --jq '.[] | select(.name == "pollenlevels.zip") | .id' \
-            "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" > "$asset_ids"
-          mapfile -t matches < "$asset_ids"
-          if (( ${#matches[@]} > 1 )); then
-            echo "Published release has multiple pollenlevels.zip assets; inspect manually" >&2
-            exit 1
-          fi
-          if (( ${#matches[@]} == 1 )); then
-            echo "Published release already contains pollenlevels.zip; skipping upload." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          gh release upload "$RELEASE_TAG" pollenlevels.zip
