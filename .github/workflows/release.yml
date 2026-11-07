@@ -200,6 +200,17 @@ jobs:
             --commit "$RELEASE_COMMIT" \
             --github-output "$GITHUB_OUTPUT"
 
+      - name: Preserve scoped cooldown guard from trusted workflow revision
+        if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
+        shell: bash
+        env:
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          git show "$TRUSTED_WORKFLOW_SHA:scripts/ha_pair_cooldown.py" \
+            > "$RUNNER_TEMP/ha_pair_cooldown_trusted.py"
+          test -s "$RUNNER_TEMP/ha_pair_cooldown_trusted.py"
+
       - name: Check out selected snapshot
         if: steps.event.outputs.skip_release != 'true'
         shell: bash
@@ -295,6 +306,16 @@ jobs:
             python -c 'import html, os; print("Reason:\n<pre>" + html.escape(os.environ["OVERRIDE_REASON"]) + "</pre>")'
             echo "One workflow run only; lock, tests, coverage, ZIP and draft release gates remain mandatory."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate scoped HA pair cooldown for modern v5 snapshots
+        if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(python -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/pollenlevels/manifest.json").read_text())["version"])')"
+          if [[ "$version" == 5.* ]]; then
+            python "$RUNNER_TEMP/ha_pair_cooldown_trusted.py" check --stable-release-guard
+          fi
 
       - name: Set up modern locked validation environment
         if: steps.event.outputs.skip_release != 'true' && steps.validation-mode.outputs.validation_mode == 'modern'

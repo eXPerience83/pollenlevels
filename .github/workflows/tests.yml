@@ -49,6 +49,19 @@ jobs:
           uv lock --check
           uv sync --locked --only-group test
 
+      - name: Check exact HA pair cooldown artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/ha_pair_cooldown.py check
+
+      - name: Verify locked release dependency group
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --locked --only-group release
+          uv pip check --python .venv/bin/python
+
       - name: Compile Python sources
         shell: bash
         run: |

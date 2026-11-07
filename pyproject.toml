@@ -37,8 +37,8 @@ environments = ["python_full_version >= '3.14.2' and python_full_version < '3.15
 # One-time artifact-bounded waiver for the already pinned HA 2026.11 GA pair.
 # Remove after 2026-11-08 13:04 UTC; all other packages retain the 3-day cooldown.
 [tool.uv.exclude-newer-package]
-homeassistant = "2026-11-05T13:04:00Z"
-pytest-homeassistant = "2026-11-05T13:04:00Z"
+homeassistant = "2026-11-05T13:03:50Z"
+pytest-homeassistant = "2026-11-05T13:03:59Z"
 
 [tool.ruff]
 line-length = 88

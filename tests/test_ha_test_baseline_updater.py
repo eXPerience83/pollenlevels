@@ -272,8 +272,8 @@ def test_pyproject_update_retires_old_pair_package_cutoffs() -> None:
         "\n# One-time artifact-bounded waiver for the already pinned HA 2026.11 GA pair.\n"
         "# Remove after 2026-11-08 13:04 UTC; all other packages retain the 3-day cooldown.\n"
         "[tool.uv.exclude-newer-package]\n"
-        'homeassistant = "2026-11-05T13:04:00Z"\n'
-        'pytest-homeassistant = "2026-11-05T13:04:00Z"\n'
+        'homeassistant = "2026-11-05T13:03:50Z"\n'
+        'pytest-homeassistant = "2026-11-05T13:03:59Z"\n'
         "\n[tool.ruff]\nline-length = 88\n"
     )
     updated = update_pyproject(_pyproject() + temporary, _update_plan())
@@ -290,7 +290,7 @@ def test_pyproject_update_retires_old_pair_package_cutoffs() -> None:
         "",
         'packaging = "2026-11-05T13:04:00Z"',
         "homeassistant = false",
-        'homeassistant = "2026-11-05T13:04:00Z"',
+        'homeassistant = "2026-11-05T13:03:50Z"',
     ],
 )
 def test_pyproject_update_rejects_unexpected_package_cutoffs(exception: str) -> None:
@@ -513,8 +513,8 @@ def test_lock_retires_artifact_bounded_pair_exception_on_update(
     )
     pair_exception = (
         "\n[options.exclude-newer-package]\n"
-        'homeassistant = "2026-11-05T13:04:00Z"\n'
-        'pytest-homeassistant = "2026-11-05T13:04:00Z"\n'
+        'homeassistant = "2026-11-05T13:03:50Z"\n'
+        'pytest-homeassistant = "2026-11-05T13:03:59Z"\n'
     )
     before = before.replace(
         "\n[[package]]", cutoff + pair_exception + "\n[[package]]", 1
@@ -538,7 +538,7 @@ def test_lock_retires_artifact_bounded_pair_exception_on_update(
         )
 
     unexpected = before.replace(
-        'homeassistant = "2026-11-05T13:04:00Z"',
+        'homeassistant = "2026-11-05T13:03:50Z"',
         'packaging = "2026-11-05T13:04:00Z"',
     )
     with pytest.raises(UpdaterError, match="package-level cooldown"):
