@@ -13,11 +13,10 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
+from .entity_helpers import add_entities_for_subentry, build_device_info
 from .runtime import PollenLevelsConfigEntry
 from .util import (
     active_location_subentry_ids,
-    coordinator_device_id,
     coordinator_identity_id,
 )
 
@@ -73,13 +72,7 @@ class PollenLevelsUpdateButton(
         super().__init__(coordinator)
         identity_id = coordinator_identity_id(coordinator)
         self._attr_unique_id = f"{identity_id}_update_now"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, coordinator_device_id(coordinator, "meta"))},
-            "manufacturer": "Google",
-            "model": "Pollen API",
-            "translation_key": "info",
-            "translation_placeholders": device_translation_placeholders(coordinator),
-        }
+        self._attr_device_info = build_device_info(coordinator, "meta", "info")
 
     @property
     def available(self) -> bool:

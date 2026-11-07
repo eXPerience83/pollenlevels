@@ -5,7 +5,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from .const import DOMAIN
+from .util import coordinator_device_id
+
 if TYPE_CHECKING:
+    from homeassistant.helpers.device_registry import DeviceInfo
     from homeassistant.helpers.entity import Entity
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -32,4 +36,19 @@ def device_translation_placeholders(
         "title": coordinator.entry_title,
         "latitude": f"{coordinator.lat:.2f}",
         "longitude": f"{coordinator.lon:.2f}",
+    }
+
+
+def build_device_info(
+    coordinator: PollenDataUpdateCoordinator,
+    group: str,
+    translation_key: str,
+) -> DeviceInfo:
+    """Build fresh device info without selecting a group or caching values."""
+    return {
+        "identifiers": {(DOMAIN, coordinator_device_id(coordinator, group))},
+        "manufacturer": "Google",
+        "model": "Pollen API",
+        "translation_key": translation_key,
+        "translation_placeholders": device_translation_placeholders(coordinator),
     }

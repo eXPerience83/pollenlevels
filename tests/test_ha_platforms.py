@@ -13,6 +13,7 @@ from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
+    device_registry as dr,
     entity_platform,
     entity_registry as er,
     issue_registry as ir,
@@ -83,6 +84,52 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
             entity.domain == "button" and entity.config_subentry_id == subentry_id
             for entity in entries
         )
+
+    devices = dr.async_get(hass)
+
+    def registry_snapshot():
+        entities = er.async_entries_for_config_entry(registry, entry.entry_id)
+        device_ids = {entity.device_id for entity in entities if entity.device_id}
+        return (
+            {
+                (
+                    entity.entity_id,
+                    entity.unique_id,
+                    entity.device_id,
+                    entity.config_subentry_id,
+                )
+                for entity in entities
+            },
+            {
+                (
+                    device.id,
+                    frozenset(device.identifiers),
+                    device.config_entry_id,
+                    device.config_subentry_id,
+                )
+                for device_id in device_ids
+                if (device := devices.async_get(device_id)) is not None
+            },
+        )
+
+    before_reload = registry_snapshot()
+    assert len(before_reload[1]) == 6
+    for subentry_id in expected_subentries:
+        assert {
+            (DOMAIN, f"{entry.entry_id}_{subentry_id}_{group}")
+            for group in ("type", "plant", "meta")
+        } == {
+            identifier
+            for _, identifiers, owner, location in before_reload[1]
+            if owner == entry.entry_id and location == subentry_id
+            for identifier in identifiers
+        }
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+    assert registry_snapshot() == before_reload
 
 
 async def test_ha_current_day_pollen_sensors_restore_measurement_state_class(

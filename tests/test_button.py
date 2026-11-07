@@ -153,6 +153,31 @@ def test_button_attributes_use_legacy_identity(
     }
 
 
+def test_button_device_info_remains_precomputed(
+    button_platform: SimpleNamespace,
+) -> None:
+    """Buttons retain their full device info and initial placeholders."""
+    coordinator = _FakeCoordinator()
+    entity = button_platform.module.PollenLevelsUpdateButton(coordinator)
+    original = entity._attr_device_info
+    assert original == {
+        "identifiers": {("pollenlevels", "entry-123_meta")},
+        "manufacturer": "Google",
+        "model": "Pollen API",
+        "translation_key": "info",
+        "translation_placeholders": {
+            "title": "Test Location",
+            "latitude": "40.71",
+            "longitude": "-74.01",
+        },
+    }
+    coordinator.entry_title = "Renamed"
+    coordinator.lat = 3.0
+    assert entity._attr_device_info is original
+    assert original["translation_placeholders"]["title"] == "Test Location"
+    assert original["translation_placeholders"]["latitude"] == "40.71"
+
+
 def test_button_attributes_use_new_subentry_identity(
     button_platform: SimpleNamespace,
 ) -> None:

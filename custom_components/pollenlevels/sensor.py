@@ -32,13 +32,12 @@ if TYPE_CHECKING:
 
 from .const import ATTRIBUTION, DOMAIN
 from .coordinator import PollenDataUpdateCoordinator
-from .entity_helpers import add_entities_for_subentry, device_translation_placeholders
+from .entity_helpers import add_entities_for_subentry, build_device_info
 from .issue_helpers import create_per_day_forecast_sensors_removed_issue
 from .runtime import PollenLevelsConfigEntry, PollenLevelsRuntimeData
 from .summary import daily_summary as _daily_summary
 from .util import (
     active_location_subentry_ids,
-    coordinator_device_id,
     coordinator_identity_id,
 )
 
@@ -331,18 +330,9 @@ class PollenSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity)
             else:
                 group = "meta"
 
-        device_id = coordinator_device_id(self.coordinator, group)
         translation_keys = {"type": "types", "plant": "plants", "meta": "info"}
         translation_key = translation_keys.get(group, "info")
-        return {
-            "identifiers": {(DOMAIN, device_id)},
-            "manufacturer": "Google",
-            "model": "Pollen API",
-            "translation_key": translation_key,
-            "translation_placeholders": device_translation_placeholders(
-                self.coordinator
-            ),
-        }
+        return build_device_info(self.coordinator, group, translation_key)
 
 
 class _BaseSummarySensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity):
@@ -355,17 +345,10 @@ class _BaseSummarySensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorE
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-        device_id = coordinator_device_id(self.coordinator, group)
         translation_keys = {"type": "types", "plant": "plants"}
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, device_id)},
-            "manufacturer": "Google",
-            "model": "Pollen API",
-            "translation_key": translation_keys[group],
-            "translation_placeholders": device_translation_placeholders(
-                self.coordinator
-            ),
-        }
+        self._attr_device_info = build_device_info(
+            self.coordinator, group, translation_keys[group]
+        )
         self._summary_data_ref: object = object()
         self._summary_cache: dict[str, dict[str, Any]] = {}
 
@@ -492,17 +475,8 @@ class _BaseMetaSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEnti
         super().__init__(coordinator)
         self.coordinator = coordinator
 
-        device_id = coordinator_device_id(self.coordinator, "meta")
         # Precompute device_info; location and identifiers are stable for the entry.
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, device_id)},
-            "manufacturer": "Google",
-            "model": "Pollen API",
-            "translation_key": "info",
-            "translation_placeholders": device_translation_placeholders(
-                self.coordinator
-            ),
-        }
+        self._attr_device_info = build_device_info(self.coordinator, "meta", "info")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
