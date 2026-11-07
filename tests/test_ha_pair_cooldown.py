@@ -201,9 +201,9 @@ def test_release_guard_uses_trusted_workflow_revision() -> None:
     from pathlib import Path
 
     workflow = Path(".github/workflows/release.yml").read_text(encoding="utf-8")
-    assert workflow.index("Preserve scoped cooldown guard from trusted workflow revision") < (
-        workflow.index("Check out selected snapshot")
-    )
+    assert workflow.index(
+        "Preserve scoped cooldown guard from trusted workflow revision"
+    ) < (workflow.index("Check out selected snapshot"))
     assert 'git show "$TRUSTED_WORKFLOW_SHA:scripts/ha_pair_cooldown.py"' in workflow
     assert (
         'python "$RUNNER_TEMP/ha_pair_cooldown_trusted.py" check --stable-release-guard'
