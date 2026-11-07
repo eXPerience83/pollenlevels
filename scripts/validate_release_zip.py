@@ -4,6 +4,7 @@ import argparse
 import json
 import ntpath
 import os
+import stat
 import zipfile
 from pathlib import Path
 
@@ -53,6 +54,8 @@ def validate_zip(zip_path: Path, expected_release_tag: str | None) -> None:
         generated: list[str] = []
         for info in zf.infolist():
             name = info.filename
+            if info.create_system == 3 and stat.S_ISLNK(info.external_attr >> 16):
+                raise SystemExit(f"Symlink in release ZIP: {name}")
             if any(part in CACHE_DIRECTORIES for part in name.split("/")):
                 generated.append(name)
             if not info.is_dir() and name.endswith((".pyc", ".pyo")):
@@ -81,6 +84,10 @@ def validate_zip(zip_path: Path, expected_release_tag: str | None) -> None:
         missing: list[str] = sorted(REQUIRED_FILES - file_names)
         if missing:
             raise SystemExit("ZIP missing required root files: " + ", ".join(missing))
+
+        corrupt = zf.testzip()
+        if corrupt is not None:
+            raise SystemExit(f"Corrupt ZIP member: {corrupt}")
 
         print("ZIP structure validated.")
 
