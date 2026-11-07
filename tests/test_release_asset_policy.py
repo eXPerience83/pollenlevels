@@ -99,3 +99,31 @@ def test_finalization_is_manual_trusted_main_only():
     assert names.index("Enforce reviewed main preparation policy") < names.index(
         "Check out selected snapshot"
     )
+
+
+def test_finalization_invokes_remote_checks_and_post_upload_digest_guard():
+    steps = _workflow()["jobs"]["finalize-release"]["steps"]
+    named = {s["name"]: s for s in steps}
+    assert (
+        "python scripts/release_main_policy.py --finalize"
+        in named["Recheck main and required checks before writes"]["run"]
+    )
+    assert (
+        "python scripts/release_main_policy.py --verify-asset " + ZIP_NAME
+        in named["Verify final draft asset before reporting success"]["run"]
+    )
+    names = [s["name"] for s in steps]
+    assert (
+        names.index("Update draft release asset")
+        < names.index("Verify final draft asset before reporting success")
+        < names.index("Write release summary")
+    )
+
+
+def test_lint_checks_the_event_sha_without_an_override_input():
+    workflow = yaml.load(
+        Path(".github/workflows/lint.yml").read_text(), Loader=yaml.BaseLoader
+    )
+    assert not workflow["on"]["workflow_dispatch"]
+    checkout = workflow["jobs"]["lint"]["steps"][0]
+    assert checkout["with"]["ref"] == "${{ github.sha }}"

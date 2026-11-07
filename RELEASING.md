@@ -234,9 +234,9 @@ enabled. For stable releases, ensure it is disabled.
 
 An existing draft ZIP is reused only when GitHub reports the same SHA-256.
 Missing assets may be added; different or unverifiable assets fail closed and
-are never overwritten. Notes are preserved. A tag or draft target pointing to
-another commit remains a hard failure. Published releases are never repaired
-by this workflow.
+are never overwritten. Notes are preserved. An existing tag must point to the
+validated commit. Without a tag, the draft target_commitish must equal that SHA.
+Published releases are never repaired by this workflow.
 
 Do not manually move or delete a release tag to bypass validation.
 
@@ -302,3 +302,9 @@ only when GitHub reports the same SHA-256; an unverifiable or different asset
 is never overwritten. Published events only check asset presence and cannot
 repair or replace assets. Older tags retain their historical workflow code;
 this policy does not retroactively attest those releases.
+
+Before reporting success, finalization rereads the remote draft and all assets
+and requires the validated SHA-256 and prerelease classification. A concurrent
+upload skipped by the action cannot masquerade as a successful validated ZIP.
+Lint always checks the triggering SHA; manual runs select their workflow branch
+without a separate checkout override that could mislabel another commit's check.

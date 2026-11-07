@@ -747,6 +747,22 @@ jobs:
           overwrite_files: false
           fail_on_unmatched_files: true
 
+      - name: Verify final draft asset before reporting success
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SELECTED_COMMIT: ${{ needs.validate-release.outputs.release_commit }}
+          TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_REF: ${{ github.ref }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+          PRERELEASE: ${{ needs.validate-release.outputs.prerelease }}
+          ZIP_SHA256: ${{ needs.validate-release.outputs.zip_sha256 }}
+        run: |
+          set -euo pipefail
+          python scripts/release_main_policy.py --verify-asset pollenlevels.zip
+
       - name: Write release summary
         if: needs.validate-release.outputs.event_mode == 'prepare'
         shell: bash

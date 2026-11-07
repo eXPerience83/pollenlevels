@@ -6,6 +6,7 @@ from scripts.release_main_policy import (
     REQUIRED_CHECKS,
     ReleasePolicyError,
     validate_checks,
+    validate_draft_asset,
     validate_snapshot,
 )
 
@@ -76,3 +77,40 @@ def test_missing_failed_pending_or_spoofed_checks_rejected(mutation):
         pages.append({"check_runs": [dict(check, id=100, status="in_progress")]})
     with pytest.raises(ReleasePolicyError):
         validate_checks(pages, SHA)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["none", "different", "missing", "duplicate", "published", "channel", "tag"],
+)
+def test_post_upload_validation_detects_concurrent_changes(mutation):
+    asset = {
+        "name": "integration.zip",
+        "state": "uploaded",
+        "digest": "sha256:" + "b" * 64,
+    }
+    release = {
+        "draft": True,
+        "tag_name": "v1.0.0b1",
+        "prerelease": True,
+        "assets": [asset],
+    }
+    if mutation == "different":
+        asset["digest"] = "sha256:" + "c" * 64
+    elif mutation == "missing":
+        release["assets"] = []
+    elif mutation == "duplicate":
+        release["assets"].append(asset)
+    elif mutation == "published":
+        release["draft"] = False
+    elif mutation == "channel":
+        release["prerelease"] = False
+    elif mutation == "tag":
+        release["tag_name"] = "v2.0.0"
+    if mutation == "none":
+        validate_draft_asset(release, "integration.zip", "b" * 64, "v1.0.0b1", "true")
+    else:
+        with pytest.raises(ReleasePolicyError):
+            validate_draft_asset(
+                release, "integration.zip", "b" * 64, "v1.0.0b1", "true"
+            )
