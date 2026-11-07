@@ -433,16 +433,15 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
         # Forecast for TYPES
         for tcode in sorted(type_codes):
             type_key = f"type_{tcode.lower()}"
-            existing = new_data.get(type_key)
+            existing = new_data[type_key]
             needs_skeleton = (
-                existing.get("source") == "type"
-                and existing.get("value") is None
+                existing.get("value") is None
                 and existing.get("category") is None
                 and existing.get("description") is None
                 and existing.get("color_hex") is None
                 and existing.get("color_rgb") is None
             )
-            base = existing or {}
+            base = existing
             if needs_skeleton:
                 base = {
                     "source": "type",
@@ -456,7 +455,6 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
                     "color_rgb": None,
                 }
 
-                candidate = None
                 for day_idx, _day_data in enumerate(daily):
                     candidate = type_by_day_code[day_idx].get(tcode)
                     if isinstance(candidate, dict):
@@ -473,7 +471,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
 
         # Forecast for PLANTS (attributes only; no per-day plant sensors)
         for key in plant_keys:
-            base = new_data.get(key) or {}
+            base = new_data[key]
             pcode = _normalize_plant_code(base.get("code"))
 
             forecast_list = _build_forecast_list(
