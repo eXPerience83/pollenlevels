@@ -127,3 +127,51 @@ def test_lint_checks_the_event_sha_without_an_override_input():
     assert not workflow["on"]["workflow_dispatch"]
     checkout = workflow["jobs"]["lint"]["steps"][0]
     assert checkout["with"]["ref"] == "${{ github.sha }}"
+
+
+def test_release_zip_is_identical_across_timezones(tmp_path):
+    """The Docker timezone must not alter ZIP bytes relative to Actions UTC."""
+    workflow = _workflow()
+    build = next(
+        s
+        for s in workflow["jobs"]["validate-release"]["steps"]
+        if s["name"] == "Build release ZIP (integration root at ZIP root)"
+    )
+    domain = ZIP_NAME.removesuffix(".zip")
+    integration = tmp_path / "custom_components" / domain
+    integration.mkdir(parents=True)
+    (integration / "payload.txt").write_text("same committed payload\n")
+    env = {
+        "PATH": "/usr/bin:/bin",
+        "GIT_AUTHOR_DATE": "2026-11-07T12:34:56Z",
+        "GIT_COMMITTER_DATE": "2026-11-07T12:34:56Z",
+    }
+    for command in (
+        ["git", "init", "-q"],
+        ["git", "add", "."],
+        [
+            "git",
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-qm",
+            "fixture",
+        ],
+    ):
+        subprocess.run(command, cwd=tmp_path, env=env, check=True, capture_output=True)
+    sha = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, env=env, text=True
+    ).strip()
+    outputs = []
+    for zone in ("UTC", "Pacific/Honolulu"):
+        subprocess.run(
+            ["bash", "-c", build["run"]],
+            cwd=tmp_path,
+            env=dict(env, RELEASE_COMMIT=sha, TZ=zone),
+            check=True,
+            capture_output=True,
+        )
+        outputs.append((tmp_path / ZIP_NAME).read_bytes())
+    assert outputs[0] == outputs[1]
