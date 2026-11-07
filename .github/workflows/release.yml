@@ -470,7 +470,7 @@ jobs:
         run: |
           set -euo pipefail
           commit_time="$(git show -s --format=%cI "$RELEASE_COMMIT")"
-          git archive --format=zip --mtime="$commit_time" --output=pollenlevels.zip \
+          TZ=UTC git archive --format=zip --mtime="$commit_time" --output=pollenlevels.zip \
             "${RELEASE_COMMIT}:custom_components/pollenlevels"
 
       - name: Validate ZIP package
