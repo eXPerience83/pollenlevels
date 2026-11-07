@@ -104,6 +104,22 @@ Updater PRs use `GITHUB_TOKEN`, which does not trigger their normal PR workflows
 A repository writer must close and reopen the PR to trigger required CI, then
 review the exact checked HEAD before merging. Never bypass required checks.
 
+### Validation-only dry run (recommended before beta/RC publication)
+
+In **Actions → Release → Run workflow**, select workflow branch `main`, set
+`dry_run = true`, and provide a reviewed `release_ref` (prefer an exact
+40-character commit SHA). The workflow performs the same selected-snapshot
+version, locked environment, coverage, security-relevant packaging and ZIP
+validation, then uploads `pollenlevels.zip` as a short-lived workflow artifact
+and prints its SHA-256. It **does not** create a tag, GitHub Release draft or
+published release; it cannot make a beta appear in Marketplace.
+
+The existing prerelease dependency-cooldown input remains separately controlled
+and requires its reason and exact full SHA. A dry run does not waive the 72-hour
+policy, replace the reviewed normal-policy lock or establish historical
+Registry/Recorder migration acceptance. Review the workflow artifact and all
+required checks, then run the actual draft-first Release independently.
+
 ## 1. Prepare a release pull request (recommended)
 
 For normal stable releases, a release-only pull request is recommended. It
