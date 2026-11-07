@@ -576,9 +576,9 @@ jobs:
           set -euo pipefail
           {
             echo "## Dry-run release validation complete"
-            echo "- Intended tag: `$RELEASE_TAG` (not created)"
-            echo "- Validated commit: `$RELEASE_COMMIT`"
-            echo "- ZIP SHA-256: `$ZIP_SHA256`"
+            printf '%s\n' "- Intended tag: $RELEASE_TAG (not created)"
+            printf '%s\n' "- Validated commit: $RELEASE_COMMIT"
+            printf '%s\n' "- ZIP SHA-256: $ZIP_SHA256"
             echo "- Validated ZIP: workflow artifact pollenlevels-release-asset (1-day retention)"
             echo "- No tag or release draft was created."
           } >> "$GITHUB_STEP_SUMMARY"
