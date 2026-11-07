@@ -16,9 +16,12 @@ never applies GitHub settings. Recheck the live API after any settings change.
   administrator bypass restricted to PRs. This is not an independent-review
   guarantee. Maintainers must review the exact checked HEAD and must not use
   bypass to merge failed or incomplete CI. No workflow may merge its own PR.
-- Default `GITHUB_TOKEN` permission is read; workflow PR approvals are disabled;
-  full action SHA pinning is required by the repository setting. Only draft
-  finalization and the reviewed updater publisher receive explicit write scope.
+- Default `GITHUB_TOKEN` permission is read and full action SHA pinning is
+  required. GitHub's combined "create and approve pull requests" setting stays
+  enabled because the updater needs to create PRs; it is not an approval-only
+  toggle. Only the separate updater publisher receives `pull-requests: write`.
+  No workflow approves or merges PRs. Draft finalization has contents write
+  scope, but publication is manual.
 - [Release tag rules](./protect-release-tags-ruleset.json) forbid updating or
   deleting `v*` tags, with no bypass actors. Tag creation remains available only
   through the reviewed release procedure; the ruleset does not itself restrict
@@ -56,3 +59,6 @@ cross-repository reusable workflow or routine minimum-graph updates.
 
 See [GitHub immutable-release documentation](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes)
 and [RELEASING.md](../RELEASING.md).
+
+GitHub couples PR creation and approval in [one repository setting](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#preventing-github-actions-from-creating-or-approving-pull-requests).
+Do not disable it while the reviewed updater uses `GITHUB_TOKEN` to create PRs.
