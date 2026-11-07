@@ -293,3 +293,18 @@ after publication do not necessarily require a new release.
 - [ ] Stable v5 HA 2026.11.0 floor and official pytest pair were checked.
 - [ ] Existing Registry/Recorder/statistics migration and backup recovery are verified.
 - [ ] CodeRabbit and full candidate CodeQL/CI/security review are complete.
+
+## Independent minimum compatibility graph
+
+The HA 2026.11.0 floor is tested on every PR and main push and weekly/manual
+runs using `.github/requirements/minimum-ha.txt` with `uv pip sync
+--require-hashes`. It was exported from the reviewed Pollen lock without
+resolving new versions. `.in` records the fixed direct inputs. The temporary
+`UV_EXCLUDE_NEWER=false` in this installation step permits only these already
+reviewed hashes; it cannot resolve newer packages. `uv pip check`, the full
+official harness suite and Pollen's coverage gates remain mandatory.
+
+This graph stays independent of future baseline updates. Renovate must not
+refresh it automatically. Any deliberate refresh needs a separate reviewed
+change preserving the declared HA floor, exact input pins and complete hashes;
+never regenerate it from a newer baseline lock as routine maintenance.
