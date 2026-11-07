@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [main, prep/5.0-ha-2026.10.4]
   workflow_dispatch:
-    inputs:
-      ref:
-        description: "Branch/commit to lint (optional)"
-        required: false
-        default: ""
 
 permissions:
   contents: read
@@ -28,7 +23,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.ref || github.ref }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up Python

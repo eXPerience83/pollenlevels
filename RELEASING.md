@@ -2,18 +2,15 @@
 
 ## Release model
 
-Draft-first preparation is the recommended release path. An emergency
-post-publication fallback is also supported, while publication itself is always
-initiated manually by a maintainer.
+Draft-first preparation is the release path. Publication is always initiated
+manually by a maintainer after the workflow completes.
 
-Only trusted maintainers with write access should dispatch Release. The workflow
-definition runs from `main`, while `release_ref` intentionally permits an
-unmerged same-repository branch, tag, or SHA for prerelease, express, and
-historical-snapshot releases; branch protection on `main` does not review it.
-Pull-request pseudo-refs and Git revision expressions are rejected. A full SHA
-must be reachable from a normal repository branch or tag; unmerged
-same-repository branches remain supported, and ancestry from `main` is not
-required.
+Only trusted maintainers should dispatch Release, using workflow branch `main`.
+Draft preparation selects the exact workflow main commit and rechecks its CI.
+Other same-repository branches, tags and historical SHAs are supported only for
+`dry_run=true`, with read-only validation. Pull-request pseudo-refs and revision
+expressions are rejected; full SHAs must be reachable from a repository branch
+or tag. A successful unmerged rehearsal does not authorize publication.
 
 ## Home Assistant 2026.11 and Marketplace release gate
 
@@ -80,14 +77,11 @@ printable, single-line reason of 15–200 characters. Reasons are displayed as
 literal text in the run summary and, for updater PRs, in the PR body, including
 when the selected HA/pytest pair is already mature.
 
-For Release, set `bypass_dependency_cooldown` and supply `release_ref` as the
-full selected commit SHA. Only alpha, beta and RC versions qualify. A lock with
-no cutoff is validated with `UV_EXCLUDE_NEWER=false`; a lock already recording
-uv 0.13.5's relative three-day cutoff retains that policy. Other cutoff formats
-fail closed and require normal validation. Release never rewrites the lock or
-replaces `--locked` with `--frozen`. All tests, coverage and ZIP checks still run,
-and non-dry-run output remains a draft that must be reviewed as a prerelease.
-With `dry_run=true`, no draft is created.
+Release has no global cooldown bypass. Prepare an early official pair through
+the reviewed baseline updater's two artifact-bounded cutoffs. Every modern
+snapshot must pass the trusted source/lock policy and locked validation; stable
+releases reject any remaining exception. Historical legacy rehearsal retains
+its explicitly reported pip-based limitations and cannot prepare a draft.
 
 For the baseline updater, `override_cooldown` waives maturity only for the
 exact official Home Assistant / pytest-homeassistant pair. Absolute UTC cutoffs
@@ -115,9 +109,8 @@ validation, then uploads `pollenlevels.zip` as a short-lived workflow artifact
 and prints its SHA-256. It **does not** create a tag, GitHub Release draft or
 published release; it cannot make a beta appear in Marketplace.
 
-The existing prerelease dependency-cooldown input remains separately controlled
-and requires its reason and exact full SHA. A dry run does not waive the 72-hour
-policy, replace the reviewed normal-policy lock or establish historical
+A dry run does not waive the 72-hour policy, replace the reviewed normal-policy
+lock or establish historical
 Registry/Recorder migration acceptance. Review the workflow artifact and all
 required checks, then run the actual draft-first Release independently.
 
@@ -183,30 +176,17 @@ Review the draft and publish manually. The resulting `release: published` run
 detects the existing `pollenlevels.zip` and exits successfully without
 replacing it.
 
-Specific snapshot:
+Specific snapshot rehearsal:
 
-Enter a branch, tag, or full commit SHA in `release_ref`. The workflow resolves
-it to an exact commit; validation, packaging, tagging, and draft preparation
-all use that SHA.
+Set `dry_run=true` and enter a branch, tag or full SHA in `release_ref`. The
+workflow resolves it once and uses that commit for validation and packaging.
+No tag, draft or release is created. To prepare an alpha, beta or RC draft,
+merge the reviewed version PR, wait for main CI, then dispatch from main with
+`dry_run=false` and an empty `release_ref` (or that exact workflow main SHA).
 
-For a specific snapshot, enter only `release_ref`; no separate version or
-release-tag field is required. The workflow reads and validates both version
-files, validates the selected snapshot, runs tests, builds and validates the
-ZIP, and prepares a draft for the derived tag.
-
-Validation, ZIP construction, tag creation, draft creation, and the workflow
-summary all use the resolved commit. The workflow creates the derived tag
-automatically after validation, never moves or force-updates tags, and does not
-require manual tag creation. A matching tag can remain after a failed draft
-creation attempt; a rerun reuses it safely. Prepare mode refuses to alter an
-already published release; published-fallback mode may attach exactly one
-missing ZIP without replacing an existing ZIP, moving a tag, or changing release
-metadata. External fork refs are not supported.
-
-RC, alpha, beta, dev, preview, and test snapshots may be prepared from an
-unmerged same-repository branch: run the workflow from `main`, enter that
-branch or commit in `release_ref`, confirm both version files contain the
-intended prerelease version, and verify GitHub marks the draft as a prerelease.
+Draft preparation creates the derived tag after validation, never moves tags,
+and refuses already published releases. A matching tag left by an interrupted
+run may be reused. Published-event observers never add missing assets.
 
 ## 4. Review the draft
 
@@ -226,18 +206,12 @@ intended prerelease version, and verify GitHub marks the draft as a prerelease.
 - Confirm no unexpected asset is present.
 - Confirm the workflow completed successfully.
 
-## Emergency published fallback
+## Published-event observer
 
-A trusted maintainer may manually create a tag and publish a GitHub release.
-The `release: published` event starts the same Release workflow. When
-`pollenlevels.zip` is absent, it validates the tagged snapshot, builds and
-validates the ZIP, and attaches it. The release is already public while this
-runs, so a failure leaves a public release requiring maintainer action.
-
-Prepare mode refuses to alter an already published release. Published-fallback
-mode may attach exactly one missing `pollenlevels.zip`, but never moves a tag,
-replaces an existing ZIP, or changes release metadata. Draft-first remains the
-recommended path; the published fallback is for exceptional use.
+The `release: published` event checks that the expected ZIP is present. Missing
+or duplicate assets fail for manual investigation; no automatic repair runs.
+Older tags retain their historical workflow code and are not retroactively
+attested by this policy. Always finish draft preparation before publication.
 
 ## 5. Publish
 
@@ -258,11 +232,11 @@ enabled. For stable releases, ensure it is disabled.
 
 ## Recovery and reruns
 
-Rerunning Release in draft-first mode before publication replaces the ZIP asset
-on an existing draft while preserving manually edited notes. Prepare mode
-refuses already published releases; a `release: published` fallback run may
-attach one missing ZIP. A tag or draft target pointing to another commit remains
-a hard failure.
+An existing draft ZIP is reused only when GitHub reports the same SHA-256.
+Missing assets may be added; different or unverifiable assets fail closed and
+are never overwritten. Notes are preserved. An existing tag must point to the
+validated commit. Without a tag, the draft target_commitish must equal that SHA.
+Published releases are never repaired by this workflow.
 
 Do not manually move or delete a release tag to bypass validation.
 
@@ -279,10 +253,10 @@ after publication do not necessarily require a new release.
 - [ ] Release lock synchronization introduced no unrelated dependency, hash,
       source, resolution-marker, or other lock metadata changes.
 - [ ] Changelog is complete.
-- [ ] If a release PR was used, its checks are green.
-- [ ] If a release PR was used, it was squash merged.
-- [ ] Release completed through either the draft-first or emergency fallback route.
-- [ ] For draft-first releases, draft review is complete.
+- [ ] The release PR and exact main commit have successful required checks.
+- [ ] The reviewed release PR was squash merged.
+- [ ] Draft-first Release completed successfully.
+- [ ] Draft review is complete.
 - [ ] `pollenlevels.zip` is attached before Marketplace verification.
 - [ ] Prerelease status is correct.
 - [ ] The release was published manually.
@@ -308,3 +282,29 @@ This graph stays independent of future baseline updates. Renovate must not
 refresh it automatically. Any deliberate refresh needs a separate reviewed
 change preserving the declared HA floor, exact input pins and complete hashes;
 never regenerate it from a newer baseline lock as routine maintenance.
+
+## Reviewed main preparation and immutable retries
+
+Dispatch Release from `main`. A non-dry run must select the exact main commit
+that supplied the workflow. Other branch, tag and historical references are
+validation-only (`dry_run=true`). A future beta can therefore be rehearsed by
+exact SHA without creating a tag, draft or published asset. Merge its reviewed
+PR and wait for main CI before preparing its draft.
+
+Immediately before writes, trusted workflow code checks that main has not moved
+and that the latest GitHub Actions results for all eight required jobs on that
+exact SHA are successful. Missing, pending and failed reruns fail closed.
+Release uses no dependency cache. Publication remains a separate manual step;
+wait for the entire workflow to finish before publishing or editing the draft.
+
+ZIP timestamps come from the selected commit. An existing draft ZIP is reused
+only when GitHub reports the same SHA-256; an unverifiable or different asset
+is never overwritten. Published events only check asset presence and cannot
+repair or replace assets. Older tags retain their historical workflow code;
+this policy does not retroactively attest those releases.
+
+Before reporting success, finalization rereads the remote draft and all assets
+and requires the validated SHA-256 and prerelease classification. A concurrent
+upload skipped by the action cannot masquerade as a successful validated ZIP.
+Lint always checks the triggering SHA; manual runs select their workflow branch
+without a separate checkout override that could mislabel another commit's check.

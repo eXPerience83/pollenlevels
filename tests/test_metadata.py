@@ -8,7 +8,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 import textwrap
 import tomllib
 from importlib import metadata
@@ -569,22 +568,11 @@ def test_shell_command_detection_uses_command_boundaries() -> None:
     assert not _shell_invokes_command("jq --arg result value .\n", "rg")
 
 
-def test_release_cooldown_override_is_explicit_and_prerelease_only() -> None:
-    """Release still requires a full SHA and retains all locked quality gates."""
+def test_release_cannot_disable_dependency_cooldown() -> None:
     workflow = _read_text(WORKFLOWS_PATH / "release.yml")
-    guard = _workflow_step(
-        workflow, "Authorize manual prerelease dependency cooldown override"
-    )
-    assert workflow.count("UV_EXCLUDE_NEWER=false") == 1
-    assert "UV_EXCLUDE_NEWER=false" in guard
-    assert (
-        "github.event_name == 'workflow_dispatch' && inputs.bypass_dependency_cooldown"
-        in guard
-    )
-    assert "VALIDATION_MODE" in guard and "modern" in guard
-    assert "RELEASE_REF" in guard and "VALIDATED_COMMIT" in guard
-    assert "OVERRIDE_REASON" in guard
-    assert "(a|b|rc)" in guard
+    assert "UV_EXCLUDE_NEWER" not in workflow
+    assert "bypass_dependency_cooldown" not in workflow
+    assert "ha_pair_cooldown_trusted.py" in workflow
     assert "uv lock --check" in workflow
     assert "uv sync --locked --only-group release" in workflow
     assert "draft: true" in workflow
@@ -857,7 +845,7 @@ def test_release_enforces_selected_modern_snapshot_coverage() -> None:
         in step
     )
     assert (
-        """if [[ "$release_version" == 5.* && "$release_version" != "5.0.0a1" ]]"""
+        """if [[ "$DRY_RUN" != "true" || ( "$release_version" == 5.* && "$release_version" != "5.0.0a1" ) ]]"""
         in step
     )
     assert '''ha_floor="$(jq -r '.homeassistant // empty' hacs.json)"''' in step
@@ -999,7 +987,6 @@ def test_faq_documents_privacy_and_retention_guidance() -> None:
 @pytest.mark.parametrize(
     "workflow_name,step_name",
     [
-        ("release.yml", "Authorize manual prerelease dependency cooldown override"),
         ("ha-test-baseline-updater.yml", "Authorize manual package cooldown override"),
     ],
 )
@@ -1046,121 +1033,6 @@ def test_cooldown_reason_guard_executes(
         assert f"<pre>{html.escape(reason)}</pre>" in (tmp_path / "summary").read_text()
     else:
         assert not (tmp_path / "env").exists()
-
-
-@pytest.mark.parametrize(
-    "changes,accepted",
-    [
-        ({"WORKFLOW_REF": "refs/heads/feature"}, False),
-        ({"VALIDATION_MODE": "legacy"}, False),
-        ({"RELEASE_REF": "main"}, False),
-        ({"RELEASE_REF": "b" * 40}, False),
-        ({"RELEASE_REF": "A" * 40}, True),
-    ],
-)
-def test_release_override_authorization_executes(tmp_path, changes, accepted):
-    manifest = tmp_path / "custom_components/pollenlevels/manifest.json"
-    manifest.parent.mkdir(parents=True)
-    manifest.write_text('{"version":"5.0.0a2"}')
-    (tmp_path / "uv.lock").write_text("version = 1\n")
-    env = dict(
-        os.environ,
-        WORKFLOW_REF="refs/heads/main",
-        RELEASE_REF="a" * 40,
-        VALIDATED_COMMIT="a" * 40,
-        VALIDATION_MODE="modern",
-        OVERRIDE_REASON="Explicit alpha validation",
-        GITHUB_ENV=str(tmp_path / "env"),
-        GITHUB_STEP_SUMMARY=str(tmp_path / "summary"),
-    )
-    env.update(changes)
-    result = _run_bash(
-        _workflow_run_script(
-            _read_text(WORKFLOWS_PATH / "release.yml"),
-            "Authorize manual prerelease dependency cooldown override",
-        ),
-        tmp_path,
-        env,
-    )
-    assert (result.returncode == 0) == accepted, result.stderr
-
-
-@pytest.mark.parametrize(
-    "version,accepted",
-    [
-        ("5.0.0RC1", True),
-        ("5.0.0B2", True),
-        ("5.0.0a2", True),
-        ("5.0.0", False),
-        ("5.0.0.dev1", False),
-    ],
-)
-def test_release_override_prerelease_guard(tmp_path, version, accepted):
-    manifest = tmp_path / "custom_components/pollenlevels/manifest.json"
-    manifest.parent.mkdir(parents=True)
-    manifest.write_text(json.dumps({"version": version}))
-    (tmp_path / "uv.lock").write_text("version = 1\n")
-    env = dict(
-        os.environ,
-        WORKFLOW_REF="refs/heads/main",
-        RELEASE_REF="a" * 40,
-        VALIDATED_COMMIT="a" * 40,
-        VALIDATION_MODE="modern",
-        OVERRIDE_REASON="Explicit alpha validation",
-        GITHUB_ENV=str(tmp_path / "env"),
-        GITHUB_STEP_SUMMARY=str(tmp_path / "summary"),
-    )
-    result = _run_bash(
-        _workflow_run_script(
-            _read_text(WORKFLOWS_PATH / "release.yml"),
-            "Authorize manual prerelease dependency cooldown override",
-        ),
-        tmp_path,
-        env,
-    )
-    assert (result.returncode == 0) == accepted, result.stderr
-
-
-@pytest.mark.parametrize(
-    "cutoff,expected",
-    [
-        ("", "UV_EXCLUDE_NEWER=false\n"),
-        (
-            '[options]\nexclude-newer="0001-01-01T00:00:00Z"\nexclude-newer-span="P3D"\n',
-            "UV_EXCLUDE_NEWER=3 days\n",
-        ),
-        ('[options]\nexclude-newer-span="P1D"\n', None),
-    ],
-)
-def test_release_override_preserves_reviewed_lock_policy(tmp_path, cutoff, expected):
-    manifest = tmp_path / "custom_components/pollenlevels/manifest.json"
-    manifest.parent.mkdir(parents=True)
-    manifest.write_text('{"version":"5.0.0a2"}')
-    lock = tmp_path / "uv.lock"
-    lock.write_text("version = 1\n" + cutoff)
-    original = lock.read_bytes()
-    env = dict(
-        os.environ,
-        WORKFLOW_REF="refs/heads/main",
-        RELEASE_REF="a" * 40,
-        VALIDATED_COMMIT="a" * 40,
-        VALIDATION_MODE="modern",
-        OVERRIDE_REASON="Explicit alpha validation",
-        GITHUB_ENV=str(tmp_path / "env"),
-        GITHUB_STEP_SUMMARY=str(tmp_path / "summary"),
-    )
-    result = _run_bash(
-        _workflow_run_script(
-            _read_text(WORKFLOWS_PATH / "release.yml"),
-            "Authorize manual prerelease dependency cooldown override",
-        ),
-        tmp_path,
-        env,
-    )
-    assert (result.returncode == 0) == (expected is not None), result.stderr
-    if expected:
-        assert (tmp_path / "env").read_text() == expected
-    assert lock.read_bytes() == original
 
 
 @pytest.mark.parametrize("override", [False, True])
@@ -1245,73 +1117,6 @@ def test_updater_passes_override_to_planner_only_when_manual(
     )
     assert result.returncode == 0, result.stderr
     assert ("--override-cooldown" in (tmp_path / "args").read_text()) == expected
-
-
-def test_release_override_with_real_uv_cutoff_lock(tmp_path):
-    """Reproduce cutoff invalidation and run the fixed guard with pinned uv."""
-    uv = os.environ.get("UV", "uv")
-    _require_commands(uv)
-    uv_version = subprocess.run(
-        [uv, "--version"], capture_output=True, text=True, check=True
-    ).stdout
-    if not uv_version.startswith("uv 0.13.5 "):
-        pytest.skip("Requires the repository's uv 0.13.5 executable")
-    (tmp_path / ".python-version").write_text("3.14.7\n")
-    (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname="cutoff-regression"\nversion="0.0.0"\nrequires-python=">=3.14"\n[tool.uv]\nrequired-version="==0.13.5"\nexclude-newer="3 days"\n'
-    )
-    env = dict(os.environ)
-    env.pop("UV_EXCLUDE_NEWER", None)
-    env["UV_PYTHON"] = sys.executable
-    subprocess.run(
-        [uv, "lock", "--offline"],
-        cwd=tmp_path,
-        env=env,
-        check=True,
-        capture_output=True,
-    )
-    original = (tmp_path / "uv.lock").read_bytes()
-    broken = subprocess.run(
-        [uv, "lock", "--check", "--offline"],
-        cwd=tmp_path,
-        env=dict(env, UV_EXCLUDE_NEWER="false"),
-        capture_output=True,
-        text=True,
-    )
-    assert broken.returncode != 0
-    assert "removal of global exclude newer" in broken.stderr
-    manifest = tmp_path / "custom_components/pollenlevels/manifest.json"
-    manifest.parent.mkdir(parents=True)
-    manifest.write_text('{"version":"5.0.0a2"}')
-    env.update(
-        WORKFLOW_REF="refs/heads/main",
-        RELEASE_REF="a" * 40,
-        VALIDATED_COMMIT="a" * 40,
-        VALIDATION_MODE="modern",
-        OVERRIDE_REASON="Explicit alpha validation",
-        GITHUB_ENV=str(tmp_path / "env"),
-        GITHUB_STEP_SUMMARY=str(tmp_path / "summary"),
-    )
-    result = _run_bash(
-        _workflow_run_script(
-            _read_text(WORKFLOWS_PATH / "release.yml"),
-            "Authorize manual prerelease dependency cooldown override",
-        ),
-        tmp_path,
-        env,
-    )
-    assert result.returncode == 0, result.stderr
-    key, value = (tmp_path / "env").read_text().strip().split("=", 1)
-    env[key] = value
-    fixed = subprocess.run(
-        [uv, "lock", "--check", "--offline"],
-        cwd=tmp_path,
-        env=env,
-        capture_output=True,
-        text=True,
-    )
-    assert fixed.returncode == 0, fixed.stderr
-    assert (tmp_path / "uv.lock").read_bytes() == original
 
 
 def test_release_keeps_prerelease_classification_when_reusing_draft() -> None:
