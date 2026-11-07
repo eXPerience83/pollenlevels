@@ -243,8 +243,8 @@ def update_pyproject(text: str, plan: BaselinePlan) -> str:
         result = result.replace(old_comment, new_comment, 1)
     project = tomllib.loads(result)
     uv = project.get("tool", {}).get("uv", {})
-    pair_cutoff = uv.get("exclude-newer-package", {})
-    if pair_cutoff:
+    pair_cutoff = uv.get("exclude-newer-package")
+    if pair_cutoff is not None:
         if (
             not isinstance(pair_cutoff, dict)
             or set(pair_cutoff) != set(TARGET_PACKAGES)

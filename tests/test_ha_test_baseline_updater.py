@@ -287,6 +287,7 @@ def test_pyproject_update_retires_old_pair_package_cutoffs() -> None:
 @pytest.mark.parametrize(
     "exception",
     [
+        "",
         'packaging = "2026-11-05T13:04:00Z"',
         "homeassistant = false",
         'homeassistant = "2026-11-05T13:04:00Z"',
@@ -295,6 +296,13 @@ def test_pyproject_update_retires_old_pair_package_cutoffs() -> None:
 def test_pyproject_update_rejects_unexpected_package_cutoffs(exception: str) -> None:
     """Do not mutate arbitrary package cooldown policies."""
     source = _pyproject() + "\n[tool.uv.exclude-newer-package]\n" + exception + "\n"
+    with pytest.raises(UpdaterError, match="package-level cooldown"):
+        update_pyproject(source, _update_plan())
+
+
+def test_pyproject_update_rejects_non_table_package_cutoff() -> None:
+    """An explicit non-table package cutoff must fail closed."""
+    source = _pyproject() + "\nexclude-newer-package = false\n"
     with pytest.raises(UpdaterError, match="package-level cooldown"):
         update_pyproject(source, _update_plan())
 
