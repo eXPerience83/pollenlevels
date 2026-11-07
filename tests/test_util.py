@@ -260,6 +260,57 @@ def test_redact_sensitive_values_redacts_payload_line_without_swallowing_followi
     assert "location.latitude=***" in redacted
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, ""),
+        (
+            b"synthetic-40.4168-key at 40.416800, -3.703800; \xff",
+            "*** at ***, ***; \ufffd",
+        ),
+        (
+            {"api_key": "synthetic-40.4168-key", "other": ["41.387400", "2.168600"]},
+            "{'api_key': '***', 'other': ['***', '***']}",
+        ),
+        (
+            "synthetic-40.4168-key 40.416800 -3.703800 41.387400 2.168600 number=140.4168",
+            "*** *** *** *** *** number=140.4168",
+        ),
+        (
+            "key=another-synthetic-key location.latitude=40.4168\npayload=hidden\nHTTP 400 days=5",
+            "key=*** location.latitude=***\npayload=***\nHTTP 400 days=5",
+        ),
+    ],
+)
+def test_redact_sensitive_text_for_locations_preserves_existing_output(
+    util_module, value, expected
+):
+    """Preserve characterized output, key-first ordering and numeric boundaries."""
+    assert (
+        util_module.redact_sensitive_text_for_locations(
+            value,
+            api_key="synthetic-40.4168-key",
+            coordinate_pairs=[(40.4168, -3.7038), (41.3874, 2.1686)],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize("coordinate_pairs", [[], (), [(None, None)]])
+def test_redact_sensitive_text_for_locations_without_coordinates(
+    util_module, coordinate_pairs
+):
+    """Absent coordinates retain key redaction and ordinary support text."""
+    assert (
+        util_module.redact_sensitive_text_for_locations(
+            "synthetic-key HTTP 400 days=5",
+            api_key="synthetic-key",
+            coordinate_pairs=coordinate_pairs,
+        )
+        == "*** HTTP 400 days=5"
+    )
+
+
 def test_redact_sensitive_values_preserves_unrelated_numbers(util_module):
     """Unrelated numbers should not be redacted."""
 

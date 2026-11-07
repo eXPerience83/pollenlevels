@@ -36,7 +36,7 @@ from .util import (
     device_subentry_ids,
     normalize_language_code,
     redact_api_key,
-    redact_sensitive_values,
+    redact_sensitive_text_for_locations,
 )
 
 # Redact potentially sensitive values from diagnostics. Diagnostics intentionally
@@ -72,18 +72,6 @@ def _rounded(value: Any) -> float | None:
     if not math.isfinite(f):
         return None
     return round(f, 1)
-
-
-def _redact_diagnostics_text(
-    value: Any,
-    api_key: str | None,
-    coordinate_pairs: list[tuple[Any, Any]],
-) -> str:
-    """Redact secrets from user-controlled diagnostics text."""
-    redacted = redact_sensitive_values(value, api_key=api_key)
-    for lat, lon in coordinate_pairs:
-        redacted = redact_sensitive_values(redacted, latitude=lat, longitude=lon)
-    return redacted
 
 
 def _coordinate_pairs_from_location_subentries(
@@ -175,16 +163,16 @@ def _failed_location_diagnostics(
     """Return redacted diagnostics for one failed setup location."""
     error_type = getattr(failure, "error_type", "UnknownError")
     return {
-        "title": _redact_diagnostics_text(
+        "title": redact_sensitive_text_for_locations(
             getattr(failure, "title", DEFAULT_ENTRY_TITLE),
-            api_key,
-            coordinate_pairs,
+            api_key=api_key,
+            coordinate_pairs=coordinate_pairs,
         ),
         "error_type": error_type,
-        "reason": _redact_diagnostics_text(
+        "reason": redact_sensitive_text_for_locations(
             getattr(failure, "reason", "Location setup failed"),
-            api_key,
-            coordinate_pairs,
+            api_key=api_key,
+            coordinate_pairs=coordinate_pairs,
         ),
         "will_retry_on_reload": error_type != "InvalidStoredLocation",
     }
@@ -306,10 +294,10 @@ async def async_get_config_entry_diagnostics(
             if lang:
                 request_params_example["languageCode"] = lang
             location_payload = _coordinator_diagnostics(coordinator)
-            location_payload["title"] = _redact_diagnostics_text(
+            location_payload["title"] = redact_sensitive_text_for_locations(
                 getattr(coordinator, "entry_title", DEFAULT_ENTRY_TITLE),
-                api_key_text,
-                coordinate_pairs,
+                api_key=api_key_text,
+                coordinate_pairs=coordinate_pairs,
             )
             location_payload["approximate_location"] = {
                 "label": "approximate_location (rounded)",
@@ -334,10 +322,10 @@ async def async_get_config_entry_diagnostics(
     diag: dict[str, Any] = {
         "entry": {
             "entry_id": entry.entry_id,
-            "title": _redact_diagnostics_text(
+            "title": redact_sensitive_text_for_locations(
                 entry.title,
-                api_key_text,
-                coordinate_pairs,
+                api_key=api_key_text,
+                coordinate_pairs=coordinate_pairs,
             ),
             "options": {
                 CONF_UPDATE_INTERVAL: options.get(CONF_UPDATE_INTERVAL),

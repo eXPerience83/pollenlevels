@@ -15,28 +15,11 @@ from .const import (
     DEFAULT_ENTRY_TITLE,
     DOMAIN,
 )
-from .util import entry_api_key, redact_sensitive_values
+from .util import entry_api_key, redact_sensitive_text_for_locations
 
 PER_DAY_FORECAST_SENSORS_REMOVED_ISSUE_ID = "per_day_forecast_sensors_removed"
 LOCATION_SETUP_FAILED_TRANSLATION_KEY = "location_setup_failed"
 _LOCATION_REPAIR_ISSUES_DATA_KEY = "location_repair_issue_ids"
-
-
-def _redact_repair_placeholder(
-    value: Any,
-    *,
-    api_key: str | None,
-    coordinate_pairs: Collection[tuple[Any, Any]],
-) -> str:
-    """Redact sensitive values immediately before creating a Repair."""
-    redacted = redact_sensitive_values(value, api_key=api_key)
-    for latitude, longitude in coordinate_pairs:
-        redacted = redact_sensitive_values(
-            redacted,
-            latitude=latitude,
-            longitude=longitude,
-        )
-    return redacted
 
 
 def _entry_repair_privacy_context(
@@ -147,10 +130,10 @@ def create_invalid_stored_location_issue(
     issue_id = invalid_stored_location_issue_id(entry_id, subentry_id)
     entry_title = (entry_title or "").strip() or DEFAULT_ENTRY_TITLE
     location_title = (location_title or "").strip() or entry_title
-    entry_title = _redact_repair_placeholder(
+    entry_title = redact_sensitive_text_for_locations(
         entry_title, api_key=api_key, coordinate_pairs=coordinate_pairs
     )
-    location_title = _redact_repair_placeholder(
+    location_title = redact_sensitive_text_for_locations(
         location_title, api_key=api_key, coordinate_pairs=coordinate_pairs
     )
     ir.async_create_issue(
@@ -248,7 +231,7 @@ def create_location_setup_failed_issue(
         "reason": reason,
     }
     placeholders = {
-        key: _redact_repair_placeholder(
+        key: redact_sensitive_text_for_locations(
             value,
             api_key=api_key,
             coordinate_pairs=coordinate_pairs,
