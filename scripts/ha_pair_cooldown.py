@@ -6,10 +6,10 @@ import argparse
 import json
 import os
 import re
+import sys
 import tomllib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-import sys
 from typing import Any
 
 PAIR = ("homeassistant", "pytest-homeassistant")
