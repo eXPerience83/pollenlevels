@@ -615,8 +615,8 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     override_guard = _workflow_step(
         workflow, "Authorize manual package cooldown override"
     )
-    assert workflow.count("UV_EXCLUDE_NEWER=false") == 1
-    assert "UV_EXCLUDE_NEWER=false" in override_guard
+    assert "UV_EXCLUDE_NEWER=false" not in workflow
+    assert "scripts/ha_pair_cooldown.py check" in workflow
     assert (
         "github.event_name == 'workflow_dispatch' && inputs.override_cooldown"
         in override_guard

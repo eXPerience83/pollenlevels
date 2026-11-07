@@ -88,20 +88,21 @@ fail closed and require normal validation. Release never rewrites the lock or
 replaces `--locked` with `--frozen`. All tests, coverage and ZIP checks still run,
 and the output remains a draft that must be reviewed as a prerelease.
 
-For the baseline updater, `override_cooldown` waives both pair maturity and the
-global resolution cutoff for that run, including transitive dependencies within
-the validated HA/pytest dependency closure. It does not authorize unrelated
-package changes, automatic merge, or bypass of the resulting PR's CI. Scheduled
-runs and manual runs without the flag retain normal policy. The lock validator
-permits only the known relative three-day metadata transition appropriate to
-the selected mode; other options remain protected.
+For the baseline updater, `override_cooldown` waives maturity only for the
+exact official Home Assistant / pytest-homeassistant pair. Absolute UTC cutoffs
+include the last published artifact; the rest of the graph retains three days
+of maturity. The updater rejects unrelated lock changes and validates the
+source/lock policy before and after resolution. Tests, coverage and Ruff remain
+mandatory. No automatic merge or publication is enabled.
 
-The time-bounded Home Assistant 2026.11 GA Lint/Tests bootstrap must be removed
-and the committed lock normalized under the ordinary three-day policy before
-stable publication; track its completion in
-[#473](https://github.com/eXPerience83/pollenlevels/issues/473).
-A successful exceptional run does not establish normal-policy reproducibility.
-Do not extend the bootstrap or bundle the cleanup with version changes.
+After the pinned pair matures, the updater proposes a `normalize` PR removing
+the exception without changing any package record, including when a newer pair
+is still cooling. A later early update must calculate new artifact cutoffs.
+Stable releases remain blocked while an exception is present (see #473).
+
+Updater PRs use `GITHUB_TOKEN`, which does not trigger their normal PR workflows.
+A repository writer must close and reopen the PR to trigger required CI, then
+review the exact checked HEAD before merging. Never bypass required checks.
 
 ## 1. Prepare a release pull request (recommended)
 
