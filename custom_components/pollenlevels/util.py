@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
@@ -275,6 +275,21 @@ def redact_sensitive_values(
     return s
 
 
+def redact_sensitive_text_for_locations(
+    value: object,
+    *,
+    api_key: str | None,
+    coordinate_pairs: Collection[tuple[Any, Any]],
+) -> str:
+    """Redact the API key first, then each supplied location in order."""
+    redacted = redact_sensitive_values(value, api_key=api_key)
+    for latitude, longitude in coordinate_pairs:
+        redacted = redact_sensitive_values(
+            redacted, latitude=latitude, longitude=longitude
+        )
+    return redacted
+
+
 def redact_api_key(text: object, api_key: str | None) -> str:
     """Return a string representation of *text* with the API key redacted."""
 
@@ -374,6 +389,7 @@ __all__ = [
     "normalize_pollen_index_value",
     "parse_finite_float",
     "redact_api_key",
+    "redact_sensitive_text_for_locations",
     "redact_sensitive_values",
     "safe_parse_int",
     "strip_legacy_forecast_options",
