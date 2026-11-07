@@ -8,6 +8,14 @@ supported-markers = [
     "python_full_version >= '3.14.2' and python_full_version < '3.15'",
 ]
 
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # Relative cutoff sentinel; no global waiver.
+exclude-newer-span = "P3D"
+
+[options.exclude-newer-package]
+homeassistant = "2026-11-05T13:04:00Z"
+pytest-homeassistant = "2026-11-05T13:04:00Z"
+
 [[package]]
 name = "acme"
 version = "5.7.0"

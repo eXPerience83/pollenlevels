@@ -273,6 +273,13 @@ jobs:
 
           options = tomllib.loads(Path("uv.lock").read_text()).get("options", {})
           cutoff = {key: value for key, value in options.items() if key.startswith("exclude-newer")}
+          package_cutoff = cutoff.pop("exclude-newer-package", None)
+          if package_cutoff is not None:
+              project = tomllib.loads(Path("pyproject.toml").read_text())
+              configured = project["tool"]["uv"].get("exclude-newer-package")
+              if (package_cutoff != configured or
+                      set(package_cutoff) != {"homeassistant", "pytest-homeassistant"}):
+                  raise SystemExit("Unexpected package-level maturity override in lock")
           normal = {"exclude-newer": "0001-01-01T00:00:00Z", "exclude-newer-span": "P3D"}
           if cutoff == normal:
               print("UV_EXCLUDE_NEWER=3 days")

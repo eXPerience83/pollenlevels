@@ -386,6 +386,17 @@ def validate_lock_delta(
     }
     old_options = dict(before_top.pop("options", {}))
     new_options = dict(after_top.pop("options", {}))
+    old_package_cutoff = old_options.pop("exclude-newer-package", None)
+    new_package_cutoff = new_options.pop("exclude-newer-package", None)
+    if old_package_cutoff is not None or new_package_cutoff is not None:
+        if (
+            not isinstance(old_package_cutoff, dict)
+            or not isinstance(new_package_cutoff, dict)
+            or set(old_package_cutoff) != set(TARGET_PACKAGES)
+            or old_package_cutoff != new_package_cutoff
+            or any(not isinstance(value, str) for value in new_package_cutoff.values())
+        ):
+            raise UpdaterError("uv.lock package-level cooldown metadata changed")
     old_cutoff = {
         key: old_options.pop(key)
         for key in tuple(old_options)

@@ -458,3 +458,31 @@ def test_lock_cooldown_waiver_does_not_allow_unrelated_options(options):
         validate_lock_delta(
             before, after, "2026.11.1", "2026.11.1", override_cooldown=True
         )
+
+
+def test_lock_preserves_artifact_bounded_ha_pair_exception() -> None:
+    """The selected GA exception must not change during a baseline lock update."""
+    before, after = _valid_locks()
+    options = (
+        '\n[options]\nexclude-newer = "0001-01-01T00:00:00Z"\n'
+        'exclude-newer-span = "P3D"\n\n[options.exclude-newer-package]\n'
+        'homeassistant = "2026-11-05T13:04:00Z"\n'
+        'pytest-homeassistant = "2026-11-05T13:04:00Z"\n'
+    )
+    before = before.replace("\n[[package]]", options + "\n[[package]]", 1)
+    after = after.replace("\n[[package]]", options + "\n[[package]]", 1)
+    validate_lock_delta(before, after, "2026.11.1", "2026.11.1")
+
+    changed = after.replace(
+        'pytest-homeassistant = "2026-11-05T13:04:00Z"',
+        'pytest-homeassistant = "2026-11-06T00:00:00Z"',
+    )
+    with pytest.raises(UpdaterError, match="package-level cooldown"):
+        validate_lock_delta(before, changed, "2026.11.1", "2026.11.1")
+
+    unexpected = after.replace(
+        'homeassistant = "2026-11-05T13:04:00Z"',
+        'packaging = "2026-11-05T13:04:00Z"',
+    )
+    with pytest.raises(UpdaterError, match="package-level cooldown"):
+        validate_lock_delta(before, unexpected, "2026.11.1", "2026.11.1")
