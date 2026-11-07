@@ -2097,6 +2097,75 @@ def test_type_sensor_uses_forecast_metadata_when_today_missing(
     assert entry["expected_peak"]["offset"] == 1
 
 
+@pytest.mark.parametrize("index_info", [None, {}, "invalid"])
+def test_coordinator_preserves_unindexed_metadata_for_unknown_codes(
+    sensor_modules: SensorModules, index_info: Any
+) -> None:
+    """Unindexed current entries retain metadata and future unknown-code values."""
+    payload = {
+        "dailyInfo": [
+            {
+                "pollenTypeInfo": [
+                    {
+                        "code": "REGIONAL",
+                        "displayName": "Regional today",
+                        "inSeason": False,
+                        "healthRecommendations": ["Today advice"],
+                        "indexInfo": index_info,
+                    }
+                ],
+                "plantInfo": [
+                    {
+                        "code": " Regional_Plant ",
+                        "displayName": "Regional plant",
+                        "indexInfo": index_info,
+                    }
+                ],
+            },
+            {
+                "pollenTypeInfo": [
+                    {
+                        "code": "REGIONAL",
+                        "displayName": "Regional tomorrow",
+                        "inSeason": True,
+                        "indexInfo": {"value": 3},
+                    }
+                ],
+                "plantInfo": [{"code": "REGIONAL_PLANT", "indexInfo": {"value": 2}}],
+            },
+        ]
+    }
+    client = sensor_modules.client_mod.GooglePollenApiClient(
+        FakeSession(payload), "test"
+    )
+    loop = asyncio.new_event_loop()
+    coordinator = _make_coordinator(sensor_modules, loop, client)
+    try:
+        data = loop.run_until_complete(coordinator._async_update_data())
+    finally:
+        loop.close()
+
+    assert set(data) == {"type_regional", "plants_regional_plant"}
+    type_entry = data["type_regional"]
+    assert type_entry["displayName"] == "Regional today"
+    assert type_entry["inSeason"] is False
+    assert type_entry["advice"] == ["Today advice"]
+    plant_entry = data["plants_regional_plant"]
+    assert plant_entry["displayName"] == "Regional plant"
+    assert plant_entry["code"] == "Regional_Plant"
+    for entry, tomorrow_value in [(type_entry, 3), (plant_entry, 2)]:
+        assert entry["value"] is None
+        assert entry["category"] is None
+        assert entry["description"] is None
+        assert entry["color_hex"] is None
+        assert entry["color_rgb"] is None
+        assert entry["tomorrow_value"] == tomorrow_value
+        assert entry["forecast"][0]["offset"] == 1
+        assert entry["forecast"][0]["has_index"] is True
+        assert entry["trend"] is None
+        assert entry["expected_peak"]["value"] == tomorrow_value
+
+
 def test_plant_sensor_includes_forecast_attributes(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
