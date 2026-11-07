@@ -7,6 +7,11 @@ on:
         description: "Branch, tag, or full commit SHA to release. Leave empty for the current main commit."
         required: false
         type: string
+      dry_run:
+        description: "Validate and build ZIP only; do not create a tag or draft."
+        required: false
+        type: boolean
+        default: false
       bypass_dependency_cooldown:
         description: "One-time prerelease maturity waiver (full commit SHA and reason required)"
         required: false
@@ -560,9 +565,27 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Report validation-only dry run
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == true && steps.event.outputs.skip_release != 'true'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+          RELEASE_COMMIT: ${{ steps.release-commit.outputs.release_commit }}
+          ZIP_SHA256: ${{ steps.zip-sha256.outputs.zip_sha256 }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Dry-run release validation complete"
+            printf '%s\n' "- Intended tag: $RELEASE_TAG (not created)"
+            printf '%s\n' "- Validated commit: $RELEASE_COMMIT"
+            printf '%s\n' "- ZIP SHA-256: $ZIP_SHA256"
+            echo "- Validated ZIP: workflow artifact pollenlevels-release-asset (1-day retention)"
+            echo "- No tag or release draft was created."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   finalize-release:
     needs: validate-release
-    if: needs.validate-release.outputs.skip_release != 'true'
+    if: needs.validate-release.outputs.skip_release != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
