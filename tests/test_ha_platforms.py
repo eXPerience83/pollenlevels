@@ -178,6 +178,14 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
             loaded_entities[entity.entity_id].device_info
             == before_reload_device_info[entity.entity_id]
         )
+        assert entity.device_id is not None
+        device = devices.async_get(entity.device_id)
+        assert device is not None
+        assert (
+            loaded_entities[entity.entity_id].device_info["identifiers"]
+            == device.identifiers
+        )
+        assert device.config_subentry_id == entity.config_subentry_id
         state = hass.states.get(entity.entity_id)
         assert state is not None
         assert state.state != STATE_UNAVAILABLE
@@ -190,6 +198,10 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
             for entity in entries
             if entity.unique_id == f"{entry.entry_id}_{subentry_id}_plants_birch"
         )
+        assert birch.device_id is not None
+        device = devices.async_get(birch.device_id)
+        assert device is not None
+        assert device.identifiers == {(DOMAIN, f"{entry.entry_id}_{subentry_id}_plant")}
         state = hass.states.get(birch.entity_id)
         assert state is not None
         assert state.state == expected
