@@ -186,6 +186,18 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
             == device.identifiers
         )
         assert device.config_subentry_id == entity.config_subentry_id
+        suffix = entity.unique_id.removeprefix(
+            f"{entry.entry_id}_{entity.config_subentry_id}_"
+        )
+        if entity.domain == "button" or suffix in {"region", "date", "last_updated"}:
+            expected_group = "meta"
+        elif suffix.startswith("plants_"):
+            expected_group = "plant"
+        else:
+            expected_group = "type"
+        assert device.identifiers == {
+            (DOMAIN, f"{entry.entry_id}_{entity.config_subentry_id}_{expected_group}")
+        }
         state = hass.states.get(entity.entity_id)
         assert state is not None
         assert state.state != STATE_UNAVAILABLE
