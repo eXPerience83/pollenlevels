@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+from copy import deepcopy
 from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock
+from urllib.parse import parse_qsl
 
-from aiointercept import aiointercept
+from aiointercept import CallbackResult, aiointercept
 from homeassistant.components.recorder import statistics
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
+    device_registry as dr,
     entity_platform,
     entity_registry as er,
     issue_registry as ir,
@@ -36,6 +39,7 @@ from custom_components.pollenlevels.issue_helpers import (
 )
 from tests._ha_stubs import clear_integration_modules
 from tests.ha_helpers import (
+    POLLEN_API_URL_RE,
     async_setup_config_entry,
     mock_pollen_api,
 )
@@ -83,6 +87,136 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
             entity.domain == "button" and entity.config_subentry_id == subentry_id
             for entity in entries
         )
+
+    devices = dr.async_get(hass)
+
+    def registry_snapshot():
+        entities = er.async_entries_for_config_entry(registry, entry.entry_id)
+        return (
+            {
+                (
+                    entity.entity_id,
+                    entity.unique_id,
+                    entity.device_id,
+                    entity.config_subentry_id,
+                )
+                for entity in entities
+            },
+            {
+                (
+                    device.id,
+                    frozenset(device.identifiers),
+                    device.config_entry_id,
+                    device.config_subentry_id,
+                    device.manufacturer,
+                    device.model,
+                    device.name,
+                )
+                for device in dr.async_entries_for_config_entry(devices, entry.entry_id)
+            },
+        )
+
+    before_reload = registry_snapshot()
+    assert len(before_reload[1]) == 6
+    for subentry_id in expected_subentries:
+        assert {
+            (DOMAIN, f"{entry.entry_id}_{subentry_id}_{group}")
+            for group in ("type", "plant", "meta")
+        } == {
+            identifier
+            for _, identifiers, owner, location, *_ in before_reload[1]
+            if owner == entry.entry_id and location == subentry_id
+            for identifier in identifiers
+        }
+
+    before_reload_entities = {
+        entity_id: entity
+        for platform in entity_platform.async_get_platforms(hass, DOMAIN)
+        for entity_id, entity in platform.entities.items()
+    }
+    before_reload_device_info = {
+        entity_id: deepcopy(entity.device_info)
+        for entity_id, entity in before_reload_entities.items()
+    }
+
+    def location_response(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
+        coordinates = (
+            float(params["location.latitude"]),
+            float(params["location.longitude"]),
+        )
+        value = {(40.4168, -3.7038): 1, (41.3874, 2.1686): 2}[coordinates]
+        payload = deepcopy(google_pollen_5_day_payload)
+        birch = next(
+            plant
+            for plant in payload["dailyInfo"][0]["plantInfo"]
+            if plant["code"] == "BIRCH"
+        )
+        birch["indexInfo"]["value"] = value
+        return CallbackResult(status=200, payload=payload)
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=location_response, repeat=True)
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+    assert registry_snapshot() == before_reload
+    loaded_entities = {
+        entity_id: entity
+        for platform in entity_platform.async_get_platforms(hass, DOMAIN)
+        for entity_id, entity in platform.entities.items()
+    }
+    for entity in entries:
+        if entity.disabled_by is not None:
+            continue
+        assert entity.entity_id in loaded_entities
+        assert entity.entity_id in before_reload_entities
+        assert (
+            loaded_entities[entity.entity_id]
+            is not before_reload_entities[entity.entity_id]
+        )
+        assert (
+            loaded_entities[entity.entity_id].device_info
+            == before_reload_device_info[entity.entity_id]
+        )
+        assert entity.device_id is not None
+        device = devices.async_get(entity.device_id)
+        assert device is not None
+        assert (
+            loaded_entities[entity.entity_id].device_info["identifiers"]
+            == device.identifiers
+        )
+        assert device.config_subentry_id == entity.config_subentry_id
+        suffix = entity.unique_id.removeprefix(
+            f"{entry.entry_id}_{entity.config_subentry_id}_"
+        )
+        if entity.domain == "button" or suffix in {"region", "date", "last_updated"}:
+            expected_group = "meta"
+        elif suffix.startswith("plants_"):
+            expected_group = "plant"
+        else:
+            expected_group = "type"
+        assert device.identifiers == {
+            (DOMAIN, f"{entry.entry_id}_{entity.config_subentry_id}_{expected_group}")
+        }
+        state = hass.states.get(entity.entity_id)
+        assert state is not None
+        assert state.state != STATE_UNAVAILABLE
+    for subentry_id, expected in (
+        ("location-madrid", "1"),
+        ("location-barcelona", "2"),
+    ):
+        birch = next(
+            entity
+            for entity in entries
+            if entity.unique_id == f"{entry.entry_id}_{subentry_id}_plants_birch"
+        )
+        assert birch.device_id is not None
+        device = devices.async_get(birch.device_id)
+        assert device is not None
+        assert device.identifiers == {(DOMAIN, f"{entry.entry_id}_{subentry_id}_plant")}
+        state = hass.states.get(birch.entity_id)
+        assert state is not None
+        assert state.state == expected
 
 
 async def test_ha_current_day_pollen_sensors_restore_measurement_state_class(

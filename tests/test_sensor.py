@@ -1164,6 +1164,87 @@ def test_device_info_rounds_coordinates_for_placeholders(
     assert entity.unique_id == expected_unique_id
 
 
+@pytest.mark.parametrize("identity", ["legacy-entry", "parent_location-home"])
+@pytest.mark.parametrize(
+    ("code", "source", "group", "translation_key"),
+    [
+        ("type_grass", None, "type", "types"),
+        ("plants_oak", None, "plant", "plants"),
+        ("plant_oak", None, "plant", "plants"),
+        ("custom", None, "meta", "info"),
+        ("custom", "regional", "regional", "info"),
+    ],
+)
+def test_pollen_device_info_preserves_group_fallbacks_and_dynamic_values(
+    sensor_modules: SensorModules, identity, code, source, group, translation_key
+) -> None:
+    """Dynamic device info retains exact IDs, source fallbacks and fresh placeholders."""
+    coordinator = _summary_coordinator({code: {"source": source}})
+    coordinator.device_identity_id = identity
+    entity = sensor_modules.sensor.PollenSensor(coordinator, code)
+    original = entity.device_info
+    assert original == {
+        "identifiers": {("pollenlevels", f"{identity}_{group}")},
+        "manufacturer": "Google",
+        "model": "Pollen API",
+        "translation_key": translation_key,
+        "translation_placeholders": {
+            "title": "Home",
+            "latitude": "1.00",
+            "longitude": "2.00",
+        },
+    }
+    coordinator.entry_title = "Renamed"
+    coordinator.lat = 3.123456
+    coordinator.data = {}
+    changed = entity.device_info
+    assert changed is not original
+    assert original["translation_placeholders"]["title"] == "Home"
+    assert changed["translation_placeholders"] == {
+        "title": "Renamed",
+        "latitude": "3.12",
+        "longitude": "2.00",
+    }
+    fallback_group = group if code != "custom" else "meta"
+    assert changed["identifiers"] == {("pollenlevels", f"{identity}_{fallback_group}")}
+
+
+@pytest.mark.parametrize(
+    ("entity_class", "group", "translation_key"),
+    [
+        ("PlantsInSeasonTodaySensor", "plant", "plants"),
+        ("OverallPollenRiskTodaySensor", "type", "types"),
+        ("TopPollenTypesTodaySensor", "type", "types"),
+        ("RegionSensor", "meta", "info"),
+        ("DateSensor", "meta", "info"),
+        ("LastUpdatedSensor", "meta", "info"),
+    ],
+)
+def test_summary_and_meta_device_info_remain_precomputed(
+    sensor_modules: SensorModules, entity_class, group, translation_key
+) -> None:
+    """Static device info keeps its original placeholders after coordinator changes."""
+    coordinator = _summary_coordinator({})
+    entity = getattr(sensor_modules.sensor, entity_class)(coordinator)
+    original = entity.device_info
+    assert original == {
+        "identifiers": {("pollenlevels", f"entry_{group}")},
+        "manufacturer": "Google",
+        "model": "Pollen API",
+        "translation_key": translation_key,
+        "translation_placeholders": {
+            "title": "Home",
+            "latitude": "1.00",
+            "longitude": "2.00",
+        },
+    }
+    coordinator.entry_title = "Renamed"
+    coordinator.lat = 3.0
+    assert entity.device_info is original
+    assert original["translation_placeholders"]["title"] == "Home"
+    assert original["translation_placeholders"]["latitude"] == "1.00"
+
+
 def test_top_pollen_types_today_does_not_expose_measurement_state_class(
     sensor_modules: SensorModules,
 ) -> None:
