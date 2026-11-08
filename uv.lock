@@ -9,12 +9,8 @@ supported-markers = [
 ]
 
 [options]
-exclude-newer = "0001-01-01T00:00:00Z" # Relative cutoff sentinel; no global waiver.
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P3D"
-
-[options.exclude-newer-package]
-homeassistant = "2026-11-05T13:03:50Z"
-pytest-homeassistant = "2026-11-05T13:03:59Z"
 
 [[package]]
 name = "acme"
