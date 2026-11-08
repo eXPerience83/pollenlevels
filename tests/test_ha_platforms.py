@@ -89,7 +89,6 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
 
     def registry_snapshot():
         entities = er.async_entries_for_config_entry(registry, entry.entry_id)
-        device_ids = {entity.device_id for entity in entities if entity.device_id}
         return (
             {
                 (
@@ -107,8 +106,7 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
                     device.config_entry_id,
                     device.config_subentry_id,
                 )
-                for device_id in device_ids
-                if (device := devices.async_get(device_id)) is not None
+                for device in dr.async_entries_for_config_entry(devices, entry.entry_id)
             },
         )
 
