@@ -123,23 +123,42 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
             for identifier in identifiers
         }
 
+    before_reload_entities = {
+        entity_id: entity
+        for platform in entity_platform.async_get_platforms(hass, DOMAIN)
+        for entity_id, entity in platform.entities.items()
+    }
     async with aiointercept(mock_external_urls=True) as mocked:
         mock_pollen_api(mocked, google_pollen_5_day_payload)
         assert await hass.config_entries.async_reload(entry.entry_id)
         await hass.async_block_till_done()
     assert registry_snapshot() == before_reload
-    loaded_entity_ids = {
-        entity_id
+    loaded_entities = {
+        entity_id: entity
         for platform in entity_platform.async_get_platforms(hass, DOMAIN)
-        for entity_id in platform.entities
+        for entity_id, entity in platform.entities.items()
     }
     for entity in entries:
         if entity.disabled_by is not None:
             continue
-        assert entity.entity_id in loaded_entity_ids
+        assert entity.entity_id in loaded_entities
+        assert entity.entity_id in before_reload_entities
+        assert (
+            loaded_entities[entity.entity_id]
+            is not before_reload_entities[entity.entity_id]
+        )
         state = hass.states.get(entity.entity_id)
         assert state is not None
         assert state.state != STATE_UNAVAILABLE
+    for subentry_id in expected_subentries:
+        birch = next(
+            entity
+            for entity in entries
+            if entity.unique_id == f"{entry.entry_id}_{subentry_id}_plants_birch"
+        )
+        state = hass.states.get(birch.entity_id)
+        assert state is not None
+        assert state.state == "1"
 
 
 async def test_ha_current_day_pollen_sensors_restore_measurement_state_class(
