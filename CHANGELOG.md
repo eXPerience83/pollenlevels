@@ -1,5 +1,56 @@
 # Changelog
 
+## [5.0.0b1] - 2026-11-08
+
+**Opt-in beta for Home Assistant 2026.11.0 or newer.** This is a testing
+prerelease, not the stable 5.0 release. The latest stable Pollen Levels version
+remains 4.0.3 for installations that have not opted in to 5.0 testing.
+
+### Compatibility and behavior
+
+- Preserve the existing parent API-key / location-subentry architecture,
+  entity/device identities, pollen readings, five-day forecast attributes,
+  services and per-location update buttons. No intentional public API or
+  Google Pollen data-contract changes since 5.0.0a2.
+- Consolidate internal coordinator forecast handling, summary cache refresh,
+  multi-location diagnostics/Repairs redaction and device-info construction
+  without changing expected user-visible behavior (#487–#490).
+- Keep the Home Assistant 2026.11.0 minimum and the built-in Marketplace
+  distribution path. Existing installations should update in place rather
+  than removing and recreating Pollen Levels.
+
+### Validation and release hardening
+
+- Expand synthetic persisted migration regression tests for layouts from 2.3.0
+  and 4.0.3, with two API keys, three locations, renamed entity IDs,
+  identity/subentry preservation, live sensor setup, and SQLite Recorder
+  history before and after migration (#475, #476).
+- Remove the temporary Home Assistant 2026.11 dependency maturity exceptions
+  and return the locked test environment to the standard three-day supply-chain
+  cooldown (#473, #491).
+- Strengthen draft-first release verification, validation-only dry runs,
+  action permissions, package checks and reproducible ZIP generation
+  (#479–#485). The post-normalization main snapshot passed 1,005 tests,
+  coverage gates, CodeQL and required CI checks; its Release dry run
+  completed successfully without publishing a release.
+
+### Beta limitations and upgrade precautions
+
+- Synthetic persisted tests do **not** replace a complete real upgrade from
+  an original 2.3.0/4.0.3 Home Assistant installation. Historical Store
+  formats, full HACS-to-Marketplace takeover, long-term statistics and
+  backup restoration still require targeted real-world acceptance before
+  the stable 5.0 release (#226, #452).
+- **Before upgrading**, create a complete recoverable Home Assistant backup,
+  including configuration, registries and Recorder, and keep an off-device
+  copy with any recovery key. Back up an external Recorder database separately.
+- Do **not** attempt to roll back a migrated installation by merely replacing
+  integration files with 4.0.3. Recover the matching pre-upgrade configuration
+  and database from a consistent backup if rollback is necessary.
+- Beta testers should check their locations, entity IDs, history, automations
+  and dashboard/card views after restart and report reproducible problems
+  with sanitized diagnostics, never credentials or raw storage files.
+
 ## [5.0.0a2] - 2026-11-06
 
 **Experimental alpha candidate, not a stable release.** Minimum Home Assistant
