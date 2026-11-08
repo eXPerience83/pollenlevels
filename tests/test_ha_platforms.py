@@ -128,6 +128,18 @@ async def test_ha_platforms_create_entities_for_each_location_subentry(
         assert await hass.config_entries.async_reload(entry.entry_id)
         await hass.async_block_till_done()
     assert registry_snapshot() == before_reload
+    loaded_entity_ids = {
+        entity_id
+        for platform in entity_platform.async_get_platforms(hass, DOMAIN)
+        for entity_id in platform.entities
+    }
+    for entity in entries:
+        if entity.disabled_by is not None:
+            continue
+        assert entity.entity_id in loaded_entity_ids
+        state = hass.states.get(entity.entity_id)
+        assert state is not None
+        assert state.state != STATE_UNAVAILABLE
 
 
 async def test_ha_current_day_pollen_sensors_restore_measurement_state_class(
