@@ -79,6 +79,7 @@ def test_repository_does_not_contain_google_api_keys() -> None:
 
     assert not findings, "Real-looking Google API keys found:\n" + "\n".join(findings)
 
+
 def test_secret_scan_detects_nested_env_but_skips_ignored_trees(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
