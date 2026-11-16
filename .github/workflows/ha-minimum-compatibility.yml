@@ -157,7 +157,7 @@ jobs:
           PYTHONPATH: .
         run: |
           set -euo pipefail
-          "$MINIMUM_PYTHON" -m pytest -q -ra -p no:cacheprovider \
+          "$MINIMUM_PYTHON" -m pytest -q -ra -p no:cacheprovider --durations=20 \
             --cov=custom_components.pollenlevels \
             --cov-report=term-missing:skip-covered \
             --cov-report=json:coverage.json
