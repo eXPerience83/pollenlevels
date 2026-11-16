@@ -74,7 +74,7 @@ jobs:
           PYTHONPATH: .
         run: |
           set -euo pipefail
-          uv run --locked --no-sync python -m pytest -q \
+          uv run --locked --no-sync python -m pytest -q --durations=20 \
             --cov=custom_components.pollenlevels \
             --cov-report=term-missing \
             --cov-report=json:coverage.json
