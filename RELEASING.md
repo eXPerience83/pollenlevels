@@ -27,10 +27,17 @@ and the need for a recoverable complete backup. Do not present beta validation
 as a certified real historical upgrade. A **stable 5.0** release requires a
 separate explicit maintainer GO/NO-GO, informed by identity, Recorder and
 long-term statistics, HACS → Marketplace continuity, multi-location/key
-behavior, recovery and security evidence or a clearly recorded decision on
-any residual uncertainty. See [PREPARATION_5.0.md](PREPARATION_5.0.md),
+behavior and security evidence, plus a clearly recorded decision on any
+remaining uncertainty. See [PREPARATION_5.0.md](PREPARATION_5.0.md),
 [#452](https://github.com/eXPerience83/pollenlevels/issues/452) and
 [#226](https://github.com/eXPerience83/pollenlevels/issues/226).
+
+**Maintainer decision (2026-11-16):** a restore/rollback drill is **not** a
+stable-release gate. The 5.0 upgrade is breaking and has no supported in-place
+downgrade to 4.x; replacing integration files is unsafe. Retain strong
+pre-upgrade backup guidance without claiming recovery was exercised. Real
+historical 2.3.0/4.0.3 manual migrations are deferred, not passed. Explicitly
+document the uncertainty and obtain final GO/NO-GO before stable publication.
 
 Marketplace is built into HA 2026.11+. **Keep** `hacs.json`, the existing
 HACS catalogue validation action and `pollenlevels.zip`; these are still
