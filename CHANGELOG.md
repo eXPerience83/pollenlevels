@@ -1,5 +1,49 @@
 # Changelog
 
+## [5.0.0] - 2026-11-16
+
+**Stable 5.0 release candidate for Home Assistant 2026.11.0 or newer.**
+This promotes the tested `5.0.0b1` line without changes to the integration
+runtime, public entities, storage migration, or Google Pollen API contract.
+The candidate is not published until the separate manual release procedure.
+
+### Changed
+
+- **Breaking change:** Home Assistant 2026.11.0 or newer is required.
+  Users running Home Assistant 2026.5–2026.10 should remain on Pollen Levels
+  4.0.3 until they upgrade Home Assistant.
+- Continue installing and updating existing Pollen Levels installations in
+  place through the built-in Marketplace. Do not uninstall and re-add the
+  integration to switch from legacy HACS.
+- Retain the beta's parent API-key/location-subentry structure, existing entity
+  identities, five-day forecast attributes, services and manual update buttons.
+- Refresh the development/CI tooling to the official Home Assistant
+  2026.11.1 test pair and updated uv/Ruff pins (#495–#497); align the release
+  policy with the maintainer's no-rollback-rehearsal decision (#498).
+- **Migration limitation:** regression tests exercise simulated 2.3.0 and
+  4.0.3 layouts with persisted registries and SQLite Recorder using the
+  modern Home Assistant test harness (#475, #476). Authentic old Home Assistant
+  backups, historical long-term-statistics continuity and a complete
+  legacy HACS-to-Marketplace takeover have **not** been manually certified.
+  Such trials are deferred, not passed; see #226 and #452. A stable-release
+  decision must explicitly accept any remaining risk.
+
+### Security
+
+- Authenticated GitHub Security check on 2026-11-16 found zero open
+  Dependabot, CodeQL/code-scanning and secret-scanning alerts. CodeQL is
+  configured and ran on Python and GitHub Actions; historical finding #11
+  remains dismissed as a documented false positive. Security-tool coverage
+  is not a guarantee that all possible vulnerabilities are absent.
+- **Before upgrading**, create and retain a complete off-device Home
+  Assistant backup, including configuration, registries and Recorder; back up
+  any external Recorder database separately and preserve recovery credentials.
+- **No supported in-place downgrade:** reinstalling 4.x integration files
+  after the 5.0 storage migration is unsafe. Recovery from a consistent full
+  pre-upgrade backup is a distinct procedure that has **not** been rehearsed
+  or certified for this release; a rollback drill is not a release gate.
+  See [PREPARATION_5.0.md](PREPARATION_5.0.md).
+
 ## [5.0.0b1] - 2026-11-08
 
 **Opt-in beta for Home Assistant 2026.11.0 or newer.** This is a testing
