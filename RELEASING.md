@@ -272,7 +272,7 @@ after publication do not necessarily require a new release.
 - [ ] For historical or maintenance releases supporting HA <2026.11,
       installation/update through compatible legacy HACS was checked.
 - [ ] Stable v5 HA 2026.11.0 floor and official pytest pair were checked.
-- [ ] Existing Registry/Recorder/statistics migration and backup recovery are verified.
+- [ ] Registry/Recorder/statistics migration test evidence was reviewed; any untested historical migrations and accepted residual risk are recorded. A restore/rollback rehearsal is not required.
 - [ ] CodeRabbit and full candidate CodeQL/CI/security review are complete.
 
 ## Independent minimum compatibility graph
