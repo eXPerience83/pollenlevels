@@ -27,10 +27,17 @@ and the need for a recoverable complete backup. Do not present beta validation
 as a certified real historical upgrade. A **stable 5.0** release requires a
 separate explicit maintainer GO/NO-GO, informed by identity, Recorder and
 long-term statistics, HACS → Marketplace continuity, multi-location/key
-behavior, recovery and security evidence or a clearly recorded decision on
-any residual uncertainty. See [PREPARATION_5.0.md](PREPARATION_5.0.md),
+behavior and security evidence, plus a clearly recorded decision on any
+remaining uncertainty. See [PREPARATION_5.0.md](PREPARATION_5.0.md),
 [#452](https://github.com/eXPerience83/pollenlevels/issues/452) and
 [#226](https://github.com/eXPerience83/pollenlevels/issues/226).
+
+**Maintainer decision (2026-11-16):** a restore/rollback drill is **not** a
+stable-release gate. The 5.0 upgrade is breaking and has no supported in-place
+downgrade to 4.x; replacing integration files is unsafe. Retain strong
+pre-upgrade backup guidance without claiming recovery was exercised. Real
+historical 2.3.0/4.0.3 manual migrations are deferred, not passed. Explicitly
+document the uncertainty and obtain final GO/NO-GO before stable publication.
 
 Marketplace is built into HA 2026.11+. **Keep** `hacs.json`, the existing
 HACS catalogue validation action and `pollenlevels.zip`; these are still
@@ -265,7 +272,7 @@ after publication do not necessarily require a new release.
 - [ ] For historical or maintenance releases supporting HA <2026.11,
       installation/update through compatible legacy HACS was checked.
 - [ ] Stable v5 HA 2026.11.0 floor and official pytest pair were checked.
-- [ ] Existing Registry/Recorder/statistics migration and backup recovery are verified.
+- [ ] Registry/Recorder/statistics migration test evidence was reviewed; any untested historical migrations and accepted residual risk are recorded. A restore/rollback rehearsal is not required.
 - [ ] CodeRabbit and full candidate CodeQL/CI/security review are complete.
 
 ## Independent minimum compatibility graph

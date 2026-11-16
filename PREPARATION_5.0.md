@@ -96,6 +96,16 @@ general [README.md](README.md) a temporary alpha/beta status page.
 
 ## Stable 5.0 verification priorities
 
+**Maintainer release-scope decision (2026-11-16):** no backup-restore or
+rollback rehearsal is required for stable 5.0. Upgrading to 5.0 is a breaking
+change and **in-place downgrade to 4.x is unsupported**. Recommend complete
+pre-upgrade backups; recovery from such a backup is not exercised or certified
+by the 5.0 release. Authentic 2.3.0/4.0.3 manual migration trials are deferred,
+not marked passed. Any remaining historical identity, Recorder, statistics,
+or HACS-to-Marketplace migration uncertainty must be disclosed and addressed
+by an explicit maintainer GO/NO-GO risk decision. Current Marketplace visibility
+and a working beta do not independently prove an old-HACS takeover.
+
 The next valuable acceptance work is evidence about actual installations,
 rather than additional tests added only to increase the coverage percentage:
 
@@ -113,8 +123,9 @@ rather than additional tests added only to increase the coverage percentage:
 4. **Dashboard compatibility:** verify configured options/subentries, scheduled
    and manual updates, automations and the current compatible dashboard card
    on HA 2026.11 after a restart.
-5. **Recovery:** rehearse restoring a consistent pre-upgrade configuration,
-   Registry and Recorder backup. File-only code replacement is not rollback.
+5. **Recovery policy:** verify backup and no-downgrade warnings, but do not
+   require a restore/rollback rehearsal. Merely replacing integration files
+   with 4.x is unsafe; full backup recovery remains untested.
 6. **Security and package:** review actual dependency advisories, CodeQL,
    CodeRabbit findings, workflow permissions, publisher metadata and exact
    candidate ZIP. CI passing alone is not a security-advisory triage.
@@ -122,11 +133,12 @@ rather than additional tests added only to increase the coverage percentage:
 For existing HAOS, take a **full off-device backup** with the encryption
 recovery key and Recorder. For container installations, stop the container
 before an offline snapshot/copy of persistent config, `.storage` and SQLite.
-Retain an independent recoverable copy and verify the restoration procedure.
+Retain an independent recoverable copy with its recovery credentials.
 For external Recorder databases, create a consistent engine-native backup.
-Restore configuration, registries and Recorder together from the same
-pre-upgrade point in time. Never publish credentials, raw `.storage` contents
-or private coordinates.
+If recovery is needed, configuration, registries and Recorder must come from
+the same pre-upgrade point in time. This recovery procedure is advice, **not a
+tested or required 5.0 release rehearsal**. Never publish credentials, raw
+`.storage` contents or private coordinates.
 
 A release decision must distinguish what was directly tested from
 unverified paths. If the maintainer accepts residual risk in a final release,
