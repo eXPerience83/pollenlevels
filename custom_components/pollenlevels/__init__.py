@@ -58,6 +58,7 @@ from .util import (
     active_location_subentry_ids,
     has_legacy_per_day_option,
     has_usable_daily_data,
+    redact_sensitive_text_for_locations,
     redact_sensitive_values,
     safe_parse_int,
     strip_legacy_forecast_options,
@@ -138,18 +139,16 @@ def _safe_setup_failure_text(
     value: Any,
     *,
     api_key: str | None,
-    latitude: Any = None,
-    longitude: Any = None,
+    coordinate_pairs: list[tuple[Any, Any]],
     fallback: str,
 ) -> str:
     """Redact sensitive setup failure text before storing or surfacing it."""
     if value is None:
         return fallback
-    redacted = redact_sensitive_values(
+    redacted = redact_sensitive_text_for_locations(
         value,
         api_key=api_key,
-        latitude=latitude,
-        longitude=longitude,
+        coordinate_pairs=coordinate_pairs,
     )
     redacted = _truncate_setup_failure_reason(redacted)
     return redacted or fallback
@@ -162,22 +161,19 @@ def _location_setup_failure(
     error_type: str,
     reason: str,
     api_key: str | None,
-    latitude: Any = None,
-    longitude: Any = None,
+    coordinate_pairs: list[tuple[Any, Any]],
 ) -> PollenLocationSetupFailure:
     """Build redacted runtime metadata for an isolated setup failure."""
     safe_title = _safe_setup_failure_text(
         title,
         api_key=api_key,
-        latitude=latitude,
-        longitude=longitude,
+        coordinate_pairs=coordinate_pairs,
         fallback=DEFAULT_ENTRY_TITLE,
     )
     safe_reason = _safe_setup_failure_text(
         reason,
         api_key=api_key,
-        latitude=latitude,
-        longitude=longitude,
+        coordinate_pairs=coordinate_pairs,
         fallback="Location setup failed",
     )
     return PollenLocationSetupFailure(
@@ -488,8 +484,7 @@ async def async_setup_entry(
                 error_type="InvalidStoredLocation",
                 reason="Pollen Levels location has invalid stored coordinates",
                 api_key=api_key,
-                latitude=raw_lat,
-                longitude=raw_lon,
+                coordinate_pairs=coordinate_pairs,
             )
             _LOGGER.warning(
                 "Invalid coordinates for Pollen Levels entry %s subentry %s; "
@@ -529,8 +524,8 @@ async def async_setup_entry(
                 consecutive_transport_failures += 1
             else:
                 consecutive_transport_failures = 0
-            safe_message = redact_sensitive_values(
-                err, api_key=api_key, latitude=lat, longitude=lon
+            safe_message = redact_sensitive_text_for_locations(
+                err, api_key=api_key, coordinate_pairs=coordinate_pairs
             )
             _LOGGER.warning(
                 "Initial data refresh failed for entry %s subentry %s (%s): %s",
@@ -545,8 +540,7 @@ async def async_setup_entry(
                 error_type=type(err).__name__,
                 reason=safe_message or "Pollen Levels location is not ready",
                 api_key=api_key,
-                latitude=lat,
-                longitude=lon,
+                coordinate_pairs=coordinate_pairs,
             )
             if (
                 consecutive_transport_failures
@@ -554,12 +548,12 @@ async def async_setup_entry(
             ):
                 raise ConfigEntryNotReady(
                     "Google Pollen API transport unavailable for multiple locations"
-                ) from err
+                ) from None
             continue
         except Exception as err:
             consecutive_transport_failures = 0
-            safe_message = redact_sensitive_values(
-                err, api_key=api_key, latitude=lat, longitude=lon
+            safe_message = redact_sensitive_text_for_locations(
+                err, api_key=api_key, coordinate_pairs=coordinate_pairs
             )
             _LOGGER.warning(
                 "Initial data refresh failed for entry %s subentry %s (%s): %s",
@@ -574,8 +568,7 @@ async def async_setup_entry(
                 error_type=type(err).__name__,
                 reason=safe_message or "Pollen Levels location setup failed",
                 api_key=api_key,
-                latitude=lat,
-                longitude=lon,
+                coordinate_pairs=coordinate_pairs,
             )
             continue
 
@@ -594,8 +587,7 @@ async def async_setup_entry(
                 error_type="UpdateFailed",
                 reason=reason,
                 api_key=api_key,
-                latitude=lat,
-                longitude=lon,
+                coordinate_pairs=coordinate_pairs,
             )
             continue
 
@@ -636,8 +628,15 @@ async def async_setup_entry(
         raise
     except Exception as err:
         entry.runtime_data = None
-        _LOGGER.exception("Error forwarding entry setups: %s", err)
-        raise ConfigEntryNotReady from err
+        safe_message = redact_sensitive_text_for_locations(
+            err, api_key=api_key, coordinate_pairs=coordinate_pairs
+        )
+        _LOGGER.error(
+            "Error forwarding entry setups (%s): %s",
+            type(err).__name__,
+            safe_message or "no error details",
+        )
+        raise ConfigEntryNotReady from None
 
     retry_reload_needed = False
     for failure in failed_locations.values():
