@@ -29,6 +29,28 @@ def util_module(monkeypatch: pytest.MonkeyPatch) -> Iterator[ModuleType]:
         clear_integration_modules()
 
 
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (None, False),
+        ({}, False),
+        (["date"], False),
+        ({"region": {"source": "meta"}}, False),
+        ({123: {"source": "meta"}, "region": {}}, False),
+        ({"date": None}, True),
+        ({"type_grass": {}}, True),
+        ({"plant_oak": {}}, True),
+        ({"plants_oak": {}}, True),
+        ({123: {}, "type_grass": {}}, True),
+    ],
+)
+def test_has_usable_daily_data_matches_initial_sensor_contract(
+    util_module, data, expected
+) -> None:
+    """Require a daily marker even with malformed or unexpected payload keys."""
+    assert util_module.has_usable_daily_data(data) is expected
+
+
 def test_redact_api_key_handles_non_utf8_bytes(util_module):
     """Bytes payloads with invalid UTF-8 are decoded with replacement and redacted."""
 
