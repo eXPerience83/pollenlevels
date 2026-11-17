@@ -634,6 +634,39 @@ def _extract_constant_assignments(tree: ast.AST) -> dict[str, str]:
     return constants
 
 
+def _location_schema_helper_field(tree: ast.AST, mapping: dict[str, str]) -> str:
+    """Resolve the shared location helper only if all exits require CONF_LOCATION."""
+    helpers = [
+        node
+        for node in getattr(tree, "body", [])
+        if isinstance(node, ast.FunctionDef) and node.name == "_location_schema_field"
+    ]
+    if len(helpers) != 1:
+        _fail_unexpected_ast("location schema helper missing or ambiguous")
+
+    returns = [node for node in ast.walk(helpers[0]) if isinstance(node, ast.Return)]
+    if not returns:
+        _fail_unexpected_ast("location schema helper has no return")
+    for ret in returns:
+        call = ret.value
+        if not (
+            isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Attribute)
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == "vol"
+            and call.func.attr == "Required"
+            and call.args
+            and isinstance(call.args[0], ast.Name)
+            and call.args[0].id == "CONF_LOCATION"
+        ):
+            _fail_unexpected_ast("location schema helper must require CONF_LOCATION")
+
+    resolved = _resolve_name("CONF_LOCATION", mapping)
+    if resolved is None:
+        _fail_unexpected_ast("unmapped CONF_LOCATION in location schema helper")
+    return resolved
+
+
 def _extract_schema_key_aliases(
     tree: ast.AST, mapping: dict[str, str]
 ) -> dict[str, str]:
@@ -654,6 +687,13 @@ def _extract_schema_key_aliases(
 
         value = node.value if hasattr(node, "value") else None
         if not isinstance(value, ast.Call):
+            continue
+
+        if (
+            isinstance(value.func, ast.Name)
+            and value.func.id == "_location_schema_field"
+        ):
+            aliases[target.id] = _location_schema_helper_field(tree, mapping)
             continue
 
         if not (
