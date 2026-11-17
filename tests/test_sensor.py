@@ -762,9 +762,8 @@ def test_forecast_attributes_only_exposed_on_type_and_plant_sensors(
             }
         }
     )
-    attrs = sensor_modules.sensor.PollenSensor(
-        coordinator, code
-    ).extra_state_attributes
+    entity = sensor_modules.sensor.PollenSensor(coordinator, code)
+    attrs = entity.extra_state_attributes
 
     assert attrs["category"] == "LOW"
     assert attrs[sensor_modules.sensor.ATTR_ATTRIBUTION]
