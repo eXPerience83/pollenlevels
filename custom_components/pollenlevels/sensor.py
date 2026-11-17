@@ -287,14 +287,6 @@ class PollenSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity)
             if info.get(k) is not None:
                 attrs[k] = info.get(k)
 
-        # Forecast-related attributes:
-        # - For TYPE sensors: include on base sensors
-        # - For PLANT sensors: include as attributes (no per-day plant sensors)
-        if info.get("source") == "type":
-            for key in _FORECAST_ATTRIBUTE_NAMES:
-                if info.get(key) is not None:
-                    attrs[key] = info.get(key)
-
         if info.get("source") == "plant":
             # Plant-specific metadata
             plant_attrs = {
@@ -310,7 +302,8 @@ class PollenSensor(CoordinatorEntity[PollenDataUpdateCoordinator], SensorEntity)
                 if v is not None:
                     attrs[k] = v
 
-            # Plant forecast attributes (attributes-only, no per-day plant sensors)
+        # Forecast attributes belong on base type and plant sensors only.
+        if info.get("source") in ("type", "plant"):
             for key in _FORECAST_ATTRIBUTE_NAMES:
                 if info.get(key) is not None:
                     attrs[key] = info.get(key)
