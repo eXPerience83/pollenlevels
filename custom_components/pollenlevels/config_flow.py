@@ -229,6 +229,40 @@ async def _async_validate_api_location(
     return False
 
 
+def _location_schema_field(
+    hass: HomeAssistant,
+    user_input: dict[str, Any],
+    *,
+    fallback: dict[str, Any] | None = None,
+) -> vol.Required:
+    """Prefer submitted location, then stored location, then HA coordinates."""
+    submitted = user_input.get(CONF_LOCATION)
+    if isinstance(submitted, dict):
+        default = submitted
+    elif fallback is not None:
+        default = fallback
+    else:
+        lat = _safe_coord(hass.config.latitude, lat=True)
+        lon = _safe_coord(hass.config.longitude, lat=False)
+        if lat is None or lon is None:
+            return vol.Required(CONF_LOCATION)
+        default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
+    return vol.Required(CONF_LOCATION, default=default)
+
+
+def _update_interval_selector() -> NumberSelector:
+    """Build the shared hours selector for setup and options forms."""
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=MIN_UPDATE_INTERVAL_HOURS,
+            max=MAX_UPDATE_INTERVAL_HOURS,
+            step=1,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement="h",
+        )
+    )
+
+
 def _build_step_user_schema(
     hass: HomeAssistant, user_input: dict[str, Any] | None
 ) -> vol.Schema:
@@ -239,19 +273,7 @@ def _build_step_user_schema(
         user_input.get(CONF_NAME) or hass.config.location_name or DEFAULT_ENTRY_TITLE
     )
 
-    location_default = None
-    if isinstance(user_input.get(CONF_LOCATION), dict):
-        location_default = user_input[CONF_LOCATION]
-    else:
-        lat = _safe_coord(hass.config.latitude, lat=True)
-        lon = _safe_coord(hass.config.longitude, lat=False)
-        if lat is not None and lon is not None:
-            location_default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
-
-    if location_default is not None:
-        location_field = vol.Required(CONF_LOCATION, default=location_default)
-    else:
-        location_field = vol.Required(CONF_LOCATION)
+    location_field = _location_schema_field(hass, user_input)
 
     update_interval_raw = user_input.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
     interval_default = _sanitize_update_interval_for_default(update_interval_raw)
@@ -266,15 +288,7 @@ def _build_step_user_schema(
             vol.Optional(
                 CONF_UPDATE_INTERVAL,
                 default=interval_default,
-            ): NumberSelector(
-                NumberSelectorConfig(
-                    min=MIN_UPDATE_INTERVAL_HOURS,
-                    max=MAX_UPDATE_INTERVAL_HOURS,
-                    step=1,
-                    mode=NumberSelectorMode.BOX,
-                    unit_of_measurement="h",
-                )
-            ),
+            ): _update_interval_selector(),
             vol.Optional(
                 CONF_LANGUAGE_CODE,
                 default=user_input.get(CONF_LANGUAGE_CODE, hass.config.language),
@@ -300,18 +314,9 @@ def _build_location_subentry_schema(
         or DEFAULT_ENTRY_TITLE
     )
 
-    if isinstance(user_input.get(CONF_LOCATION), dict):
-        location_default = user_input[CONF_LOCATION]
-    elif location_default is None:
-        lat = _safe_coord(hass.config.latitude, lat=True)
-        lon = _safe_coord(hass.config.longitude, lat=False)
-        if lat is not None and lon is not None:
-            location_default = {CONF_LATITUDE: lat, CONF_LONGITUDE: lon}
-
-    if location_default is not None:
-        location_field = vol.Required(CONF_LOCATION, default=location_default)
-    else:
-        location_field = vol.Required(CONF_LOCATION)
+    location_field = _location_schema_field(
+        hass, user_input, fallback=location_default
+    )
 
     return vol.Schema(
         {
@@ -939,15 +944,7 @@ class PollenLevelsOptionsFlow(config_entries.OptionsFlowWithReload):
             {
                 vol.Optional(
                     CONF_UPDATE_INTERVAL, default=current_interval
-                ): NumberSelector(
-                    NumberSelectorConfig(
-                        min=MIN_UPDATE_INTERVAL_HOURS,
-                        max=MAX_UPDATE_INTERVAL_HOURS,
-                        step=1,
-                        mode=NumberSelectorMode.BOX,
-                        unit_of_measurement="h",
-                    )
-                ),
+                ): _update_interval_selector(),
                 vol.Optional(CONF_LANGUAGE_CODE, default=current_lang): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.TEXT)
                 ),
