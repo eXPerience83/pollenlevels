@@ -789,6 +789,50 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
+async def _async_validate_subentry_location(
+    hass: HomeAssistant,
+    entry: config_entries.ConfigEntry,
+    user_input: dict[str, Any],
+    errors: dict[str, str],
+    description_placeholders: dict[str, Any],
+    *,
+    current_subentry_id: str | None = None,
+) -> tuple[str, float, float, str] | None:
+    """Validate add/reconfigure input without changing or reloading a subentry."""
+    title = str(user_input.get(CONF_NAME, "")).strip() or DEFAULT_ENTRY_TITLE
+    latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
+    if latlon is None:
+        errors[CONF_LOCATION] = "invalid_coordinates"
+        return None
+
+    lat, lon = latlon
+    unique_id = format_location_unique_id(lat, lon)
+    if _has_duplicate_location(
+        entry, unique_id, current_subentry_id=current_subentry_id
+    ):
+        errors["base"] = "already_configured"
+        return None
+
+    api_key = entry_api_key(entry)
+    if api_key is None:
+        errors["base"] = "invalid_auth"
+        description_placeholders["error_message"] = "Invalid API key."
+        return None
+
+    if not await _async_validate_api_location(
+        hass,
+        api_key=api_key,
+        latitude=lat,
+        longitude=lon,
+        language_code=_entry_language_code(entry),
+        errors=errors,
+        description_placeholders=description_placeholders,
+    ):
+        return None
+
+    return title, lat, lon, unique_id
+
+
 class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
     """Handle adding and updating pollen location subentries."""
 
@@ -801,43 +845,26 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
         entry = self._get_entry()
 
         if user_input is not None:
-            title = str(user_input.get(CONF_NAME, "")).strip() or DEFAULT_ENTRY_TITLE
-            latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
-            if latlon is None:
-                errors[CONF_LOCATION] = "invalid_coordinates"
-            else:
-                lat, lon = latlon
-                unique_id = format_location_unique_id(lat, lon)
-                if _has_duplicate_location(entry, unique_id):
-                    errors["base"] = "already_configured"
-                else:
-                    api_key = entry_api_key(entry)
-                    if api_key is None:
-                        errors["base"] = "invalid_auth"
-                        description_placeholders["error_message"] = "Invalid API key."
-                    elif await _async_validate_api_location(
-                        self.hass,
-                        api_key=api_key,
-                        latitude=lat,
-                        longitude=lon,
-                        language_code=_entry_language_code(entry),
-                        errors=errors,
-                        description_placeholders=description_placeholders,
-                    ):
-                        self.hass.async_create_task(
-                            _async_reload_parent_after_subentry_create(
-                                self.hass, entry.entry_id
-                            ),
-                            name=(
-                                "reload Pollen Levels parent after location "
-                                "subentry create"
-                            ),
-                        )
-                        return self.async_create_entry(
-                            title=title,
-                            data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
-                            unique_id=unique_id,
-                        )
+            validated = await _async_validate_subentry_location(
+                self.hass,
+                entry,
+                user_input,
+                errors,
+                description_placeholders,
+            )
+            if validated is not None:
+                title, lat, lon, unique_id = validated
+                self.hass.async_create_task(
+                    _async_reload_parent_after_subentry_create(
+                        self.hass, entry.entry_id
+                    ),
+                    name="reload Pollen Levels parent after location subentry create",
+                )
+                return self.async_create_entry(
+                    title=title,
+                    data={CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
+                    unique_id=unique_id,
+                )
 
         form_kwargs: dict[str, Any] = {
             "step_id": "user",
@@ -863,45 +890,30 @@ class PollenLevelsLocationSubentryFlow(config_entries.ConfigSubentryFlow):
         }
 
         if user_input is not None:
-            title = str(user_input.get(CONF_NAME, "")).strip() or DEFAULT_ENTRY_TITLE
-            latlon = _validate_location_dict(user_input.get(CONF_LOCATION))
-            if latlon is None:
-                errors[CONF_LOCATION] = "invalid_coordinates"
-            else:
-                lat, lon = latlon
-                unique_id = format_location_unique_id(lat, lon)
-                if _has_duplicate_location(
-                    entry, unique_id, current_subentry_id=subentry.subentry_id
-                ):
-                    errors["base"] = "already_configured"
-                else:
-                    api_key = entry_api_key(entry)
-                    if api_key is None:
-                        errors["base"] = "invalid_auth"
-                        description_placeholders["error_message"] = "Invalid API key."
-                    elif await _async_validate_api_location(
-                        self.hass,
-                        api_key=api_key,
-                        latitude=lat,
-                        longitude=lon,
-                        language_code=_entry_language_code(entry),
-                        errors=errors,
-                        description_placeholders=description_placeholders,
-                    ):
-                        data = {
-                            CONF_LATITUDE: lat,
-                            CONF_LONGITUDE: lon,
-                        }
-                        legacy_entry_id = subentry_data.get(CONF_LEGACY_ENTRY_ID)
-                        if legacy_entry_id:
-                            data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
-                        return self.async_update_reload_and_abort(
-                            entry,
-                            subentry,
-                            title=title,
-                            data=data,
-                            unique_id=unique_id,
-                        )
+            validated = await _async_validate_subentry_location(
+                self.hass,
+                entry,
+                user_input,
+                errors,
+                description_placeholders,
+                current_subentry_id=subentry.subentry_id,
+            )
+            if validated is not None:
+                title, lat, lon, unique_id = validated
+                data = {
+                    CONF_LATITUDE: lat,
+                    CONF_LONGITUDE: lon,
+                }
+                legacy_entry_id = subentry_data.get(CONF_LEGACY_ENTRY_ID)
+                if legacy_entry_id:
+                    data[CONF_LEGACY_ENTRY_ID] = legacy_entry_id
+                return self.async_update_reload_and_abort(
+                    entry,
+                    subentry,
+                    title=title,
+                    data=data,
+                    unique_id=unique_id,
+                )
 
         form_kwargs: dict[str, Any] = {
             "step_id": "reconfigure",
