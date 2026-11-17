@@ -178,6 +178,71 @@ def test_shared_interval_selector_keeps_hours_contract(
     assert selector.config.unit_of_measurement == "h"
 
 
+@pytest.mark.parametrize(
+    ("current_subentry_id", "expected_valid"),
+    [
+        (None, False),
+        ("another-location", False),
+        ("location-1", True),
+    ],
+)
+def test_location_validation_preserves_current_subentry_duplicate_exemption(
+    config_flow_stubs: config_flow_tests.ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
+    current_subentry_id: str | None,
+    expected_valid: bool,
+) -> None:
+    """Only reconfigure may reuse its own coordinate identity."""
+    module = config_flow_stubs.config_flow
+    existing = module.config_entries.ConfigSubentry(
+        subentry_id="location-1",
+        unique_id="1.0000_2.0000",
+        data={
+            config_flow_stubs.CONF_LATITUDE: 1.0,
+            config_flow_stubs.CONF_LONGITUDE: 2.0,
+        },
+    )
+    entry = config_flow_stubs.StubConfigEntry(
+        data={config_flow_stubs.CONF_API_KEY: "key"},
+        subentries={existing.subentry_id: existing},
+    )
+    calls: list[tuple[float, float]] = []
+
+    async def _accept_location(_hass, **kwargs):
+        calls.append((kwargs["latitude"], kwargs["longitude"]))
+        return True
+
+    monkeypatch.setattr(module, "_async_validate_api_location", _accept_location)
+    errors: dict[str, str] = {}
+    placeholders: dict[str, str] = {}
+    result = asyncio.run(
+        module._async_validate_subentry_location(
+            SimpleNamespace(),
+            entry,
+            {
+                config_flow_stubs.CONF_NAME: " Location ",
+                config_flow_stubs.CONF_LOCATION: {
+                    config_flow_stubs.CONF_LATITUDE: 1.0,
+                    config_flow_stubs.CONF_LONGITUDE: 2.0,
+                },
+            },
+            errors,
+            placeholders,
+            current_subentry_id=current_subentry_id,
+        )
+    )
+
+    if expected_valid:
+        assert result == ("Location", 1.0, 2.0, "1.0000_2.0000")
+        assert errors == {}
+        assert calls == [(1.0, 2.0)]
+    else:
+        assert result is None
+        assert errors == {"base": "already_configured"}
+        assert calls == []
+    assert placeholders == {}
+
+
 def test_duplicate_location_scan_ignores_matching_unrelated_subentry(
     config_flow_stubs: config_flow_tests.ConfigFlowStubs,
 ) -> None:
