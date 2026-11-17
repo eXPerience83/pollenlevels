@@ -933,9 +933,19 @@ def test_setup_entry_skips_invalid_subentry_coordinates_when_others_load(
     assert "2.654321" not in log_text
 
 
+@pytest.mark.parametrize(
+    "unusable_data",
+    [
+        {"region": {"source": "meta"}},
+        {123: {"source": "meta"}, "region": {}},
+        ["date"],
+    ],
+    ids=["metadata-only", "non-string-key", "non-dict"],
+)
 def test_setup_entry_skips_location_without_usable_initial_data(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
+    unusable_data: Any,
 ) -> None:
     """A location with no usable initial data should not block healthy locations."""
     integration = integration_modules.integration
@@ -962,7 +972,7 @@ def test_setup_entry_skips_location_without_usable_initial_data(
         def __init__(self, *args, **kwargs):
             self.subentry_id = kwargs["subentry_id"]
             self.data = (
-                {"region": {"source": "meta"}}
+                unusable_data
                 if self.subentry_id == "empty-location"
                 else {"date": {"source": "meta"}}
             )
