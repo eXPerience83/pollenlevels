@@ -4072,9 +4072,19 @@ async def test_async_setup_entry_cleans_legacy_entities_for_stale_locations(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "unusable_data",
+    [
+        {"region": {"source": "meta"}},
+        {123: {"source": "meta"}, "region": {}},
+        ["date"],
+    ],
+    ids=["metadata-only", "non-string-key", "non-dict"],
+)
 async def test_async_setup_entry_cleans_legacy_entities_before_no_data_error(
     sensor_modules: SensorModules,
     monkeypatch: pytest.MonkeyPatch,
+    unusable_data: Any,
 ) -> None:
     """Legacy cleanup should happen before no-data setup raises not-ready."""
 
@@ -4090,7 +4100,7 @@ async def test_async_setup_entry_cleans_legacy_entities_before_no_data_error(
         )
     }
     coordinator = types.SimpleNamespace(
-        data={"region": {"source": "meta"}},
+        data=unusable_data,
         entry_id="entry",
         subentry_id="active-location",
         entity_identity_id="entry",
