@@ -97,6 +97,87 @@ def test_location_schema_supports_missing_home_assistant_default(
     assert captured_defaults == [_MISSING]
 
 
+@pytest.mark.parametrize(
+    ("builder", "submitted", "stored", "home_coords", "expected"),
+    [
+        ("user", None, None, (12.5, -1.5), {"latitude": 12.5, "longitude": -1.5}),
+        ("subentry", None, None, (12.5, -1.5), {"latitude": 12.5, "longitude": -1.5}),
+        (
+            "subentry",
+            None,
+            {"latitude": 4.0, "longitude": 5.0},
+            (12.5, -1.5),
+            {"latitude": 4.0, "longitude": 5.0},
+        ),
+        (
+            "subentry",
+            {"latitude": 1.0, "longitude": 2.0},
+            {"latitude": 4.0, "longitude": 5.0},
+            (12.5, -1.5),
+            {"latitude": 1.0, "longitude": 2.0},
+        ),
+        ("subentry", {}, {"latitude": 4.0, "longitude": 5.0}, (12.5, -1.5), {}),
+        ("user", None, None, (12.5, None), _MISSING),
+        ("user", None, None, (None, -1.5), _MISSING),
+    ],
+)
+def test_location_schema_preserves_default_priority(
+    config_flow_stubs: config_flow_tests.ConfigFlowStubs,
+    monkeypatch: pytest.MonkeyPatch,
+    builder: str,
+    submitted: dict[str, float] | None,
+    stored: dict[str, float] | None,
+    home_coords: tuple[float | None, float | None],
+    expected: object,
+) -> None:
+    """Preserve submitted, stored, then HA defaults in both location forms."""
+    module = config_flow_stubs.config_flow
+    capture: list[object] = []
+    original_required = module.vol.Required
+
+    def _capture_required(key: object, **kwargs: object) -> object:
+        if key == config_flow_stubs.CONF_LOCATION:
+            capture.append(kwargs.get("default", _MISSING))
+        return original_required(key, **kwargs)
+
+    monkeypatch.setattr(module.vol, "Required", _capture_required)
+    hass = SimpleNamespace(
+        config=SimpleNamespace(
+            latitude=home_coords[0],
+            longitude=home_coords[1],
+            language="en",
+            location_name="Home",
+        )
+    )
+    input_values = (
+        {config_flow_stubs.CONF_LOCATION: submitted} if submitted is not None else {}
+    )
+    if builder == "user":
+        schema = module._build_step_user_schema(hass, input_values)
+    else:
+        schema = module._build_location_subentry_schema(
+            hass, input_values, location_default=stored
+        )
+
+    assert capture == [expected]
+    selector = schema.schema[config_flow_stubs.CONF_LOCATION]
+    assert selector.config.radius is False
+
+
+def test_shared_interval_selector_keeps_hours_contract(
+    config_flow_stubs: config_flow_tests.ConfigFlowStubs,
+) -> None:
+    """Setup and options selectors use the same hours bounds and box mode."""
+    module = config_flow_stubs.config_flow
+    selector = module._update_interval_selector()
+    assert isinstance(selector, module.NumberSelector)
+    assert selector.config.min == module.MIN_UPDATE_INTERVAL_HOURS
+    assert selector.config.max == module.MAX_UPDATE_INTERVAL_HOURS
+    assert selector.config.step == 1
+    assert selector.config.mode == module.NumberSelectorMode.BOX
+    assert selector.config.unit_of_measurement == "h"
+
+
 def test_duplicate_location_scan_ignores_matching_unrelated_subentry(
     config_flow_stubs: config_flow_tests.ConfigFlowStubs,
 ) -> None:
