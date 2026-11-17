@@ -60,6 +60,16 @@ def has_legacy_per_day_option(*mappings: Mapping[str, Any] | None) -> bool:
     return False
 
 
+def has_usable_daily_data(data: Any) -> bool:
+    """Return whether an initial pollen payload can initialize location sensors."""
+    if not isinstance(data, dict):
+        return False
+    return ("date" in data) or any(
+        isinstance(key, str) and key.startswith(("type_", "plant_", "plants_"))
+        for key in data
+    )
+
+
 def coordinator_identity_id(coordinator: PollenDataUpdateCoordinator) -> str:
     """Return the stable identity used for entity unique IDs."""
     return coordinator.entity_identity_id
@@ -384,6 +394,7 @@ __all__ = [
     "extract_error_message",
     "format_location_unique_id",
     "has_legacy_per_day_option",
+    "has_usable_daily_data",
     "LEGACY_FORECAST_OPTION_KEYS",
     "normalize_language_code",
     "normalize_pollen_index_value",

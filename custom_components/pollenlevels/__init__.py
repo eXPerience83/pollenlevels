@@ -57,6 +57,7 @@ from .runtime import (
 from .util import (
     active_location_subentry_ids,
     has_legacy_per_day_option,
+    has_usable_daily_data,
     redact_sensitive_values,
     safe_parse_int,
     strip_legacy_forecast_options,
@@ -152,17 +153,6 @@ def _safe_setup_failure_text(
     )
     redacted = _truncate_setup_failure_reason(redacted)
     return redacted or fallback
-
-
-def _coordinator_has_usable_initial_data(coordinator: Any) -> bool:
-    """Return whether a first refresh produced enough data to build sensors."""
-    data = coordinator.data or {}
-    if not isinstance(data, dict):
-        return False
-    return ("date" in data) or any(
-        isinstance(key, str) and key.startswith(("type_", "plant_", "plants_"))
-        for key in data
-    )
 
 
 def _location_setup_failure(
@@ -590,7 +580,7 @@ async def async_setup_entry(
             continue
 
         consecutive_transport_failures = 0
-        if not _coordinator_has_usable_initial_data(coordinator):
+        if not has_usable_daily_data(coordinator.data):
             reason = "API response missing usable pollen data"
             _LOGGER.warning(
                 "Initial data refresh for entry %s subentry %s produced no usable "

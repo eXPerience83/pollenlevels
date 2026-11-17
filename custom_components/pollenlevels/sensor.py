@@ -39,6 +39,7 @@ from .summary import daily_summary as _daily_summary
 from .util import (
     active_location_subentry_ids,
     coordinator_identity_id,
+    has_usable_daily_data,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -169,10 +170,7 @@ async def async_setup_entry(
 
         coordinator = location.coordinator
         data = coordinator.data or {}
-        has_daily = ("date" in data) or any(
-            key.startswith(("type_", "plant_", "plants_")) for key in data
-        )
-        if not has_daily:
+        if not has_usable_daily_data(data):
             message = (
                 "No pollen data found during initial setup for "
                 f"subentry {location.subentry_id}"
