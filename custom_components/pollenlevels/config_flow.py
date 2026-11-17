@@ -314,9 +314,7 @@ def _build_location_subentry_schema(
         or DEFAULT_ENTRY_TITLE
     )
 
-    location_field = _location_schema_field(
-        hass, user_input, fallback=location_default
-    )
+    location_field = _location_schema_field(hass, user_input, fallback=location_default)
 
     return vol.Schema(
         {
