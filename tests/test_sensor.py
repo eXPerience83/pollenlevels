@@ -741,6 +741,48 @@ def test_pollen_sensor_forecast_attributes_do_not_require_coordinator_field(
     assert plant_attrs["expected_peak"] == {"offset": 1, "value": 2}
 
 
+@pytest.mark.parametrize("source", ("type", "plant", "meta"))
+def test_forecast_attributes_only_exposed_on_type_and_plant_sensors(
+    sensor_modules: SensorModules, source: str
+) -> None:
+    """Share forecast extraction without exposing it on unrelated sensor sources."""
+    code = "plants_oak" if source == "plant" else "type_oak"
+    coordinator = _summary_coordinator(
+        {
+            code: {
+                "source": source,
+                "category": "LOW",
+                "forecast": [{"offset": 1, "value": 2}],
+                "tomorrow_has_index": False,
+                "tomorrow_value": None,
+                "d2_has_index": False,
+                "trend": "stable",
+                "expected_peak": {"offset": 2, "value": 3},
+                "family": "Fagaceae",
+            }
+        }
+    )
+    entity = sensor_modules.sensor.PollenSensor(coordinator, code)
+    attrs = entity.extra_state_attributes
+
+    assert attrs["category"] == "LOW"
+    assert attrs[sensor_modules.sensor.ATTR_ATTRIBUTION]
+    assert "tomorrow_value" not in attrs
+    if source in ("type", "plant"):
+        assert attrs["forecast"] == [{"offset": 1, "value": 2}]
+        assert attrs["tomorrow_has_index"] is False
+        assert attrs["d2_has_index"] is False
+        assert attrs["trend"] == "stable"
+        assert attrs["expected_peak"] == {"offset": 2, "value": 3}
+    else:
+        assert "forecast" not in attrs
+        assert "tomorrow_has_index" not in attrs
+        assert "d2_has_index" not in attrs
+        assert "trend" not in attrs
+        assert "expected_peak" not in attrs
+    assert ("family" in attrs) is (source == "plant")
+
+
 def test_plants_in_season_counts_mixed_boolean_and_unknown_values(
     sensor_modules: SensorModules,
 ) -> None:
