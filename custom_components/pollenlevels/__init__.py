@@ -61,6 +61,7 @@ from .util import (
     redact_sensitive_text_for_locations,
     redact_sensitive_values,
     safe_parse_int,
+    stored_location_coordinate_pairs,
     strip_legacy_forecast_options,
     validate_location_pair,
 )
@@ -428,21 +429,7 @@ async def async_setup_entry(
     client = GooglePollenApiClient(session, api_key)
 
     location_configs = _iter_location_subentries(entry)
-    coordinate_pairs: list[tuple[Any, Any]] = []
-    parent_data = dict(entry.data or {})
-    if CONF_LATITUDE in parent_data or CONF_LONGITUDE in parent_data:
-        coordinate_pairs.append(
-            (parent_data.get(CONF_LATITUDE), parent_data.get(CONF_LONGITUDE))
-        )
-    for subentry in entry.subentries.values():
-        subentry_data = dict(subentry.data)
-        if CONF_LATITUDE in subentry_data or CONF_LONGITUDE in subentry_data:
-            coordinate_pairs.append(
-                (
-                    subentry_data.get(CONF_LATITUDE),
-                    subentry_data.get(CONF_LONGITUDE),
-                )
-            )
+    coordinate_pairs = stored_location_coordinate_pairs(entry)
     active_subentry_ids = active_location_subentry_ids(entry)
     delete_stale_location_subentry_issues(
         hass,
