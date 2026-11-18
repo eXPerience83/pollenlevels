@@ -110,9 +110,10 @@ def test_setup_and_repairs_share_stored_privacy_context(
     ]
 
     assert integration.stored_location_coordinate_pairs(parent) == expected
-    assert integration_modules.issue_helpers._entry_repair_privacy_context(
-        parent
-    ) == ("SYNTHETIC-H10-KEY", expected)
+    assert integration_modules.issue_helpers._entry_repair_privacy_context(parent) == (
+        "SYNTHETIC-H10-KEY",
+        expected,
+    )
     safe = integration._safe_setup_failure_text(
         "SYNTHETIC-H10-KEY -117.1234567 33.8765432 8.1239872",
         api_key="SYNTHETIC-H10-KEY",
