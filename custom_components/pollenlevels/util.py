@@ -12,6 +12,8 @@ from .const import (
     CONF_API_KEY,
     CONF_CREATE_FORECAST_SENSORS,
     CONF_FORECAST_DAYS,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
     SUBENTRY_TYPE_LOCATION,
 )
 
@@ -79,6 +81,30 @@ def coordinator_device_id(coordinator: PollenDataUpdateCoordinator, group: str) 
     """Return the stable device identifier for a location/group pair."""
     identity_id = coordinator.device_identity_id
     return f"{identity_id}_{group}"
+
+
+def stored_location_coordinate_pairs(entry: Any) -> list[tuple[Any, Any]]:
+    """Snapshot all stored parent and subentry coordinates for privacy redaction.
+
+    Include incomplete pairs and all subentries, regardless of location type
+    or runtime activity. This deliberately differs from active diagnostics.
+    """
+    data = dict(entry.data or {})
+    coordinate_pairs: list[tuple[Any, Any]] = []
+    if CONF_LATITUDE in data or CONF_LONGITUDE in data:
+        coordinate_pairs.append((data.get(CONF_LATITUDE), data.get(CONF_LONGITUDE)))
+
+    for subentry in entry.subentries.values():
+        subentry_data = dict(subentry.data)
+        if CONF_LATITUDE in subentry_data or CONF_LONGITUDE in subentry_data:
+            coordinate_pairs.append(
+                (
+                    subentry_data.get(CONF_LATITUDE),
+                    subentry_data.get(CONF_LONGITUDE),
+                )
+            )
+
+    return coordinate_pairs
 
 
 def entry_api_key(entry: Any) -> str | None:
@@ -404,6 +430,7 @@ __all__ = [
     "redact_sensitive_values",
     "safe_parse_int",
     "strip_legacy_forecast_options",
+    "stored_location_coordinate_pairs",
     "validate_latitude",
     "validate_location_pair",
     "validate_longitude",
