@@ -324,10 +324,10 @@ class GooglePollenApiClient:
                     else:
                         try:
                             payload = await resp.json(content_type=None)
-                        except (ContentTypeError, TypeError, ValueError) as err:
+                        except ContentTypeError, TypeError, ValueError:
                             raise UpdateFailed(
                                 "Unexpected API response: invalid JSON"
-                            ) from err
+                            ) from None
 
                         if not isinstance(payload, dict):
                             raise UpdateFailed(
@@ -386,7 +386,7 @@ class GooglePollenApiClient:
                     )
                     or "Google Pollen API call timed out"
                 )
-                raise PollenTransportError(f"Timeout: {msg}") from err
+                raise PollenTransportError(f"Timeout: {msg}") from None
             except ClientError as err:
                 if attempt < max_retries:
                     await self._async_backoff(
@@ -404,7 +404,7 @@ class GooglePollenApiClient:
                     )
                     or "Network error while calling the Google Pollen API"
                 )
-                raise PollenTransportError(msg) from err
+                raise PollenTransportError(msg) from None
             except UpdateFailed:
                 raise
             except Exception as err:  # noqa: BLE001
@@ -414,4 +414,4 @@ class GooglePollenApiClient:
                 if not msg:
                     msg = "Unexpected error while calling the Google Pollen API"
                 _LOGGER.error("Pollen API error: %s", msg)
-                raise UpdateFailed(msg) from err
+                raise UpdateFailed(msg) from None

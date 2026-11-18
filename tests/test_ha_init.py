@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from datetime import timedelta
 from typing import Any
 
 import pytest
+from aiohttp import ClientConnectionError
 from aiointercept import CallbackResult, aiointercept
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import (
     device_registry as dr,
     entity_registry as er,
@@ -369,15 +372,92 @@ async def test_ha_transport_threshold_enters_setup_retry_and_recovers(
     ]
 
 
+@pytest.mark.parametrize(
+    "error_type", [ClientConnectionError, TimeoutError, RuntimeError]
+)
+async def test_ha_refresh_redacts_transport_debug_traceback(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    ha_two_location_config_entry,
+    google_pollen_5_day_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    error_type: type[Exception],
+) -> None:
+    """HA's formatted DEBUG log must not expose the original exception chain."""
+    clear_integration_modules()
+    from custom_components.pollenlevels import client
+
+    entry = ha_two_location_config_entry
+    entry.add_to_hass(hass)
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+        failed = entry.runtime_data.locations["location-madrid"].coordinator
+        healthy = entry.runtime_data.locations["location-barcelona"].coordinator
+        key = entry.data[CONF_API_KEY]
+        latitude = str(failed.lat)
+        original_get = type(failed._client._session).get
+
+        def fail_one_location(session, url, **kwargs):
+            if kwargs["params"]["location.latitude"] == f"{failed.lat:.6f}":
+                try:
+                    raise ValueError(f"Original cause: {key} {latitude}")
+                except ValueError as err:
+                    raise error_type(
+                        f"Synthetic transport detail: {key} {latitude}"
+                    ) from err
+            return original_get(session, url, **kwargs)
+
+        monkeypatch.setattr(type(failed._client._session), "get", fail_one_location)
+        monkeypatch.setattr(client, "MAX_RETRIES", 0)
+
+        with caplog.at_level(logging.DEBUG, logger=failed.logger.name):
+            await failed.async_refresh()
+            await healthy.async_refresh()
+
+    expected_type = (
+        client.UpdateFailed
+        if error_type is RuntimeError
+        else client.PollenTransportError
+    )
+    assert type(failed.last_exception) is expected_type
+    assert not failed.last_update_success
+    assert healthy.last_update_success
+    assert entry.state is ConfigEntryState.LOADED
+    debug = next(
+        record for record in caplog.records if record.getMessage() == "Full error:"
+    )
+    assert debug.exc_info is not None
+    assert debug.exc_info[1] is failed.last_exception
+    assert "Synthetic transport detail: *** ***" in str(failed.last_exception)
+    formatted = caplog.handler.format(debug)
+    assert key not in formatted
+    assert latitude not in formatted
+
+
+@pytest.mark.parametrize("status", [400, 401])
 async def test_ha_expired_api_key_reload_preserves_registry_identity(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     socket_enabled: None,
-    ha_config_entry,
+    caplog: pytest.LogCaptureFixture,
+    status: int,
     google_pollen_5_day_payload: dict[str, Any],
 ) -> None:
     """A loaded entry should preserve registry identity through expired-key reauth."""
     clear_integration_modules()
+    key = "SYNTHETIC-REAUTH-KEY"
+    coordinates = (12.345678, -32.765432, 41.9876543)
+    ha_config_entry = _parent_entry(
+        entry_id="synthetic-reauth",
+        api_key=key,
+        locations=[
+            ("a", "Synthetic A", coordinates[0], coordinates[1]),
+            ("b", "Synthetic B", coordinates[2], -71.234567),
+        ],
+    )
     ha_config_entry.add_to_hass(hass)
 
     async with aiointercept(mock_external_urls=True) as mocked:
@@ -385,7 +465,7 @@ async def test_ha_expired_api_key_reload_preserves_registry_identity(
         await async_setup_config_entry(hass, ha_config_entry)
 
     assert ha_config_entry.state is ConfigEntryState.LOADED
-    assert set(ha_config_entry.runtime_data.locations) == {"location-madrid"}
+    assert set(ha_config_entry.runtime_data.locations) == {"a", "b"}
 
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
@@ -424,19 +504,38 @@ async def test_ha_expired_api_key_reload_preserves_registry_identity(
     assert identities_before["entities"]
     assert identities_before["devices"]
 
+    caplog.set_level(logging.DEBUG, logger="custom_components.pollenlevels")
+    caplog.clear()
     async with aiointercept(mock_external_urls=True) as mocked:
         mocked.get(
             POLLEN_API_URL_RE,
             callback=lambda *_args, **_kwargs: CallbackResult(
-                status=400,
+                status=status,
                 payload={
-                    "error": {"message": "API key expired. Please renew the API key."}
+                    "error": {
+                        "message": (
+                            f"API key expired. {key} " + " ".join(map(str, coordinates))
+                        )
+                    }
                 },
             ),
             repeat=True,
         )
         assert not await hass.config_entries.async_reload(ha_config_entry.entry_id)
         await hass.async_block_till_done()
+
+    auth_records = [
+        record for record in caplog.records if record.filename == "config_entries.py"
+    ]
+    assert any("API key expired." in record.getMessage() for record in auth_records)
+
+    assert any(
+        record.exc_info and isinstance(record.exc_info[1], ConfigEntryAuthFailed)
+        for record in auth_records
+    )
+    formatted = "\n".join(caplog.handler.format(record) for record in auth_records)
+    for secret in (key, *map(str, coordinates)):
+        assert secret not in formatted
 
     assert ha_config_entry.state is ConfigEntryState.SETUP_ERROR
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
@@ -460,7 +559,7 @@ async def test_ha_expired_api_key_reload_preserves_registry_identity(
     assert result["reason"] == "reauth_successful"
     assert ha_config_entry.data[CONF_API_KEY] == "replacement-key"
     assert ha_config_entry.state is ConfigEntryState.LOADED
-    assert set(ha_config_entry.runtime_data.locations) == {"location-madrid"}
+    assert set(ha_config_entry.runtime_data.locations) == {"a", "b"}
     assert _registry_identity_snapshot() == identities_before
 
 
