@@ -105,23 +105,29 @@ def _extract_api_date(day: dict[str, Any]) -> str | None:
     return f"{year:04d}-{month:02d}-{day_num:02d}"
 
 
+def _index_summary_fields(idx: dict[str, Any]) -> dict[str, Any]:
+    """Build only the common pollen-index fields with unchanged missing values."""
+    rgb = _rgb_from_api(idx.get("color"))
+    return {
+        "value": normalize_pollen_index_value(idx.get("value")),
+        "category": idx.get("category"),
+        "description": idx.get("indexDescription"),
+        "color_hex": _rgb_to_hex_triplet(rgb),
+        "color_rgb": list(rgb) if rgb is not None else None,
+    }
+
+
 def _build_forecast_entry(
     offset: int, date: str | None, item: dict[str, Any]
 ) -> dict[str, Any]:
     """Build one behavior-preserving forecast entry from an API item."""
     idx_raw = item.get("indexInfo")
     idx = idx_raw if isinstance(idx_raw, dict) else {}
-    has_index = bool(idx)
-    rgb = _rgb_from_api(idx.get("color")) if has_index else None
     return {
         "offset": offset,
         "date": date,
-        "has_index": has_index,
-        "value": normalize_pollen_index_value(idx.get("value")) if has_index else None,
-        "category": idx.get("category") if has_index else None,
-        "description": idx.get("indexDescription") if has_index else None,
-        "color_hex": _rgb_to_hex_triplet(rgb) if has_index else None,
-        "color_rgb": list(rgb) if (has_index and rgb is not None) else None,
+        "has_index": bool(idx),
+        **_index_summary_fields(idx),
     }
 
 
@@ -380,18 +386,18 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
             titem = type_by_day_code[0].get(tcode) or {}
             idx_raw = titem.get("indexInfo")
             idx = idx_raw if isinstance(idx_raw, dict) else {}
-            rgb = _rgb_from_api(idx.get("color"))
+            index_fields = _index_summary_fields(idx)
             key = f"type_{tcode.lower()}"
             new_data[key] = {
                 "source": "type",
-                "value": normalize_pollen_index_value(idx.get("value")),
-                "category": idx.get("category"),
+                "value": index_fields["value"],
+                "category": index_fields["category"],
                 "displayName": titem.get("displayName", tcode),
                 "inSeason": titem.get("inSeason"),
-                "description": idx.get("indexDescription"),
+                "description": index_fields["description"],
                 "advice": titem.get("healthRecommendations"),
-                "color_hex": _rgb_to_hex_triplet(rgb),
-                "color_rgb": list(rgb) if rgb is not None else None,
+                "color_hex": index_fields["color_hex"],
+                "color_rgb": index_fields["color_rgb"],
             }
 
         plant_keys: list[str] = []
@@ -406,14 +412,14 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
             idx = idx_raw if isinstance(idx_raw, dict) else {}
             desc_raw = pitem.get("plantDescription")
             desc = desc_raw if isinstance(desc_raw, dict) else {}
-            rgb = _rgb_from_api(idx.get("color"))
+            index_fields = _index_summary_fields(idx)
             raw_code = pitem.get("code")
             code = str(raw_code).strip() if raw_code is not None else ""
             key = f"plants_{code.lower()}"
             new_data[key] = {
                 "source": "plant",
-                "value": normalize_pollen_index_value(idx.get("value")),
-                "category": idx.get("category"),
+                "value": index_fields["value"],
+                "category": index_fields["category"],
                 "displayName": pitem.get("displayName", code),
                 "code": code,
                 "inSeason": pitem.get("inSeason"),
@@ -421,10 +427,10 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
                 "family": desc.get("family"),
                 "season": desc.get("season"),
                 "cross_reaction": desc.get("crossReaction"),
-                "description": idx.get("indexDescription"),
+                "description": index_fields["description"],
                 "advice": pitem.get("healthRecommendations"),
-                "color_hex": _rgb_to_hex_triplet(rgb),
-                "color_rgb": list(rgb) if rgb is not None else None,
+                "color_hex": index_fields["color_hex"],
+                "color_rgb": index_fields["color_rgb"],
                 "picture": desc.get("picture"),
                 "picture_closeup": desc.get("pictureCloseup"),
             }
