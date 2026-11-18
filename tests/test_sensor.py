@@ -255,6 +255,115 @@ def sensor_modules(monkeypatch: pytest.MonkeyPatch) -> SensorModules:
     clear_integration_modules()
 
 
+@pytest.mark.parametrize(
+    ("index_info", "expected_fields"),
+    [
+        (
+            {},
+            {
+                "value": None,
+                "category": None,
+                "description": None,
+                "color_hex": None,
+                "color_rgb": None,
+            },
+        ),
+        (
+            {
+                "value": 0,
+                "category": "NONE",
+                "indexDescription": "No pollen",
+                "color": {"red": 1, "green": 0, "blue": 0},
+            },
+            {
+                "value": 0,
+                "category": "NONE",
+                "description": "No pollen",
+                "color_hex": "#FF0000",
+                "color_rgb": [255, 0, 0],
+            },
+        ),
+        (
+            {"value": True, "color": {"green": 0.5}},
+            {
+                "value": None,
+                "category": None,
+                "description": None,
+                "color_hex": "#008000",
+                "color_rgb": [0, 128, 0],
+            },
+        ),
+        (
+            {"value": 5, "color": {"red": -1, "blue": 255}},
+            {
+                "value": 5,
+                "category": None,
+                "description": None,
+                "color_hex": "#0000FF",
+                "color_rgb": [0, 0, 255],
+            },
+        ),
+        (
+            {"value": 6, "color": {"red": "invalid", "green": None}},
+            {
+                "value": None,
+                "category": None,
+                "description": None,
+                "color_hex": None,
+                "color_rgb": None,
+            },
+        ),
+        (
+            {"value": 3, "category": "HIGH", "indexDescription": "High", "color": {}},
+            {
+                "value": 3,
+                "category": "HIGH",
+                "description": "High",
+                "color_hex": None,
+                "color_rgb": None,
+            },
+        ),
+    ],
+)
+def test_index_summary_preserves_complete_forecast_shape(
+    sensor_modules: SensorModules,
+    index_info: dict[str, Any],
+    expected_fields: dict[str, Any],
+) -> None:
+    """Share only the index fields; preserve forecast flags and missing values."""
+    coordinator = sensor_modules.coordinator_mod
+
+    assert coordinator._index_summary_fields(index_info) == expected_fields
+    assert coordinator._build_forecast_entry(
+        2, "2026-11-20", {"indexInfo": index_info}
+    ) == {
+        "offset": 2,
+        "date": "2026-11-20",
+        "has_index": bool(index_info),
+        **expected_fields,
+    }
+
+
+@pytest.mark.parametrize("invalid_index", [None, [], "invalid", 0])
+def test_forecast_entry_treats_non_mapping_index_as_missing(
+    sensor_modules: SensorModules,
+    invalid_index: Any,
+) -> None:
+    """Keep the complete absent-index dictionary for malformed indexInfo."""
+    assert sensor_modules.coordinator_mod._build_forecast_entry(
+        1, None, {"indexInfo": invalid_index}
+    ) == {
+        "offset": 1,
+        "date": None,
+        "has_index": False,
+        "value": None,
+        "category": None,
+        "description": None,
+        "color_hex": None,
+        "color_rgb": None,
+    }
+
+
 class DummyHass:
     """Minimal Home Assistant stub for the coordinator."""
 
