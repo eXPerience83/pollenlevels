@@ -333,6 +333,52 @@ def test_redact_sensitive_text_for_locations_without_coordinates(
     )
 
 
+@pytest.mark.parametrize(
+    ("parent_data", "subentry_data", "expected"),
+    [
+        ({}, {}, []),
+        ({"latitude": None}, {}, [(None, None)]),
+        (
+            {"longitude": "-117.12345670"},
+            {
+                "active": {"latitude": "33.87654320", "longitude": 4.0},
+                "inactive": {"latitude": 8.1239872},
+                "partial": {"longitude": None},
+                "unrelated": {"name": "no coordinates"},
+                "other-type": {"latitude": "5.0", "longitude": "6.0"},
+            },
+            [
+                (None, "-117.12345670"),
+                ("33.87654320", 4.0),
+                (8.1239872, None),
+                (None, None),
+                ("5.0", "6.0"),
+            ],
+        ),
+    ],
+)
+def test_stored_location_coordinate_pairs_preserves_all_stored_values(
+    util_module, parent_data, subentry_data, expected
+):
+    """Include legacy/partial/stale/non-location pairs in stored order."""
+    entry = SimpleNamespace(
+        data=parent_data,
+        subentries={
+            name: SimpleNamespace(
+                data=data,
+                subentry_type="other" if name == "other-type" else "location",
+            )
+            for name, data in subentry_data.items()
+        },
+    )
+    pairs = util_module.stored_location_coordinate_pairs(entry)
+
+    assert pairs == expected
+    # The returned pairs are a snapshot, not live references into the data.
+    parent_data["latitude"] = 0.0
+    assert pairs == expected
+
+
 def test_redact_sensitive_values_redacts_normalized_stored_coordinate(util_module):
     """Redact raw, normalized and request forms of a numeric string."""
     message = "33.87654320 33.8765432 33.876543 33.87654321"
