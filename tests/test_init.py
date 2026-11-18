@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from tests._ha_stubs import (
     clear_integration_modules,
@@ -166,10 +167,6 @@ class _StubConfigEntryNotReady(Exception):
     pass
 
 
-class _StubConfigEntryAuthFailed(Exception):
-    pass
-
-
 class _StubUpdateFailed(Exception):
     pass
 
@@ -273,7 +270,7 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_util_dt_module(monkeypatch=monkeypatch)
     stub_exceptions(
         ConfigEntryNotReady=_StubConfigEntryNotReady,
-        ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
+        ConfigEntryAuthFailed=ConfigEntryAuthFailed,
         monkeypatch=monkeypatch,
     )
     stub_update_coordinator_module(
@@ -1598,14 +1595,31 @@ def test_setup_entry_auth_failure_still_fails_parent(
             self.lon = kwargs["lon"]
 
         async def async_config_entry_first_refresh(self):
-            raise integration.ConfigEntryAuthFailed("invalid key")
+            try:
+                raise ValueError("cause bad-key at 3.0")
+            except ValueError as err:
+                raise integration.ConfigEntryAuthFailed(
+                    "invalid key 3.0",
+                    translation_domain="pollenlevels",
+                    translation_key="invalid_auth",
+                    translation_placeholders={"location": "site 3.0", "status": "401"},
+                ) from err
 
     monkeypatch.setattr(
         integration, "PollenDataUpdateCoordinator", _AuthFailingCoordinator
     )
 
-    with pytest.raises(integration.ConfigEntryAuthFailed):
+    with pytest.raises(integration.ConfigEntryAuthFailed) as raised:
         asyncio.run(integration.async_setup_entry(hass, entry))
+
+    error = raised.value
+    assert str(error) == "invalid key ***"
+    assert error.translation_domain == "pollenlevels"
+    assert error.translation_key == "invalid_auth"
+    assert error.translation_placeholders == {"location": "site ***", "status": "401"}
+    formatted = "".join(traceback.format_exception(error))
+    assert "bad-key" not in formatted
+    assert "3.0" not in formatted
 
     assert entry.runtime_data is None
     assert hass.config_entries.forward_calls == []

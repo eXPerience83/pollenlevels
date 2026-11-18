@@ -517,8 +517,27 @@ async def async_setup_entry(
 
         try:
             await coordinator.async_config_entry_first_refresh()
-        except ConfigEntryAuthFailed:
-            raise
+        except ConfigEntryAuthFailed as err:
+            # HA reports the exception message and its traceback for reauth.
+            safe_message = redact_sensitive_text_for_locations(
+                err, api_key=api_key, coordinate_pairs=coordinate_pairs
+            )
+            placeholders = err.translation_placeholders
+            raise ConfigEntryAuthFailed(
+                safe_message,
+                translation_domain=err.translation_domain,
+                translation_key=err.translation_key,
+                translation_placeholders=(
+                    {
+                        name: redact_sensitive_text_for_locations(
+                            value, api_key=api_key, coordinate_pairs=coordinate_pairs
+                        )
+                        for name, value in placeholders.items()
+                    }
+                    if placeholders is not None
+                    else None
+                ),
+            ) from None
         except ConfigEntryNotReady as err:
             if isinstance(err.__cause__, PollenTransportError):
                 consecutive_transport_failures += 1

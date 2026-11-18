@@ -301,7 +301,7 @@ class PollenDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]
                 longitude=self.lon,
             )
             _LOGGER.error("Pollen API error: %s", msg)
-            raise UpdateFailed(msg) from err
+            raise UpdateFailed(msg) from None
 
         new_data: dict[str, dict[str, Any]] = {}
 
