@@ -333,6 +333,16 @@ def test_redact_sensitive_text_for_locations_without_coordinates(
     )
 
 
+def test_redact_sensitive_values_redacts_normalized_stored_coordinate(util_module):
+    """Redact raw, normalized and request forms of a numeric string."""
+    message = "33.87654320 33.8765432 33.876543 33.87654321"
+
+    assert (
+        util_module.redact_sensitive_values(message, latitude="33.87654320")
+        == "*** *** *** 33.87654321"
+    )
+
+
 def test_redact_sensitive_values_preserves_unrelated_numbers(util_module):
     """Unrelated numbers should not be redacted."""
 

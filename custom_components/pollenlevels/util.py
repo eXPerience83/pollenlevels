@@ -218,7 +218,7 @@ def _coordinate_values(value: float | str | None) -> set[str]:
         return {item for item in values if item}
 
     if math.isfinite(parsed):
-        values.add(f"{parsed:.6f}")
+        values.update((str(parsed), f"{parsed:.6f}"))
 
     return {item for item in values if item}
 
