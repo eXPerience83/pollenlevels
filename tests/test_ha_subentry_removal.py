@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -232,10 +233,8 @@ async def test_ha_real_subentry_removal_lifecycle(
         assert entry.state is ConfigEntryState.LOADED
         assert set(entry.subentries) == {"location-madrid"}
         assert set(entry.runtime_data.locations) == {"location-madrid"}
-        assert (
-            entry.runtime_data.locations["location-madrid"].coordinator
-            is not madrid_coordinator
-        )
+        survivor = entry.runtime_data.locations["location-madrid"].coordinator
+        assert survivor is not madrid_coordinator
         assert not _entities_for_subentry(
             entity_registry, entry.entry_id, "location-barcelona"
         )
@@ -247,6 +246,13 @@ async def test_ha_real_subentry_removal_lifecycle(
         )
         assert any(entity.domain == "sensor" for entity in remaining_entities)
         assert any(entity.domain == "button" for entity in remaining_entities)
+        assert {entity.entity_id for entity in remaining_entities} == madrid_entity_ids
+        assert {
+            device.id
+            for device in _devices_for_subentry(
+                device_registry, entry.entry_id, "location-madrid"
+            )
+        } == madrid_device_ids
 
         diagnostics = await diagnostics_module.async_get_config_entry_diagnostics(
             hass, entry
@@ -258,12 +264,23 @@ async def test_ha_real_subentry_removal_lifecycle(
             "failed_location_ids": [],
         }
 
+        refresh_finished = asyncio.Event()
+        update_survivor = survivor._async_update_data
+
+        async def _observe_survivor_refresh() -> dict[str, Any]:
+            data = await update_survivor()
+            refresh_finished.set()
+            return data
+
+        monkeypatch.setattr(survivor, "_async_update_data", _observe_survivor_refresh)
         captured_params.clear()
         async_fire_time_changed(
             hass,
             datetime.now(UTC) + timedelta(hours=DEFAULT_UPDATE_INTERVAL, seconds=1),
         )
-        await hass.async_block_till_done()
+        # HA runs interval refreshes in background tasks. Wait for the real
+        # update so an in-flight HTTP request cannot race the assertions.
+        await asyncio.wait_for(refresh_finished.wait(), timeout=5)
 
         madrid_scheduled_update.assert_not_awaited()
         barcelona_scheduled_update.assert_not_awaited()

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import sys
+import traceback
 import types
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,7 @@ from typing import Any
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from tests._ha_stubs import (
     clear_integration_modules,
@@ -84,8 +86,7 @@ def test_safe_setup_failure_text_uses_fallback_for_none(
         integration._safe_setup_failure_text(
             None,
             api_key="secret-key",
-            latitude=1.234567,
-            longitude=2.345678,
+            coordinate_pairs=[(1.234567, 2.345678)],
             fallback="Location setup failed",
         )
         == "Location setup failed"
@@ -106,6 +107,7 @@ def test_safe_setup_failure_text_stringifies_custom_objects(
         integration._safe_setup_failure_text(
             _CustomFailure(),
             api_key=None,
+            coordinate_pairs=[],
             fallback="Location setup failed",
         )
         == "custom failure"
@@ -124,8 +126,7 @@ def test_safe_setup_failure_text_redacts_secrets_and_coordinates(
     redacted = integration._safe_setup_failure_text(
         reason,
         api_key="secret-key",
-        latitude=1.234567,
-        longitude=2.345678,
+        coordinate_pairs=[(1.234567, 2.345678)],
         fallback="Location setup failed",
     )
 
@@ -163,10 +164,6 @@ class _StubEntityCategory:
 
 
 class _StubConfigEntryNotReady(Exception):
-    pass
-
-
-class _StubConfigEntryAuthFailed(Exception):
     pass
 
 
@@ -273,7 +270,7 @@ def stub_init_ha_modules(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_util_dt_module(monkeypatch=monkeypatch)
     stub_exceptions(
         ConfigEntryNotReady=_StubConfigEntryNotReady,
-        ConfigEntryAuthFailed=_StubConfigEntryAuthFailed,
+        ConfigEntryAuthFailed=ConfigEntryAuthFailed,
         monkeypatch=monkeypatch,
     )
     stub_update_coordinator_module(
@@ -549,22 +546,37 @@ def test_setup_entry_clears_runtime_data_on_forward_not_ready(
     assert entry.runtime_data is None
 
 
-def test_setup_entry_clears_runtime_data_on_forward_generic_error(
+def test_setup_entry_redacts_forward_failure_and_clears_runtime(
     integration_modules: _InitModules,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """runtime_data is cleared when forwarding raises an unexpected exception."""
+    """Keep raw exception messages out of logs and HA retry tracebacks."""
     integration = integration_modules.integration
+    synthetic_key = "SYNTHETIC-FORWARD-KEY"
+    latitude = 33.876543
+    error = RuntimeError(f"forward failed {synthetic_key} {latitude}")
+    error.__cause__ = ValueError(f"nested error {synthetic_key}")
+    hass = _FakeHass(forward_exception=error)
+    entry = _FakeEntry(
+        integration,
+        data={
+            integration.CONF_API_KEY: synthetic_key,
+            integration.CONF_LATITUDE: latitude,
+        },
+    )
 
-    class _Boom(Exception):
-        pass
-
-    hass = _FakeHass(forward_exception=_Boom("boom"))
-    entry = _FakeEntry(integration)
-
-    with pytest.raises(integration.ConfigEntryNotReady):
+    with pytest.raises(integration.ConfigEntryNotReady) as raised:
         asyncio.run(integration.async_setup_entry(hass, entry))
 
     assert entry.runtime_data is None
+    assert "RuntimeError" in caplog.text
+    assert "forward failed *** ***" in caplog.text
+    assert synthetic_key not in caplog.text
+    assert str(latitude) not in caplog.text
+    assert raised.value.__cause__ is None
+    traceback_text = "".join(traceback.format_exception(raised.value))
+    assert synthetic_key not in traceback_text
+    assert str(latitude) not in traceback_text
 
 
 def test_setup_entry_missing_api_key_raises_auth_failed(
@@ -1237,7 +1249,9 @@ async def test_setup_entry_two_transport_failures_abort_before_later_location(
             if self.subentry_id.endswith("transport"):
                 raise _not_ready_from(
                     integration,
-                    integration.PollenTransportError("transport unavailable"),
+                    integration.PollenTransportError(
+                        "transport unavailable synthetic-key"
+                    ),
                 )
 
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _Coordinator)
@@ -1245,8 +1259,11 @@ async def test_setup_entry_two_transport_failures_abort_before_later_location(
     with pytest.raises(
         integration.ConfigEntryNotReady,
         match="transport unavailable for multiple locations",
-    ):
+    ) as raised:
         await integration.async_setup_entry(hass, entry)
+
+    assert raised.value.__cause__ is None
+    assert "synthetic-key" not in "".join(traceback.format_exception(raised.value))
 
     assert attempted == [
         "earlier-success",
@@ -1369,17 +1386,24 @@ async def test_setup_entry_non_transport_outcome_resets_transport_failure_counte
     assert hass.config_entries.reload_calls == [entry.entry_id]
 
 
+@pytest.mark.parametrize("expected_error", ["not_ready", "unexpected"])
 def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     integration_modules: _InitModules,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
+    expected_error: str,
 ) -> None:
     """Repeated retryable partial setup failures should create a Repair warning."""
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
+    sibling_latitude = 8.1239872
+    parent_longitude = -117.1234567
     first = integration_modules.config_entries.ConfigSubentry(
-        data={integration.CONF_LATITUDE: 1.0, integration.CONF_LONGITUDE: 2.0},
+        data={
+            integration.CONF_LATITUDE: f"{sibling_latitude}0",
+            integration.CONF_LONGITUDE: 2.0,
+        },
         subentry_id="first-location",
     )
     synthetic_key = "SYNTHETIC-REPAIR-KEY"
@@ -1391,12 +1415,15 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
             integration.CONF_LONGITUDE: second_longitude,
         },
         subentry_id="second-location",
-        title=f"Garden {synthetic_key} {second_latitude}",
+        title=f"Garden {synthetic_key} {second_latitude} {sibling_latitude}",
     )
     entry = _FakeEntry(
         integration,
-        title=f"My Home {synthetic_key} {second_longitude}",
-        data={integration.CONF_API_KEY: synthetic_key},
+        title=f"My Home {synthetic_key} {second_longitude} {parent_longitude}",
+        data={
+            integration.CONF_API_KEY: synthetic_key,
+            integration.CONF_LONGITUDE: f"{parent_longitude}0",
+        },
         subentries={first.subentry_id: first, second.subentry_id: second},
     )
     hass = _FakeHass()
@@ -1413,9 +1440,13 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
 
         async def async_config_entry_first_refresh(self):
             if self.subentry_id == "second-location":
-                raise integration.ConfigEntryNotReady(
-                    f"retry later {synthetic_key} {second_latitude} {second_longitude}"
+                message = (
+                    f"retry later {synthetic_key} {second_latitude} "
+                    f"{second_longitude} {sibling_latitude}"
                 )
+                if expected_error == "not_ready":
+                    raise integration.ConfigEntryNotReady(message)
+                raise RuntimeError(message)
 
     monkeypatch.setattr(
         integration, "PollenDataUpdateCoordinator", _PartiallyReadyCoordinator
@@ -1430,16 +1461,22 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     assert issue_id in registry.issues
     issue = registry.issues[issue_id]
     assert issue["translation_key"] == "location_setup_failed"
-    assert issue["translation_placeholders"]["error_type"].endswith(
-        "ConfigEntryNotReady"
+    error_type = (
+        "ConfigEntryNotReady" if expected_error == "not_ready" else "RuntimeError"
     )
+    assert issue["translation_placeholders"]["error_type"].endswith(error_type)
+    assert set(entry.runtime_data.locations) == {"first-location"}
+    failure = entry.runtime_data.failed_locations["second-location"]
+    assert failure.title == "Garden *** *** ***"
+    assert failure.reason == "retry later *** *** *** ***"
     placeholders = issue["translation_placeholders"]
-    assert placeholders["entry_title"] == "My Home *** ***"
-    assert placeholders["location_title"] == "Garden *** ***"
-    assert placeholders["reason"] == "retry later *** *** ***"
+    assert placeholders["entry_title"] == "My Home *** *** ***"
+    assert placeholders["location_title"] == "Garden *** *** ***"
+    assert placeholders["reason"] == "retry later *** *** *** ***"
     assert synthetic_key not in str(placeholders)
     assert str(second_latitude) not in str(placeholders)
     assert str(second_longitude) not in str(placeholders)
+    assert str(sibling_latitude) not in caplog.text
     assert synthetic_key not in caplog.text
     assert str(second_latitude) not in caplog.text
     assert str(second_longitude) not in caplog.text
@@ -1558,14 +1595,31 @@ def test_setup_entry_auth_failure_still_fails_parent(
             self.lon = kwargs["lon"]
 
         async def async_config_entry_first_refresh(self):
-            raise integration.ConfigEntryAuthFailed("invalid key")
+            try:
+                raise ValueError("cause bad-key at 3.0")
+            except ValueError as err:
+                raise integration.ConfigEntryAuthFailed(
+                    "invalid key 3.0",
+                    translation_domain="pollenlevels",
+                    translation_key="invalid_auth",
+                    translation_placeholders={"location": "site 3.0", "status": "401"},
+                ) from err
 
     monkeypatch.setattr(
         integration, "PollenDataUpdateCoordinator", _AuthFailingCoordinator
     )
 
-    with pytest.raises(integration.ConfigEntryAuthFailed):
+    with pytest.raises(integration.ConfigEntryAuthFailed) as raised:
         asyncio.run(integration.async_setup_entry(hass, entry))
+
+    error = raised.value
+    assert str(error) == "invalid key ***"
+    assert error.translation_domain == "pollenlevels"
+    assert error.translation_key == "invalid_auth"
+    assert error.translation_placeholders == {"location": "site ***", "status": "401"}
+    formatted = "".join(traceback.format_exception(error))
+    assert "bad-key" not in formatted
+    assert "3.0" not in formatted
 
     assert entry.runtime_data is None
     assert hass.config_entries.forward_calls == []
