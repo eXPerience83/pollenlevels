@@ -1400,10 +1400,11 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     integration = integration_modules.integration
     registry = sys.modules["homeassistant.helpers.issue_registry"].registry
 
-    sibling_latitude = 8.123987
+    sibling_latitude = 8.1239872
+    parent_longitude = -117.1234567
     first = integration_modules.config_entries.ConfigSubentry(
         data={
-            integration.CONF_LATITUDE: sibling_latitude,
+            integration.CONF_LATITUDE: f"{sibling_latitude}0",
             integration.CONF_LONGITUDE: 2.0,
         },
         subentry_id="first-location",
@@ -1421,8 +1422,11 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     )
     entry = _FakeEntry(
         integration,
-        title=f"My Home {synthetic_key} {second_longitude}",
-        data={integration.CONF_API_KEY: synthetic_key},
+        title=f"My Home {synthetic_key} {second_longitude} {parent_longitude}",
+        data={
+            integration.CONF_API_KEY: synthetic_key,
+            integration.CONF_LONGITUDE: f"{parent_longitude}0",
+        },
         subentries={first.subentry_id: first, second.subentry_id: second},
     )
     hass = _FakeHass()
@@ -1469,7 +1473,7 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     assert failure.title == "Garden *** *** ***"
     assert failure.reason == "retry later *** *** *** ***"
     placeholders = issue["translation_placeholders"]
-    assert placeholders["entry_title"] == "My Home *** ***"
+    assert placeholders["entry_title"] == "My Home *** *** ***"
     assert placeholders["location_title"] == "Garden *** *** ***"
     assert placeholders["reason"] == "retry later *** *** *** ***"
     assert synthetic_key not in str(placeholders)
