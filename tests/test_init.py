@@ -76,6 +76,52 @@ class _StubServiceCall:  # pragma: no cover - structure only
     pass
 
 
+def test_setup_and_repairs_share_stored_privacy_context(
+    integration_modules: _InitModules,
+) -> None:
+    """Setup and Repairs use the same complete stored-coordinate snapshot."""
+    integration = integration_modules.integration
+    subentries = integration_modules.config_entries
+    parent = _FakeEntry(
+        integration,
+        data={
+            integration.CONF_API_KEY: "  SYNTHETIC-H10-KEY  ",
+            integration.CONF_LONGITUDE: "-117.12345670",
+        },
+        subentries={
+            "inactive": subentries.ConfigSubentry(
+                data={integration.CONF_LATITUDE: "33.87654320"},
+                subentry_id="inactive",
+                subentry_type="other",
+            ),
+            "active": subentries.ConfigSubentry(
+                data={
+                    integration.CONF_LATITUDE: 8.1239872,
+                    integration.CONF_LONGITUDE: 2.0,
+                },
+                subentry_id="active",
+            ),
+        },
+    )
+    expected = [
+        (None, "-117.12345670"),
+        ("33.87654320", None),
+        (8.1239872, 2.0),
+    ]
+
+    assert integration.stored_location_coordinate_pairs(parent) == expected
+    assert integration_modules.issue_helpers._entry_repair_privacy_context(
+        parent
+    ) == ("SYNTHETIC-H10-KEY", expected)
+    safe = integration._safe_setup_failure_text(
+        "SYNTHETIC-H10-KEY -117.1234567 33.8765432 8.1239872",
+        api_key="SYNTHETIC-H10-KEY",
+        coordinate_pairs=integration.stored_location_coordinate_pairs(parent),
+        fallback="Location setup failed",
+    )
+    assert safe == "*** *** *** ***"
+
+
 def test_safe_setup_failure_text_uses_fallback_for_none(
     integration_modules: _InitModules,
 ) -> None:
