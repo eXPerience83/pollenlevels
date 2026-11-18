@@ -1464,6 +1464,12 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
         subentry_id="second-location",
         title=f"Garden {synthetic_key} {second_latitude} {sibling_latitude}",
     )
+    unrelated_latitude = 9.8765432
+    non_location = integration_modules.config_entries.ConfigSubentry(
+        data={integration.CONF_LATITUDE: f"{unrelated_latitude}0"},
+        subentry_id="non-location",
+        subentry_type="other",
+    )
     entry = _FakeEntry(
         integration,
         title=f"My Home {synthetic_key} {second_longitude} {parent_longitude}",
@@ -1471,7 +1477,11 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
             integration.CONF_API_KEY: synthetic_key,
             integration.CONF_LONGITUDE: f"{parent_longitude}0",
         },
-        subentries={first.subentry_id: first, second.subentry_id: second},
+        subentries={
+            first.subentry_id: first,
+            second.subentry_id: second,
+            non_location.subentry_id: non_location,
+        },
     )
     hass = _FakeHass()
     hass.data[integration.DOMAIN] = {
@@ -1480,16 +1490,19 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
         }
     }
 
+    created_coordinators: list[str] = []
+
     class _PartiallyReadyCoordinator:
         def __init__(self, *args, **kwargs):
             self.subentry_id = kwargs["subentry_id"]
+            created_coordinators.append(self.subentry_id)
             self.data = {"date": {"source": "meta"}}
 
         async def async_config_entry_first_refresh(self):
             if self.subentry_id == "second-location":
                 message = (
                     f"retry later {synthetic_key} {second_latitude} "
-                    f"{second_longitude} {sibling_latitude}"
+                    f"{second_longitude} {sibling_latitude} {unrelated_latitude}"
                 )
                 if expected_error == "not_ready":
                     raise integration.ConfigEntryNotReady(message)
@@ -1513,17 +1526,20 @@ def test_setup_entry_creates_repair_after_retryable_failure_repeats(
     )
     assert issue["translation_placeholders"]["error_type"].endswith(error_type)
     assert set(entry.runtime_data.locations) == {"first-location"}
+    assert created_coordinators == ["first-location", "second-location"]
     failure = entry.runtime_data.failed_locations["second-location"]
     assert failure.title == "Garden *** *** ***"
-    assert failure.reason == "retry later *** *** *** ***"
+    assert failure.reason == "retry later *** *** *** *** ***"
     placeholders = issue["translation_placeholders"]
     assert placeholders["entry_title"] == "My Home *** *** ***"
     assert placeholders["location_title"] == "Garden *** *** ***"
-    assert placeholders["reason"] == "retry later *** *** *** ***"
+    assert placeholders["reason"] == "retry later *** *** *** *** ***"
     assert synthetic_key not in str(placeholders)
     assert str(second_latitude) not in str(placeholders)
     assert str(second_longitude) not in str(placeholders)
     assert str(sibling_latitude) not in caplog.text
+    assert str(unrelated_latitude) not in caplog.text
+    assert str(unrelated_latitude) not in str(placeholders)
     assert synthetic_key not in caplog.text
     assert str(second_latitude) not in caplog.text
     assert str(second_longitude) not in caplog.text
