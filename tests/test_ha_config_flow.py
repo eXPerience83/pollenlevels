@@ -651,8 +651,8 @@ async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
     assert result["step_id"] == expected_step
     assert result["errors"] == {"base": error_code}
     message = result["description_placeholders"]["error_message"]
-    expected_message = (
-        f"HTTP {status}: Provider echoed " + " ".join(["***"] * len(raw_secrets))
+    expected_message = f"HTTP {status}: Provider echoed " + " ".join(
+        ["***"] * len(raw_secrets)
     )
     if sentence_punctuation:
         expected_message += "; owner=***."
