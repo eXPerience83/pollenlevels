@@ -338,6 +338,54 @@ async def test_client_redacts_sensitive_values_from_url_like_http_error(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "exception_name"),
+    [(401, "ConfigEntryAuthFailed"), (403, "UpdateFailed")],
+)
+async def test_client_redacts_stored_sibling_before_exposing_http_error(
+    client_module: ModuleType,
+    status: int,
+    exception_name: str,
+) -> None:
+    """Loaded-client errors must redact stored siblings as well as the request."""
+    api_key = "SYNTHETIC-SIBLING-KEY"
+    request_latitude = 12.345678
+    stored_latitude = "33.87654320"
+    normalized_sibling = "33.8765432"
+    response = FakeResponse(
+        status=status,
+        json_results=[
+            {
+                "error": {
+                    "message": (
+                        f"Backend detail {api_key} {request_latitude} "
+                        f"{normalized_sibling}"
+                    )
+                }
+            }
+        ],
+    )
+    client = client_module.GooglePollenApiClient(
+        FakeSession(response),
+        api_key,
+        coordinate_pairs=[(stored_latitude, None)],
+    )
+
+    with pytest.raises(getattr(client_module, exception_name)) as raised:
+        await client.async_fetch_pollen_data(
+            latitude=request_latitude,
+            longitude=-32.765432,
+            days=5,
+            language_code=None,
+        )
+
+    message = str(raised.value)
+    assert message == f"HTTP {status}: Backend detail *** *** ***"
+    for secret in (api_key, str(request_latitude), stored_latitude, normalized_sibling):
+        assert secret not in message
+
+
+@pytest.mark.asyncio
 async def test_client_redacts_sensitive_values_from_client_error(
     client_module: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
