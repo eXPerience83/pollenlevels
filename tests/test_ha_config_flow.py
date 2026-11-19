@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import MappingProxyType
 from typing import Any
+from urllib.parse import parse_qsl
 
 import pytest
 from aiointercept import CallbackResult, aiointercept
@@ -427,6 +428,112 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
         await async_setup_config_entry(hass, entry)
 
     assert _registry_identity_snapshot() == identities_before
+
+
+@pytest.mark.parametrize(
+    ("source", "step_id"),
+    [(SOURCE_REAUTH, "reauth_confirm"), (SOURCE_RECONFIGURE, "reconfigure")],
+)
+@pytest.mark.parametrize(
+    ("status", "error_code", "candidate_attempts"),
+    [(401, "invalid_auth", 1), (403, "cannot_connect", 2)],
+)
+async def test_ha_parent_key_form_redacts_all_stored_coordinates(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    source: str,
+    step_id: str,
+    status: int,
+    error_code: str,
+    candidate_attempts: int,
+) -> None:
+    """Both public parent-key flows must hide all stored location coordinates."""
+    from pytest_homeassistant.common import MockConfigEntry
+
+    clear_integration_modules()
+    old_key = "SYNTHETIC-OLD-PARENT-KEY"
+    submitted_key = "SYNTHETIC-NEW-PARENT-KEY"
+    first_latitude, first_longitude = 12.345678, -32.765432
+    second_latitude, second_longitude = 41.9876543, -71.234567
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="parent-multisite-redaction",
+        title="Synthetic parent",
+        data={CONF_API_KEY: old_key},
+        unique_id=api_key_unique_id(old_key),
+        version=6,
+        subentries_data=[
+            {
+                "subentry_id": "stored-a",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Stored A",
+                "unique_id": "12.3457_-32.7654",
+                "data": {
+                    CONF_LATITUDE: first_latitude,
+                    CONF_LONGITUDE: first_longitude,
+                },
+            },
+            {
+                "subentry_id": "stored-b",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Stored B",
+                "unique_id": "41.9877_-71.2346",
+                "data": {
+                    CONF_LATITUDE: second_latitude,
+                    CONF_LONGITUDE: second_longitude,
+                },
+            },
+        ],
+    )
+    entry.add_to_hass(hass)
+    before = _parent_entry_snapshot(entry)
+
+    flow = await _start_parent_api_key_flow(entry, hass, source)
+    assert flow["type"] is FlowResultType.FORM
+    assert flow["step_id"] == step_id
+    attempted_latitudes: list[str] = []
+
+    def fail_parent_validation(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
+        attempted_latitudes.append(params["location.latitude"])
+        return CallbackResult(
+            status=status,
+            payload={
+                "error": {
+                    "message": (
+                        f"Provider failure {submitted_key} "
+                        f"{first_latitude} {first_longitude} "
+                        f"{second_latitude} {second_longitude}"
+                    )
+                }
+            },
+        )
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=fail_parent_validation, repeat=True)
+        result = await hass.config_entries.flow.async_configure(
+            flow["flow_id"], {CONF_API_KEY: submitted_key}
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == step_id
+    assert result["errors"] == {"base": error_code}
+    assert result["description_placeholders"]["error_message"] == (
+        f"HTTP {status}: Provider failure *** *** *** *** ***"
+    )
+    assert attempted_latitudes == [
+        f"{lat:.6f}" for lat in (first_latitude, second_latitude)[:candidate_attempts]
+    ]
+    for secret in (
+        submitted_key,
+        str(first_latitude),
+        str(first_longitude),
+        str(second_latitude),
+        str(second_longitude),
+    ):
+        assert secret not in result["description_placeholders"]["error_message"]
+    assert _parent_entry_snapshot(entry) == before
 
 
 @pytest.mark.parametrize(
