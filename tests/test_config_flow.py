@@ -2070,7 +2070,8 @@ def test_reconfigure_api_key_error_uses_failing_location_placeholders(
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: (
                 entry if entry_id == entry.entry_id else None
-            )
+            ),
+            async_entry_for_domain_unique_id=lambda _domain, _uid: None,
         )
     )
     flow.context = {"entry_id": entry.entry_id}
@@ -2140,6 +2141,7 @@ def test_reconfigure_api_key_validation_stops_on_invalid_auth(
             async_get_entry=lambda entry_id: (
                 entry if entry_id == entry.entry_id else None
             ),
+            async_entry_for_domain_unique_id=lambda _domain, _uid: None,
             async_update_entry=lambda *args, **kwargs: None,
             async_reload=lambda *args, **kwargs: None,
         )
@@ -2389,7 +2391,9 @@ def test_async_step_user_checks_api_key_unique_id(
             domain == config_flow_stubs.config_flow.DOMAIN
             and unique_id == duplicate_unique_id
         ):
-            return SimpleNamespace(unique_id=duplicate_unique_id)
+            return SimpleNamespace(
+                unique_id=duplicate_unique_id, data={}, subentries={}
+            )
         return None
 
     flow = _TrackingFlow()
@@ -2420,7 +2424,10 @@ def test_async_step_user_checks_api_key_unique_id(
 
     assert result == {"type": "abort", "reason": "api_key_already_configured"}
     assert flow.unique_ids == [duplicate_unique_id]
-    assert lookup_calls == [(config_flow_stubs.config_flow.DOMAIN, duplicate_unique_id)]
+    assert lookup_calls == [
+        (config_flow_stubs.config_flow.DOMAIN, duplicate_unique_id),
+        (config_flow_stubs.config_flow.DOMAIN, duplicate_unique_id),
+    ]
 
 
 class _SubentryRecorder:
