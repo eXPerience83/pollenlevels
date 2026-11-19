@@ -576,6 +576,99 @@ async def test_ha_location_subentry_flow_creates_subentry(
     }
 
 
+@pytest.mark.parametrize("source", [SOURCE_USER, SOURCE_RECONFIGURE])
+@pytest.mark.parametrize(
+    ("status", "error_code"),
+    [(401, "invalid_auth"), (403, "cannot_connect")],
+)
+async def test_ha_subentry_form_redacts_stored_sibling_and_requested_coordinates(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    source: str,
+    status: int,
+    error_code: str,
+) -> None:
+    """Public add/reconfigure forms never display a stored sibling coordinate."""
+    from pytest_homeassistant.common import MockConfigEntry
+
+    clear_integration_modules()
+    api_key = "SYNTHETIC-SUBENTRY-PRIVACY-KEY"
+    stored_latitude = "33.87654320"
+    normalized_sibling = "33.8765432"
+    new_latitude = 12.345678
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="subentry-redaction-parent",
+        title="Synthetic parent",
+        unique_id=api_key_unique_id(api_key),
+        data={CONF_API_KEY: api_key},
+        version=6,
+        subentries_data=[
+            {
+                "subentry_id": "stored-b",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Stored B",
+                "unique_id": "33.8765_-71.2346",
+                "data": {
+                    CONF_LATITUDE: stored_latitude,
+                    CONF_LONGITUDE: -71.234567,
+                },
+            }
+        ],
+    )
+    entry.add_to_hass(hass)
+    before = _parent_entry_snapshot(entry)
+    context: dict[str, Any] = {"source": source}
+    if source == SOURCE_RECONFIGURE:
+        context["subentry_id"] = "stored-b"
+
+    flow = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_LOCATION),
+        context=context,
+    )
+    assert flow["type"] is FlowResultType.FORM
+    assert flow["step_id"] == (
+        "user" if source == SOURCE_USER else "reconfigure"
+    )
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(
+            POLLEN_API_URL_RE,
+            callback=lambda *_args, **_kwargs: CallbackResult(
+                status=status,
+                payload={
+                    "error": {
+                        "message": (
+                            f"Backend refused {api_key} {new_latitude} "
+                            f"{normalized_sibling}; nearby=33.87654321"
+                        )
+                    }
+                },
+            ),
+            repeat=True,
+        )
+        result = await hass.config_entries.subentries.async_configure(
+            flow["flow_id"],
+            _location_input(
+                name="Requested A",
+                latitude=new_latitude,
+                longitude=-32.765432,
+            ),
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == flow["step_id"]
+    assert result["errors"] == {"base": error_code}
+    message = result["description_placeholders"]["error_message"]
+    assert message == (
+        f"HTTP {status}: Backend refused *** *** ***; nearby=33.87654321"
+    )
+    for secret in (api_key, str(new_latitude), stored_latitude, normalized_sibling):
+        assert secret not in message
+    assert _parent_entry_snapshot(entry) == before
+
+
 async def test_ha_location_subentry_flow_rejects_duplicate_location(
     hass: HomeAssistant,
     enable_custom_integrations: None,
