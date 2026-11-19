@@ -664,7 +664,9 @@ async def test_ha_subentry_form_redacts_stored_sibling_and_requested_coordinates
     assert message == (
         f"HTTP {status}: Backend refused *** *** ***; nearby=33.87654321"
     )
-    for secret in (api_key, str(new_latitude), stored_latitude, normalized_sibling):
+    # The exact shape also proves that the normalized sibling was redacted,
+    # while the distinct number ending in 21 remains visible.
+    for secret in (api_key, str(new_latitude), stored_latitude):
         assert secret not in message
     assert _parent_entry_snapshot(entry) == before
 
