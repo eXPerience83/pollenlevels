@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from collections.abc import Collection
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -57,8 +58,9 @@ from .util import (
     format_location_unique_id,
     normalize_language_code,
     redact_api_key,
-    redact_sensitive_values,
+    redact_sensitive_text_for_locations,
     safe_parse_int,
+    stored_location_coordinate_pairs,
     strip_legacy_forecast_options,
     validate_latitude,
     validate_location_pair,
@@ -111,13 +113,14 @@ def _redact_validation_error(
     api_key: str | None,
     latitude: float | None,
     longitude: float | None,
+    *,
+    coordinate_pairs: Collection[tuple[Any, Any]] = (),
 ) -> str:
-    """Redact validation errors before logging or showing placeholders."""
-    return redact_sensitive_values(
+    """Redact the requested and stored locations before displaying an error."""
+    return redact_sensitive_text_for_locations(
         error,
         api_key=api_key,
-        latitude=latitude,
-        longitude=longitude,
+        coordinate_pairs=(*coordinate_pairs, (latitude, longitude)),
     ).strip()
 
 
@@ -170,11 +173,14 @@ async def _async_validate_api_location(
     language_code: str | None,
     errors: dict[str, str],
     description_placeholders: dict[str, Any],
+    coordinate_pairs: Collection[tuple[Any, Any]] = (),
 ) -> bool:
     """Validate that the API key can fetch pollen data for one location."""
     try:
         session = async_get_clientsession(hass)
-        client = GooglePollenApiClient(session=session, api_key=api_key)
+        client = GooglePollenApiClient(
+            session=session, api_key=api_key, coordinate_pairs=coordinate_pairs
+        )
         data = await client.async_fetch_pollen_data(
             latitude=latitude,
             longitude=longitude,
@@ -195,13 +201,17 @@ async def _async_validate_api_location(
     except ConfigEntryAuthFailed as err:
         _LOGGER.warning("Authentication failed during validation")
         errors["base"] = "invalid_auth"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        redacted = _redact_validation_error(
+            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+        )
         description_placeholders["error_message"] = _safe_error_message(
             redacted, "Authentication failed."
         )
     except PollenQuotaExceededError as err:
         errors["base"] = "quota_exceeded"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        redacted = _redact_validation_error(
+            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+        )
         if re.fullmatch(r"HTTP\s+429(?::)?", redacted, flags=re.IGNORECASE):
             redacted = ""
         description_placeholders["error_message"] = _safe_error_message(
@@ -209,7 +219,9 @@ async def _async_validate_api_location(
         )
     except UpdateFailed as err:
         errors["base"] = "cannot_connect"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        redacted = _redact_validation_error(
+            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+        )
         if re.fullmatch(r"HTTP\s+\d+(?::)?", redacted, flags=re.IGNORECASE):
             redacted = ""
         description_placeholders["error_message"] = _safe_error_message(
@@ -220,7 +232,9 @@ async def _async_validate_api_location(
             "Unexpected error in Pollen Levels config flow while validating input "
             "(%s): %s",
             type(err).__name__,
-            _redact_validation_error(err, api_key, latitude, longitude)
+            _redact_validation_error(
+            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+        )
             or "no error details",
         )
         errors["base"] = "unknown"
@@ -827,6 +841,7 @@ async def _async_validate_subentry_location(
         language_code=_entry_language_code(entry),
         errors=errors,
         description_placeholders=description_placeholders,
+        coordinate_pairs=stored_location_coordinate_pairs(entry),
     ):
         return None
 
