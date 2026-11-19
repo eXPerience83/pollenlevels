@@ -628,9 +628,7 @@ async def test_ha_subentry_form_redacts_stored_sibling_and_requested_coordinates
         context=context,
     )
     assert flow["type"] is FlowResultType.FORM
-    assert flow["step_id"] == (
-        "user" if source == SOURCE_USER else "reconfigure"
-    )
+    assert flow["step_id"] == ("user" if source == SOURCE_USER else "reconfigure")
 
     async with aiointercept(mock_external_urls=True) as mocked:
         mocked.get(
