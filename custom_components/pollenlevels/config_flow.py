@@ -522,6 +522,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input: dict[str, Any],
         *,
         description_placeholders: dict[str, Any] | None = None,
+        coordinate_pairs: Collection[tuple[Any, Any]] = (),
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
         placeholders = (
@@ -592,6 +593,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 language_code=lang or None,
                 errors=errors,
                 description_placeholders=placeholders,
+                coordinate_pairs=coordinate_pairs,
             ):
                 return errors, None
 
@@ -685,6 +687,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         if user_input:
+            coordinate_pairs = stored_location_coordinate_pairs(entry)
             location_candidates = _location_data_for_validation(entry)
             if not location_candidates:
                 updated_api_key = str(user_input.get(CONF_API_KEY, "")).strip()
@@ -728,6 +731,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors, normalized = await self._async_validate_input(
                     combined,
                     description_placeholders=candidate_placeholders,
+                    coordinate_pairs=coordinate_pairs,
                 )
                 if not errors and normalized is not None:
                     updated_api_key = str(normalized.get(CONF_API_KEY, "")).strip()
