@@ -303,7 +303,7 @@ def redact_sensitive_values(
     if coordinates:
         pattern = "|".join(re.escape(coordinate) for coordinate in coordinates)
         s = re.sub(
-            rf"(?<![\d.+-])({pattern})(?![\d.])",
+            rf"(?<![\d.+-])({pattern})(?!\d|\.\d)",
             _REDACTION_PLACEHOLDER,
             s,
         )
