@@ -537,6 +537,134 @@ async def test_ha_parent_key_form_redacts_all_stored_coordinates(
 
 
 @pytest.mark.parametrize(
+    "source", [SOURCE_USER, SOURCE_REAUTH, SOURCE_RECONFIGURE]
+)
+@pytest.mark.parametrize(
+    ("status", "error_code"),
+    [(401, "invalid_auth"), (403, "cannot_connect")],
+)
+async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    source: str,
+    status: int,
+    error_code: str,
+) -> None:
+    """A duplicate candidate key must redact its owner's stored coordinates."""
+    from pytest_homeassistant.common import MockConfigEntry
+
+    clear_integration_modules()
+    candidate_key = "SYNTHETIC-EXISTING-OWNER-KEY"
+    owner_coords = [(41.9876543, -71.234567), (33.8765432, -74.987654)]
+    edited_coords = [(12.345678, -32.765432), (24.556677, -35.778899)]
+    proposed_coords = (5.123456, -6.654321)
+
+    def _subentries(
+        coordinates: list[tuple[float, float]], prefix: str
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "subentry_id": f"{prefix}-{index}",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": f"Synthetic {prefix} {index}",
+                "unique_id": f"{lat:.4f}_{lon:.4f}",
+                "data": {CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
+            }
+            for index, (lat, lon) in enumerate(coordinates)
+        ]
+
+    owner = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="candidate-key-owner",
+        title="Synthetic owner",
+        unique_id=api_key_unique_id(candidate_key),
+        data={CONF_API_KEY: candidate_key},
+        subentries_data=_subentries(owner_coords, "owner"),
+        version=6,
+    )
+    owner.add_to_hass(hass)
+    owner_before = _parent_entry_snapshot(owner)
+
+    target = None
+    if source == SOURCE_USER:
+        form = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        submitted = {
+            CONF_API_KEY: candidate_key,
+            CONF_LANGUAGE_CODE: "es",
+            CONF_UPDATE_INTERVAL: 8,
+            **_location_input(
+                name="Proposed C",
+                latitude=proposed_coords[0],
+                longitude=proposed_coords[1],
+            ),
+        }
+        all_coords = [*owner_coords, proposed_coords]
+        expected_attempts = [f"{proposed_coords[0]:.6f}"]
+        expected_step = "user"
+    else:
+        target = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="parent-being-edited",
+            title="Synthetic edited parent",
+            unique_id=api_key_unique_id("SYNTHETIC-ORIGINAL-PARENT-KEY"),
+            data={CONF_API_KEY: "SYNTHETIC-ORIGINAL-PARENT-KEY"},
+            subentries_data=_subentries(edited_coords, "edited"),
+            version=6,
+        )
+        target.add_to_hass(hass)
+        target_before = _parent_entry_snapshot(target)
+        form = await _start_parent_api_key_flow(target, hass, source)
+        submitted = {CONF_API_KEY: candidate_key}
+        all_coords = [*owner_coords, *edited_coords]
+        attempted_count = 1 if status == 401 else 2
+        expected_attempts = [
+            f"{lat:.6f}" for lat, _ in edited_coords[:attempted_count]
+        ]
+        expected_step = "reauth_confirm" if source == SOURCE_REAUTH else "reconfigure"
+
+    assert form["type"] is FlowResultType.FORM
+    assert form["step_id"] == expected_step
+
+    raw_secrets = [candidate_key]
+    raw_secrets.extend(str(value) for pair in all_coords for value in pair)
+    expected_error = "Provider echoed " + " ".join(raw_secrets)
+    attempts: list[str] = []
+
+    def return_candidate_key_error(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
+        attempts.append(params["location.latitude"])
+        assert params["key"] == candidate_key
+        return CallbackResult(
+            status=status, payload={"error": {"message": expected_error}}
+        )
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(
+            POLLEN_API_URL_RE, callback=return_candidate_key_error, repeat=True
+        )
+        result = await hass.config_entries.flow.async_configure(
+            form["flow_id"], submitted
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == expected_step
+    assert result["errors"] == {"base": error_code}
+    message = result["description_placeholders"]["error_message"]
+    assert message == (
+        f"HTTP {status}: Provider echoed " + " ".join(["***"] * len(raw_secrets))
+    )
+    for secret in raw_secrets:
+        assert secret not in message
+    assert attempts == expected_attempts
+    assert _parent_entry_snapshot(owner) == owner_before
+    if target is not None:
+        assert _parent_entry_snapshot(target) == target_before
+
+
+@pytest.mark.parametrize(
     ("source", "step_id"),
     [
         (SOURCE_REAUTH, "reauth_confirm"),
