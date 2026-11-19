@@ -233,8 +233,8 @@ async def _async_validate_api_location(
             "(%s): %s",
             type(err).__name__,
             _redact_validation_error(
-            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
-        )
+                err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+            )
             or "no error details",
         )
         errors["base"] = "unknown"
