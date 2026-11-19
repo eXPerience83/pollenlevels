@@ -541,6 +541,7 @@ async def test_ha_parent_key_form_redacts_all_stored_coordinates(
     ("status", "error_code"),
     [(401, "invalid_auth"), (403, "cannot_connect")],
 )
+@pytest.mark.parametrize("sentence_punctuation", [False, True])
 async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
     hass: HomeAssistant,
     enable_custom_integrations: None,
@@ -548,6 +549,7 @@ async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
     source: str,
     status: int,
     error_code: str,
+    sentence_punctuation: bool,
 ) -> None:
     """A duplicate candidate key must redact its owner's stored coordinates."""
     from pytest_homeassistant.common import MockConfigEntry
@@ -627,6 +629,8 @@ async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
     raw_secrets = [candidate_key]
     raw_secrets.extend(str(value) for pair in all_coords for value in pair)
     expected_error = "Provider echoed " + " ".join(raw_secrets)
+    if sentence_punctuation:
+        expected_error += f"; owner={owner_coords[0][0]}."
     attempts: list[str] = []
 
     def return_candidate_key_error(url, **_kwargs):
@@ -647,9 +651,12 @@ async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
     assert result["step_id"] == expected_step
     assert result["errors"] == {"base": error_code}
     message = result["description_placeholders"]["error_message"]
-    assert message == (
+    expected_message = (
         f"HTTP {status}: Provider echoed " + " ".join(["***"] * len(raw_secrets))
     )
+    if sentence_punctuation:
+        expected_message += "; owner=***."
+    assert message == expected_message
     for secret in raw_secrets:
         assert secret not in message
     assert attempts == expected_attempts
