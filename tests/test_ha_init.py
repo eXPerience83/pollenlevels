@@ -6,8 +6,8 @@ import asyncio
 import json
 import logging
 from datetime import timedelta
-from urllib.parse import parse_qsl
 from typing import Any
+from urllib.parse import parse_qsl
 
 import pytest
 from aiohttp import ClientConnectionError
