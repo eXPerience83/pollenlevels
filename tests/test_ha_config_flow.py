@@ -536,9 +536,7 @@ async def test_ha_parent_key_form_redacts_all_stored_coordinates(
     assert _parent_entry_snapshot(entry) == before
 
 
-@pytest.mark.parametrize(
-    "source", [SOURCE_USER, SOURCE_REAUTH, SOURCE_RECONFIGURE]
-)
+@pytest.mark.parametrize("source", [SOURCE_USER, SOURCE_REAUTH, SOURCE_RECONFIGURE])
 @pytest.mark.parametrize(
     ("status", "error_code"),
     [(401, "invalid_auth"), (403, "cannot_connect")],
@@ -620,9 +618,7 @@ async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
         submitted = {CONF_API_KEY: candidate_key}
         all_coords = [*owner_coords, *edited_coords]
         attempted_count = 1 if status == 401 else 2
-        expected_attempts = [
-            f"{lat:.6f}" for lat, _ in edited_coords[:attempted_count]
-        ]
+        expected_attempts = [f"{lat:.6f}" for lat, _ in edited_coords[:attempted_count]]
         expected_step = "reauth_confirm" if source == SOURCE_REAUTH else "reconfigure"
 
     assert form["type"] is FlowResultType.FORM
@@ -642,9 +638,7 @@ async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
         )
 
     async with aiointercept(mock_external_urls=True) as mocked:
-        mocked.get(
-            POLLEN_API_URL_RE, callback=return_candidate_key_error, repeat=True
-        )
+        mocked.get(POLLEN_API_URL_RE, callback=return_candidate_key_error, repeat=True)
         result = await hass.config_entries.flow.async_configure(
             form["flow_id"], submitted
         )
