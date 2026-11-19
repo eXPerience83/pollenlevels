@@ -450,6 +450,14 @@ def _entry_for_parent_unique_id(
     return hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
 
 
+def _stored_coordinates_for_candidate_key(
+    hass: HomeAssistant, api_key: str
+) -> list[tuple[Any, Any]]:
+    """Collect redaction context from an existing owner of the candidate key."""
+    owner = _entry_for_parent_unique_id(hass, api_key_unique_id(api_key))
+    return stored_location_coordinate_pairs(owner) if owner is not None else []
+
+
 async def _async_reload_parent_after_subentry_create(
     hass: HomeAssistant, entry_id: str
 ) -> None:
@@ -622,10 +630,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input:
             sanitized_input: dict[str, Any] = dict(user_input)
+            candidate_key = str(sanitized_input.get(CONF_API_KEY, "")).strip()
+            candidate_coordinates = (
+                _stored_coordinates_for_candidate_key(self.hass, candidate_key)
+                if candidate_key
+                else []
+            )
 
             errors, normalized = await self._async_validate_input(
                 sanitized_input,
                 description_placeholders=description_placeholders,
+                coordinate_pairs=candidate_coordinates,
             )
             if not errors and normalized is not None:
                 await self.async_set_unique_id(
@@ -689,6 +704,11 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             coordinate_pairs = stored_location_coordinate_pairs(entry)
             location_candidates = _location_data_for_validation(entry)
+            candidate_key = str(user_input.get(CONF_API_KEY, "")).strip()
+            if candidate_key and location_candidates:
+                coordinate_pairs.extend(
+                    _stored_coordinates_for_candidate_key(self.hass, candidate_key)
+                )
             if not location_candidates:
                 updated_api_key = str(user_input.get(CONF_API_KEY, "")).strip()
                 if not updated_api_key:
