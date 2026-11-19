@@ -398,9 +398,7 @@ async def test_client_redacts_sibling_coordinate_at_end_of_sentence(
     """Keep sentence punctuation while suppressing a stored sibling value."""
     response = FakeResponse(
         status=status,
-        json_results=[
-            {"error": {"message": "Provider returned 41.9876543."}}
-        ],
+        json_results=[{"error": {"message": "Provider returned 41.9876543."}}],
     )
     client = client_module.GooglePollenApiClient(
         FakeSession(response),
