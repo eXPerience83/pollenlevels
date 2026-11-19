@@ -389,6 +389,29 @@ def test_redact_sensitive_values_redacts_normalized_stored_coordinate(util_modul
     )
 
 
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("Provider returned 41.9876543.", "Provider returned ***."),
+        ("Provider returned (41.9876543).", "Provider returned (***)."),
+        ("Provider returned 41.987654.", "Provider returned ***."),
+        ("Provider returned 41.9876543.2", "Provider returned 41.9876543.2"),
+        ("Provider returned 41.98765431.", "Provider returned 41.98765431."),
+        ("Provider returned 141.9876543.", "Provider returned 141.9876543."),
+    ],
+)
+def test_redact_sensitive_values_treats_terminal_period_as_punctuation(
+    util_module, message, expected
+):
+    """Hide a sentence-final coordinate without hiding longer decimals."""
+    assert (
+        util_module.redact_sensitive_values(
+            message, latitude="41.98765430"
+        )
+        == expected
+    )
+
+
 def test_redact_sensitive_values_preserves_unrelated_numbers(util_module):
     """Unrelated numbers should not be redacted."""
 
