@@ -515,7 +515,10 @@ async def test_ha_loaded_refresh_redacts_all_stored_sibling_coordinates(
     assert full_errors
     assert any(record.exc_info for record in full_errors)
 
-    for text in [str(failed.last_exception), *(caplog.handler.format(r) for r in relevant)]:
+    for text in [
+        str(failed.last_exception),
+        *(caplog.handler.format(r) for r in relevant),
+    ]:
         assert "Provider returned" in text or "Full error:" in text
         for secret in (api_key, str(current_latitude), str(sibling_latitude)):
             assert secret not in text
