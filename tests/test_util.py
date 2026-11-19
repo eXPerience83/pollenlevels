@@ -405,10 +405,7 @@ def test_redact_sensitive_values_treats_terminal_period_as_punctuation(
 ):
     """Hide a sentence-final coordinate without hiding longer decimals."""
     assert (
-        util_module.redact_sensitive_values(
-            message, latitude="41.98765430"
-        )
-        == expected
+        util_module.redact_sensitive_values(message, latitude="41.98765430") == expected
     )
 
 
