@@ -386,6 +386,40 @@ async def test_client_redacts_stored_sibling_before_exposing_http_error(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "exception_name"),
+    [(401, "ConfigEntryAuthFailed"), (403, "UpdateFailed")],
+)
+async def test_client_redacts_sibling_coordinate_at_end_of_sentence(
+    client_module: ModuleType,
+    status: int,
+    exception_name: str,
+) -> None:
+    """Keep sentence punctuation while suppressing a stored sibling value."""
+    response = FakeResponse(
+        status=status,
+        json_results=[
+            {"error": {"message": "Provider returned 41.9876543."}}
+        ],
+    )
+    client = client_module.GooglePollenApiClient(
+        FakeSession(response),
+        "SYNTHETIC-PUNCTUATION-KEY",
+        coordinate_pairs=[("41.98765430", None)],
+    )
+
+    with pytest.raises(getattr(client_module, exception_name)) as raised:
+        await client.async_fetch_pollen_data(
+            latitude=12.345678,
+            longitude=-32.765432,
+            days=5,
+            language_code=None,
+        )
+
+    assert str(raised.value) == f"HTTP {status}: Provider returned ***."
+
+
+@pytest.mark.asyncio
 async def test_client_redacts_sensitive_values_from_client_error(
     client_module: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
