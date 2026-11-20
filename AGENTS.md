@@ -164,6 +164,20 @@ Privacy and support diagnostics are part of the public maintenance contract.
   credentials in tests and redact sensitive runtime values before surfacing
   them.
 - Never log complete credential-bearing request URLs or precise coordinates.
+- Treat API/provider errors, formatted tracebacks, `last_exception`, config-flow
+  placeholders, Repairs, and DEBUG/ERROR logs as possible disclosure paths;
+  never expose raw exception objects or tracebacks without redaction.
+- When sanitizing a failure, consider the current request's credentials and
+  coordinates, all stored sibling locations under its parent, and any submitted
+  candidate API key plus the locations of an existing parent that owns it
+  (including initial setup, reauth, and reconfigure). Prefer the existing
+  `redact_sensitive_text_for_locations()` and
+  `stored_location_coordinate_pairs()` helpers over independent filters.
+- Redact before logging, displaying, or truncating rendered error text. If an
+  exception is retained internally as `last_exception`, sanitize it at every
+  exposure boundary. Test 401/403, sibling and candidate-owner coordinates,
+  full tracebacks, and sentence-ending coordinate punctuation without masking
+  unrelated numeric values.
 - Diagnostics may expose only deliberately reduced location information; current
   coordinate examples are rounded to one decimal place.
 - Preserve `registry_summary` and `runtime_summary` unless an explicit diagnostic
@@ -277,6 +291,12 @@ blocking and do not add broad security ignores to make a workflow pass.
   `fix(client): honor quota cooldown` or `test: cover subentry removal`.
 - PRs should explain the behavior change, scope, risks, and validation performed;
   link the owning issue when one exists.
+- For strictly editorial documentation-only PRs, maintainers may use the
+  existing `do-not-review` or `skip-review` label to opt out of automatic
+  CodeRabbit review. Check the entire diff first: changes to review/agent
+  policy, security/privacy guidance, CI/workflows, release behavior, runtime,
+  migration, or public contracts still require normal review. This opt-out
+  does not waive CI or human review requirements.
 - Do not create tags or GitHub releases from a normal implementation PR.
 - Do not change `custom_components/pollenlevels/manifest.json`, the project
   version in `pyproject.toml`, or the local project version in `uv.lock` unless
