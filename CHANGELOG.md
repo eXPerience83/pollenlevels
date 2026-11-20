@@ -1,5 +1,31 @@
 # Changelog
 
+## [5.0.1] - 2026-11-20
+
+**Maintenance release for Home Assistant 2026.11.0 or newer.** No intended
+changes to storage migrations, entity/device identity, public forecasts,
+services, or the minimum supported Home Assistant version.
+
+### Security
+
+- Redact API keys and precise coordinates across additional setup, loaded
+  refresh, reauthentication, reconfiguration, and Repairs error paths,
+  including sibling locations and the existing owner of a submitted API key
+  (#509, #510, #513). Preserve existing authentication, HTTP error, retry,
+  and cancellation behavior.
+- Correct coordinate redaction at sentence-final punctuation without masking
+  distinct longer decimal values (#513).
+
+### Changed
+
+- Consolidate internal forecast attribute collection, initial-data readiness,
+  configuration defaults, location validation, stored-coordinate collection,
+  and pollen-index field extraction while preserving public behavior
+  (#504, #505, #506, #507, #511, #512).
+- Improve secret-scan exclusions, test timing reporting, and asynchronous
+  refresh-test synchronization without altering integration runtime behavior
+  (#502, #503, #508).
+
 ## [5.0.0] - 2026-11-16
 
 **Stable 5.0 release candidate for Home Assistant 2026.11.0 or newer.**
