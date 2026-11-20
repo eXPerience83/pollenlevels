@@ -8,8 +8,7 @@ tone_instructions: >
   Be concise and evidence-based. Focus on correctness, HA compatibility,
   async behavior, migration safety, privacy, registry stability, and
   maintainability. Flag plausible bugs, API misuse, lifecycle issues,
-  and privacy leaks. Check rendered exceptions, tracebacks, and
-  `last_exception` for sibling-location and candidate-key leaks.
+  and privacy leaks.
 
 reviews:
   profile: "assertive"
