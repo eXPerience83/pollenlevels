@@ -23,12 +23,18 @@ Track **grass**, **tree**, and **weed** pollen, regional plant species, daily su
 
 ## Requirements
 
-- **Pollen Levels 5.0:** Home Assistant **2026.11.0 or newer**.
+- **Pollen Levels 5.x:** Home Assistant **2026.11.0 or newer**.
 - **Pollen Levels 4.0.3 (older Home Assistant):** Home Assistant **2026.5.0–2026.10.x**. If your Home Assistant is older than 2026.5, upgrade it before installing 4.0.3.
 - **Distribution:** the built-in **Settings → Marketplace** in Home Assistant 2026.11+; no separate HACS installation.
 - A Google Cloud project with billing enabled and a Google API key restricted to the **Maps Pollen API**.
 
-Install a [published Pollen Levels release](https://github.com/eXPerience83/pollenlevels/releases) compatible with your Home Assistant version. This guide documents the **5.0** functionality and upgrade path.
+Install a [published Pollen Levels release](https://github.com/eXPerience83/pollenlevels/releases) compatible with your Home Assistant version. This guide documents the **5.x** functionality and upgrade path. See the
+[Changelog](CHANGELOG.md) for version-specific fixes.
+
+Google Cloud requires billing to be enabled even if usage stays within the
+applicable free Pollen API allowance. Check the [FAQ](FAQ.md) for current
+pricing, quota limits, and billing safeguards: budget alerts do **not** stop
+usage or charges.
 
 ---
 
@@ -143,10 +149,14 @@ You need a valid Google Cloud API key with access to the **Maps Pollen API**.
 4. Go to **APIs & Services → Credentials → Create credentials → API key**.  
 5. **Restrict your key** (recommended):  
    - **API restrictions** → **Restrict key** → select **Maps Pollen API** only.  
-   - **Application restrictions** (optional):  
-     - Prefer **IP addresses** for server-side usage (your HA host).  
-     - If your IP is dynamic, consider **no application restriction** and rely on
-       the API restriction above.  
+   - **Application restrictions** (optional):
+     - For a stable outbound IP, select **IP addresses** and allow the public
+       source IP seen by Google (after your router/VPN/NAT), **not** a private
+       Home Assistant address such as `192.168.x.x`.
+     - If your public outbound IP changes, IP restrictions can cause 403
+       errors. If you cannot maintain the allowed IP, leave the application
+       restriction unset, keep the **Maps Pollen API** restriction, and
+       monitor usage and quotas.
 6. **Copy** the key and paste it in the integration setup.
 
 The setup form also links directly to the Google documentation for obtaining
@@ -161,7 +171,8 @@ are not supported by this integration.
 
 403 responses during setup or updates now include the API’s reason (when
 available). They often indicate billing is disabled, the Pollen API is not
-enabled, or your key restrictions do not match your Home Assistant host.
+enabled, or the key's allowed public outbound IP does not match the
+source of your Home Assistant requests.
 
 ---
 
@@ -321,8 +332,8 @@ color: '[[[
 - Avoid sharing full debug logs publicly; review them for sensitive information before posting.
 - Never share real Google API keys publicly, and do not paste full Google Pollen
   API URLs containing `key=...` into public issues. If a key was exposed,
-  rotate it in Google Cloud Console and restrict it to the required API and
-  allowed referrers/IPs where possible.
+  rotate it in Google Cloud Console and restrict it to the **Maps Pollen API**;
+  add a public outbound IP restriction only if it fits your network.
 
 Requests go directly from your Home Assistant instance to the Google Maps Pollen
 API. The project maintainer does not operate a data-collection backend; Google

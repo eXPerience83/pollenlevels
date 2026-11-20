@@ -4,7 +4,7 @@
 
 | Version | Supported |
 | --- | --- |
-| Pollen Levels 5.x stable (once published) | Yes |
+| Pollen Levels 5.x stable (Home Assistant 2026.11+) | Yes |
 | Pollen Levels 5.0 prereleases | Experimental testing; not production support |
 | Latest maintained 4.x release | Yes, while maintained |
 | 3.x and older releases | No, unless explicitly stated |

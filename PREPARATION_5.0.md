@@ -57,17 +57,16 @@ References:
 | Marketplace catalogue + manifest | `validate.yml`, `hassfest.yml` | Marketplace still uses the HACS validation action plus hassfest |
 
 GitHub's scheduled workflows execute from the **repository default branch**.
-As `main` now contains the 5.0 alpha-development baseline, the v5 canary and
-updater definitions are the active scheduled workflows. Confirm the timestamp,
+As `main` contains the stable 5.x baseline, the v5 canary and updater
+definitions are the active scheduled workflows. Confirm the timestamp,
 selected ref and results of actual runs before claiming a particular check
 has executed or passed. Previous 4.0.3 runs are not v5 acceptance evidence.
 
-The initial Home Assistant 2026.11 GA bootstrap was intentionally
-time-limited. **Issue [#473](https://github.com/eXPerience83/pollenlevels/issues/473)**
-tracks replacing its exceptional lock/CI settings with ordinary
-`exclude-newer = "3 days"` validation. Require normal-policy lock and CI
-reproducibility before a 5.0 stable release; do not silently extend a temporary
-cooldown bypass. See [RELEASING.md](RELEASING.md).
+The initial Home Assistant 2026.11 GA bootstrap exception was removed under
+closed **issue [#473](https://github.com/eXPerience83/pollenlevels/issues/473)**.
+The stable release path uses ordinary `exclude-newer = "3 days"` lock and CI
+validation; scoped early-updater exceptions require separate explicit review.
+See [RELEASING.md](RELEASING.md).
 
 ## Optional beta: transparent migration limitations
 
