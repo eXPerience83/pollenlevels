@@ -425,11 +425,11 @@ async def async_setup_entry(
         raise ConfigEntryAuthFailed("Invalid API key")
     api_key = api_key.strip()
 
+    coordinate_pairs = stored_location_coordinate_pairs(entry)
     session = async_get_clientsession(hass)
-    client = GooglePollenApiClient(session, api_key)
+    client = GooglePollenApiClient(session, api_key, coordinate_pairs=coordinate_pairs)
 
     location_configs = _iter_location_subentries(entry)
-    coordinate_pairs = stored_location_coordinate_pairs(entry)
     active_subentry_ids = active_location_subentry_ids(entry)
     delete_stale_location_subentry_issues(
         hass,

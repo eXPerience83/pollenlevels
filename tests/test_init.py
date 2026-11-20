@@ -1760,7 +1760,7 @@ def test_setup_entry_success_and_unload(
     entry = _FakeEntry(integration)
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, **_kwargs):
             self.session = _session
             self.api_key = _api_key
 
@@ -1829,7 +1829,7 @@ def test_setup_entry_drops_legacy_per_day_option_and_creates_repair_issue(
     )
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, **_kwargs):
             self.session = _session
             self.api_key = _api_key
 
@@ -1889,7 +1889,7 @@ def test_setup_entry_drops_inactive_legacy_forecast_options_without_issue(
     )
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, **_kwargs):
             self.session = _session
             self.api_key = _api_key
 
@@ -4488,7 +4488,7 @@ def test_setup_entry_loads_valid_location_when_later_subentry_is_invalid(
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, **_kwargs):
             self.session = _session
             self.api_key = _api_key
 
@@ -4569,7 +4569,7 @@ def test_setup_entry_deletes_invalid_location_repair_issue_after_coordinates_are
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, **_kwargs):
             self.session = _session
             self.api_key = _api_key
 
@@ -4641,7 +4641,7 @@ def test_setup_entry_removes_entry_level_repair_issue_when_no_invalid_subentries
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _StubCoordinator)
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, **_kwargs):
             self.session = _session
             self.api_key = _api_key
 
@@ -4843,7 +4843,7 @@ def test_setup_entry_does_not_create_repair_issue_for_temporal_refresh_failure(
     monkeypatch.setattr(integration, "PollenDataUpdateCoordinator", _FailingCoordinator)
 
     class _StubClient:
-        def __init__(self, _session, _api_key):
+        def __init__(self, _session, _api_key, **_kwargs):
             self.session = _session
             self.api_key = _api_key
 

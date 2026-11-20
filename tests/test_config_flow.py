@@ -1822,7 +1822,7 @@ def test_api_key_confirm_description_placeholders_round_coordinates(
     captured: dict[str, object] = {}
     normalized = {**entry.data, config_flow_stubs.CONF_API_KEY: "new-key"}
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         captured["description_placeholders"] = description_placeholders
         captured["user_input"] = dict(user_input)
         return {}, normalized
@@ -2012,7 +2012,7 @@ def test_reconfigure_api_key_validation_accepts_later_working_location(
     flow.context = {"entry_id": "entry-id"}
     attempts: list[tuple[float, float]] = []
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         attempts.append(
             (
                 user_input[config_flow_stubs.CONF_LATITUDE],
@@ -2070,7 +2070,8 @@ def test_reconfigure_api_key_error_uses_failing_location_placeholders(
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: (
                 entry if entry_id == entry.entry_id else None
-            )
+            ),
+            async_entry_for_domain_unique_id=lambda _domain, _uid: None,
         )
     )
     flow.context = {"entry_id": entry.entry_id}
@@ -2083,7 +2084,7 @@ def test_reconfigure_api_key_error_uses_failing_location_placeholders(
     )
     attempts = 0
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         nonlocal attempts
         attempts += 1
         if attempts == 1:
@@ -2140,6 +2141,7 @@ def test_reconfigure_api_key_validation_stops_on_invalid_auth(
             async_get_entry=lambda entry_id: (
                 entry if entry_id == entry.entry_id else None
             ),
+            async_entry_for_domain_unique_id=lambda _domain, _uid: None,
             async_update_entry=lambda *args, **kwargs: None,
             async_reload=lambda *args, **kwargs: None,
         )
@@ -2153,7 +2155,7 @@ def test_reconfigure_api_key_validation_stops_on_invalid_auth(
     )
     attempts = 0
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         nonlocal attempts
         attempts += 1
         return {"base": "invalid_auth"}, None
@@ -2219,7 +2221,7 @@ def test_reauth_confirm_does_not_reintroduce_option_fields_in_data(
         config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
     }
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
@@ -2295,7 +2297,7 @@ def test_reconfigure_does_not_reintroduce_option_fields_in_data(
         config_flow_stubs.CONF_CREATE_FORECAST_SENSORS: "none",
     }
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
@@ -2338,7 +2340,7 @@ def test_async_step_user_defaults_entry_name(
         config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         assert user_input[config_flow_stubs.CONF_NAME] == "   "
         return {}, normalized
 
@@ -2389,7 +2391,9 @@ def test_async_step_user_checks_api_key_unique_id(
             domain == config_flow_stubs.config_flow.DOMAIN
             and unique_id == duplicate_unique_id
         ):
-            return SimpleNamespace(unique_id=duplicate_unique_id)
+            return SimpleNamespace(
+                unique_id=duplicate_unique_id, data={}, subentries={}
+            )
         return None
 
     flow = _TrackingFlow()
@@ -2405,7 +2409,7 @@ def test_async_step_user_checks_api_key_unique_id(
         config_flow_stubs.CONF_LANGUAGE_CODE: "en",
     }
 
-    async def fake_validate(user_input, *, description_placeholders=None):
+    async def fake_validate(user_input, *, description_placeholders=None, **_kwargs):
         return {}, normalized
 
     flow._async_validate_input = fake_validate  # type: ignore[assignment]
@@ -2420,7 +2424,10 @@ def test_async_step_user_checks_api_key_unique_id(
 
     assert result == {"type": "abort", "reason": "api_key_already_configured"}
     assert flow.unique_ids == [duplicate_unique_id]
-    assert lookup_calls == [(config_flow_stubs.config_flow.DOMAIN, duplicate_unique_id)]
+    assert lookup_calls == [
+        (config_flow_stubs.config_flow.DOMAIN, duplicate_unique_id),
+        (config_flow_stubs.config_flow.DOMAIN, duplicate_unique_id),
+    ]
 
 
 class _SubentryRecorder:

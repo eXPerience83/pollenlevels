@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from collections.abc import Collection
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -57,8 +58,9 @@ from .util import (
     format_location_unique_id,
     normalize_language_code,
     redact_api_key,
-    redact_sensitive_values,
+    redact_sensitive_text_for_locations,
     safe_parse_int,
+    stored_location_coordinate_pairs,
     strip_legacy_forecast_options,
     validate_latitude,
     validate_location_pair,
@@ -111,13 +113,14 @@ def _redact_validation_error(
     api_key: str | None,
     latitude: float | None,
     longitude: float | None,
+    *,
+    coordinate_pairs: Collection[tuple[Any, Any]] = (),
 ) -> str:
-    """Redact validation errors before logging or showing placeholders."""
-    return redact_sensitive_values(
+    """Redact the requested and stored locations before displaying an error."""
+    return redact_sensitive_text_for_locations(
         error,
         api_key=api_key,
-        latitude=latitude,
-        longitude=longitude,
+        coordinate_pairs=(*coordinate_pairs, (latitude, longitude)),
     ).strip()
 
 
@@ -170,11 +173,14 @@ async def _async_validate_api_location(
     language_code: str | None,
     errors: dict[str, str],
     description_placeholders: dict[str, Any],
+    coordinate_pairs: Collection[tuple[Any, Any]] = (),
 ) -> bool:
     """Validate that the API key can fetch pollen data for one location."""
     try:
         session = async_get_clientsession(hass)
-        client = GooglePollenApiClient(session=session, api_key=api_key)
+        client = GooglePollenApiClient(
+            session=session, api_key=api_key, coordinate_pairs=coordinate_pairs
+        )
         data = await client.async_fetch_pollen_data(
             latitude=latitude,
             longitude=longitude,
@@ -195,13 +201,17 @@ async def _async_validate_api_location(
     except ConfigEntryAuthFailed as err:
         _LOGGER.warning("Authentication failed during validation")
         errors["base"] = "invalid_auth"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        redacted = _redact_validation_error(
+            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+        )
         description_placeholders["error_message"] = _safe_error_message(
             redacted, "Authentication failed."
         )
     except PollenQuotaExceededError as err:
         errors["base"] = "quota_exceeded"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        redacted = _redact_validation_error(
+            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+        )
         if re.fullmatch(r"HTTP\s+429(?::)?", redacted, flags=re.IGNORECASE):
             redacted = ""
         description_placeholders["error_message"] = _safe_error_message(
@@ -209,7 +219,9 @@ async def _async_validate_api_location(
         )
     except UpdateFailed as err:
         errors["base"] = "cannot_connect"
-        redacted = _redact_validation_error(err, api_key, latitude, longitude)
+        redacted = _redact_validation_error(
+            err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+        )
         if re.fullmatch(r"HTTP\s+\d+(?::)?", redacted, flags=re.IGNORECASE):
             redacted = ""
         description_placeholders["error_message"] = _safe_error_message(
@@ -220,7 +232,9 @@ async def _async_validate_api_location(
             "Unexpected error in Pollen Levels config flow while validating input "
             "(%s): %s",
             type(err).__name__,
-            _redact_validation_error(err, api_key, latitude, longitude)
+            _redact_validation_error(
+                err, api_key, latitude, longitude, coordinate_pairs=coordinate_pairs
+            )
             or "no error details",
         )
         errors["base"] = "unknown"
@@ -436,6 +450,14 @@ def _entry_for_parent_unique_id(
     return hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
 
 
+def _stored_coordinates_for_candidate_key(
+    hass: HomeAssistant, api_key: str
+) -> list[tuple[Any, Any]]:
+    """Collect redaction context from an existing owner of the candidate key."""
+    owner = _entry_for_parent_unique_id(hass, api_key_unique_id(api_key))
+    return stored_location_coordinate_pairs(owner) if owner is not None else []
+
+
 async def _async_reload_parent_after_subentry_create(
     hass: HomeAssistant, entry_id: str
 ) -> None:
@@ -508,6 +530,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input: dict[str, Any],
         *,
         description_placeholders: dict[str, Any] | None = None,
+        coordinate_pairs: Collection[tuple[Any, Any]] = (),
     ) -> tuple[dict[str, str], dict[str, Any] | None]:
         """Validate user or reauth input and return normalized data."""
         placeholders = (
@@ -578,6 +601,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 language_code=lang or None,
                 errors=errors,
                 description_placeholders=placeholders,
+                coordinate_pairs=coordinate_pairs,
             ):
                 return errors, None
 
@@ -606,10 +630,17 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input:
             sanitized_input: dict[str, Any] = dict(user_input)
+            candidate_key = str(sanitized_input.get(CONF_API_KEY, "")).strip()
+            candidate_coordinates = (
+                _stored_coordinates_for_candidate_key(self.hass, candidate_key)
+                if candidate_key
+                else []
+            )
 
             errors, normalized = await self._async_validate_input(
                 sanitized_input,
                 description_placeholders=description_placeholders,
+                coordinate_pairs=candidate_coordinates,
             )
             if not errors and normalized is not None:
                 await self.async_set_unique_id(
@@ -671,7 +702,13 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         if user_input:
+            coordinate_pairs = stored_location_coordinate_pairs(entry)
             location_candidates = _location_data_for_validation(entry)
+            candidate_key = str(user_input.get(CONF_API_KEY, "")).strip()
+            if candidate_key and location_candidates:
+                coordinate_pairs.extend(
+                    _stored_coordinates_for_candidate_key(self.hass, candidate_key)
+                )
             if not location_candidates:
                 updated_api_key = str(user_input.get(CONF_API_KEY, "")).strip()
                 if not updated_api_key:
@@ -714,6 +751,7 @@ class PollenLevelsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors, normalized = await self._async_validate_input(
                     combined,
                     description_placeholders=candidate_placeholders,
+                    coordinate_pairs=coordinate_pairs,
                 )
                 if not errors and normalized is not None:
                     updated_api_key = str(normalized.get(CONF_API_KEY, "")).strip()
@@ -827,6 +865,7 @@ async def _async_validate_subentry_location(
         language_code=_entry_language_code(entry),
         errors=errors,
         description_placeholders=description_placeholders,
+        coordinate_pairs=stored_location_coordinate_pairs(entry),
     ):
         return None
 

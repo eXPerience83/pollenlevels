@@ -4,6 +4,7 @@ import asyncio
 import logging
 import math
 import random
+from collections.abc import Collection
 from email.utils import parsedate_to_datetime
 from time import monotonic
 from typing import Any
@@ -14,7 +15,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .const import MAX_RETRIES, POLLEN_API_TIMEOUT, is_invalid_api_key_message
-from .util import extract_error_message, redact_sensitive_values
+from .util import extract_error_message, redact_sensitive_text_for_locations
 
 _LOGGER = logging.getLogger(__name__)
 _DEFAULT_429_RETRY_DELAY = 2.0
@@ -65,9 +66,16 @@ class PollenTransportError(UpdateFailed):
 class GooglePollenApiClient:
     """Thin async client wrapper for the Google Pollen API."""
 
-    def __init__(self, session: ClientSession, api_key: str) -> None:
+    def __init__(
+        self,
+        session: ClientSession,
+        api_key: str,
+        *,
+        coordinate_pairs: Collection[tuple[Any, Any]] = (),
+    ) -> None:
         self._session = session
         self._api_key = api_key
+        self._coordinate_pairs = tuple(coordinate_pairs)
         self._request_lock = asyncio.Lock()
         self._quota_cooldown_until: float | None = None
 
@@ -140,11 +148,10 @@ class GooglePollenApiClient:
     ) -> str:
         """Redact sensitive values from messages surfaced by the API client."""
 
-        return redact_sensitive_values(
+        return redact_sensitive_text_for_locations(
             value,
             api_key=self._api_key,
-            latitude=latitude,
-            longitude=longitude,
+            coordinate_pairs=(*self._coordinate_pairs, (latitude, longitude)),
         )
 
     async def _async_redacted_http_message(

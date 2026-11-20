@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import MappingProxyType
 from typing import Any
+from urllib.parse import parse_qsl
 
 import pytest
 from aiointercept import CallbackResult, aiointercept
@@ -431,6 +432,241 @@ async def test_ha_parent_api_key_flow_updates_entry_and_schedules_reload(
 
 @pytest.mark.parametrize(
     ("source", "step_id"),
+    [(SOURCE_REAUTH, "reauth_confirm"), (SOURCE_RECONFIGURE, "reconfigure")],
+)
+@pytest.mark.parametrize(
+    ("status", "error_code", "candidate_attempts"),
+    [(401, "invalid_auth", 1), (403, "cannot_connect", 2)],
+)
+async def test_ha_parent_key_form_redacts_all_stored_coordinates(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    source: str,
+    step_id: str,
+    status: int,
+    error_code: str,
+    candidate_attempts: int,
+) -> None:
+    """Both public parent-key flows must hide all stored location coordinates."""
+    from pytest_homeassistant.common import MockConfigEntry
+
+    clear_integration_modules()
+    old_key = "SYNTHETIC-OLD-PARENT-KEY"
+    submitted_key = "SYNTHETIC-NEW-PARENT-KEY"
+    first_latitude, first_longitude = 12.345678, -32.765432
+    second_latitude, second_longitude = 41.9876543, -71.234567
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="parent-multisite-redaction",
+        title="Synthetic parent",
+        data={CONF_API_KEY: old_key},
+        unique_id=api_key_unique_id(old_key),
+        version=6,
+        subentries_data=[
+            {
+                "subentry_id": "stored-a",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Stored A",
+                "unique_id": "12.3457_-32.7654",
+                "data": {
+                    CONF_LATITUDE: first_latitude,
+                    CONF_LONGITUDE: first_longitude,
+                },
+            },
+            {
+                "subentry_id": "stored-b",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Stored B",
+                "unique_id": "41.9877_-71.2346",
+                "data": {
+                    CONF_LATITUDE: second_latitude,
+                    CONF_LONGITUDE: second_longitude,
+                },
+            },
+        ],
+    )
+    entry.add_to_hass(hass)
+    before = _parent_entry_snapshot(entry)
+
+    flow = await _start_parent_api_key_flow(entry, hass, source)
+    assert flow["type"] is FlowResultType.FORM
+    assert flow["step_id"] == step_id
+    attempted_latitudes: list[str] = []
+
+    def fail_parent_validation(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
+        attempted_latitudes.append(params["location.latitude"])
+        return CallbackResult(
+            status=status,
+            payload={
+                "error": {
+                    "message": (
+                        f"Provider failure {submitted_key} "
+                        f"{first_latitude} {first_longitude} "
+                        f"{second_latitude} {second_longitude}"
+                    )
+                }
+            },
+        )
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=fail_parent_validation, repeat=True)
+        result = await hass.config_entries.flow.async_configure(
+            flow["flow_id"], {CONF_API_KEY: submitted_key}
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == step_id
+    assert result["errors"] == {"base": error_code}
+    assert result["description_placeholders"]["error_message"] == (
+        f"HTTP {status}: Provider failure *** *** *** *** ***"
+    )
+    assert attempted_latitudes == [
+        f"{lat:.6f}" for lat in (first_latitude, second_latitude)[:candidate_attempts]
+    ]
+    for secret in (
+        submitted_key,
+        str(first_latitude),
+        str(first_longitude),
+        str(second_latitude),
+        str(second_longitude),
+    ):
+        assert secret not in result["description_placeholders"]["error_message"]
+    assert _parent_entry_snapshot(entry) == before
+
+
+@pytest.mark.parametrize("source", [SOURCE_USER, SOURCE_REAUTH, SOURCE_RECONFIGURE])
+@pytest.mark.parametrize(
+    ("status", "error_code"),
+    [(401, "invalid_auth"), (403, "cannot_connect")],
+)
+@pytest.mark.parametrize("sentence_punctuation", [False, True])
+async def test_ha_candidate_key_owner_coordinates_hidden_in_public_forms(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    source: str,
+    status: int,
+    error_code: str,
+    sentence_punctuation: bool,
+) -> None:
+    """A duplicate candidate key must redact its owner's stored coordinates."""
+    from pytest_homeassistant.common import MockConfigEntry
+
+    clear_integration_modules()
+    candidate_key = "SYNTHETIC-EXISTING-OWNER-KEY"
+    owner_coords = [(41.9876543, -71.234567), (33.8765432, -74.987654)]
+    edited_coords = [(12.345678, -32.765432), (24.556677, -35.778899)]
+    proposed_coords = (5.123456, -6.654321)
+
+    def _subentries(
+        coordinates: list[tuple[float, float]], prefix: str
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "subentry_id": f"{prefix}-{index}",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": f"Synthetic {prefix} {index}",
+                "unique_id": f"{lat:.4f}_{lon:.4f}",
+                "data": {CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
+            }
+            for index, (lat, lon) in enumerate(coordinates)
+        ]
+
+    owner = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="candidate-key-owner",
+        title="Synthetic owner",
+        unique_id=api_key_unique_id(candidate_key),
+        data={CONF_API_KEY: candidate_key},
+        subentries_data=_subentries(owner_coords, "owner"),
+        version=6,
+    )
+    owner.add_to_hass(hass)
+    owner_before = _parent_entry_snapshot(owner)
+
+    target = None
+    if source == SOURCE_USER:
+        form = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        submitted = {
+            CONF_API_KEY: candidate_key,
+            CONF_LANGUAGE_CODE: "es",
+            CONF_UPDATE_INTERVAL: 8,
+            **_location_input(
+                name="Proposed C",
+                latitude=proposed_coords[0],
+                longitude=proposed_coords[1],
+            ),
+        }
+        all_coords = [*owner_coords, proposed_coords]
+        expected_attempts = [f"{proposed_coords[0]:.6f}"]
+        expected_step = "user"
+    else:
+        target = MockConfigEntry(
+            domain=DOMAIN,
+            entry_id="parent-being-edited",
+            title="Synthetic edited parent",
+            unique_id=api_key_unique_id("SYNTHETIC-ORIGINAL-PARENT-KEY"),
+            data={CONF_API_KEY: "SYNTHETIC-ORIGINAL-PARENT-KEY"},
+            subentries_data=_subentries(edited_coords, "edited"),
+            version=6,
+        )
+        target.add_to_hass(hass)
+        target_before = _parent_entry_snapshot(target)
+        form = await _start_parent_api_key_flow(target, hass, source)
+        submitted = {CONF_API_KEY: candidate_key}
+        all_coords = [*owner_coords, *edited_coords]
+        attempted_count = 1 if status == 401 else 2
+        expected_attempts = [f"{lat:.6f}" for lat, _ in edited_coords[:attempted_count]]
+        expected_step = "reauth_confirm" if source == SOURCE_REAUTH else "reconfigure"
+
+    assert form["type"] is FlowResultType.FORM
+    assert form["step_id"] == expected_step
+
+    raw_secrets = [candidate_key]
+    raw_secrets.extend(str(value) for pair in all_coords for value in pair)
+    expected_error = "Provider echoed " + " ".join(raw_secrets)
+    if sentence_punctuation:
+        expected_error += f"; owner={owner_coords[0][0]}."
+    attempts: list[str] = []
+
+    def return_candidate_key_error(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
+        attempts.append(params["location.latitude"])
+        assert params["key"] == candidate_key
+        return CallbackResult(
+            status=status, payload={"error": {"message": expected_error}}
+        )
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=return_candidate_key_error, repeat=True)
+        result = await hass.config_entries.flow.async_configure(
+            form["flow_id"], submitted
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == expected_step
+    assert result["errors"] == {"base": error_code}
+    message = result["description_placeholders"]["error_message"]
+    expected_message = f"HTTP {status}: Provider echoed " + " ".join(
+        ["***"] * len(raw_secrets)
+    )
+    if sentence_punctuation:
+        expected_message += "; owner=***."
+    assert message == expected_message
+    for secret in raw_secrets:
+        assert secret not in message
+    assert attempts == expected_attempts
+    assert _parent_entry_snapshot(owner) == owner_before
+    if target is not None:
+        assert _parent_entry_snapshot(target) == target_before
+
+
+@pytest.mark.parametrize(
+    ("source", "step_id"),
     [
         (SOURCE_REAUTH, "reauth_confirm"),
         (SOURCE_RECONFIGURE, "reconfigure"),
@@ -574,6 +810,99 @@ async def test_ha_location_subentry_flow_creates_subentry(
         CONF_LATITUDE: 41.3874,
         CONF_LONGITUDE: 2.1686,
     }
+
+
+@pytest.mark.parametrize("source", [SOURCE_USER, SOURCE_RECONFIGURE])
+@pytest.mark.parametrize(
+    ("status", "error_code"),
+    [(401, "invalid_auth"), (403, "cannot_connect")],
+)
+async def test_ha_subentry_form_redacts_stored_sibling_and_requested_coordinates(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    source: str,
+    status: int,
+    error_code: str,
+) -> None:
+    """Public add/reconfigure forms never display a stored sibling coordinate."""
+    from pytest_homeassistant.common import MockConfigEntry
+
+    clear_integration_modules()
+    api_key = "SYNTHETIC-SUBENTRY-PRIVACY-KEY"
+    stored_latitude = "33.87654320"
+    normalized_sibling = "33.8765432"
+    new_latitude = 12.345678
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="subentry-redaction-parent",
+        title="Synthetic parent",
+        unique_id=api_key_unique_id(api_key),
+        data={CONF_API_KEY: api_key},
+        version=6,
+        subentries_data=[
+            {
+                "subentry_id": "stored-b",
+                "subentry_type": SUBENTRY_TYPE_LOCATION,
+                "title": "Stored B",
+                "unique_id": "33.8765_-71.2346",
+                "data": {
+                    CONF_LATITUDE: stored_latitude,
+                    CONF_LONGITUDE: -71.234567,
+                },
+            }
+        ],
+    )
+    entry.add_to_hass(hass)
+    before = _parent_entry_snapshot(entry)
+    context: dict[str, Any] = {"source": source}
+    if source == SOURCE_RECONFIGURE:
+        context["subentry_id"] = "stored-b"
+
+    flow = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_LOCATION),
+        context=context,
+    )
+    assert flow["type"] is FlowResultType.FORM
+    assert flow["step_id"] == ("user" if source == SOURCE_USER else "reconfigure")
+
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(
+            POLLEN_API_URL_RE,
+            callback=lambda *_args, **_kwargs: CallbackResult(
+                status=status,
+                payload={
+                    "error": {
+                        "message": (
+                            f"Backend refused {api_key} {new_latitude} "
+                            f"{normalized_sibling}; nearby=33.87654321"
+                        )
+                    }
+                },
+            ),
+            repeat=True,
+        )
+        result = await hass.config_entries.subentries.async_configure(
+            flow["flow_id"],
+            _location_input(
+                name="Requested A",
+                latitude=new_latitude,
+                longitude=-32.765432,
+            ),
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == flow["step_id"]
+    assert result["errors"] == {"base": error_code}
+    message = result["description_placeholders"]["error_message"]
+    assert message == (
+        f"HTTP {status}: Backend refused *** *** ***; nearby=33.87654321"
+    )
+    # The exact shape also proves that the normalized sibling was redacted,
+    # while the distinct number ending in 21 remains visible.
+    for secret in (api_key, str(new_latitude), stored_latitude):
+        assert secret not in message
+    assert _parent_entry_snapshot(entry) == before
 
 
 async def test_ha_location_subentry_flow_rejects_duplicate_location(

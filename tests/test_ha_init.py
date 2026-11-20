@@ -7,6 +7,7 @@ import json
 import logging
 from datetime import timedelta
 from typing import Any
+from urllib.parse import parse_qsl
 
 import pytest
 from aiohttp import ClientConnectionError
@@ -20,6 +21,7 @@ from homeassistant.helpers import (
     entity_registry as er,
     issue_registry as ir,
 )
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant.common import (
@@ -435,6 +437,98 @@ async def test_ha_refresh_redacts_transport_debug_traceback(
     formatted = caplog.handler.format(debug)
     assert key not in formatted
     assert latitude not in formatted
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_error"),
+    [(401, ConfigEntryAuthFailed), (403, UpdateFailed)],
+)
+async def test_ha_loaded_refresh_redacts_all_stored_sibling_coordinates(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    socket_enabled: None,
+    google_pollen_5_day_payload: dict[str, Any],
+    caplog: pytest.LogCaptureFixture,
+    status: int,
+    expected_error: type[Exception],
+) -> None:
+    """A loaded coordinator must never expose sibling coordinates to HA logs."""
+    clear_integration_modules()
+    api_key = "SYNTHETIC-LIVE-REFRESH-KEY"
+    current_latitude = 12.345678
+    sibling_latitude = 41.9876543
+    entry = _parent_entry(
+        entry_id="synthetic-multisite-refresh",
+        api_key=api_key,
+        locations=[
+            ("a", "Synthetic A", current_latitude, -32.765432),
+            ("b", "Synthetic B", sibling_latitude, -71.234567),
+        ],
+    )
+    entry.add_to_hass(hass)
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mock_pollen_api(mocked, google_pollen_5_day_payload)
+        await async_setup_config_entry(hass, entry)
+
+    failed = entry.runtime_data.locations["a"].coordinator
+    healthy = entry.runtime_data.locations["b"].coordinator
+
+    def respond(url, **_kwargs):
+        params = dict(parse_qsl(url.query_string))
+        if params["location.latitude"] == f"{current_latitude:.6f}":
+            return CallbackResult(
+                status=status,
+                payload={
+                    "error": {
+                        "message": (
+                            f"Provider returned {api_key} {current_latitude} "
+                            f"{sibling_latitude}"
+                        )
+                    }
+                },
+            )
+        return CallbackResult(status=200, payload=google_pollen_5_day_payload)
+
+    caplog.clear()
+    async with aiointercept(mock_external_urls=True) as mocked:
+        mocked.get(POLLEN_API_URL_RE, callback=respond, repeat=True)
+        with caplog.at_level(logging.DEBUG, logger=failed.logger.name):
+            await failed.async_refresh()
+            await healthy.async_refresh()
+
+    assert isinstance(failed.last_exception, expected_error)
+    assert str(failed.last_exception).startswith(f"HTTP {status}: Provider returned")
+    assert failed.last_update_success is False
+    assert healthy.last_update_success is True
+    assert entry.state is ConfigEntryState.LOADED
+
+    relevant = [
+        record
+        for record in caplog.records
+        if record.name == failed.logger.name
+        and (record.levelno >= logging.ERROR or record.getMessage() == "Full error:")
+    ]
+    assert any(record.levelno >= logging.ERROR for record in relevant)
+    full_errors = [
+        record for record in relevant if record.getMessage() == "Full error:"
+    ]
+    assert full_errors
+    assert any(record.exc_info for record in full_errors)
+
+    for text in [
+        str(failed.last_exception),
+        *(caplog.handler.format(r) for r in relevant),
+    ]:
+        assert "Provider returned" in text or "Full error:" in text
+        for secret in (api_key, str(current_latitude), str(sibling_latitude)):
+            assert secret not in text
+
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert len(flows) <= 1
+    if flows:
+        assert status == 401
+        assert flows[0]["context"]["source"] == SOURCE_REAUTH
+        assert flows[0]["context"]["entry_id"] == entry.entry_id
 
 
 @pytest.mark.parametrize("status", [400, 401])
