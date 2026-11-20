@@ -8,7 +8,8 @@ tone_instructions: >
   Be concise and evidence-based. Focus on correctness, HA compatibility,
   async behavior, migration safety, privacy, registry stability, and
   maintainability. Flag plausible bugs, API misuse, lifecycle issues,
-  and privacy leaks.
+  and privacy leaks. Check rendered exceptions, tracebacks, and
+  `last_exception` for sibling-location and candidate-key leaks.
 
 reviews:
   profile: "assertive"
@@ -45,6 +46,9 @@ reviews:
       - "DO NOT MERGE"
       - "[skip review]"
       - "skip review"
+    # Opt-out is label-driven, not automatic for Markdown or docs paths.
+    # Use only for editorial docs-only PRs after inspecting the whole diff;
+    # security, review policy, CI, releases, and functional changes need review.
     labels:
       - "!do-not-review"
       - "!skip-review"
@@ -89,6 +93,13 @@ reviews:
         - No logging of API keys, full coordinates, URLs with secrets, or raw payloads containing secrets.
         - Minimal public API churn and no unnecessary renames.
 
+    - path: "custom_components/pollenlevels/client.py"
+      instructions: |
+        Review HTTP errors and rendered exceptions for redaction before
+        logging or exposure. Include the active request and stored sibling
+        coordinates, handle normalized values and sentence-final punctuation,
+        and avoid revealing full tracebacks or raw credential-bearing URLs.
+
     - path: "custom_components/pollenlevels/coordinator.py"
       instructions: |
         Pay special attention to:
@@ -107,6 +118,8 @@ reviews:
         - Reauth/reconfigure behavior.
         - Duplicate detection and stable unique IDs.
         - Avoiding secrets in form defaults, placeholders, logs, or exceptions.
+        - Redacting current and candidate API keys plus stored coordinates
+          for every sibling and any existing parent owning a candidate key.
 
     - path: "custom_components/pollenlevels/diagnostics.py"
       instructions: |
@@ -116,6 +129,7 @@ reviews:
         - Full precision coordinates.
         - Raw URLs containing query parameters.
         - Raw API payloads that may contain sensitive user data.
+        - Unsanitized exception/traceback details, including `last_exception`.
         Prefer redacted, rounded, or summarized diagnostics.
 
     - path: "custom_components/pollenlevels/__init__.py"
@@ -192,6 +206,8 @@ reviews:
         - Regression coverage for config flow, coordinator, diagnostics,
           migration, entity registry, and services/actions.
         - No tests depending on real network calls or real API keys.
+        - Privacy regression coverage for sibling/candidate-owner coordinates,
+          401/403 errors, traceback exposure, and punctuation boundaries.
 
     - path: "tests/_ha_stubs.py"
       instructions: |
