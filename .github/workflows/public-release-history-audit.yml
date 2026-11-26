@@ -1,0 +1,152 @@
+name: Pre-publication Git history secret audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/public-release-history-audit.yml"
+      - ".gitleaksignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pre-publication-history-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  history-secrets:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Install audited Gitleaks CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Same reviewed v8.30.1 commit as pr-secret-scan.yml.
+          GOTOOLCHAIN=auto go install github.com/zricethezav/gitleaks/v8@83d9cd684c87d95d656c1458ef04895a7f1cbd8e
+          "$(go env GOPATH)/bin/gitleaks" version
+
+      - name: Audit reachable branches, tags and PR history
+        shell: bash
+        env:
+          POLICY_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          BASELINE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          umask 077
+          scratch="$(mktemp -d "$RUNNER_TEMP/history-audit.XXXXXX")"
+          trap 'rm -rf "$scratch"' EXIT
+          audit="$scratch/history.git"
+          report="$scratch/findings.json"
+          [[ "$POLICY_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+          # Public repository: fetch objects anonymously, with no checkout,
+          # persistent credentials, PR-controlled configuration or raw ref logs.
+          git init --bare -q "$audit"
+          if ! git -C "$audit" fetch --no-tags "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*' \
+            '+refs/pull/*/head:refs/audit/pull/*' >/dev/null 2>&1; then
+            echo "::error::Historical ref fetch failed; no audit result."
+            exit 1
+          fi
+          git -C "$audit" symbolic-ref HEAD refs/heads/main
+          git -C "$audit" cat-file -e "$POLICY_SHA^{commit}"
+          git -C "$audit" merge-base --is-ancestor "$POLICY_SHA" refs/heads/main
+          printf 'Branch refs: %s; tag refs: %s; PR head refs: %s; reachable commits: %s\n' \
+            "$(git -C "$audit" for-each-ref --format='%(objectname)' refs/heads | wc -l)" \
+            "$(git -C "$audit" for-each-ref --format='%(objectname)' refs/tags | wc -l)" \
+            "$(git -C "$audit" for-each-ref --format='%(objectname)' refs/audit/pull | wc -l)" \
+            "$(git -C "$audit" rev-list --all --count)"
+
+          # Use embedded rules and the explicitly reviewed exact fingerprint
+          # baseline (#522). Pin the Git blob, not arbitrary PR-controlled
+          # file contents. Updating the baseline requires a reviewed pin change.
+          printf '%s\n' '[extend]' 'useDefault = true' > "$scratch/rules.toml"
+          expected_ignore_blob="12b84b03fd35ebc09d7dce4507d3f22cc3ae2dd3"
+          [[ "$BASELINE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if ! actual_ignore_blob="$(git -C "$audit" rev-parse --verify "$BASELINE_SHA:.gitleaksignore" 2>/dev/null)" ||
+            [[ "$actual_ignore_blob" != "$expected_ignore_blob" ]]; then
+            echo "::error::Historical exception policy differs from the reviewed baseline."
+            exit 1
+          fi
+          git -C "$audit" cat-file blob "$expected_ignore_blob" > "$scratch/approved-ignore"
+          echo "Historical exception policy: 32 individually reviewed fingerprints."
+
+          # Observe the actual Git child invoked by the pinned scanner.
+          # Other Git commands are passed through without changing their output.
+          real_git="$(command -v git)"
+          mkdir "$scratch/git-wrapper"
+          cat > "$scratch/git-wrapper/git" <<'SH'
+          #!/bin/bash
+          set -euo pipefail
+          if [[ "${1-}" == -C && "${2-}" == "$SCAN_GIT_SOURCE" && "${3-}" == log ]]; then
+            rc=0
+            "$SCAN_REAL_GIT" "$@" || rc=$?
+            printf '%s\n' "$rc" >> "$SCAN_GIT_STATUS"
+            exit "$rc"
+          fi
+          exec "$SCAN_REAL_GIT" "$@"
+          SH
+          chmod 700 "$scratch/git-wrapper/git"
+
+          # Require one successful traversal and no private error diagnostics.
+          # Missing completion also fails (for example if the wrapper is killed).
+          status="$scratch/git-status"
+          diagnostics="$scratch/scanner-diagnostics.log"
+          scan_rc=0
+          PATH="$scratch/git-wrapper:$PATH" SCAN_REAL_GIT="$real_git" \
+            SCAN_GIT_SOURCE="$audit" SCAN_GIT_STATUS="$status" \
+            "$(go env GOPATH)/bin/gitleaks" git \
+            --no-banner --redact=100 --exit-code=23 --log-level=error \
+            --config="$scratch/rules.toml" \
+            --gitleaks-ignore-path="$scratch/approved-ignore" \
+            --ignore-gitleaks-allow \
+            --report-format=json --report-path="$report" \
+            --log-opts="--all --diff-merges=first-parent --text --no-ext-diff --no-textconv" \
+            "$audit" >"$diagnostics" 2>&1 || scan_rc=$?
+
+          if [[ ! -f "$status" || "$(cat "$status")" != 0 || -s "$diagnostics" ]]; then
+            echo "::error::Historical scanner traversal incomplete or errored; no audit result."
+            exit 1
+          fi
+
+          case "$scan_rc" in
+            0|23) ;;
+            *)
+              echo "::error::Historical scan did not complete (exit $scan_rc)."
+              exit 1 ;;
+          esac
+
+          # Only aggregate counts leave this runner. Even file names, paths,
+          # commit messages and rule excerpts can contain sensitive material.
+          python3 - "$report" "$scan_rc" <<'PY'
+          import json
+          import sys
+
+          try:
+              with open(sys.argv[1], encoding="utf-8") as stream:
+                  findings = json.load(stream)
+              if findings is None:
+                  findings = []
+              if not isinstance(findings, list):
+                  raise ValueError
+              if (int(sys.argv[2]) == 23) != bool(findings):
+                  raise ValueError
+          except (OSError, ValueError, TypeError):
+              print("::error::Missing or inconsistent historical audit report.")
+              sys.exit(1)
+          print(f"Unexcepted findings requiring private review: {len(findings)}")
+          PY
+
+          if [[ "$scan_rc" == 23 ]]; then
+            echo "::error::Potential historical secrets detected. Review privately; revoke or rotate any real credentials."
+            exit 1
+          fi
+          echo "No unexcepted findings in fetched reachable history."
