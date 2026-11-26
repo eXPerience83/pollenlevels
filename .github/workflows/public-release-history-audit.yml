@@ -79,18 +79,31 @@ jobs:
           git -C "$audit" cat-file blob "$expected_ignore_blob" > "$scratch/approved-ignore"
           echo "Historical exception policy: 32 individually reviewed fingerprints."
 
-          # Independently exercise the same Git patch traversal and require a
-          # successful exit, since Gitleaks can discard Git subprocess errors.
-          if ! git -C "$audit" log -p -U0 --all --diff-merges=first-parent --text --no-ext-diff --no-textconv >/dev/null 2>&1; then
-            echo "::error::Historical Git traversal failed; no audit result."
-            exit 1
+          # Observe the actual Git child invoked by the pinned scanner.
+          # Other Git commands are passed through without changing their output.
+          real_git="$(command -v git)"
+          mkdir "$scratch/git-wrapper"
+          cat > "$scratch/git-wrapper/git" <<'SH'
+          #!/bin/bash
+          set -euo pipefail
+          if [[ "${1-}" == -C && "${2-}" == "$SCAN_GIT_SOURCE" && "${3-}" == log ]]; then
+            rc=0
+            "$SCAN_REAL_GIT" "$@" || rc=$?
+            printf '%s\n' "$rc" >> "$SCAN_GIT_STATUS"
+            exit "$rc"
           fi
+          exec "$SCAN_REAL_GIT" "$@"
+          SH
+          chmod 700 "$scratch/git-wrapper/git"
 
-          # The pinned scanner may log a fragment error but still exit 0.
-          # Capture error-level diagnostics privately and never print them.
+          # Require one successful traversal and no private error diagnostics.
+          # Missing completion also fails (for example if the wrapper is killed).
+          status="$scratch/git-status"
           diagnostics="$scratch/scanner-diagnostics.log"
           scan_rc=0
-          "$(go env GOPATH)/bin/gitleaks" git \
+          PATH="$scratch/git-wrapper:$PATH" SCAN_REAL_GIT="$real_git" \
+            SCAN_GIT_SOURCE="$audit" SCAN_GIT_STATUS="$status" \
+            "$(go env GOPATH)/bin/gitleaks" git \
             --no-banner --redact=100 --exit-code=23 --log-level=error \
             --config="$scratch/rules.toml" \
             --gitleaks-ignore-path="$scratch/approved-ignore" \
@@ -99,8 +112,8 @@ jobs:
             --log-opts="--all --diff-merges=first-parent --text --no-ext-diff --no-textconv" \
             "$audit" >"$diagnostics" 2>&1 || scan_rc=$?
 
-          if [[ -s "$diagnostics" ]]; then
-            echo "::error::Historical scanner emitted error diagnostics; no audit result."
+          if [[ ! -f "$status" || "$(cat "$status")" != 0 || -s "$diagnostics" ]]; then
+            echo "::error::Historical scanner traversal incomplete or errored; no audit result."
             exit 1
           fi
 
