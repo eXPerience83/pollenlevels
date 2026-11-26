@@ -1,0 +1,45 @@
+# Historical audit only; reviewed in #522 / PR #524 (2026-11-26).
+# Exact Gitleaks v8.30.1 fingerprints, verified against historical source.
+# Never add wildcard, path-wide or rule-wide exceptions.
+# The historical workflow pins this file's Git blob; policy changes require review.
+# The mandatory PR scanner intentionally does not use this file.
+
+# G1: Python keyword argument coordinate_pairs=coordinate_pairs; not a credential.
+4158cef82d8292bb322106a79cd5f3234d8c3a81:custom_components/pollenlevels/config_flow.py:generic-api-key:182
+72e0a9f8347e80adb6401e532857e5c2de5ec618:custom_components/pollenlevels/__init__.py:generic-api-key:431
+6c13ec80624f84f78d2c3afc20b4a96eb9399d52:custom_components/pollenlevels/config_flow.py:generic-api-key:182
+8d972907570bbafaf8704cb88e568366838dc7a9:custom_components/pollenlevels/__init__.py:generic-api-key:528
+8d972907570bbafaf8704cb88e568366838dc7a9:custom_components/pollenlevels/__init__.py:generic-api-key:556
+8d972907570bbafaf8704cb88e568366838dc7a9:custom_components/pollenlevels/__init__.py:generic-api-key:632
+30f247da5a4825c2b60a35e890929d65edfc6912:custom_components/pollenlevels/__init__.py:generic-api-key:523
+30f247da5a4825c2b60a35e890929d65edfc6912:custom_components/pollenlevels/__init__.py:generic-api-key:533
+0cc5b8abefe0deaec48c0eecb7ed9d28f14eb90f:custom_components/pollenlevels/__init__.py:generic-api-key:528
+0cc5b8abefe0deaec48c0eecb7ed9d28f14eb90f:custom_components/pollenlevels/__init__.py:generic-api-key:556
+0cc5b8abefe0deaec48c0eecb7ed9d28f14eb90f:custom_components/pollenlevels/__init__.py:generic-api-key:632
+5249e35171960c8f06171e16dea233510e92ec0a:custom_components/pollenlevels/__init__.py:generic-api-key:523
+5249e35171960c8f06171e16dea233510e92ec0a:custom_components/pollenlevels/__init__.py:generic-api-key:533
+5249e35171960c8f06171e16dea233510e92ec0a:custom_components/pollenlevels/__init__.py:generic-api-key:547
+5249e35171960c8f06171e16dea233510e92ec0a:custom_components/pollenlevels/__init__.py:generic-api-key:575
+5249e35171960c8f06171e16dea233510e92ec0a:custom_components/pollenlevels/__init__.py:generic-api-key:651
+fd82c493c3d09366d322aa061e62dafc80e2627f:custom_components/pollenlevels/__init__.py:generic-api-key:523
+fd82c493c3d09366d322aa061e62dafc80e2627f:custom_components/pollenlevels/__init__.py:generic-api-key:533
+961056e1f77261fe18a57f0950ade7b7ba4c1c34:custom_components/pollenlevels/issue_helpers.py:generic-api-key:151
+961056e1f77261fe18a57f0950ade7b7ba4c1c34:custom_components/pollenlevels/issue_helpers.py:generic-api-key:154
+a3de01c29b7eb573f07651e6aaa9d3c3e76e40c7:custom_components/pollenlevels/issue_helpers.py:generic-api-key:153
+a3de01c29b7eb573f07651e6aaa9d3c3e76e40c7:custom_components/pollenlevels/issue_helpers.py:generic-api-key:156
+
+# G2: synthetic redaction fixtures.
+60e904111f680763d6b4bd33c82a593d2e8fbbc7:tests/test_util.py:generic-api-key:272
+60e904111f680763d6b4bd33c82a593d2e8fbbc7:tests/test_util.py:generic-api-key:292
+5180d3a1ade03b5ff0982e201c230c3f2c0ecd08:tests/test_util.py:generic-api-key:272
+5180d3a1ade03b5ff0982e201c230c3f2c0ecd08:tests/test_util.py:generic-api-key:292
+
+# G3: synthetic redaction/truncation fixtures.
+883d9f1e8fa942a043b660f238396128338bf6ab:tests/test_client_redaction_truncation.py:generic-api-key:22
+0992153eae25a0ce5195724d5f145590cd44ff82:tests/test_client_redaction_truncation.py:generic-api-key:22
+
+# G4: synthetic service-error redaction fixtures.
+a4f179d6e9d423761fc1218f41fe09425fb85f25:tests/test_ha_services.py:generic-api-key:406
+a4f179d6e9d423761fc1218f41fe09425fb85f25:tests/test_ha_services.py:generic-api-key:423
+a29afb7d656d08d65f5060de0c0e8dfea5cac2c3:tests/test_ha_services.py:generic-api-key:406
+a29afb7d656d08d65f5060de0c0e8dfea5cac2c3:tests/test_ha_services.py:generic-api-key:425

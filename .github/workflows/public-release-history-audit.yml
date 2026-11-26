@@ -35,6 +35,7 @@ jobs:
         shell: bash
         env:
           POLICY_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          BASELINE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GIT_TERMINAL_PROMPT: "0"
         run: |
           set -euo pipefail
@@ -64,21 +65,44 @@ jobs:
             "$(git -C "$audit" for-each-ref --format='%(objectname)' refs/audit/pull | wc -l)" \
             "$(git -C "$audit" rev-list --all --count)"
 
-          # Use embedded rules and no historical exceptions. Any future
-          # exception policy requires its own reviewed workflow change.
+          # Use embedded rules and the explicitly reviewed exact fingerprint
+          # baseline (#522). Pin the Git blob, not arbitrary PR-controlled
+          # file contents. Updating the baseline requires a reviewed pin change.
           printf '%s\n' '[extend]' 'useDefault = true' > "$scratch/rules.toml"
-          touch "$scratch/approved-ignore"
-          echo "Historical exception policy: none."
+          expected_ignore_blob="12b84b03fd35ebc09d7dce4507d3f22cc3ae2dd3"
+          [[ "$BASELINE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if ! actual_ignore_blob="$(git -C "$audit" rev-parse --verify "$BASELINE_SHA:.gitleaksignore" 2>/dev/null)" ||
+            [[ "$actual_ignore_blob" != "$expected_ignore_blob" ]]; then
+            echo "::error::Historical exception policy differs from the reviewed baseline."
+            exit 1
+          fi
+          git -C "$audit" cat-file blob "$expected_ignore_blob" > "$scratch/approved-ignore"
+          echo "Historical exception policy: 32 individually reviewed fingerprints."
 
+          # Independently exercise the same Git patch traversal and require a
+          # successful exit, since Gitleaks can discard Git subprocess errors.
+          if ! git -C "$audit" log -p -U0 --all --diff-merges=first-parent --text --no-ext-diff --no-textconv >/dev/null 2>&1; then
+            echo "::error::Historical Git traversal failed; no audit result."
+            exit 1
+          fi
+
+          # The pinned scanner may log a fragment error but still exit 0.
+          # Capture error-level diagnostics privately and never print them.
+          diagnostics="$scratch/scanner-diagnostics.log"
           scan_rc=0
           "$(go env GOPATH)/bin/gitleaks" git \
-            --no-banner --redact=100 --exit-code=23 \
+            --no-banner --redact=100 --exit-code=23 --log-level=error \
             --config="$scratch/rules.toml" \
             --gitleaks-ignore-path="$scratch/approved-ignore" \
             --ignore-gitleaks-allow \
             --report-format=json --report-path="$report" \
             --log-opts="--all --diff-merges=first-parent --text --no-ext-diff --no-textconv" \
-            "$audit" >/dev/null 2>&1 || scan_rc=$?
+            "$audit" >"$diagnostics" 2>&1 || scan_rc=$?
+
+          if [[ -s "$diagnostics" ]]; then
+            echo "::error::Historical scanner emitted error diagnostics; no audit result."
+            exit 1
+          fi
 
           case "$scan_rc" in
             0|23) ;;
