@@ -73,9 +73,8 @@ def test_publication_records_validated_commit_identities() -> None:
     assert 'if [[ "$remote_status" != 2 ]]; then' in publication
     assert 'exit "$remote_status"' in publication
     assert publication.count('test "$remote_main" = "$BASE_SHA"') == 2
-    assert publication.rindex('test "$remote_main" = "$BASE_SHA"') < publication.index(
-        "git push"
-    )
+    final_check = publication.rindex('test "$remote_main" = "$BASE_SHA"')
+    assert final_check < publication.index("git push")
 
 
 def test_publication_push_only_creates_absent_branch(tmp_path: Path) -> None:
@@ -112,9 +111,7 @@ def test_publication_push_only_creates_absent_branch(tmp_path: Path) -> None:
     first = git("rev-parse", "HEAD")
     branch = "automation/ha-test-baseline"
     push_env = {**env, "branch": branch}
-    subprocess.run(
-        ["bash", "-c", push], cwd=checkout, env=push_env, check=True
-    )
+    subprocess.run(["bash", "-c", push], cwd=checkout, env=push_env, check=True)
     git("commit", "--allow-empty", "-m", "concurrent candidate")
     result = subprocess.run(
         ["bash", "-c", push],
