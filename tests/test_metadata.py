@@ -625,7 +625,13 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "gh pr merge" not in workflow
     assert "enablePullRequestAutoMerge" not in workflow
     assert "automerge: true" not in workflow.lower()
-    assert "git push --force" not in workflow
+    # Only an explicit empty lease is allowed: it cannot overwrite any ref.
+    create_only_push = (
+        'git push --force-with-lease="refs/heads/$branch:" '
+        'origin "HEAD:refs/heads/$branch"'
+    )
+    assert publication.count(create_only_push) == 1
+    assert "git push --force" not in workflow.replace(create_only_push, "")
     assert "github.ref != 'refs/heads/main'" in workflow
     assert "git check-ref-format" in publication
     assert "gh pr list" in publication
