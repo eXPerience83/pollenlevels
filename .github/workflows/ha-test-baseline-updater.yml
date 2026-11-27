@@ -396,10 +396,17 @@ jobs:
             echo "Existing baseline pull request: $existing"
             exit 0
           fi
-          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
             echo "Remote branch $branch exists without a pull request." >&2
             exit 1
+          else
+            remote_status=$?
+            if [[ "$remote_status" != 2 ]]; then
+              echo "Unable to verify whether the automation branch exists." >&2
+              exit "$remote_status"
+            fi
           fi
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
           remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
           test "$remote_main" = "$BASE_SHA" || {
             echo "main moved from validated base $BASE_SHA to $remote_main." >&2
@@ -409,8 +416,20 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add pyproject.toml uv.lock
           git commit -m "$commit_title"
+          head_sha="$(git rev-parse HEAD)"
+          {
+            printf '\n- Validated base commit: `%s`\n' "$BASE_SHA"
+            printf -- '- Proposed head commit: `%s`\n' "$head_sha"
+          } >> "$RUNNER_TEMP/pr-body-final.md"
           gh auth setup-git
-          git push origin "HEAD:refs/heads/$branch"
+          # Check again immediately before publishing; the empty lease permits
+          # branch creation only and rejects even a concurrent fast-forward.
+          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$remote_main" = "$BASE_SHA" || {
+            echo "main moved from validated base $BASE_SHA to $remote_main." >&2
+            exit 1
+          }
+          git push --force-with-lease="refs/heads/$branch:" origin "HEAD:refs/heads/$branch"
           gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
             --title "$pr_title" \
             --body-file "$RUNNER_TEMP/pr-body-final.md"
