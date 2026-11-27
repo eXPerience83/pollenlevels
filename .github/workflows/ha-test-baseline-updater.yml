@@ -418,8 +418,8 @@ jobs:
           git commit -m "$commit_title"
           head_sha="$(git rev-parse HEAD)"
           {
-            printf '\n- Validated base commit: `%s`\n' "$BASE_SHA"
-            printf -- '- Proposed head commit: `%s`\n' "$head_sha"
+            printf '\n- Validated base commit: %s\n' "$BASE_SHA"
+            printf -- '- Proposed head commit: %s\n' "$head_sha"
           } >> "$RUNNER_TEMP/pr-body-final.md"
           gh auth setup-git
           # Check again immediately before publishing; the empty lease permits
