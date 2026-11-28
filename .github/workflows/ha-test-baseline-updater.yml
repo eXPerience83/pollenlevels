@@ -505,7 +505,6 @@ jobs:
             }
           }
           if [[ "$unchanged" == true ]]; then
-            verify_published_head
             # Repair missing provenance if an earlier push succeeded but the
             # PR metadata update failed; otherwise leave the reviewed head alone.
             if jq -e --arg base "$BASE_SHA" --arg head "$head_sha" '
@@ -522,13 +521,12 @@ jobs:
             git push --force-with-lease="refs/heads/$branch:$expected_head" origin "HEAD:refs/heads/$branch"
           fi
           if [[ -n "$existing_pr" ]]; then
-            verify_published_head
             gh pr edit "$existing_pr" --repo "$GITHUB_REPOSITORY" \
               --title "$pr_title" --body-file "$RUNNER_TEMP/pr-body-final.md"
-            verify_published_head
-            echo "Updated existing baseline pull request #$existing_pr at $head_sha."
           else
             gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
               --title "$pr_title" \
               --body-file "$RUNNER_TEMP/pr-body-final.md"
           fi
+          verify_published_head
+          echo "Published baseline proposal at $head_sha."
