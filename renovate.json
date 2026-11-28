@@ -12,6 +12,8 @@
   ],
   "prConcurrentLimit": 5,
   "automerge": false,
+  "rebaseWhen": "behind-base-branch",
+  "internalChecksFilter": "strict",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [
@@ -111,6 +113,15 @@
         "custom.regex"
       ],
       "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Require verified 72-hour release maturity for PyPI updates",
+      "matchDatasources": [
+        "pypi"
+      ],
+      "minimumReleaseAge": "3 days",
+      "minimumReleaseAgeBehaviour": "timestamp-required",
       "internalChecksFilter": "strict"
     },
     {
