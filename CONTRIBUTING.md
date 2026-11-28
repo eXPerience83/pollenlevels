@@ -107,3 +107,7 @@ Release preparation is restricted to maintainers. See
 [`RELEASING.md`](RELEASING.md) for the version, validation, draft-release,
 publication, and post-release verification process. Contributors must not
 manually create tags or releases as part of a normal pull request.
+
+## Refreshing the reviewed HA test baseline
+
+The daily HA test baseline updater can also be dispatched on `main` with `publish=true` to refresh an open bot-owned PR for the same candidate, preserving its PR number. It regenerates and validates the dependency files from current `main`; it replaces the existing head only with an explicit lease for the verified bot commit. It leaves a current identical candidate alone and refuses unexpected branches, manual commits, multiple open baseline PRs or a different open candidate. A new head requires new CI: if the repository token suppresses PR checks, a maintainer must close and reopen the PR and verify all required checks against that exact head before merge. `publish=false` never changes PRs or refs. Never close an outstanding baseline PR merely to refresh it.
