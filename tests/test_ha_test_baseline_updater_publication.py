@@ -140,6 +140,7 @@ def test_publication_push_only_creates_absent_branch(tmp_path: Path) -> None:
         "retained",
         "rejected",
         "legacy_rejected",
+        "stale_closed",
         "orphan",
         "legacy_other",
     ],
@@ -157,7 +158,14 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
     shim_dir.mkdir()
     candidate = "automation/ha-test-baseline-2026.11.3-official-2026.11.3"
     previous_candidate = "automation/ha-test-baseline-2026.11.2-official-2026.11.2"
-    new_pr = scenario in ("create", "retained", "rejected", "legacy_rejected", "orphan")
+    new_pr = scenario in (
+        "create",
+        "retained",
+        "rejected",
+        "legacy_rejected",
+        "stale_closed",
+        "orphan",
+    )
     permanent = "automation/ha-test-baseline"
     branch = permanent if new_pr or scenario == "fixed_newer" else candidate
     if scenario == "legacy_other":
@@ -205,7 +213,7 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
     git("commit", "-am", "old proposal")
     old_head = git("rev-parse", "HEAD")
     old_tree = git("rev-parse", "HEAD^{tree}")
-    if scenario not in ("create", "legacy_rejected"):
+    if scenario not in ("create", "legacy_rejected", "stale_closed"):
         git("push", "origin", branch)
     git("checkout", "main")
     if scenario not in ("current", "current_race"):
@@ -220,8 +228,10 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
         f"- Proposed head commit: {old_head}\n"
         f"- Baseline candidate: {candidate}\n"
     )
-    if scenario in ("fixed_newer", "retained"):
+    if scenario in ("fixed_newer", "retained", "stale_closed"):
         body = body.replace(candidate, previous_candidate)
+    if scenario == "stale_closed":
+        body = body.replace(old_head, old_base)
     pr = {
         "number": 123,
         "state": "open",
@@ -259,7 +269,7 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
         (
             "history.json",
             {**pr, "state": "closed", "merged_at": None}
-            if scenario in ("retained", "rejected")
+            if scenario in ("retained", "rejected", "stale_closed")
             else None,
         ),
         (
@@ -330,6 +340,12 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
     elif scenario in ("current", "rejected", "legacy_rejected"):
         assert result.returncode == 0, result.stderr
         assert actual == ("" if scenario == "legacy_rejected" else old_head)
+        assert not (tmp_path / "edited").exists()
+        assert not (tmp_path / "created").exists()
+    elif scenario == "stale_closed":
+        assert result.returncode != 0
+        assert "stale head provenance" in result.stderr
+        assert actual == ""
         assert not (tmp_path / "edited").exists()
         assert not (tmp_path / "created").exists()
     else:
