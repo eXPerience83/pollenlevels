@@ -126,7 +126,9 @@ def test_publication_push_only_creates_absent_branch(tmp_path: Path) -> None:
     assert git("ls-remote", "origin", f"refs/heads/{branch}").split()[0] == first
 
 
-@pytest.mark.parametrize("scenario", ["refresh", "current", "manual", "closed", "race"])
+@pytest.mark.parametrize(
+    "scenario", ["refresh", "current", "manual", "closed", "race", "current_race"]
+)
 def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
     """Run the actual publication script with a real remote and scripted PR API."""
     if any(shutil.which(cmd) is None for cmd in ("git", "bash", "jq")):
@@ -184,7 +186,7 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
     old_tree = git("rev-parse", "HEAD^{tree}")
     git("push", "origin", branch)
     git("checkout", "main")
-    if scenario != "current":
+    if scenario not in ("current", "current_race"):
         git("commit", "--allow-empty", "-m", "main advances")
     base = git("rev-parse", "HEAD")
     git("push", "origin", "main")
@@ -254,7 +256,7 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
         encoding="utf-8",
     )
     shim.chmod(0o755)
-    if scenario == "race":
+    if scenario in ("race", "current_race"):
         env["RACE"] = "yes"
     result = subprocess.run(
         ["bash", "-c", script],
@@ -280,5 +282,5 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
         assert not (tmp_path / "edited").exists()
     else:
         assert result.returncode != 0
-        assert actual == (base if scenario == "race" else old_head)
+        assert actual == (base if scenario in ("race", "current_race") else old_head)
         assert not (tmp_path / "edited").exists()
