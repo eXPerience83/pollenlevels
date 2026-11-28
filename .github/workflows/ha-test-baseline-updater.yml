@@ -494,14 +494,26 @@ jobs:
             echo "main moved from validated base $BASE_SHA to $remote_main." >&2
             exit 1
           }
+          verify_published_head() {
+            # GitHub PR metadata and Git refs are not an atomic transaction.
+            # Only report success for the exact head observed at this check.
+            local observed
+            observed="$(git ls-remote --exit-code origin "refs/heads/$branch")"
+            test "$observed" = "$(printf '%s\trefs/heads/%s' "$head_sha" "$branch")" || {
+              echo "Automation branch moved from the validated head $head_sha." >&2
+              exit 1
+            }
+          }
           if [[ "$unchanged" == true ]]; then
+            verify_published_head
             # Repair missing provenance if an earlier push succeeded but the
             # PR metadata update failed; otherwise leave the reviewed head alone.
             if jq -e --arg base "$BASE_SHA" --arg head "$head_sha" '
               (.body | split("\n") | index("- Validated base commit: " + $base)) != null and
               (.body | split("\n") | index("- Proposed head commit: " + $head)) != null
             ' <<< "$current" >/dev/null; then
-              echo "Existing baseline pull request is current."
+              verify_published_head
+              echo "Existing baseline pull request is current at $head_sha."
               exit 0
             fi
           else
@@ -510,9 +522,11 @@ jobs:
             git push --force-with-lease="refs/heads/$branch:$expected_head" origin "HEAD:refs/heads/$branch"
           fi
           if [[ -n "$existing_pr" ]]; then
+            verify_published_head
             gh pr edit "$existing_pr" --repo "$GITHUB_REPOSITORY" \
               --title "$pr_title" --body-file "$RUNNER_TEMP/pr-body-final.md"
-            echo "Updated existing baseline pull request #$existing_pr."
+            verify_published_head
+            echo "Updated existing baseline pull request #$existing_pr at $head_sha."
           else
             gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
               --title "$pr_title" \
