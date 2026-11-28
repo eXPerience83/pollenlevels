@@ -246,10 +246,10 @@ def test_existing_pr_publication(tmp_path: Path, scenario: str) -> None:
         '    cat "$FIXTURE_DIR/current.json"\n'
         '    if [[ "${RACE:-}" == yes ]]; then\n'
         '      git push --force origin "$BASE_SHA:refs/heads/$BASELINE_BRANCH" >&2\n'
-        '    fi;;\n'
+        "    fi;;\n"
         '  "auth setup-git") ;;\n'
         '  "pr edit 123 "*) touch "$FIXTURE_DIR/edited";;\n'
-        '  *) exit 99;;\n'
+        "  *) exit 99;;\n"
         "esac\n",
         encoding="utf-8",
     )
