@@ -447,6 +447,16 @@ jobs:
           # this history across the legacy-to-permanent migration and reuse.
           if [[ "$same_candidate" == false ]]; then
             history="$(closed_prs "$permanent_branch")"
+            # A failed metadata update can leave a rejected PR describing
+            # the previous candidate, even after its branch is deleted.
+            jq -e '
+              all(.[] | select(.merged_at == null);
+                .head.sha as $sha |
+                (.body | split("\n") | index("- Proposed head commit: " + $sha)) != null)
+            ' <<< "$history" >/dev/null || {
+              echo "Closed baseline PR has stale head provenance; maintainer reconciliation required." >&2
+              exit 1
+            }
             legacy_history="$(closed_prs "$candidate")"
             if jq -e 'any(.[]; .merged_at == null)' <<< "$legacy_history" >/dev/null ||
               jq -e --arg candidate "$candidate" '
