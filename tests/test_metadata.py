@@ -634,7 +634,7 @@ def test_ha_test_baseline_updater_keeps_validation_and_publication_separate() ->
     assert "git push --force" not in workflow.replace(guarded_push, "")
     assert "github.ref != 'refs/heads/main'" in workflow
     assert "git check-ref-format" in publication
-    assert "gh pr list" in publication
+    assert "gh api --paginate" in publication
     assert "git ls-remote origin refs/heads/main" in publication
     assert "Remote branch $branch exists without a pull request" in publication
     assert "gh pr create" in publication
